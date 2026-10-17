@@ -296,8 +296,10 @@ export function buildShipModel(spec, tw = {}) {
 
   // -------- AA guns, boats, rails, clutter --------
   const aaTotal = tw.aaCount ?? clamp(Math.round(L / (carrier ? 8 : 9)), 6, 40);
+  const zoneA = Math.max(0.06, towerF - 0.05), zoneB = Math.min(0.9, (fF.length ? Math.max(...fF) : 0.55) + 0.08);
   for (let i = 0; i < aaTotal; i++) {
-    const f = 0.10 + 0.82 * rnd();
+    // most light AA clusters around the superstructure and funnels, the rest on the open decks
+    const f = !carrier && rnd() < 0.65 ? zoneA + (zoneB - zoneA) * rnd() : 0.10 + 0.82 * rnd();
     const x = X(f);
     const sg = rnd() < 0.5 ? -1 : 1;
     let y = Y(x), z = sg * hull.halfBeamDeck(x) * (0.55 + 0.35 * rnd());

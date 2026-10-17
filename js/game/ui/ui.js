@@ -178,7 +178,7 @@ export function createUI(game) {
     h('button', { class: 'btn tiny', title: 'Réglages (H)', onclick: () => toggleSettings() }, 'Réglages'),
     h('button', { class: 'btn tiny', title: 'Aide (F1)', onclick: () => helpEl.classList.toggle('hidden') }, '?'));
   const teamsHud = h('div', { id: 'teamshud', class: 'hud' });
-  const camBar = h('div', { id: 'cambar', class: 'hud' }, CAMERA_MODES.map((m) => h('button', { class: 'cam', 'data-id': m.id, title: m.hint, onclick: () => game.camera.setMode(m.id) }, h('b', {}, m.key), ' ' + m.name)),
+  const camBar = h('div', { id: 'cambar', class: 'hud' }, CAMERA_MODES.map((m) => h('button', { class: 'cam', 'data-id': m.id, title: m.hint, onclick: () => game.camera.setMode(m.id, true) }, h('b', {}, m.key), ' ' + m.name)),
     h('button', { class: 'cam', title: 'Navire précédent (B)', onclick: () => game.camera.pickTarget(-1) }, '◀'), h('button', { class: 'cam', title: 'Navire suivant (N / Tab)', onclick: () => game.camera.pickTarget(1) }, '▶'));
   const shipInfo = h('div', { id: 'shipinfo', class: 'hud' });
   const feed = h('div', { id: 'feed', class: 'hud' });
@@ -205,6 +205,7 @@ export function createUI(game) {
   const settings = h('div', { id: 'settings', class: 'panel hidden' }, h('div', { class: 'title' }, h('span', { class: 'big' }, 'Réglages')));
   {
     const scaleVal = h('output', {}, Math.round(engine.getRenderScale() * 100) + '%');
+    ui.onRenderScale = (v) => { scaleVal.textContent = Math.round(v * 100) + '%'; const inp = scaleVal.previousSibling; if (inp) inp.value = v; };
     settings.append(h('label', { class: 'slider' }, h('span', {}, 'Ombres des navires'), h('input', { type: 'checkbox', checked: game.shadowsOn, onchange: (e) => { game.shadowsOn = e.target.checked; } }), h('span')));
     settings.append(h('label', { class: 'slider' }, h('span', {}, 'Résolution de rendu'), h('input', { type: 'range', min: 0.4, max: 1.5, step: 0.05, value: engine.getRenderScale(), oninput: (e) => { engine.setRenderScale(Number(e.target.value)); scaleVal.textContent = Math.round(e.target.value * 100) + '%'; } }), scaleVal));
     for (const [key, label, min, max, step, kind] of SLIDERS) {

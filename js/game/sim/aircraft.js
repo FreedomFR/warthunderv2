@@ -144,7 +144,7 @@ export function updateAir(world, dt) {
       }
     } else if (p.phase === 'ditch') {
       wantAlt = 0; wantSpeed = 50;
-      if (p.y <= 2) { world.events.push({ type: 'splash', x: p.x, z: p.z, cal: 150 }); arr.splice(i, 1); continue; }
+      if (p.y <= 4) { world.events.push({ type: 'splash', x: p.x, z: p.z, cal: 150 }); arr.splice(i, 1); continue; }
     }
 
     // kinematics: turn rate limited, altitude via pitch

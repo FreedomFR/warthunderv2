@@ -5,7 +5,7 @@ Vous composez les flottes (6 nations × 5 types de navires réels), vous les fai
 vous changez de caméra pour les suivre, puis vous lancez le combat : l'IA pilote tous les navires, qui se
 tirent dessus jusqu'à ce qu'il ne reste qu'une équipe.
 
-![Bataille](docs/battle.jpg)
+![Bataille : l'Iowa tire sous un ciel de coucher de soleil](docs/battle.jpg)
 
 ## Lancer le jeu
 
@@ -18,7 +18,7 @@ Il faut un Chrome (ou Edge) récent avec WebGPU et une carte graphique correcte.
 npm install
 npm start          # http://localhost:8080/
 npm run build      # régénère naval.html (esbuild)
-npm test           # bataille complète sans GPU (simulation seule)
+npm test           # vérifie les 30 modèles et simule des batailles complètes (sans GPU)
 ```
 
 Si la machine est lente : *Réglages* (touche `H`) → « Résolution de rendu ». Sur un portable, forcer Chrome
@@ -32,6 +32,10 @@ sur la carte graphique dédiée.
    suivantes se voient immédiatement. Changez de caméra, regardez-les de près.
 3. **Lancer le combat** : tout est autonome. Accélérez le temps (0,5× à 8×) ou mettez en pause.
 4. À la fin, un écran de victoire résume les dégâts, tirs, touches et navires coulés.
+
+| Composition des flottes | Impact sur le Yamato | Vue tactique |
+|---|---|---|
+| ![Composition des flottes](docs/fleet.jpg) | ![Impact](docs/action.jpg) | ![Tactique](docs/tactical.jpg) |
 
 ### Caméras (touches 1 à 7)
 
@@ -112,7 +116,7 @@ Les tourelles, la conduite de tir, les rechargements et les salves sont déjà g
 | `js/game/sim/` | Simulation pure (sans GPU) : monde, navires, armes, balistique, dégâts, aviation, contrôleurs |
 | `js/game/render/` | Rendu des navires, particules, effets, ombres |
 | `js/game/ui/` | Interface, caméras |
-| `test/` | `battle.mjs` (bataille sans GPU), `models.mjs` (vérification des 30 modèles) |
+| `test/` | `models.mjs` (30 modèles), `battle.mjs` / `preset.mjs` (une bataille), `fuzz.mjs` (batailles aléatoires) |
 
 Paramètres d'URL utiles : `?scenario=duel&start=1` (démarrage direct), `seed=123` (combat reproductible),
 `mode=orbit`, `speed=4`, `scale=0.7` (résolution de rendu), `shadows=0`, `preview=iowa,yamato` (aperçu de modèles).

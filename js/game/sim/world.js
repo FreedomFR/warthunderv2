@@ -42,6 +42,7 @@ export class World {
     this.kills = [];
     this._enemyCache = new Map();
     this.timeLimit = 3600;
+    this.lastCombatT = 0;        // last time a ship damaged another (used by the AI to break stalemates)
   }
 
   addTeam(id, name, rgb) {
@@ -72,7 +73,7 @@ export class World {
 
   clear() {
     this.ships.length = 0; this.shells.length = 0; this.torpedoes.length = 0; this.planes.length = 0;
-    this.events.length = 0; this.time = 0; this.state = 'setup'; this.winner = null; this.kills.length = 0;
+    this.events.length = 0; this.time = 0; this.lastCombatT = 0; this.state = 'setup'; this.winner = null; this.kills.length = 0;
     this.nameCounts.clear();
   }
 

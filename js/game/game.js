@@ -32,6 +32,9 @@ export class Game {
     this.lightVP = new Float32Array(16);
     this.shadowsOn = new URLSearchParams(location.search).get('shadows') !== '0';
     this.shadowActive = false;
+    // adaptive resolution: lower the render scale when the GPU cannot keep up (never in headless tests / when forced by the URL)
+    this.autoScale = !engine.offscreen && !new URLSearchParams(location.search).has('scale');
+    this.slowT = 0;
   }
 
   async init() {
@@ -72,7 +75,7 @@ export class Game {
     this.paused = false;
     // show the first fleet from a pleasant angle (unless the player is just editing the fleets)
     if (!keepCamera || !this.camera.target || !w.ships.includes(this.camera.target)) {
-      if (!keepCamera) this.camera.setMode('orbit');
+      if (!keepCamera) { this.camera.userChoice = false; this.camera.setMode('orbit'); }
       // the first team's flagship (largest ship) is the centre of attention
       const flag = w.ships.filter((s) => s.team === 0).sort((a, b) => b.stats.L - a.stats.L)[0] || w.ships[0];
       if (flag) this.camera.setTarget(flag);
@@ -85,6 +88,8 @@ export class Game {
     for (const s of this.world.ships) s.cmd.throttle = 0.7;
     this.world.start();
     this.state = 'running';
+    // unless the player picked a camera, let the automatic director follow the action
+    if (!this.camera.userChoice) this.camera.setMode('auto');
     this.ui?.onStart?.();
   }
 
@@ -155,6 +160,16 @@ export class Game {
     water.count = k;
     water.tag = list;
 
+    // adaptive resolution
+    if (this.autoScale) {
+      const fps = this.engine.stats.fps;
+      if (fps > 0 && fps < 26) this.slowT += dt; else this.slowT = Math.max(0, this.slowT - dt * 0.5);
+      if (this.slowT > 3.5) {
+        this.slowT = 0;
+        const sc = this.engine.getRenderScale();
+        if (sc > 0.52) { this.engine.setRenderScale(Math.max(0.5, sc - 0.12)); this.ui?.onRenderScale?.(this.engine.getRenderScale()); }
+      }
+    }
     this.camera.update(dt);
     // camera shake from explosions
     const cam = this.engine.cam;

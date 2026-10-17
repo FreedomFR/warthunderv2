@@ -235,7 +235,7 @@ export class Ship {
   applyDamage(amount, attacker, cause) {
     if (this.state !== 'afloat' || amount <= 0) return false;
     this.hp -= amount;
-    if (attacker) { this.lastAttacker = attacker; this.lastHitT = this.world.time; }
+    if (attacker) { this.lastAttacker = attacker; this.lastHitT = this.world.time; this.world.lastCombatT = this.world.time; }
     if (this.hp <= 0) { this.hp = 0; this.destroy(attacker, cause); return true; }
     return false;
   }

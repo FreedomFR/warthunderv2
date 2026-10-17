@@ -76,10 +76,16 @@ export class AIController {
       DD: 0.42, CL: 0.5, CA: 0.52, BB: 0.5, CV: 1.0,
     }[st.type] * st.main.maxRange * this.aggr;
     Rd = clamp(Rd, 3800, 17500);
-    if (st.type === 'CV') Rd = Math.max(Rd, 22000);
+    // nothing has been hit for a while: stop kiting and close in
+    const lull = world.time - world.lastCombatT > 150 && world.time > 200;
+    // the longer a battle drags on, the closer everybody fights (breaks long-range dances)
+    const ramp = clamp(1 - Math.max(0, world.time - 420) / 1700, 0.42, 1);
+    Rd *= ramp * (lull ? 0.7 : 1);
+    if (st.type === 'CV') Rd = lull ? 9000 : Math.max(Rd, 22000 * ramp);
     if (tp && ship.torpLeft > 0) Rd = Math.min(Rd, clamp(tp.range * 0.5, 3800, 7500));
     let want, thr;
-    const crippled = ship.hpFrac < 0.28 || (ship.engine < 0.4 && ship.hpFrac < 0.5);
+    // a crippled ship withdraws, but only while it is still being shot at
+    const crippled = (ship.hpFrac < 0.28 || (ship.engine < 0.4 && ship.hpFrac < 0.5)) && world.time - ship.lastHitT < 90;
     if (crippled && st.type !== 'DD') {
       want = bearing + Math.PI + this.circle * 0.35; thr = 1;
     } else if (d > Rd * 1.12) {

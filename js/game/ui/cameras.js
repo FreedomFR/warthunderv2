@@ -34,7 +34,8 @@ export class CameraRig {
     this.bindInput();
   }
 
-  setMode(id) {
+  setMode(id, user = false) {
+    if (user) this.userChoice = true;
     if (this.mode === id) return;
     const cam = this.engine.cam;
     this.mode = id;
@@ -78,7 +79,7 @@ export class CameraRig {
       this.keys[e.code] = true;
       if (e.repeat) return;
       const m = CAMERA_MODES.find((x) => 'Digit' + x.key === e.code || 'Numpad' + x.key === e.code);
-      if (m) this.setMode(m.id);
+      if (m) this.setMode(m.id, true);
       if (e.code === 'Tab' || e.code === 'KeyN' || e.code === 'BracketRight') { this.pickTarget(e.shiftKey ? -1 : 1); e.preventDefault(); }
       if (e.code === 'KeyB' || e.code === 'BracketLeft') this.pickTarget(-1);
     });
