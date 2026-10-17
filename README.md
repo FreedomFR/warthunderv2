@@ -116,7 +116,7 @@ Les tourelles, la conduite de tir, les rechargements et les salves sont déjà g
 | `js/game/sim/` | Simulation pure (sans GPU) : monde, navires, armes, balistique, dégâts, aviation, contrôleurs |
 | `js/game/render/` | Rendu des navires, particules, effets, ombres |
 | `js/game/ui/` | Interface, caméras |
-| `test/` | `models.mjs` (30 modèles), `battle.mjs` / `preset.mjs` (une bataille), `fuzz.mjs` (batailles aléatoires) |
+| `test/` | `models.mjs` (30 modèles), `manual.mjs` (pilotage manuel via ShipCommand), `battle.mjs` / `preset.mjs` (une bataille), `fuzz.mjs` (batailles aléatoires) |
 
 Paramètres d'URL utiles : `?scenario=duel&start=1` (démarrage direct), `seed=123` (combat reproductible),
 `mode=orbit`, `speed=4`, `scale=0.7` (résolution de rendu), `shadows=0`, `preview=iowa,yamato` (aperçu de modèles).
