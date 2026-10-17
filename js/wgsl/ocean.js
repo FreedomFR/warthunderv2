@@ -220,7 +220,7 @@ fn foamPattern(xz: vec2f, t: f32) -> f32 {
   let fw1 = textureSample(foamWorld, sampR, xz / F.lodP.w, 1u);
   let fwl = mix(fw1, fw0, w0) * w1;
   let fresh = clamp((F.foamP.x - J) * F.foamP.y, 0.0, 1.0);
-  var cover = clamp((max(fwl.r, fresh * (1.0 - w1 * 0.7)) + fwl.g * 0.6) * F.foamP.z, 0.0, 1.5);
+  var cover = clamp((max(max(fwl.r, fresh * (1.0 - w1 * 0.7)), fwl.b) + fwl.g * 0.6) * F.foamP.z, 0.0, 1.5);
   // aged foam breaks into wind-aligned streaks; fresh crest foam stays dense
   let wd = F.windP[0].xy;
   let ws = vec2f(dot(xz, wd), dot(xz, vec2f(-wd.y, wd.x)));
@@ -257,7 +257,7 @@ fn foamPattern(xz: vec2f, t: f32) -> f32 {
     if (F.post.w > 4.5 && F.post.w < 5.5) { return vec4f(body * (1.0 - Fr), 1.0); }
     if (F.post.w > 5.5 && F.post.w < 6.5) { return vec4f(foamLit, 1.0); }
     if (F.post.w > 6.5 && F.post.w < 7.5) { return vec4f(skyUp, 1.0); }
-    return vec4f(fwl.r, fwl.g, fresh, 1.0) * 0.2;
+    return vec4f(fwl.r, fwl.g, fwl.b, 1.0) * 0.5;
   }
   var col = body * (1.0 - Fr) + refl * Fr + spec;
   col = mix(col, foamLit, foamMask * 0.95);
@@ -295,5 +295,34 @@ fn main() {
     x0 = goal - d.xz;
   }
   outH[0] = dispAt(x0).y;
+}
+`;
+
+// Water surface heights at many world positions (ships, camera). Point 0 is the camera.
+// pts[0].x = count, points start at pts[1] (x, z). Output: displaced surface height per point.
+export const WATER_PROBE = FRAME_WGSL + /* wgsl */ `
+@group(0) @binding(0) var<uniform> F: Frame;
+@group(0) @binding(1) var dispTex: texture_2d_array<f32>;
+@group(0) @binding(2) var samp: sampler;
+@group(0) @binding(3) var<storage, read> pts: array<vec2f>;
+@group(0) @binding(4) var<storage, read_write> outH: array<f32>;
+fn dispAt(xz: vec2f) -> vec3f {
+  var d = vec3f(0.0);
+  for (var c = 0u; c < ${CASCADES}u; c++) {
+    d += textureSampleLevel(dispTex, samp, xz * F.cascInvL[c >> 2u][c & 3u], c, 0.0).xyz;
+  }
+  return d;
+}
+@compute @workgroup_size(64)
+fn main(@builtin(global_invocation_id) id: vec3u) {
+  let n = u32(pts[0].x);
+  if (id.x >= n) { return; }
+  let goal = pts[id.x + 1u];
+  var x0 = goal;
+  for (var i = 0; i < 4; i++) {
+    let d = dispAt(x0);
+    x0 = goal - d.xz;
+  }
+  outH[id.x] = dispAt(x0).y;
 }
 `;

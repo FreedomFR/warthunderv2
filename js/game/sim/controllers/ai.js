@@ -1,0 +1,124 @@
+// Autonomous captain. Writes a ShipCommand (see ship.js) every ~0.5 s: picks targets, chooses a fighting
+// range and heading, launches torpedoes and air strikes, avoids collisions, withdraws when crippled.
+import { clamp, wrapPi, D2R } from '../../math.js';
+
+const TYPE_VALUE = { DD: 1.0, CL: 1.3, CA: 1.8, BB: 2.5, CV: 2.3 };
+const MAP_RADIUS = 26000;
+
+export class AIController {
+  constructor(opts = {}) {
+    this.timer = 0;
+    this.init = false;
+    this.opts = opts;
+  }
+
+  update(ship, world, dt) {
+    this.timer -= dt;
+    if (this.timer > 0) return;
+    this.timer = 0.4 + world.rng() * 0.2;
+    this.think(ship, world, 0.5);
+  }
+
+  think(ship, world, dt) {
+    const st = ship.stats, cmd = ship.cmd, rng = world.rng;
+    if (!this.init) {
+      this.init = true;
+      this.circle = rng() < 0.5 ? -1 : 1;
+      this.aggr = this.opts.aggression ?? (0.85 + 0.35 * rng());
+      this.zig = 1; this.zigT = 8 + rng() * 20;
+      this.retreatT = 0;
+    }
+    const enemies = world.enemiesOf(ship);
+    if (!enemies.length) { cmd.throttle = 0.35; cmd.main.target = null; cmd.sec.target = null; cmd.torpedo.fire = false; cmd.air.launch = false; return; }
+    for (const e of enemies) e._d = Math.hypot(e.x - ship.x, e.z - ship.z);
+    enemies.sort((a, b) => a._d - b._d);
+    const nearest = enemies[0];
+
+    // ---- main battery target ----
+    const gunR = st.main.maxRange * 0.93;
+    const reach = Math.min(gunR, st.visualRange);
+    let best = null, bs = 0;
+    for (const e of enemies) {
+      if (e._d > reach) continue;
+      let s = TYPE_VALUE[e.stats.type] * (1 + (1 - e.hpFrac) * 0.9) / (0.35 + e._d / reach);
+      if (e === ship.lastAttacker) s *= 1.25;
+      if (e === cmd.main.target) s *= 1.35;
+      if (st.type === 'DD' || st.type === 'CL') s *= Math.pow(reach / Math.max(e._d, 1500), 0.7);
+      if (s > bs) { bs = s; best = e; }
+    }
+    cmd.main.target = best;
+    cmd.main.fire = true;
+    cmd.sec.target = best && best._d < (st.secs[0] ? st.secs[0].maxRange * 0.9 : 0) ? best : null;
+    cmd.sec.fire = true;
+
+    // ---- torpedoes ----
+    const tp = st.torpedo;
+    let torpTarget = null;
+    if (tp && ship.torpLeft > 0) {
+      let tb = 0;
+      for (const e of enemies) {
+        if (e._d < 2200 || e._d > clamp(tp.range * 0.5, 4500, 9000)) continue;
+        const s = TYPE_VALUE[e.stats.type] * (1 + 0.5 * (e === best)) / (1 + e._d / 8000);
+        if (s > tb) { tb = s; torpTarget = e; }
+      }
+    }
+    cmd.torpedo.target = torpTarget;
+    cmd.torpedo.fire = !!torpTarget;
+
+    // ---- air strike ----
+    cmd.air.launch = !!(ship.air && nearest._d < 75000 && ship.air.ready >= 4);
+
+    // ---- navigation ----
+    const ref = best || nearest;
+    const dx = ref.x - ship.x, dz = ref.z - ship.z, d = ref._d;
+    const bearing = Math.atan2(dx, -dz);
+    let Rd = {
+      DD: 0.42, CL: 0.5, CA: 0.52, BB: 0.5, CV: 1.0,
+    }[st.type] * st.main.maxRange * this.aggr;
+    Rd = clamp(Rd, 3800, 17500);
+    if (st.type === 'CV') Rd = Math.max(Rd, 22000);
+    if (tp && ship.torpLeft > 0) Rd = Math.min(Rd, clamp(tp.range * 0.5, 3800, 7500));
+    let want, thr;
+    const crippled = ship.hpFrac < 0.28 || (ship.engine < 0.4 && ship.hpFrac < 0.5);
+    if (crippled && st.type !== 'DD') {
+      want = bearing + Math.PI + this.circle * 0.35; thr = 1;
+    } else if (d > Rd * 1.12) {
+      want = bearing + this.circle * (d > Rd * 2 ? 12 : 28) * D2R; thr = d > Rd * 1.5 ? 1 : 0.85;
+    } else if (d < Rd * 0.78) {
+      want = bearing + this.circle * 135 * D2R; thr = 0.9;
+    } else {
+      const corr = clamp((d - Rd) / Rd, -0.3, 0.3);
+      want = bearing + this.circle * (90 - corr * 120) * D2R; thr = 0.7;
+    }
+    // torpedo attack run: show the beam to the target
+    if (torpTarget && d < clamp(tp.range * 0.5, 4500, 9000) * 1.15) {
+      const bt = Math.atan2(torpTarget.x - ship.x, -(torpTarget.z - ship.z));
+      want = bt + this.circle * 82 * D2R; thr = 1;
+    }
+    // evasive zigzag
+    this.zigT -= dt;
+    if (this.zigT <= 0) { this.zig = -this.zig; this.zigT = (st.type === 'DD' ? 9 : 16) + rng() * 20; }
+    want += this.zig * (st.type === 'DD' ? 14 : st.type === 'BB' ? 6 : 9) * D2R;
+
+    // steering vector with obstacle avoidance and map boundary
+    let vx = Math.sin(want), vz = -Math.cos(want);
+    for (const o of world.ships) {
+      if (o === ship || o.state === 'sunk') continue;
+      const ox = ship.x - o.x, oz = ship.z - o.z;
+      const dist = Math.hypot(ox, oz);
+      const safe = (st.L + o.stats.L) * 0.55 + 140 + (o.alive ? 0 : 120);
+      if (dist < safe && dist > 1) {
+        const k = Math.pow(1 - dist / safe, 1.2) * 2.4;
+        vx += ox / dist * k; vz += oz / dist * k;
+        if (dist < safe * 0.6) thr = Math.min(thr, 0.6);
+      }
+    }
+    const r = Math.hypot(ship.x, ship.z);
+    if (r > MAP_RADIUS - 4000) {
+      const k = clamp((r - (MAP_RADIUS - 4000)) / 4000, 0, 1.5);
+      vx -= ship.x / r * k * 1.5; vz -= ship.z / r * k * 1.5;
+    }
+    cmd.desiredHeading = Math.atan2(vx, -vz);
+    cmd.throttle = thr;
+  }
+}

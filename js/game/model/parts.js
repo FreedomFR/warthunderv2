@@ -1,0 +1,325 @@
+// Reusable ship parts. All functions draw into a MeshBuilder in model space
+// (+x bow, +y up from the waterline, +z starboard). `pal` is the ship palette
+// { hull, deck, sup, dark, funnel, cap, mast, boat, glass }.
+import { MAT, rgb, shade, mix } from './meshbuilder.js';
+
+const PI = Math.PI;
+
+/** Fixed barbette (the rotating turret sits on top of it). Returns the top y. */
+export function barbette(b, x, z, r, y0, y1, col) {
+  b.cylinder(x, y0, z, r, r * 0.98, y1, rgb(col), MAT.HULL, { seg: 20 });
+  return y1;
+}
+
+/**
+ * Oval funnel. o: { x, z, y0, h, lx, lz, topLx, topLz, rake, cap, col, capCol, band, seg, trunk }
+ * lx/lz are full lengths at the base; rake = how far the top is shifted aft (m).
+ */
+export function funnel(b, o, pal) {
+  const col = rgb(o.col || pal.funnel), cap = rgb(o.capCol || pal.cap);
+  const z = o.z || 0;
+  const tlx = o.topLx ?? o.lx * 0.88, tlz = o.topLz ?? o.lz * 0.88;
+  const capH = o.cap ?? Math.max(1.2, o.h * 0.1);
+  const rake = o.rake || 0;
+  // trunk (wider base blending into the deck house)
+  if (o.trunk !== false) b.cyl(o.x, o.y0, z, o.lx * 0.6, o.lz * 0.6, o.lx * 0.5, o.lz * 0.5, o.y0 + o.h * 0.22, shade(col, 0.95), MAT.HULL, { seg: o.seg || 20, capTop: false, dx: -rake * 0.2 });
+  b.cyl(o.x, o.y0 + o.h * 0.2, z, o.lx * 0.5, o.lz * 0.5, tlx * 0.5, tlz * 0.5, o.y0 + o.h - capH, col, MAT.HULL, { seg: o.seg || 20, capTop: false, dx: -rake * 0.8 });
+  // black cap
+  const cx = o.x - rake * 0.8;
+  const topY = o.y0 + o.h - capH;
+  b.cyl(cx, topY, z, tlx * 0.5, tlz * 0.5, tlx * 0.5 * 0.98, tlz * 0.5 * 0.98, o.y0 + o.h, cap, MAT.DARK, { seg: o.seg || 20, dx: -rake * 0.2, topCol: shade(cap, 0.5) });
+  // band (e.g. national / fleet marking)
+  if (o.band) {
+    const [f0, f1, bc] = o.band;
+    const yb0 = o.y0 + o.h * f0, yb1 = o.y0 + o.h * f1;
+    const t0 = (yb0 - (o.y0 + o.h * 0.2)) / (o.h * 0.8 - capH), t1 = (yb1 - (o.y0 + o.h * 0.2)) / (o.h * 0.8 - capH);
+    const lerp = (a, c, t) => a + (c - a) * t;
+    const r0x = lerp(o.lx * 0.5, tlx * 0.5, t0) * 1.01, r0z = lerp(o.lz * 0.5, tlz * 0.5, t0) * 1.01;
+    const r1x = lerp(o.lx * 0.5, tlx * 0.5, t1) * 1.01, r1z = lerp(o.lz * 0.5, tlz * 0.5, t1) * 1.01;
+    b.cyl(o.x - rake * 0.8 * t0, yb0, z, r0x, r0z, r1x, r1z, yb1, rgb(bc), MAT.HULL, { seg: o.seg || 20, capTop: false, dx: -rake * 0.8 * (t1 - t0) });
+  }
+  // steam pipes / siren platform on the after side
+  if (o.pipes !== false) {
+    for (const sz of [-1, 1]) b.cylinder(o.x - o.lx * 0.52 - rake * 0.4, o.y0 + o.h * 0.35, z + sz * o.lz * 0.18, 0.28, 0.24, o.y0 + o.h * 0.96, shade(col, 0.8), MAT.HULL, { seg: 6 });
+  }
+}
+
+/** Window strip along a face: thin dark boxes slightly proud of the surface. */
+function windowBand(b, x0, x1, hw, y, h, pal, front = true, sides = true) {
+  const gl = rgb(pal.glass || '#101820');
+  if (front) b.block({ x0: x1 - 0.02, x1: x1 + 0.07, hw: hw - 0.35, y0: y, y1: y + h }, gl, MAT.GLASS);
+  if (sides) {
+    for (const sg of [-1, 1]) b.block({ x0: x0 + 0.5, x1: x1 - 0.5, hw: 0.04, zc: sg * (hw + 0.02), y0: y, y1: y + h }, gl, MAT.GLASS);
+  }
+}
+
+/**
+ * Multi-tier bridge structure. tiers: [{ len, w, h, dx, dz, rake, col, round, windows }]; each tier stands on the previous one.
+ * o: { x, z, y0 } returns { topY, tops: [y per tier] }.
+ */
+export function tower(b, o, pal) {
+  let y = o.y0;
+  const tops = [];
+  for (const t of o.tiers) {
+    const x = o.x + (t.dx || 0), z = (o.z || 0) + (t.dz || 0);
+    const col = rgb(t.col || pal.sup);
+    const rake = t.rake ?? 0;
+    if (t.round) {
+      b.cyl(x, y, z, t.len / 2, t.w / 2, (t.len / 2) * (t.taper ?? 0.92), (t.w / 2) * (t.taper ?? 0.92), y + t.h, col, MAT.HULL, { seg: 16 });
+    } else {
+      b.block({ x0: x - t.len / 2, x1: x + t.len / 2, hw: t.w / 2, zc: z, y0: y, y1: y + t.h, tx1: x + t.len / 2 - rake, tx0: x - t.len / 2 + (t.rakeAft || 0), thw: t.w / 2 * (t.taperW ?? 1) }, col, MAT.HULL);
+      if (t.windows !== false && t.h > 1.8) windowBand(b, x - t.len / 2, x + t.len / 2 - rake * 0.4, t.w / 2 * (t.taperW ?? 1), y + t.h * 0.42, Math.min(t.h * 0.34, 1.1), pal, true, true);
+      // roof overhang / wing
+      if (t.wings) b.block({ x0: x - t.len * 0.3, x1: x + t.len * 0.25, hw: t.w / 2 + t.wings, y0: y + t.h - 0.25, y1: y + t.h + 0.1 }, shade(col, 0.9), MAT.HULL);
+    }
+    y += t.h;
+    tops.push(y);
+  }
+  return { topY: y, tops };
+}
+
+/** Round conning tower with vision slits. */
+export function conningTower(b, o, pal) {
+  const col = rgb(o.col || pal.sup);
+  b.cylinder(o.x, o.y0, o.z || 0, o.r, o.r * 0.9, o.y0 + o.h, col, MAT.HULL, { seg: 18 });
+  b.cylinder(o.x, o.y0 + o.h, o.z || 0, o.r * 0.9, o.r * 0.7, o.y0 + o.h + 0.5, shade(col, 0.9), MAT.HULL, { seg: 18 });
+  const gl = rgb(pal.glass || '#101820');
+  for (let i = 0; i < 6; i++) {
+    const a = (-0.9 + i * 0.36);
+    b.box(o.x + Math.cos(a) * o.r * 0.93, o.y0 + o.h * 0.6, (o.z || 0) + Math.sin(a) * o.r * 0.93, 0.12, 0.28, 0.9, gl, MAT.GLASS);
+  }
+}
+
+/** Pole mast with yardarms. o: { x, z, y0, h, r, yards: [[fracHeight, span], ...], top } */
+export function poleMast(b, o, pal) {
+  const col = rgb(o.col || pal.mast);
+  const r = o.r ?? 0.3;
+  const sp = o.split ?? 0.62;
+  b.cylinder(o.x, o.y0, o.z || 0, r * 1.5, r, o.y0 + o.h * sp, col, MAT.HULL, { seg: 8 });
+  b.cylinder(o.x, o.y0 + o.h * sp, o.z || 0, r * 0.9, r * 0.35, o.y0 + o.h, col, MAT.HULL, { seg: 6 });
+  for (const [f, span] of (o.yards || [])) b.rodZ(o.x, o.y0 + o.h * f, (o.z || 0) - span / 2, (o.z || 0) + span / 2, 0.07, 0.04, col, MAT.HULL, { seg: 5 });
+  // masthead lamp
+  b.sphere(o.x, o.y0 + o.h + 0.1, o.z || 0, 0.12, 0.12, 0.12, rgb('#ffe9b0'), MAT.EMISSIVE, { seg: 6, rings: 4 });
+}
+
+/** Tripod mast: o: { x, z, y0, h, legSpread, legBack, apexFrac, r, platforms } */
+export function tripod(b, o, pal) {
+  const col = rgb(o.col || pal.mast);
+  const apexY = o.y0 + o.h * (o.apexFrac ?? 0.72);
+  const z0 = o.z || 0;
+  const sp = o.legSpread ?? 4.5, back = o.legBack ?? 6;
+  const w = o.r ?? 0.55;
+  const apex = [o.x, apexY, z0];
+  b.beam([o.x + (o.legFront ?? 2), o.y0, z0 - sp], apex, w, w, col, MAT.HULL);
+  b.beam([o.x + (o.legFront ?? 2), o.y0, z0 + sp], apex, w, w, col, MAT.HULL);
+  b.beam([o.x - back, o.y0, z0], apex, w, w, col, MAT.HULL);
+  b.cylinder(o.x, apexY - 0.5, z0, w * 0.9, w * 0.45, o.y0 + o.h, col, MAT.HULL, { seg: 8 });
+  for (const f of (o.platforms || [])) {
+    const py = o.y0 + o.h * f;
+    b.cyl(o.x, py, z0, 1.7, 1.7, 1.7, 1.7, py + 0.35, shade(col, 1.1), MAT.HULL, { seg: 10 });
+  }
+  for (const [f, span] of (o.yards || [])) b.rodZ(o.x, o.y0 + o.h * f, z0 - span / 2, z0 + span / 2, 0.08, 0.04, col, MAT.HULL, { seg: 5 });
+}
+
+/** Lattice (cage) mast: four corner legs + rings + bracing. */
+export function cageMast(b, o, pal) {
+  const col = rgb(o.col || pal.mast);
+  const z0 = o.z || 0;
+  const r0 = o.r0 ?? 2.2, r1 = o.r1 ?? 1.0, h = o.h;
+  const lv = 7;
+  const pts = (t) => { const r = r0 + (r1 - r0) * t; return [[-r, -r], [r, -r], [r, r], [-r, r]].map(([a, c]) => [o.x + a, o.y0 + h * t, z0 + c]); };
+  for (let i = 0; i < lv; i++) {
+    const A = pts(i / lv), B2 = pts((i + 1) / lv);
+    for (let k = 0; k < 4; k++) {
+      b.beam(A[k], B2[k], 0.16, 0.16, col, MAT.HULL, { caps: false });
+      b.beam(A[k], A[(k + 1) % 4], 0.1, 0.1, col, MAT.HULL, { caps: false });
+      b.beam(A[k], B2[(k + 1) % 4], 0.07, 0.07, col, MAT.HULL, { caps: false });
+    }
+  }
+  if (o.top !== false) b.cylinder(o.x, o.y0 + h, z0, 0.4, 0.12, o.y0 + h + o.h * 0.2, col, MAT.HULL, { seg: 6 });
+}
+
+/** Fire-control director. kind: 'box' (US/UK style) | 'drum' (Japanese hooded) | 'dome' */
+export function director(b, o, pal) {
+  const col = rgb(o.col || pal.sup);
+  const x = o.x, y = o.y, z = o.z || 0, w = o.w ?? 3, l = o.l ?? 3, h = o.h ?? 2;
+  if (o.kind === 'drum') {
+    b.cyl(x, y, z, l / 2, w / 2, l / 2 * 0.9, w / 2 * 0.9, y + h, col, MAT.HULL, { seg: 12 });
+    b.rodZ(x, y + h * 0.6, z - w * 0.9, z + w * 0.9, 0.35, 0.35, shade(col, 0.9), MAT.HULL);
+  } else if (o.kind === 'dome') {
+    b.cylinder(x, y, z, w / 2, w / 2, y + h * 0.5, col, MAT.HULL, { seg: 12 });
+    b.sphere(x, y + h * 0.5, z, w / 2, h * 0.5, w / 2, col, MAT.HULL, { half: true, seg: 12, rings: 6 });
+  } else {
+    b.block({ x0: x - l / 2, x1: x + l / 2, hw: w / 2, zc: z, y0: y, y1: y + h, tx1: x + l / 2 - h * 0.2, thw: w / 2 * 0.92 }, col, MAT.HULL);
+    b.block({ x0: x + l * 0.2, x1: x + l / 2 + 0.05, hw: w * 0.3, zc: z, y0: y + h * 0.5, y1: y + h * 0.82 }, rgb(pal.glass || '#101820'), MAT.GLASS);
+    b.rodZ(x - l * 0.1, y + h * 0.55, z - w * 0.85, z + w * 0.85, 0.18, 0.18, shade(col, 0.85), MAT.HULL);   // rangefinder
+  }
+  if (o.radar !== false) b.box(x - l * 0.1, y + h + 0.2, z, l * 0.5, 0.4, w * 0.6, shade(col, 1.1), MAT.HULL);
+}
+
+/** Radar antennas. kind: 'bedspring' (air search), 'dish' (surface search), 'yagi', 'box' */
+export function radar(b, o, pal) {
+  const col = rgb(o.col || pal.dark);
+  const x = o.x, y = o.y, z = o.z || 0;
+  if (o.kind === 'dish') {
+    b.cylinder(x, y, z, 0.18, 0.15, y + 0.9, col, MAT.HULL, { seg: 6 });
+    b.sphere(x, y + 1.1, z, 0.9, 0.7, 0.9, shade(col, 1.3), MAT.HULL, { half: true, seg: 10, rings: 6 });
+  } else if (o.kind === 'box') {
+    b.box(x, y + 0.6, z, 1.6, 1.2, 2.4, shade(col, 1.4), MAT.HULL);
+  } else if (o.kind === 'yagi') {
+    b.cylinder(x, y, z, 0.1, 0.1, y + 1.2, col, MAT.HULL, { seg: 5 });
+    b.beam([x - 0.8, y + 1.2, z], [x + 0.8, y + 1.2, z], 0.08, 0.08, col, MAT.HULL);
+    for (let i = -2; i <= 2; i++) b.beam([x + i * 0.35, y + 1.2, z - 0.7], [x + i * 0.35, y + 1.2, z + 0.7], 0.05, 0.05, col, MAT.HULL);
+  } else {   // bedspring: large frame with slats
+    const w = o.w ?? 5.5, hgt = o.h ?? 2.4;
+    b.cylinder(x, y, z, 0.2, 0.18, y + 0.8, col, MAT.HULL, { seg: 6 });
+    const yy = y + 0.8;
+    for (const sz of [-1, 1]) b.beam([x, yy, z + sz * w / 2], [x, yy + hgt, z + sz * w / 2], 0.1, 0.1, col, MAT.HULL, { caps: false });
+    for (const sy of [0, 1]) b.beam([x, yy + sy * hgt, z - w / 2], [x, yy + sy * hgt, z + w / 2], 0.1, 0.1, col, MAT.HULL, { caps: false });
+    for (let i = 1; i < 7; i++) b.beam([x, yy + hgt * i / 7, z - w / 2], [x, yy + hgt * i / 7, z + w / 2], 0.05, 0.05, col, MAT.HULL, { caps: false });
+    b.block({ x0: x - 0.35, x1: x - 0.2, hw: w / 2 - 0.1, zc: z, y0: yy + 0.1, y1: yy + hgt - 0.1 }, shade(col, 0.8), MAT.HULL);
+  }
+}
+
+/** Searchlight on a short pedestal */
+export function searchlight(b, x, y, z, r, pal) {
+  b.cylinder(x, y, z, r * 0.45, r * 0.4, y + r * 1.2, rgb(pal.dark), MAT.HULL, { seg: 6 });
+  b.cyl(x, y + r * 1.2, z, r, r, r, r, y + r * 2.4, shade(rgb(pal.sup), 0.8), MAT.HULL, { seg: 10 });
+}
+
+/** Static AA mounts (decorative): 'bofors2', 'bofors4', 'oerlikon', 'aa25' */
+export function aaGun(b, x, y, z, kind, yaw, pal) {
+  const col = shade(rgb(pal.sup), 0.85), dark = rgb(pal.dark);
+  b.push().translate(x, y, z).rotateY(yaw || 0);
+  if (kind === 'oerlikon') {
+    b.cylinder(0, 0, 0, 0.18, 0.15, 0.55, col, MAT.HULL, { seg: 6 });
+    b.box(0, 0.75, 0, 0.45, 0.4, 0.4, col, MAT.HULL);
+    b.rod(-0.2, 0.9, 0.85, 0, 0.03, 0.025, dark, MAT.DARK, { seg: 5 });
+  } else {
+    const n = kind === 'bofors4' ? 4 : 2;
+    b.cylinder(0, 0, 0, 0.6, 0.55, 0.45, shade(col, 0.9), MAT.HULL, { seg: 8 });
+    b.box(0, 0.7, 0, 1.2, 0.5, 1.2, col, MAT.HULL);
+    for (let i = 0; i < n; i++) b.rod(-0.4, 2.0, 1.05 + Math.floor(i / 2) * 0.3, ((i % 2) - 0.5) * 0.6, 0.06, 0.045, dark, MAT.DARK, { seg: 5 });
+  }
+  b.pop();
+}
+
+/** Round gun tub / sponson. */
+export function tub(b, x, y, z, r, h, pal) {
+  b.cylinder(x, y, z, r, r * 1.05, y + h, shade(rgb(pal.sup), 0.92), MAT.HULL, { seg: 12 });
+  b.cylinder(x, y + h, z, r * 1.08, r * 1.08, y + h + 0.18, shade(rgb(pal.sup), 0.8), MAT.HULL, { seg: 12 });
+}
+
+/** Cargo / aircraft crane on the quarterdeck. */
+export function crane(b, o, pal) {
+  const col = rgb(pal.mast);
+  const x = o.x, y0 = o.y0, z = o.z || 0;
+  b.cylinder(x, y0, z, 0.5, 0.4, y0 + (o.h ?? 6), col, MAT.HULL, { seg: 8 });
+  const ang = o.angle ?? 0.9;
+  const top = [x, y0 + (o.h ?? 6), z];
+  const tip = [x - Math.cos(ang) * (o.len ?? 14), y0 + (o.h ?? 6) + Math.sin(ang) * (o.len ?? 14) * 0.7, z + (o.side || 0) * (o.len ?? 14) * 0.3];
+  b.beam(top, tip, 0.35, 0.35, col, MAT.HULL);
+  b.beam([x - 0.3, y0 + 2, z], tip, 0.06, 0.06, rgb('#222'), MAT.DARK);
+}
+
+/** Aircraft catapult: two rails with a cradle. dir: heading of the rails in local space. */
+export function catapult(b, o, pal) {
+  const col = shade(rgb(pal.sup), 0.8);
+  b.push().translate(o.x, o.y, o.z || 0).rotateY(o.yaw || 0);
+  const l = o.len ?? 20;
+  for (const sz of [-0.5, 0.5]) b.block({ x0: -l / 2, x1: l / 2, hw: 0.14, zc: sz, y0: 0, y1: 0.35 }, col, MAT.HULL);
+  for (let i = 0; i <= 8; i++) b.box(-l / 2 + i * l / 8, 0.1, 0, 0.18, 0.2, 1.4, col, MAT.HULL);
+  b.pop();
+}
+
+/** Small floatplane / carrier aircraft model. kind: 'float' | 'fighter' | 'bomber' */
+export function aircraft(b, o, pal) {
+  const sc = o.scale ?? 1;
+  const col = rgb(o.col || '#8a8f93'), acc = rgb(o.acc || '#5c6166');
+  b.push().translate(o.x, o.y, o.z || 0).rotateY(o.yaw || 0).scale(sc);
+  b.rod(-4.2, 3.4, 0.9, 0, 0.18, 0.5, col, MAT.AIRCRAFT, { seg: 8 });                // fuselage (tail to nose)
+  b.rod(3.2, 3.9, 0.9, 0, 0.5, 0.3, shade(col, 0.8), MAT.DARK, { seg: 8 });             // cowling
+  b.block({ x0: -0.6, x1: 0.9, hw: 5.2, y0: 0.82, y1: 0.95, tx0: -0.3, tx1: 0.5 }, col, MAT.AIRCRAFT);   // wing
+  b.block({ x0: -4.4, x1: -3.5, hw: 1.8, y0: 0.9, y1: 0.97 }, col, MAT.AIRCRAFT);     // tailplane
+  b.block({ x0: -4.4, x1: -3.6, hw: 0.04, y0: 0.9, y1: 2.0, tx1: -3.9 }, col, MAT.AIRCRAFT);    // fin
+  b.rod(3.9, 4.0, 0.9, 0, 0.7, 0.7, acc, MAT.DARK, { seg: 6 });                          // prop disc
+  if (o.kind === 'float') b.rod(-1.5, 2.4, -0.2, 0, 0.3, 0.2, acc, MAT.AIRCRAFT, { seg: 6 });
+  b.pop();
+}
+
+/** Boat / liberty launch on its davits. */
+export function boat(b, o, pal) {
+  const col = rgb(o.col || pal.boat || '#8b8f90');
+  const l = o.len ?? 9;
+  b.push().translate(o.x, o.y, o.z || 0).rotateY(o.yaw || 0);
+  b.block({ x0: -l / 2, x1: l / 2, hw: l * 0.17, y0: 0, y1: l * 0.14, tx0: -l / 2 + 0.2, tx1: l / 2 + 1.2, thw: l * 0.2 }, col, MAT.HULL);
+  b.block({ x0: -l * 0.15, x1: l * 0.15, hw: l * 0.12, y0: l * 0.14, y1: l * 0.14 + 0.5 }, shade(col, 0.85), MAT.CANVAS);
+  b.pop();
+}
+
+/** Deck railings (top rail + posts) following the deck edge between x0 and x1. */
+export function deckRails(b, hull, x0, x1, height, pal, step = 5) {
+  const col = shade(rgb(pal.hull), 1.15);
+  for (const sg of [-1, 1]) {
+    let prev = null;
+    for (let x = Math.min(x0, x1); x <= Math.max(x0, x1); x += step) {
+      const hb = Math.max(hull.halfBeamDeck(x) - 0.25, 0.1);
+      const y = hull.deckY(x) - 0.25 + 0.9;
+      const p = [x, y + height, hb * sg];
+      if (prev) b.beam(prev, p, 0.06, 0.05, col, MAT.HULL, { caps: false });
+      if (hb > 0.5) b.beam([x, y, hb * sg], p, 0.05, 0.05, col, MAT.HULL, { caps: false });
+      prev = p;
+    }
+  }
+}
+
+/** Torpedo tube mount (rotatable in reality; modelled as a static bundle of tubes). */
+export function torpedoTubes(b, o, pal) {
+  const col = rgb(pal.sup);
+  const n = o.n || 4, r = o.r ?? 0.33;
+  b.push().translate(o.x, o.y, o.z || 0).rotateY(o.yaw || 0);
+  b.block({ x0: -1.2, x1: 1.2, hw: 0.9, y0: 0, y1: 0.35 }, shade(col, 0.85), MAT.HULL);
+  const cols = Math.ceil(Math.sqrt(n * 1.2));
+  for (let i = 0; i < n; i++) {
+    const row = Math.floor(i / cols), c = i % cols;
+    const zz = (c - (cols - 1) / 2) * r * 2.1, yy = 0.7 + row * r * 2.1;
+    b.rod(-(o.len ?? 4.2) / 2, (o.len ?? 4.2) / 2, yy, zz, r, r, shade(col, 1.05), MAT.HULL, { seg: 8 });
+  }
+  b.pop();
+}
+
+/** Scatter small deck fittings (hatches, vents, bollards) between x0 and x1 using `rnd`. */
+export function deckClutter(b, hull, x0, x1, count, rnd, pal, zMax = 0.8) {
+  const col = shade(rgb(pal.sup), 0.9);
+  for (let i = 0; i < count; i++) {
+    const x = x0 + (x1 - x0) * rnd();
+    const hb = hull.halfBeamDeck(x) * zMax;
+    const z = (rnd() * 2 - 1) * hb;
+    const y = hull.deckY(x);
+    const k = rnd();
+    if (k < 0.45) b.box(x, y + 0.12, z, 1.3 + rnd(), 0.24, 1.0 + rnd() * 0.6, shade(rgb(pal.deck), 1.2), MAT.HULL);
+    else if (k < 0.8) b.cylinder(x, y, z, 0.28, 0.22, y + 0.8 + rnd() * 0.5, col, MAT.HULL, { seg: 6 });
+    else b.cylinder(x, y, z, 0.35, 0.12, y + 1.0, col, MAT.HULL, { seg: 6 });
+  }
+}
+
+/** Anchor windlass + capstans + chain on the forecastle. */
+export function forecastle(b, hull, xBow, pal) {
+  const y = hull.deckY(xBow);
+  b.cylinder(xBow, y, 0, 0.45, 0.4, y + 0.9, rgb(pal.dark), MAT.DARK, { seg: 8 });
+  b.box(xBow - 3, y + 0.25, 0, 2.2, 0.5, 1.6, rgb(pal.dark), MAT.DARK);
+  for (const sg of [-1, 1]) b.cylinder(xBow - 1.2, y, sg * 1.7, 0.3, 0.25, y + 0.5, rgb(pal.dark), MAT.DARK, { seg: 6 });
+}
+
+/** Flag staff with a team pennant at the stern and the masthead */
+export function pennant(b, x, y, z, len, team, flagCol) {
+  const col = rgb(flagCol);
+  b.push().translate(x, y, z);
+  b.cylinder(0, 0, 0, 0.06, 0.04, 2.2, rgb('#777'), MAT.HULL, { seg: 5 });
+  // streaming pennant (double sided)
+  const tip = [-len, 1.9, 0.05];
+  const a = [0, 2.2, 0], c = [0, 1.7, 0];
+  b.triFlat(a, c, tip, col, MAT.FLAG, null, 1);
+  b.triFlat(a, tip, c, col, MAT.FLAG, null, 1);
+  b.pop();
+}

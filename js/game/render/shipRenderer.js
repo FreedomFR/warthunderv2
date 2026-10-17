@@ -1,0 +1,122 @@
+// Instanced renderer for the procedurally built ship meshes. Draws into the engine's main HDR /
+// MSAA / reverse-Z pass (see engine.hooks.drawOpaque). Instances are camera-relative.
+import { SHIP } from '../../wgsl/ship.js';
+import { VERTEX_STRIDE } from '../model/meshbuilder.js';
+
+const INST_FLOATS = 24;          // 4 x vec4 matrix + tint + misc
+const MAX_INSTANCES = 8192;
+const GU = GPUBufferUsage;
+
+export class ShipRenderer {
+  constructor(engine) {
+    this.engine = engine;
+    this.device = engine.device;
+    this.meshes = [];
+    this.instData = new Float32Array(MAX_INSTANCES * INST_FLOATS);
+    this.instBuf = this.device.createBuffer({ size: this.instData.byteLength, usage: GU.VERTEX | GU.COPY_DST, label: 'ship instances' });
+    this.count = 0;
+    this.ready = this._init();
+  }
+
+  async _init() {
+    const g = this.engine.gpu;
+    const module = await g.shader(SHIP, 'ship');
+    this.pipeline = await this.device.createRenderPipelineAsync({
+      label: 'ship', layout: 'auto',
+      vertex: {
+        module, entryPoint: 'vs',
+        buffers: [
+          { arrayStride: VERTEX_STRIDE, stepMode: 'vertex', attributes: [
+            { shaderLocation: 0, offset: 0, format: 'float32x3' },
+            { shaderLocation: 1, offset: 12, format: 'snorm16x4' },
+            { shaderLocation: 2, offset: 20, format: 'unorm8x4' },
+          ] },
+          { arrayStride: INST_FLOATS * 4, stepMode: 'instance', attributes: [
+            { shaderLocation: 3, offset: 0, format: 'float32x4' },
+            { shaderLocation: 4, offset: 16, format: 'float32x4' },
+            { shaderLocation: 5, offset: 32, format: 'float32x4' },
+            { shaderLocation: 6, offset: 48, format: 'float32x4' },
+            { shaderLocation: 7, offset: 64, format: 'float32x4' },
+            { shaderLocation: 8, offset: 80, format: 'float32x4' },
+          ] },
+        ],
+      },
+      fragment: { module, entryPoint: 'fs', targets: [{ format: g.HDR }] },
+      primitive: { topology: 'triangle-list', cullMode: 'none' },
+      depthStencil: { format: g.DEPTH, depthWriteEnabled: true, depthCompare: 'greater' },
+      multisample: { count: g.MSAA },
+    });
+    this.bindGroup = this.device.createBindGroup({
+      layout: this.pipeline.getBindGroupLayout(0),
+      entries: [
+        { binding: 0, resource: { buffer: g.frameUBO } },
+        { binding: 1, resource: g.transView },
+        { binding: 2, resource: g.skyView },
+        { binding: 3, resource: g.sampClamp },
+        { binding: 4, resource: g.envCubeView },
+        { binding: 5, resource: { buffer: g.sunVisBuf } },
+      ],
+    });
+  }
+
+  /** Upload a built mesh ({vertices, indices, indexCount, aabb}) and return a handle. */
+  createMesh(built, label = 'mesh') {
+    const vbuf = this.device.createBuffer({ size: built.vertices.byteLength, usage: GU.VERTEX | GU.COPY_DST, label: label + ' vb' });
+    this.device.queue.writeBuffer(vbuf, 0, built.vertices);
+    const ibuf = this.device.createBuffer({ size: built.indices.byteLength, usage: GU.INDEX | GU.COPY_DST, label: label + ' ib' });
+    this.device.queue.writeBuffer(ibuf, 0, built.indices);
+    const mesh = { id: this.meshes.length, vbuf, ibuf, indexCount: built.indexCount, aabb: built.aabb, label, first: 0, n: 0, cpu: null };
+    this.meshes.push(mesh);
+    return mesh;
+  }
+
+  /** Start collecting instances for a new frame. */
+  begin() {
+    for (const m of this.meshes) m.n = 0;
+    this.count = 0;
+  }
+
+  /**
+   * Queue an instance (data is copied immediately, callers may reuse their arrays).
+   * `mat` is a camera-relative column-major 4x4; tint = [r, g, b] team colour (0-255 sRGB),
+   * damage 0..1 (soot), fire 0..1 (glow), rnd 0..1 per ship.
+   */
+  add(mesh, mat, tint, damage = 0, fire = 0, rnd = 0) {
+    if (this.count >= MAX_INSTANCES) return;
+    if (!mesh.cpu || (mesh.n + 1) * INST_FLOATS > mesh.cpu.length) {
+      const bigger = new Float32Array(Math.max(INST_FLOATS * 8, (mesh.cpu ? mesh.cpu.length * 2 : 0)));
+      if (mesh.cpu) bigger.set(mesh.cpu);
+      mesh.cpu = bigger;
+    }
+    const d = mesh.cpu, o = mesh.n * INST_FLOATS;
+    for (let k = 0; k < 16; k++) d[o + k] = mat[k];
+    d[o + 16] = tint[0] / 255; d[o + 17] = tint[1] / 255; d[o + 18] = tint[2] / 255; d[o + 19] = damage;
+    d[o + 20] = fire; d[o + 21] = rnd; d[o + 22] = 0; d[o + 23] = 0;
+    mesh.n++;
+    this.count++;
+  }
+
+  /** Pack and upload everything queued this frame. */
+  upload() {
+    let o = 0;
+    const d = this.instData;
+    for (const m of this.meshes) {
+      m.first = o / INST_FLOATS;
+      if (m.n) { d.set(m.cpu.subarray(0, m.n * INST_FLOATS), o); o += m.n * INST_FLOATS; }
+    }
+    if (o) this.device.queue.writeBuffer(this.instBuf, 0, d, 0, o);
+  }
+
+  draw(rp) {
+    if (!this.pipeline || !this.count) return;
+    rp.setPipeline(this.pipeline);
+    rp.setBindGroup(0, this.bindGroup);
+    rp.setVertexBuffer(1, this.instBuf);
+    for (const m of this.meshes) {
+      if (!m.n) continue;
+      rp.setVertexBuffer(0, m.vbuf);
+      rp.setIndexBuffer(m.ibuf, 'uint32');
+      rp.drawIndexed(m.indexCount, m.n, 0, 0, m.first);
+    }
+  }
+}

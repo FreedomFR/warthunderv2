@@ -1,0 +1,339 @@
+// Procedural mesh builder used to model the warships (no external assets).
+//
+// Model space: +x = towards the bow, +y = up, +z = starboard (right-handed). Triangles are wound
+// counter-clockwise seen from outside. The convex primitives orient themselves automatically
+// (they flip a face when it points towards the primitive's own centre), so winding mistakes
+// cannot produce inside-out solids.
+//
+// Packed vertex (24 bytes): f32x3 position, snorm16x4 (normal xyz, ambient occlusion), unorm8x4 (sRGB rgb, material id).
+
+export const MAT = {
+  HULL: 0,      // painted steel
+  DECK: 1,      // wood / linoleum planks
+  GLASS: 2,     // bridge windows
+  DARK: 3,      // gun barrels, funnel caps, black metal
+  FLIGHT: 4,    // carrier flight deck
+  SKIN: 5,      // hull plating: the shader paints boot-topping / anti-fouling bands from local height
+  EMISSIVE: 6,  // lamps
+  CANVAS: 7,    // canvas, rope, rubber
+  FLAG: 8,      // pennants (double sided, unlit-ish)
+  AIRCRAFT: 9,  // aircraft skins (slightly glossy)
+};
+
+export const VERTEX_STRIDE = 24;
+
+/** '#rrggbb' -> [r, g, b] (0-255, sRGB) */
+export function rgb(hex) {
+  if (Array.isArray(hex)) return hex;
+  const h = hex.replace('#', '');
+  return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+}
+/** scale brightness of an sRGB colour (simple multiply) */
+export function shade(c, f) {
+  c = rgb(c);
+  return [Math.min(255, c[0] * f), Math.min(255, c[1] * f), Math.min(255, c[2] * f)];
+}
+export function mix(a, b, t) {
+  a = rgb(a); b = rgb(b);
+  return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
+}
+
+const M4_ID = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
+function m4mul(a, b) {
+  const o = new Array(16);
+  for (let c = 0; c < 4; c++) for (let r = 0; r < 4; r++) {
+    o[c * 4 + r] = a[r] * b[c * 4] + a[4 + r] * b[c * 4 + 1] + a[8 + r] * b[c * 4 + 2] + a[12 + r] * b[c * 4 + 3];
+  }
+  return o;
+}
+
+export class MeshBuilder {
+  constructor() {
+    this.p = [];      // x y z
+    this.n = [];      // nx ny nz ao
+    this.c = [];      // r g b mat
+    this.idx = [];
+    this.stack = [];
+    this.m = M4_ID.slice();
+    this.ao = 1;
+  }
+
+  // ---- transform stack ---------------------------------------------------------------------
+  push() { this.stack.push(this.m); this.m = this.m.slice(); return this; }
+  pop() { this.m = this.stack.pop(); return this; }
+  translate(x, y, z) { this.m = m4mul(this.m, [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, x, y, z, 1]); return this; }
+  scale(sx, sy = sx, sz = sx) { this.m = m4mul(this.m, [sx, 0, 0, 0, 0, sy, 0, 0, 0, 0, sz, 0, 0, 0, 0, 1]); return this; }
+  rotateY(a) { const c = Math.cos(a), s = Math.sin(a); this.m = m4mul(this.m, [c, 0, -s, 0, 0, 1, 0, 0, s, 0, c, 0, 0, 0, 0, 1]); return this; }
+  rotateZ(a) { const c = Math.cos(a), s = Math.sin(a); this.m = m4mul(this.m, [c, s, 0, 0, -s, c, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]); return this; }
+  rotateX(a) { const c = Math.cos(a), s = Math.sin(a); this.m = m4mul(this.m, [1, 0, 0, 0, 0, c, s, 0, 0, -s, c, 0, 0, 0, 0, 1]); return this; }
+  /** run fn with a temporary transform: b.at(x,y,z,yaw, () => {...}) */
+  at(x, y, z, yaw, fn) {
+    this.push().translate(x, y, z);
+    if (yaw) this.rotateY(yaw);
+    fn(this);
+    return this.pop();
+  }
+
+  // ---- low level ---------------------------------------------------------------------------
+  vert(x, y, z, nx, ny, nz, col, mat, ao = this.ao) {
+    const m = this.m;
+    this.p.push(m[0] * x + m[4] * y + m[8] * z + m[12], m[1] * x + m[5] * y + m[9] * z + m[13], m[2] * x + m[6] * y + m[10] * z + m[14]);
+    let tx = m[0] * nx + m[4] * ny + m[8] * nz, ty = m[1] * nx + m[5] * ny + m[9] * nz, tz = m[2] * nx + m[6] * ny + m[10] * nz;
+    const l = Math.hypot(tx, ty, tz) || 1;
+    this.n.push(tx / l, ty / l, tz / l, ao);
+    this.c.push(col[0], col[1], col[2], mat);
+    return this.p.length / 3 - 1;
+  }
+  tri(a, b, c) { this.idx.push(a, b, c); }
+  quadIdx(a, b, c, d) { this.idx.push(a, b, c, a, c, d); }
+
+  /** world(position) of the last vertex pushed through the current transform (for oriented tests) */
+  _pos(i) { return [this.p[i * 3], this.p[i * 3 + 1], this.p[i * 3 + 2]]; }
+
+  /**
+   * Flat quad (p0..p3 in local space). If `ref` (a local-space point inside the solid) is given the
+   * winding is flipped when the face would point towards it.
+   */
+  quad(p0, p1, p2, p3, col, mat = MAT.HULL, ref = null, ao = this.ao) {
+    let e1x = p1[0] - p0[0], e1y = p1[1] - p0[1], e1z = p1[2] - p0[2];
+    let e2x = p2[0] - p0[0], e2y = p2[1] - p0[1], e2z = p2[2] - p0[2];
+    let nx = e1y * e2z - e1z * e2y, ny = e1z * e2x - e1x * e2z, nz = e1x * e2y - e1y * e2x;
+    let l = Math.hypot(nx, ny, nz);
+    if (l < 1e-12) {   // degenerate first triangle: try the other diagonal
+      e1x = p2[0] - p0[0]; e1y = p2[1] - p0[1]; e1z = p2[2] - p0[2];
+      e2x = p3[0] - p0[0]; e2y = p3[1] - p0[1]; e2z = p3[2] - p0[2];
+      nx = e1y * e2z - e1z * e2y; ny = e1z * e2x - e1x * e2z; nz = e1x * e2y - e1y * e2x;
+      l = Math.hypot(nx, ny, nz);
+      if (l < 1e-12) return this;
+    }
+    nx /= l; ny /= l; nz /= l;
+    if (ref) {
+      const cx = (p0[0] + p1[0] + p2[0] + p3[0]) * 0.25 - ref[0];
+      const cy = (p0[1] + p1[1] + p2[1] + p3[1]) * 0.25 - ref[1];
+      const cz = (p0[2] + p1[2] + p2[2] + p3[2]) * 0.25 - ref[2];
+      if (nx * cx + ny * cy + nz * cz < 0) { [p1, p3] = [p3, p1]; nx = -nx; ny = -ny; nz = -nz; }
+    }
+    const a = this.vert(p0[0], p0[1], p0[2], nx, ny, nz, col, mat, ao);
+    const b = this.vert(p1[0], p1[1], p1[2], nx, ny, nz, col, mat, ao);
+    const c = this.vert(p2[0], p2[1], p2[2], nx, ny, nz, col, mat, ao);
+    const d = this.vert(p3[0], p3[1], p3[2], nx, ny, nz, col, mat, ao);
+    this.quadIdx(a, b, c, d);
+    return this;
+  }
+  /** flat triangle, same orientation rule as quad() */
+  triFlat(p0, p1, p2, col, mat = MAT.HULL, ref = null, ao = this.ao) {
+    const e1x = p1[0] - p0[0], e1y = p1[1] - p0[1], e1z = p1[2] - p0[2];
+    const e2x = p2[0] - p0[0], e2y = p2[1] - p0[1], e2z = p2[2] - p0[2];
+    let nx = e1y * e2z - e1z * e2y, ny = e1z * e2x - e1x * e2z, nz = e1x * e2y - e1y * e2x;
+    const l = Math.hypot(nx, ny, nz);
+    if (l < 1e-12) return this;
+    nx /= l; ny /= l; nz /= l;
+    if (ref) {
+      const cx = (p0[0] + p1[0] + p2[0]) / 3 - ref[0], cy = (p0[1] + p1[1] + p2[1]) / 3 - ref[1], cz = (p0[2] + p1[2] + p2[2]) / 3 - ref[2];
+      if (nx * cx + ny * cy + nz * cz < 0) { [p1, p2] = [p2, p1]; nx = -nx; ny = -ny; nz = -nz; }
+    }
+    const a = this.vert(p0[0], p0[1], p0[2], nx, ny, nz, col, mat, ao);
+    const b = this.vert(p1[0], p1[1], p1[2], nx, ny, nz, col, mat, ao);
+    const c = this.vert(p2[0], p2[1], p2[2], nx, ny, nz, col, mat, ao);
+    this.tri(a, b, c);
+    return this;
+  }
+
+  // ---- solids ------------------------------------------------------------------------------
+  /**
+   * Convex prism between a bottom and a top rectangle (a box when both are equal).
+   * o: { x0, x1 (bottom, aft/fore), hw (bottom half width), y0, y1,
+   *      tx0, tx1, thw (top, default = bottom), zc (lateral centre offset), tzc,
+   *      bottom: bool, top: bool, topCol, sideCol, mat, topMat, ao }
+   */
+  block(o, col, mat = MAT.HULL) {
+    const { x0, x1, hw, y0, y1 } = o;
+    const tx0 = o.tx0 ?? x0, tx1 = o.tx1 ?? x1, thw = o.thw ?? hw;
+    const zc = o.zc ?? 0, tzc = o.tzc ?? zc;
+    const B0 = [x0, y0, zc - hw], B1 = [x1, y0, zc - hw], B2 = [x1, y0, zc + hw], B3 = [x0, y0, zc + hw];
+    const T0 = [tx0, y1, tzc - thw], T1 = [tx1, y1, tzc - thw], T2 = [tx1, y1, tzc + thw], T3 = [tx0, y1, tzc + thw];
+    const ref = [(x0 + x1 + tx0 + tx1) * 0.25, (y0 + y1) * 0.5, (zc + tzc) * 0.5];
+    const sc = o.sideCol || col, ao = o.ao ?? this.ao;
+    this.quad(B3, B2, T2, T3, sc, mat, ref, ao);   // starboard
+    this.quad(B0, T0, T1, B1, sc, mat, ref, ao);   // port
+    this.quad(B1, T1, T2, B2, sc, mat, ref, ao);   // front
+    this.quad(B3, T3, T0, B0, sc, mat, ref, ao);   // back
+    if (o.top !== false) this.quad(T0, T3, T2, T1, o.topCol || col, o.topMat ?? mat, ref, ao);
+    if (o.bottom) this.quad(B0, B1, B2, B3, sc, mat, ref, ao * 0.6);
+    return this;
+  }
+  /** axis aligned box centred at (cx,cy,cz) with sizes (sx,sy,sz) */
+  box(cx, cy, cz, sx, sy, sz, col, mat = MAT.HULL, o = {}) {
+    return this.block({ x0: cx - sx / 2, x1: cx + sx / 2, hw: sz / 2, zc: cz, y0: cy - sy / 2, y1: cy + sy / 2, ...o }, col, mat);
+  }
+
+  /** Extruded convex polygon (points [x,z]) from y0 to y1, top scaled by `topScale` around the centroid. */
+  prism(poly, y0, y1, col, mat = MAT.HULL, o = {}) {
+    const n = poly.length;
+    let cx = 0, cz = 0;
+    for (const p of poly) { cx += p[0]; cz += p[1]; }
+    cx /= n; cz /= n;
+    const ts = o.topScale ?? 1;
+    const top = poly.map((p) => [cx + (p[0] - cx) * ts + (o.topDx || 0), cz + (p[1] - cz) * ts + (o.topDz || 0)]);
+    const ref = [cx, (y0 + y1) / 2, cz];
+    const ao = o.ao ?? this.ao;
+    for (let i = 0; i < n; i++) {
+      const j = (i + 1) % n;
+      this.quad([poly[i][0], y0, poly[i][1]], [poly[j][0], y0, poly[j][1]], [top[j][0], y1, top[j][1]], [top[i][0], y1, top[i][1]], o.sideCol || col, mat, ref, ao);
+    }
+    if (o.top !== false) {
+      for (let i = 0; i < n; i++) {
+        const j = (i + 1) % n;
+        this.triFlat([cx + (o.topDx || 0), y1, cz + (o.topDz || 0)], [top[i][0], y1, top[i][1]], [top[j][0], y1, top[j][1]], o.topCol || col, o.topMat ?? mat, ref, ao);
+      }
+    }
+    if (o.bottom) {
+      for (let i = 0; i < n; i++) {
+        const j = (i + 1) % n;
+        this.triFlat([cx, y0, cz], [poly[i][0], y0, poly[i][1]], [poly[j][0], y0, poly[j][1]], o.sideCol || col, mat, ref, ao * 0.6);
+      }
+    }
+    return this;
+  }
+
+  /**
+   * Elliptic frustum along +y (rotate the builder for other axes): bottom radii (rx0, rz0) at y0,
+   * top radii (rx1, rz1) at y1, top centre shifted by (dx, dz) (funnel rake).
+   * o: { seg, capTop, capBottom, smooth, topCol, ao, aoTop }
+   */
+  cyl(cx, y0, cz, rx0, rz0, rx1, rz1, y1, col, mat = MAT.HULL, o = {}) {
+    const seg = o.seg || 16;
+    const dx = o.dx || 0, dz = o.dz || 0;
+    const ao = o.ao ?? this.ao;
+    const ring0 = [], ring1 = [];
+    const h = y1 - y0;
+    for (let i = 0; i <= seg; i++) {
+      const th = (i / seg) * Math.PI * 2, c = Math.cos(th), s = Math.sin(th);
+      const P0 = [cx + rx0 * c, y0, cz + rz0 * s];
+      const P1 = [cx + dx + rx1 * c, y1, cz + dz + rz1 * s];
+      // normal from the generator and tangent
+      const gx = P1[0] - P0[0], gy = h, gz = P1[2] - P0[2];
+      const rxa = (rx0 + rx1) * 0.5, rza = (rz0 + rz1) * 0.5;
+      const tx = -rxa * s, tz = rza * c;
+      let nx = gy * tz, ny = gz * tx - gx * tz, nz = -gy * tx;
+      const l = Math.hypot(nx, ny, nz) || 1;
+      nx /= l; ny /= l; nz /= l;
+      ring0.push(this.vert(P0[0], P0[1], P0[2], nx, ny, nz, col, mat, ao));
+      ring1.push(this.vert(P1[0], P1[1], P1[2], nx, ny, nz, col, mat, o.aoTop ?? ao));
+    }
+    for (let i = 0; i < seg; i++) this.quadIdx(ring0[i], ring1[i], ring1[i + 1], ring0[i + 1]);
+    if (o.capTop !== false && (rx1 > 1e-4 || rz1 > 1e-4)) {
+      const tc = o.topCol || col, tm = o.topMat ?? mat;
+      const c0 = this.vert(cx + dx, y1, cz + dz, 0, 1, 0, tc, tm, o.aoTop ?? ao);
+      const ids = [];
+      for (let i = 0; i <= seg; i++) {
+        const th = (i / seg) * Math.PI * 2;
+        ids.push(this.vert(cx + dx + rx1 * Math.cos(th), y1, cz + dz + rz1 * Math.sin(th), 0, 1, 0, tc, tm, o.aoTop ?? ao));
+      }
+      for (let i = 0; i < seg; i++) this.tri(c0, ids[i + 1], ids[i]);
+    }
+    if (o.capBottom) {
+      const c0 = this.vert(cx, y0, cz, 0, -1, 0, col, mat, ao * 0.6);
+      const ids = [];
+      for (let i = 0; i <= seg; i++) {
+        const th = (i / seg) * Math.PI * 2;
+        ids.push(this.vert(cx + rx0 * Math.cos(th), y0, cz + rz0 * Math.sin(th), 0, -1, 0, col, mat, ao * 0.6));
+      }
+      for (let i = 0; i < seg; i++) this.tri(c0, ids[i], ids[i + 1]);
+    }
+    return this;
+  }
+  /** plain cylinder / cone along +y */
+  cylinder(cx, y0, cz, r0, r1, y1, col, mat = MAT.HULL, o = {}) { return this.cyl(cx, y0, cz, r0, r0, r1, r1, y1, col, mat, o); }
+
+  /** cylinder along +x (gun barrels, rangefinders): from x0 to x1 at (y, z) */
+  rod(x0, x1, y, z, r0, r1, col, mat = MAT.DARK, o = {}) {
+    this.push().translate(x0, y, z).rotateZ(-Math.PI / 2);
+    this.cyl(0, 0, 0, r0, r0, r1, r1, x1 - x0, col, mat, { seg: o.seg || 8, capTop: o.capTop ?? true, ao: o.ao });
+    return this.pop();
+  }
+  /** cylinder along +z (athwartships): from z0 to z1 at (x, y) */
+  rodZ(x, y, z0, z1, r0, r1, col, mat = MAT.DARK, o = {}) {
+    this.push().translate(x, y, z0).rotateX(Math.PI / 2);
+    this.cyl(0, 0, 0, r0, r0, r1, r1, z1 - z0, col, mat, { seg: o.seg || 8, capTop: true, ao: o.ao });
+    return this.pop();
+  }
+
+  sphere(cx, cy, cz, rx, ry, rz, col, mat = MAT.HULL, o = {}) {
+    const seg = o.seg || 12, rings = o.rings || 7;
+    const top = o.half ? rings / 2 : rings;   // half: dome only (upper hemisphere)
+    const idx = [];
+    for (let j = 0; j <= top; j++) {
+      const ph = (j / rings) * Math.PI;           // 0 at the top pole
+      const row = [];
+      for (let i = 0; i <= seg; i++) {
+        const th = (i / seg) * Math.PI * 2;
+        const nx = Math.sin(ph) * Math.cos(th), ny = Math.cos(ph), nz = Math.sin(ph) * Math.sin(th);
+        row.push(this.vert(cx + rx * nx, cy + ry * ny, cz + rz * nz, nx / rx, ny / ry, nz / rz, col, mat, o.ao));
+      }
+      idx.push(row);
+    }
+    for (let j = 0; j < top; j++) for (let i = 0; i < seg; i++) {
+      this.tri(idx[j][i], idx[j + 1][i], idx[j + 1][i + 1]);
+      if (j > 0) this.tri(idx[j][i], idx[j + 1][i + 1], idx[j][i + 1]);
+    }
+    return this;
+  }
+
+  /** thin rectangular rod between two points (rails, stays, antennas, struts) */
+  beam(p0, p1, w, h, col, mat = MAT.HULL, o = {}) {
+    const dx = p1[0] - p0[0], dy = p1[1] - p0[1], dz = p1[2] - p0[2];
+    const len = Math.hypot(dx, dy, dz);
+    if (len < 1e-6) return this;
+    const d = [dx / len, dy / len, dz / len];
+    let up = Math.abs(d[1]) > 0.95 ? [1, 0, 0] : [0, 1, 0];
+    // s = up x d ; u = d x s
+    let s = [up[1] * d[2] - up[2] * d[1], up[2] * d[0] - up[0] * d[2], up[0] * d[1] - up[1] * d[0]];
+    const sl = Math.hypot(s[0], s[1], s[2]); s = [s[0] / sl, s[1] / sl, s[2] / sl];
+    const u = [d[1] * s[2] - d[2] * s[1], d[2] * s[0] - d[0] * s[2], d[0] * s[1] - d[1] * s[0]];
+    const hw = w / 2, hh = h / 2;
+    const corner = (base, a, b) => [base[0] + s[0] * hw * a + u[0] * hh * b, base[1] + s[1] * hw * a + u[1] * hh * b, base[2] + s[2] * hw * a + u[2] * hh * b];
+    const A = [corner(p0, -1, -1), corner(p0, 1, -1), corner(p0, 1, 1), corner(p0, -1, 1)];
+    const B = [corner(p1, -1, -1), corner(p1, 1, -1), corner(p1, 1, 1), corner(p1, -1, 1)];
+    const ref = [(p0[0] + p1[0]) / 2, (p0[1] + p1[1]) / 2, (p0[2] + p1[2]) / 2];
+    const ao = o.ao ?? this.ao;
+    for (let i = 0; i < 4; i++) {
+      const j = (i + 1) % 4;
+      this.quad(A[i], A[j], B[j], B[i], col, mat, ref, ao);
+    }
+    if (o.caps !== false) { this.quad(A[0], A[1], A[2], A[3], col, mat, ref, ao); this.quad(B[0], B[1], B[2], B[3], col, mat, ref, ao); }
+    return this;
+  }
+
+  /** Flat, double-sided-friendly decal quad on a deck: centre, half sizes along x and z, raised by `lift`. */
+  decal(cx, y, cz, hx, hz, col, mat = MAT.HULL) {
+    return this.quad([cx - hx, y, cz - hz], [cx - hx, y, cz + hz], [cx + hx, y, cz + hz], [cx + hx, y, cz - hz], col, mat, [cx, y - 1, cz], 1);
+  }
+
+  // ---- output ------------------------------------------------------------------------------
+  get vertexCount() { return this.p.length / 3; }
+  get triangleCount() { return this.idx.length / 3; }
+
+  build() {
+    const vc = this.vertexCount;
+    const buf = new ArrayBuffer(vc * VERTEX_STRIDE);
+    const dv = new DataView(buf);
+    const bb = [Infinity, Infinity, Infinity, -Infinity, -Infinity, -Infinity];
+    for (let i = 0; i < vc; i++) {
+      const o = i * VERTEX_STRIDE;
+      const x = this.p[i * 3], y = this.p[i * 3 + 1], z = this.p[i * 3 + 2];
+      dv.setFloat32(o, x, true); dv.setFloat32(o + 4, y, true); dv.setFloat32(o + 8, z, true);
+      for (let k = 0; k < 4; k++) {
+        const v = Math.max(-1, Math.min(1, this.n[i * 4 + k]));
+        dv.setInt16(o + 12 + k * 2, Math.round(v * 32767), true);
+      }
+      for (let k = 0; k < 4; k++) {
+        const v = k < 3 ? this.c[i * 4 + k] : this.c[i * 4 + 3];
+        dv.setUint8(o + 20 + k, Math.max(0, Math.min(255, Math.round(v))));
+      }
+      if (x < bb[0]) bb[0] = x; if (y < bb[1]) bb[1] = y; if (z < bb[2]) bb[2] = z;
+      if (x > bb[3]) bb[3] = x; if (y > bb[4]) bb[4] = y; if (z > bb[5]) bb[5] = z;
+    }
+    return { vertices: buf, indices: new Uint32Array(this.idx), vertexCount: vc, indexCount: this.idx.length, aabb: bb };
+  }
+}

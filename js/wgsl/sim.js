@@ -354,7 +354,11 @@ struct FoamU {
   cascL: array<vec4f, 2>,
   cascInvL: array<vec4f, 2>,
   drift: vec4f,              // foam drift velocity (m/s) xz
+  misc: vec4f,               // stamp count, wake decay rate (1/s), -, -
 };
+// Foam "stamps" injected by the game (ship wakes, shell splashes, torpedo tracks).
+// a = capsule segment (x0, z0, x1, z1) in world metres; b = (radius, wake, fresh, foam)
+struct Stamp { a: vec4f, b: vec4f };
 @group(0) @binding(0) var<uniform> U: FoamU;
 @group(0) @binding(1) var prevTex: texture_2d_array<f32>;
 @group(0) @binding(2) var dst: texture_storage_2d_array<rgba16float, write>;
@@ -362,6 +366,7 @@ struct FoamU {
 @group(0) @binding(4) var derivTex: texture_2d_array<f32>;
 @group(0) @binding(5) var samp: sampler;
 @group(0) @binding(6) var sampPrev: sampler;
+@group(0) @binding(7) var<storage, read> stamps: array<Stamp>;
 
 fn wrapIdx(i: i32, lo: i32) -> i32 { return lo + (((i - lo) % RES) + RES) % RES; }
 
@@ -399,8 +404,27 @@ fn main(@builtin(global_invocation_id) id: vec3u) {
   f = max(f, inject);
   f = min(f + inject * dt * U.p1.z, 1.6);
   // g: freshness (recently injected) used for brighter, denser crest foam
-  let fresh = max(prev.g * exp(-dt * 1.6), inject);
-  textureStore(dst, id.xy, lvl, vec4f(f, fresh, J, 1.0));
+  var fresh = max(prev.g * exp(-dt * 1.6), inject);
+  // b channel = slowly decaying wake foam (ship wakes, torpedo tracks); J is not stored any more
+  var wake = prev.b * exp(-dt * U.misc.y);
+  let ns = u32(U.misc.x);
+  for (var i = 0u; i < ns; i++) {
+    let st = stamps[i];
+    let r = st.b.x;
+    let pa = st.a.xy;
+    let ab = st.a.zw - pa;
+    let ll = dot(ab, ab);
+    var t = 0.0;
+    if (ll > 1e-6) { t = clamp(dot(p - pa, ab) / ll, 0.0, 1.0); }
+    let d = length(p - (pa + ab * t));
+    if (d < r) {
+      let w = 1.0 - smoothstep(0.30 * r, r, d);
+      wake = max(wake, w * st.b.y);
+      fresh = max(fresh, w * st.b.z);
+      f = max(f, w * st.b.w);
+    }
+  }
+  textureStore(dst, id.xy, lvl, vec4f(f, fresh, wake, 1.0));
 }
 `;
 
