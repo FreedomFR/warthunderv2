@@ -15,7 +15,7 @@ export class AIController {
   update(ship, world, dt) {
     this.timer -= dt;
     if (this.timer > 0) return;
-    this.timer = 0.4 + world.rng() * 0.2;
+    this.timer = (0.4 + world.rng() * 0.2) * (ship.commandLoss ? 2.2 : 1);       // the bridge is wrecked: slower to react
     this.think(ship, world, 0.5);
   }
 
@@ -85,7 +85,7 @@ export class AIController {
     if (tp && ship.torpLeft > 0) Rd = Math.min(Rd, clamp(tp.range * 0.5, 3800, 7500));
     let want, thr;
     // a crippled ship withdraws, but only while it is still being shot at
-    const crippled = (ship.hpFrac < 0.28 || (ship.engine < 0.4 && ship.hpFrac < 0.5)) && world.time - ship.lastHitT < 90;
+    const crippled = (ship.hpFrac < 0.28 || (ship.engine * ship.propulsion < 0.4 && ship.hpFrac < 0.5)) && world.time - ship.lastHitT < 90;
     if (crippled && st.type !== 'DD') {
       want = bearing + Math.PI + this.circle * 0.35; thr = 1;
     } else if (d > Rd * 1.12) {

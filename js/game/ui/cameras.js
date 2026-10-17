@@ -63,7 +63,7 @@ export class CameraRig {
     }
     if (id === 'auto') { this.auto.t = 0; }
     if (id === 'plane' || id === 'cockpit') { if (!this.plane || !this.planeAlive(this.plane)) this.pickPlane(1); this.planeCam.fix = null; this.planeCam.hold = 0; this.planeCam.look.yaw = 0; this.planeCam.look.pitch = 0; }
-    this.fovWant = id === 'cockpit' ? 75 * D2R : (id === 'bridge' ? this.fovWant : FOV_DEFAULT);
+    this.fovWant = id === 'cockpit' ? 75 * D2R : (id === 'bridge' ? (this.bridgeFov ?? FOV_DEFAULT) : FOV_DEFAULT);
     this.game.ui?.onCameraMode?.(id);
   }
 
@@ -148,7 +148,7 @@ export class CameraRig {
       case 'tactical': this.tactical.alt = clamp(this.tactical.alt * f, 400, 30000); break;
       case 'plane': this.planeCam.zoom = clamp(this.planeCam.zoom * f, 0.3, 8); break;
       case 'cockpit': this.fovWant = clamp(this.fovWant * f, 30 * D2R, 100 * D2R); break;
-      case 'bridge': this.fovWant = clamp(this.fovWant * f, 18 * D2R, 80 * D2R); break;
+      case 'bridge': this.fovWant = this.bridgeFov = clamp(this.fovWant * f, 18 * D2R, 80 * D2R); break;
     }
   }
 
@@ -459,6 +459,7 @@ export class CameraRig {
       a.sub = kinds[Math.floor(Math.random() * kinds.length)];
       if (w.state !== 'running') a.sub = 'orbit';
       a.t = 8 + Math.random() * 7;
+      this.fovWant = FOV_DEFAULT;
       this.follow.yaw = (Math.random() - 0.5) * 1.4; this.follow.pitch = Math.random() * 0.15; this.follow.zoom = 0.7 + Math.random() * 0.9;
       this.orbit.az = Math.random() * TAU; this.orbit.el = 0.08 + Math.random() * 0.3; this.orbit.zoom = 0.7 + Math.random();
       this.smooth.init = false;

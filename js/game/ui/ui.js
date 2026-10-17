@@ -363,9 +363,14 @@ export function createUI(game) {
   const DEATH = { spin: 'en vrille', dive: 'pilote touché, pique', wing: 'aile arrachée', glide: 'moteur coupé', explode: 'désintégré en vol', tumble: 'en chute libre' };
   function updatePlaneInfo() {
     const p = game.camera.plane;
-    const show = inPlaneMode() && p && game.state !== 'setup';
-    planeInfo.classList.toggle('hidden', !show);
-    shipInfo.classList.toggle('hidden', !!show || state.hudHidden);
+    const mode = inPlaneMode() && game.state !== 'setup';
+    const show = mode && p;
+    planeInfo.classList.toggle('hidden', !mode);
+    shipInfo.classList.toggle('hidden', !!mode || state.hudHidden);
+    if (mode && !p) {
+      planeInfo.replaceChildren(h('div', { class: 'ititle' }, 'Aucun avion en vol'), h('div', { class: 'iline dim' }, 'Les porte-avions lancent leurs vagues d\'attaque pendant le combat : la caméra suit alors un avion (N / B pour en changer).'));
+      return;
+    }
     if (!show) return;
     const t = world.teams[p.team];
     const alt = Math.max(0, Math.round(p.y)), kmh = Math.round(p.speed * 3.6);
@@ -390,7 +395,7 @@ export function createUI(game) {
   function updateShipInfo() {
     updatePlaneInfo();
     const s = game.camera.target;
-    if (inPlaneMode() && game.camera.plane) return;
+    if (inPlaneMode()) return;
     if (!s || game.state === 'setup') { shipInfo.replaceChildren(); return; }
     const t = world.teams[s.team];
     const mainMounts = s.mounts.filter((m) => m.group === 'main');

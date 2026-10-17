@@ -8,17 +8,22 @@
 //   extra(ctx): free-hand additions with the MeshBuilder (ctx.b) and the parts library (ctx.PT)
 
 /** Shokaku class: two funnels trunked out to the starboard side and turned downwards. */
-function shokakuFunnels({ b, X, spec, pal, model, MAT, rgb, shade }) {
+function shokakuFunnels({ b, X, spec, pal, model, MAT, rgb, shade, part }) {
   const hw = (spec.flightDeckWidth || spec.beam) / 2;
-  const col = rgb(pal.funnel), dark = rgb(pal.cap);
+  const col = rgb(pal.funnel), dark = rgb(pal.cap), char = shade(rgb(pal.dark), 1.1);
   const fdY = 17.2;
-  for (const f of [0.475, 0.535]) {
+  [0.475, 0.535].forEach((f, i) => {
     const x = X(f), y = fdY - 5.5, z0 = hw * 0.55, z1 = hw * 0.55 + 6.2;
-    b.rodZ(x, y, z0, z1, 1.9, 1.9, col, MAT.HULL, { seg: 12 });
-    b.cylinder(x, y - 7.5, z1, 1.9, 1.9, y + 1.9, col, MAT.HULL, { seg: 12, capTop: false });
-    b.cylinder(x, y - 8.0, z1, 1.95, 1.95, y - 7.2, dark, MAT.DARK, { seg: 12 });
+    part('funnel' + i, 'funnel', 'Cheminée ' + (i + 1), () => {
+      b.rodZ(x, y, z0, z1, 1.9, 1.9, col, MAT.HULL, { seg: 12 });
+      b.cylinder(x, y - 7.5, z1, 1.9, 1.9, y + 1.9, col, MAT.HULL, { seg: 12, capTop: false });
+      b.cylinder(x, y - 8.0, z1, 1.95, 1.95, y - 7.2, dark, MAT.DARK, { seg: 12 });
+    }, () => {
+      b.rodZ(x, y, z0, z0 + 2.2, 1.9, 1.9, char, MAT.DARK, { seg: 12 });
+      b.cylinder(x, y - 1.5, z0 + 2.2, 1.8, 1.4, y + 1.0, char, MAT.DARK, { seg: 10 });
+    });
     model.smoke.push([x, y - 8.0, z1]);
-  }
+  });
 }
 
 /** Bismarck: tall tower bridge with three large rangefinder drums. */
@@ -26,10 +31,13 @@ function bismarckTower({ b, model, pal, MAT, rgb, shade }) {
   const br = model.bridge;
   if (!br) return;
   const col = shade(rgb(pal.sup), 0.92);
-  for (const [dy, r] of [[-12.5, 2.5], [-7.5, 2.3], [-2.5, 2.1]]) {
-    b.cyl(br.x + 2.5, br.y + dy, 0, r, r, r * 0.95, r * 0.95, br.y + dy + 2.3, col, MAT.HULL, { seg: 14 });
-    b.rodZ(br.x + 2.5, br.y + dy + 1.2, -r * 1.7, r * 1.7, 0.28, 0.28, shade(col, 0.8), MAT.HULL);
-  }
+  // the drums are part of the tower: they are destroyed with it
+  b.group('tower', () => {
+    for (const [dy, r] of [[-12.5, 2.5], [-7.5, 2.3], [-2.5, 2.1]]) {
+      b.cyl(br.x + 2.5, br.y + dy, 0, r, r, r * 0.95, r * 0.95, br.y + dy + 2.3, col, MAT.HULL, { seg: 14 });
+      b.rodZ(br.x + 2.5, br.y + dy + 1.2, -r * 1.7, r * 1.7, 0.28, 0.28, shade(col, 0.8), MAT.HULL);
+    }
+  });
 }
 
 export const TWEAKS = {

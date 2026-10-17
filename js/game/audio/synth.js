@@ -8,15 +8,17 @@ function prng(seed) {
   return () => { s = (s + 0x6D2B79F5) >>> 0; let t = s; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
 }
 
-/** State-variable filter (Chamberlin): returns the low-, band- and high-pass of the input at once. */
+/** State-variable filter (trapezoidal / TPT, stable at any cutoff): low-, band- and high-pass of the input at once. */
 class SVF {
-  constructor(sr) { this.sr = sr; this.low = 0; this.band = 0; this.lp = 0; this.bp = 0; this.hp = 0; }
+  constructor(sr) { this.sr = sr; this.ic1 = 0; this.ic2 = 0; this.lp = 0; this.bp = 0; this.hp = 0; }
   step(x, fc, q = 0.7) {
-    const f = Math.min(1.2, 2 * Math.sin(Math.PI * Math.min(fc, this.sr * 0.45) / this.sr));
-    this.hp = x - this.low - (1 / q) * this.band;
-    this.band += f * this.hp;
-    this.low += f * this.band;
-    this.lp = this.low; this.bp = this.band;
+    const g = Math.tan(Math.PI * Math.min(fc, this.sr * 0.45) / this.sr), k = 1 / q;
+    const a1 = 1 / (1 + g * (g + k)), a2 = g * a1, a3 = g * a2;
+    const v3 = x - this.ic2;
+    const v1 = a1 * this.ic1 + a2 * v3;
+    const v2 = this.ic2 + a2 * this.ic1 + a3 * v3;
+    this.ic1 = 2 * v1 - this.ic1; this.ic2 = 2 * v2 - this.ic2;
+    this.lp = v2; this.bp = v1; this.hp = x - k * v1 - v2;
     return this;
   }
 }
