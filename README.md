@@ -82,6 +82,10 @@ Chaque porte-avions embarque les appareils de sa nation, modélisés d'après le
 **Ju 87 Stuka** (avec sa sirène) et **Fi 167** (Allemagne), **LN.401** et **PL.10** (France), **Re.2001** (Italie).
 Les croiseurs et cuirassés ont aussi leur hydravion sur la catapulte (Kingfisher, Walrus, Arado 196...).
 
+| Les appareils (SBD, TBF, Swordfish, Stuka) | Torpilleur à basse altitude | DCA et fumée de combat |
+|---|---|---|
+| ![Appareils](docs/planes.jpg) | ![Torpilleur](docs/air.jpg) | ![DCA](docs/aa.jpg) |
+
 - **Pont d'envol** : les avions attendent en file, roulent sur le pont et décollent un par un ; ceux qui restent garés disparaissent du pont à
   mesure que les vagues partent. Au retour, circuit d'appontage, approche sur une pente de 3,5°, brin d'arrêt, remise de gaz si l'approche est ratée.
   Un porte-avions dont le pont est détruit ne peut plus lancer ni récupérer ses avions (ils amerrissent).
@@ -96,6 +100,10 @@ Les croiseurs et cuirassés ont aussi leur hydravion sur la catapulte (Kingfishe
   carburant qui brûle sur l'eau ; un avion qui tombe sur un navire lui cause de vrais dégâts.
 
 ## Dégâts : là où ça touche
+
+| Cheminée détruite : l'épave remplace la pièce, qui vole en morceaux | Torpille : colonne d'eau contre la coque | Plan des dégâts du navire sélectionné |
+|---|---|---|
+| ![Cheminée](docs/funnel.jpg) | ![Torpille](docs/torpedo.jpg) | ![Plan des dégâts](docs/damage-plan.jpg) |
 
 Un navire n'a pas une seule barre de vie : il est fait de **modules** placés là où ils sont sur le modèle 3D : chaufferies et salles des machines,
 soutes à munitions sous chaque tourelle, appareil à gouverner, lignes d'arbres, passerelle, directeurs de tir, radars, cheminées, mâts, tubes
@@ -118,6 +126,10 @@ lance-torpilles, catapultes, hangar, soute à essence et pont d'envol des porte-
   tourelles enrayées, DCA restante.
 
 ## Explosions et naufrages
+
+| Explosion de munitions | Croiseur ravagé : cheminées détruites, incendies |
+|---|---|
+| ![Explosion](docs/explosion.jpg) | ![Dégâts](docs/damage.jpg) |
 
 - **Explosion de munitions** : éclair, boule de feu, onde de choc sur l'eau (anneau d'embruns et d'écume), colonne de fumée en champignon, **tourelles
   projetées** hors du navire, pièces enflammées qui retombent, **explosions secondaires** le long de la coque, puis **la coque se brise en deux** et

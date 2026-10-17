@@ -461,6 +461,7 @@ export class Ship {
   destroy(attacker, cause) {
     if (this.state !== 'afloat') return;
     this.state = 'sinking';
+    this.hp = 0;
     this.sinkT = 0;
     const killer = attacker || this.lastAttacker;
     if (killer && killer !== this) killer.kills++;

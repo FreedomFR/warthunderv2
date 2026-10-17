@@ -229,6 +229,7 @@ function onModuleDestroyed(world, ship, m, owner, cause) {
     case 'magazine': ship.magazineLost(m, world, owner, cause); break;
     case 'bridge':
       ship.commandLoss = true;
+      ship.updateFireControl();
       ship.addFire(m.x, m.y, m.z, 0.9);
       break;
     case 'director':

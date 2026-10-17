@@ -129,14 +129,19 @@ export class Effects {
     const p = this.p;
     const k = e.kind;
     if (k === 'torpedo') {
-      // big water column
-      const n = Math.round(34 * this.emitScale);
+      // water column: a dense white core thrown up the side of the hull, a crown spreading at the top, oil smoke at the base
+      const n = Math.round(70 * this.emitScale);
       for (let i = 0; i < n; i++) {
-        const a = rnd() * 6.283, sp = rr(1, 9);
-        p.add({ kind: K.SPRAY, x: e.x + Math.cos(a) * rr(0, 5), y: 1, z: e.z + Math.sin(a) * rr(0, 5), vx: Math.cos(a) * sp, vy: rr(20, 62), vz: Math.sin(a) * sp, s0: 5, s1: rr(14, 22), life: rr(2.4, 4.4), r: 0.93, g: 0.96, b: 1, a0: 0.95, a1: 0, grav: 12, drag: 0.1, wind: 0.5 });
+        const a = rnd() * 6.283, h = rnd(), r = rr(0, 3.5) * (1 - h * 0.5);
+        const vy = 20 + h * 34 + rr(0, 6);
+        p.add({ kind: K.SPRAY, x: e.x + Math.cos(a) * r, y: 1 + rr(0, 6), z: e.z + Math.sin(a) * r, vx: Math.cos(a) * rr(0, 2 + h * 5), vy, vz: Math.sin(a) * rr(0, 2 + h * 5), s0: 4 + h * 2, s1: rr(8, 12) + h * 6, life: rr(2.8, 4.6), r: 0.95, g: 0.97, b: 1, a0: 1, a1: 0, grav: 18, drag: 0.12, wind: 0.5 });
       }
-      p.add({ kind: K.FLASH, x: e.x, y: 6, z: e.z, s0: 30, s1: 60, life: 0.35, r: 1, g: 0.75, b: 0.4, a0: 7, a1: 0 });
-      for (let i = 0; i < 6; i++) p.add({ kind: K.SMOKE, x: e.x + rr(-6, 6), y: rr(4, 30), z: e.z + rr(-6, 6), vy: rr(2, 6), s0: 14, s1: rr(40, 70), life: rr(5, 9), r: 0.9, g: 0.93, b: 0.97, a0: 0.55, a1: 0, drag: 0.4, wind: 1 });
+      for (let i = 0; i < Math.round(22 * this.emitScale); i++) {
+        const a = rnd() * 6.283, sp = rr(6, 16);
+        p.add({ kind: K.SPRAY, x: e.x, y: 1, z: e.z, vx: Math.cos(a) * sp, vy: rr(6, 16), vz: Math.sin(a) * sp, s0: 6, s1: rr(16, 26), life: rr(2, 3.4), r: 0.93, g: 0.96, b: 1, a0: 0.8, a1: 0, grav: 8, drag: 0.5, wind: 0.4 });
+      }
+      p.add({ kind: K.FLASH, x: e.x, y: 5, z: e.z, s0: 26, s1: 52, life: 0.3, r: 1, g: 0.75, b: 0.4, a0: 6, a1: 0 });
+      for (let i = 0; i < 6; i++) p.add({ kind: K.SMOKE, x: e.x + rr(-5, 5), y: rr(2, 10), z: e.z + rr(-5, 5), vy: rr(3, 9), s0: 8, s1: rr(26, 44), life: rr(6, 11), r: 0.08, g: 0.075, b: 0.07, a0: 0.7, a1: 0, drag: 0.4, wind: 1 });
       this.addShake(0.5, e.x, e.z);
       if (d < 1100) this.engine.foam.add(e.x, e.z, e.x, e.z, 40, 0.8, 1, 1);
       return;
