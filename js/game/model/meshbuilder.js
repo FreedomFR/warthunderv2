@@ -56,6 +56,7 @@ export class MeshBuilder {
     this.stack = [];
     this.m = M4_ID.slice();
     this.ao = 1;
+    this.groups = new Map();
   }
 
   // ---- transform stack ---------------------------------------------------------------------
@@ -310,30 +311,64 @@ export class MeshBuilder {
     return this.quad([cx - hx, y, cz - hz], [cx - hx, y, cz + hz], [cx + hx, y, cz + hz], [cx + hx, y, cz - hz], col, mat, [cx, y - 1, cz], 1);
   }
 
+  // ---- separable parts -----------------------------------------------------------------------
+  /**
+   * Build the geometry emitted by fn into its own mesh (same model space, current transform applies).
+   * Calling it twice with the same name appends. Used for pieces that can be destroyed separately
+   * (funnels, masts, directors...). Returns the AABB [x0,y0,z0,x1,y1,z1] of what fn emitted.
+   */
+  group(name, fn) {
+    const saved = { p: this.p, n: this.n, c: this.c, idx: this.idx };
+    let g = this.groups.get(name);
+    if (!g) { g = { p: [], n: [], c: [], idx: [] }; this.groups.set(name, g); }
+    const base = g.p.length / 3;
+    this.p = g.p; this.n = g.n; this.c = g.c; this.idx = g.idx;
+    const i0 = this.idx.length;
+    fn(this);
+    // an appended call restarts its vertex numbering at 0: shift the new indices
+    if (base > 0) for (let i = i0; i < this.idx.length; i++) this.idx[i] += base;
+    this.p = saved.p; this.n = saved.n; this.c = saved.c; this.idx = saved.idx;
+    return this.groupBounds(name);
+  }
+  groupBounds(name) {
+    const g = this.groups.get(name);
+    const bb = [Infinity, Infinity, Infinity, -Infinity, -Infinity, -Infinity];
+    if (!g) return bb;
+    for (let i = 0; i < g.p.length; i += 3) {
+      for (let k = 0; k < 3; k++) { const v = g.p[i + k]; if (v < bb[k]) bb[k] = v; if (v > bb[k + 3]) bb[k + 3] = v; }
+    }
+    return bb;
+  }
+
   // ---- output ------------------------------------------------------------------------------
   get vertexCount() { return this.p.length / 3; }
   get triangleCount() { return this.idx.length / 3; }
 
+  /** Pack the main geometry (and, as `.groups`, every named group) into GPU-ready buffers. */
   build() {
-    const vc = this.vertexCount;
-    const buf = new ArrayBuffer(vc * VERTEX_STRIDE);
-    const dv = new DataView(buf);
-    const bb = [Infinity, Infinity, Infinity, -Infinity, -Infinity, -Infinity];
-    for (let i = 0; i < vc; i++) {
-      const o = i * VERTEX_STRIDE;
-      const x = this.p[i * 3], y = this.p[i * 3 + 1], z = this.p[i * 3 + 2];
-      dv.setFloat32(o, x, true); dv.setFloat32(o + 4, y, true); dv.setFloat32(o + 8, z, true);
-      for (let k = 0; k < 4; k++) {
-        const v = Math.max(-1, Math.min(1, this.n[i * 4 + k]));
-        dv.setInt16(o + 12 + k * 2, Math.round(v * 32767), true);
-      }
-      for (let k = 0; k < 4; k++) {
-        const v = k < 3 ? this.c[i * 4 + k] : this.c[i * 4 + 3];
-        dv.setUint8(o + 20 + k, Math.max(0, Math.min(255, Math.round(v))));
-      }
-      if (x < bb[0]) bb[0] = x; if (y < bb[1]) bb[1] = y; if (z < bb[2]) bb[2] = z;
-      if (x > bb[3]) bb[3] = x; if (y > bb[4]) bb[4] = y; if (z > bb[5]) bb[5] = z;
-    }
-    return { vertices: buf, indices: new Uint32Array(this.idx), vertexCount: vc, indexCount: this.idx.length, aabb: bb };
+    const out = packMesh(this.p, this.n, this.c, this.idx);
+    out.groups = {};
+    for (const [name, g] of this.groups) out.groups[name] = packMesh(g.p, g.n, g.c, g.idx);
+    return out;
   }
+}
+
+function packMesh(P, N, C, IDX) {
+  const vc = P.length / 3;
+  const buf = new ArrayBuffer(vc * VERTEX_STRIDE);
+  const dv = new DataView(buf);
+  const bb = [Infinity, Infinity, Infinity, -Infinity, -Infinity, -Infinity];
+  for (let i = 0; i < vc; i++) {
+    const o = i * VERTEX_STRIDE;
+    const x = P[i * 3], y = P[i * 3 + 1], z = P[i * 3 + 2];
+    dv.setFloat32(o, x, true); dv.setFloat32(o + 4, y, true); dv.setFloat32(o + 8, z, true);
+    for (let k = 0; k < 4; k++) {
+      const v = Math.max(-1, Math.min(1, N[i * 4 + k]));
+      dv.setInt16(o + 12 + k * 2, Math.round(v * 32767), true);
+    }
+    for (let k = 0; k < 4; k++) dv.setUint8(o + 20 + k, Math.max(0, Math.min(255, Math.round(C[i * 4 + k]))));
+    if (x < bb[0]) bb[0] = x; if (y < bb[1]) bb[1] = y; if (z < bb[2]) bb[2] = z;
+    if (x > bb[3]) bb[3] = x; if (y > bb[4]) bb[4] = y; if (z > bb[5]) bb[5] = z;
+  }
+  return { vertices: buf, indices: new Uint32Array(IDX), vertexCount: vc, indexCount: IDX.length, aabb: bb };
 }

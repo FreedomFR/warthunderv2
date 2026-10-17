@@ -79,6 +79,16 @@ export function pagodaTiers(len0, w0, n, h, shrink = 0.86, rake = 1.2) {
   return tiers;
 }
 
+/** Light AA mount families by nation: model variant, number of barrels, calibre (mm), selection weight. */
+const AA_KINDS = {
+  USA: [{ v: 'bofors', n: 4, cal: 40, bore: 56, w: 0.32, label: 'Bofors 40 mm quadruple' }, { v: 'bofors', n: 2, cal: 40, bore: 56, w: 0.2, label: 'Bofors 40 mm double' }, { v: 'oerlikon', n: 1, cal: 20, bore: 70, w: 0.48, label: 'Oerlikon 20 mm' }],
+  UK: [{ v: 'bofors', n: 4, cal: 40, bore: 39, w: 0.3, label: 'Pom-pom 40 mm' }, { v: 'bofors', n: 2, cal: 40, bore: 56, w: 0.2, label: 'Bofors 40 mm' }, { v: 'oerlikon', n: 1, cal: 20, bore: 70, w: 0.5, label: 'Oerlikon 20 mm' }],
+  Japan: [{ v: 'iijn25', n: 3, cal: 25, bore: 60, w: 0.52, label: 'Type 96 de 25 mm triple' }, { v: 'iijn25', n: 2, cal: 25, bore: 60, w: 0.2, label: 'Type 96 de 25 mm double' }, { v: 'oerlikon', n: 1, cal: 13, bore: 76, w: 0.28, label: 'Type 93 de 13,2 mm' }],
+  Germany: [{ v: 'bofors', n: 2, cal: 37, bore: 83, w: 0.36, label: 'Flak 37 mm double' }, { v: 'iijn25', n: 4, cal: 20, bore: 65, w: 0.22, label: 'Flakvierling 20 mm' }, { v: 'oerlikon', n: 1, cal: 20, bore: 65, w: 0.42, label: 'Flak 20 mm' }],
+  France: [{ v: 'bofors', n: 2, cal: 37, bore: 50, w: 0.4, label: 'Mitrailleuse de 37 mm' }, { v: 'iijn25', n: 2, cal: 13, bore: 76, w: 0.3, label: 'Hotchkiss 13,2 mm double' }, { v: 'oerlikon', n: 1, cal: 20, bore: 70, w: 0.3, label: 'Oerlikon 20 mm' }],
+  Italy: [{ v: 'bofors', n: 2, cal: 37, bore: 54, w: 0.4, label: 'Breda 37 mm double' }, { v: 'iijn25', n: 2, cal: 20, bore: 65, w: 0.3, label: 'Breda 20 mm double' }, { v: 'oerlikon', n: 1, cal: 20, bore: 65, w: 0.3, label: 'Breda 20 mm' }],
+};
+
 function kindOf(desc, ...words) { return words.some((w) => new RegExp(w, 'i').test(desc || '')); }
 
 export function buildShipModel(spec, tw = {}) {
@@ -100,9 +110,19 @@ export function buildShipModel(spec, tw = {}) {
   const X = (f) => hull.fracToX(f), Y = (x) => hull.deckY(x);
   const sil = spec.silhouette || {};
   const model = {
-    id: spec.id, spec, L, B, D: hp.D, mounts: [], smoke: [], aa: [], tubes: [], floatPts: [], hull, pal,
-    topY: 0, catapults: [], hangar: null, island: null, deckPoints: [],
+    id: spec.id, spec, L, B, D: hp.D, mounts: [], smoke: [], aa: [], aaMounts: [], tubes: [], floatPts: [], hull, pal,
+    topY: 0, catapults: [], hangar: null, island: null, deckPoints: [], parts: [], deckSlots: [],
   };
+  // A destroyable piece: built into its own mesh (+ an optional wrecked version drawn once it is destroyed).
+  const part = (id, kind, label, fn, ruinFn, extra = {}) => {
+    const bb = b.group(id, fn);
+    if (!isFinite(bb[0])) return null;
+    if (ruinFn) b.group(id + '_ruin', ruinFn);
+    const p = { id, kind, label, bb, hasRuin: !!ruinFn, ...extra };
+    model.parts.push(p);
+    return p;
+  };
+  const charred = (pal0) => shade(rgb(pal0.dark), 1.1);
   let topY = Y(0) + 4;
   const note = (y) => { if (y > topY) topY = y; };
   const houseH = { DD: 2.2, CL: 3.0, CA: 3.2, BB: 3.6, CV: 0 }[t];
@@ -135,7 +155,8 @@ export function buildShipModel(spec, tw = {}) {
     const fh = fun.heightAboveDeckM || (t === 'DD' ? 11 : 18);
     if (carrier) continue;
     const small = tw.funnelScale ? tw.funnelScale[i] ?? 1 : 1;
-    PT.funnel(b, { x, y0, h: fh * small, lx: funLx * (tw.funnelX?.[i] ?? 1), lz: funLz * (tw.funnelZ?.[i] ?? 1), rake: tw.funnelRake ?? fh * 0.14, band: tw.funnelBand }, pal);
+    const fo = { x, y0, h: fh * small, lx: funLx * (tw.funnelX?.[i] ?? 1), lz: funLz * (tw.funnelZ?.[i] ?? 1), rake: tw.funnelRake ?? fh * 0.14, band: tw.funnelBand };
+    part('funnel' + i, 'funnel', 'Cheminée ' + (i + 1), () => PT.funnel(b, fo, pal), () => PT.funnelRuin(b, fo, pal));
     model.smoke.push([x - (tw.funnelRake ?? fh * 0.14) * 0.9, y0 + fh * small, 0]);
     note(y0 + fh);
   }
@@ -145,7 +166,9 @@ export function buildShipModel(spec, tw = {}) {
     const x = X(towerF);
     const y0 = Y(x) + (towerF > 0.2 ? 0 : 0);
     const tiers = tw.tiers || (tw.pagoda ? pagodaTiers(...tw.pagoda) : towerTiers(spec));
-    const r = PT.tower(b, { x, y0, tiers }, pal);
+    let r = null;
+    part('tower', 'bridge', 'Passerelle', () => { r = PT.tower(b, { x, y0, tiers }, pal); },
+      () => PT.tower(b, { x, y0, tiers: tiers.slice(0, 1).map((t) => ({ ...t, col: charred(pal), windows: false, wings: 0 })) }, pal));
     let y = r.topY;
     const topW = tiers[tiers.length - 1].w;
     // main director on top + radar, then a mast
@@ -153,26 +176,37 @@ export function buildShipModel(spec, tw = {}) {
     const mastH = (sil.masts && sil.masts[0] && sil.masts[0].heightAboveWaterM) || (t === 'DD' ? 22 : 40);
     const mastTopY = Math.max(mastH, y + 4);
     const dirKind = spec.nation === 'Japan' ? 'drum' : 'box';
-    PT.director(b, { x: x + 0.3, y, z: 0, w: topW * 0.7, l: topW * 0.75, h: t === 'DD' ? 1.6 : 2.4, kind: tw.dirKind || dirKind }, pal);
+    const dirO = { x: x + 0.3, y, z: 0, w: topW * 0.7, l: topW * 0.75, h: t === 'DD' ? 1.6 : 2.4, kind: tw.dirKind || dirKind };
+    part('director0', 'director', 'Directeur de tir avant', () => PT.director(b, dirO, pal), () => b.cylinder(dirO.x, dirO.y, 0, 0.5, 0.4, dirO.y + 0.7, rgb(charred(pal)), MAT.DARK, { seg: 6 }));
     y += t === 'DD' ? 2.0 : 3.0;
+    const mastBase = r.tops[Math.max(0, tiers.length - 3)];
+    const mastRuin = (mx, my, mh) => () => b.cylinder(mx, my, 0, 0.5, 0.3, my + Math.max(2.5, mh * 0.18), rgb(charred(pal)), MAT.DARK, { seg: 6 });
     if (kindOf(mastDesc, 'tripod')) {
-      PT.tripod(b, { x: x - 1, y0: r.tops[Math.max(0, tiers.length - 3)] , h: mastTopY - r.tops[Math.max(0, tiers.length - 3)], legSpread: topW * 0.6, legBack: 4, legFront: 2, platforms: [0.55], yards: [[0.8, 8]] }, pal);
+      part('mast0', 'mast', 'Mât avant', () => {
+        PT.tripod(b, { x: x - 1, y0: mastBase, h: mastTopY - mastBase, legSpread: topW * 0.6, legBack: 4, legFront: 2, platforms: [0.55], yards: [[0.8, 8]] }, pal);
+        PT.pennant(b, x - 0.8, mastTopY + 0.2, 0.3, 4.5, 0, '#ffffff');
+      }, mastRuin(x - 1, mastBase, mastTopY - mastBase));
     } else if (kindOf(mastDesc, 'cage|lattice')) {
-      PT.cageMast(b, { x: x - 1, y0: r.tops[Math.max(0, tiers.length - 3)], h: mastTopY - r.tops[Math.max(0, tiers.length - 3)] - 4, r0: 2.4, r1: 1.0 }, pal);
+      part('mast0', 'mast', 'Mât avant', () => {
+        PT.cageMast(b, { x: x - 1, y0: mastBase, h: mastTopY - mastBase - 4, r0: 2.4, r1: 1.0 }, pal);
+        PT.pennant(b, x - 0.8, mastTopY + 0.2, 0.3, 4.5, 0, '#ffffff');
+      }, mastRuin(x - 1, mastBase, mastTopY - mastBase));
     } else {
-      PT.poleMast(b, { x: x - 0.8, y0: y, h: Math.max(mastTopY - y, 6), r: 0.38, yards: [[0.55, 9], [0.8, 6]] }, pal);
+      part('mast0', 'mast', 'Mât avant', () => {
+        PT.poleMast(b, { x: x - 0.8, y0: y, h: Math.max(mastTopY - y, 6), r: 0.38, yards: [[0.55, 9], [0.8, 6]] }, pal);
+        PT.pennant(b, x - 0.8, mastTopY + 0.2, 0.3, 4.5, 0, '#ffffff');
+      }, mastRuin(x - 0.8, y, Math.max(mastTopY - y, 6)));
     }
     // radar
     const rkind = ['USA', 'UK'].includes(spec.nation) ? 'bedspring' : 'box';
-    PT.radar(b, { x: x - 0.8, y: Math.max(mastTopY - 3.5, y), z: 0, kind: rkind, w: Math.min(7, 0.2 * B + 2) }, pal);
-    PT.radar(b, { x: x + 2, y: r.tops[Math.max(0, tiers.length - 2)], z: topW * 0.2, kind: 'dish' }, pal);
+    part('radar0', 'radar', 'Radar de veille', () => PT.radar(b, { x: x - 0.8, y: Math.max(mastTopY - 3.5, y), z: 0, kind: rkind, w: Math.min(7, 0.2 * B + 2) }, pal));
+    part('radar1', 'radar', 'Radar de surface', () => PT.radar(b, { x: x + 2, y: r.tops[Math.max(0, tiers.length - 2)], z: topW * 0.2, kind: 'dish' }, pal));
     note(mastTopY + 2);
     model.bridge = { x, y: r.topY };
     {
       const hx0 = model.house ? model.house.x1 : x - 8, hx1 = model.house ? model.house.x0 : x + 8;
       model.superBox = { x0: Math.min(hx0, x - tiers[0].len / 2), x1: Math.max(hx1, x + tiers[0].len / 2), hw: Math.max(model.house ? model.house.hw : 0, tiers[0].w / 2), y1: r.topY };
     }
-    PT.pennant(b, x - 0.8, mastTopY + 0.2, 0.3, 4.5, 0, '#ffffff');
   }
 
   // -------- secondary mast(s) --------
@@ -184,8 +218,10 @@ export function buildShipModel(spec, tw = {}) {
       let y0 = Y(x) + (model.house && x < model.house.x1 + 0.1 && x > model.house.x0 - 0.1 ? 0 : 0);
       if (model.house && x <= model.house.x1 && x >= model.house.x0 - 1e-9 + 0) y0 = model.house.y - 0.0;
       const h = Math.max((m.heightAboveWaterM || 30) - y0, 8);
-      if (kindOf(m.kind, 'tripod')) PT.tripod(b, { x, y0, h, legSpread: 3.5, legBack: 4, legFront: 1.5, platforms: [0.6], yards: [[0.78, 7]] }, pal);
-      else PT.poleMast(b, { x, y0, h, r: 0.36, yards: [[0.6, 8]] }, pal);
+      part('mast' + i, 'mast', 'Mât ' + (i === 1 ? 'arrière' : 'secondaire'), () => {
+        if (kindOf(m.kind, 'tripod')) PT.tripod(b, { x, y0, h, legSpread: 3.5, legBack: 4, legFront: 1.5, platforms: [0.6], yards: [[0.78, 7]] }, pal);
+        else PT.poleMast(b, { x, y0, h, r: 0.36, yards: [[0.6, 8]] }, pal);
+      }, () => b.cylinder(x, y0, 0, 0.45, 0.3, y0 + Math.max(2.2, h * 0.16), rgb(charred(pal)), MAT.DARK, { seg: 6 }));
       note(y0 + h);
     }
   }
@@ -268,7 +304,8 @@ export function buildShipModel(spec, tw = {}) {
       const x = X(f);
       const y = Y(x) + (model.house && x < model.house.x1 && x > model.house.x0 ? houseH : 0);
       const kind = t === 'DD' ? 1 : 0;
-      PT.torpedoTubes(b, { x, y, z: 0, n: per, r: (tq.caliberMm || 533) / 2000, len: 4.6 + (tq.caliberMm || 533) / 600 }, pal);
+      const to = { x, y, z: 0, n: per, r: (tq.caliberMm || 533) / 2000, len: 4.6 + (tq.caliberMm || 533) / 600 };
+      part('tubes' + model.tubes.length, 'tubes', 'Tubes lance-torpilles', () => PT.torpedoTubes(b, to, pal), () => b.box(x, y + 0.3, 0, 2.4, 0.6, 1.6, rgb(charred(pal)), MAT.DARK));
       model.tubes.push({ x, y: y + 1, z: 0, n: per, side: 0 });
     }
   }
@@ -282,17 +319,20 @@ export function buildShipModel(spec, tw = {}) {
       const sg = nCat === 1 ? 0 : (i === 0 ? -1 : 1);
       const x = X(f0), y = Y(x) + 0.2;
       const z = sg * (mid ? B * 0.12 : B * 0.2);
-      PT.catapult(b, { x, y, z, len: 18, yaw: sg * 0.5 * (mid ? 1 : 0) }, pal);
-      PT.aircraft(b, { x: x + 3, y: y + 0.4, z, yaw: sg * 0.5 * (mid ? 1 : 0), kind: 'float', col: '#8a8f93', scale: 1.0 }, pal);
+      const cy = sg * 0.5 * (mid ? 1 : 0);
+      part('cat' + i, 'catapult', 'Catapulte et hydravion', () => {
+        PT.catapult(b, { x, y, z, len: 18, yaw: cy }, pal);
+        PT.floatplane(b, { x: x + 3, y: y + 0.4, z, yaw: cy, nation: spec.nation, scale: 1.0 }, pal);
+      }, () => PT.catapult(b, { x, y, z, len: 18, yaw: cy }, { ...pal, sup: charred(pal) }));
     }
-    PT.crane(b, { x: X(f0 + 0.07), y0: Y(X(f0 + 0.07)), z: 0, h: 7, len: 14, side: 1 }, pal);
+    part('crane', 'crane', 'Grue', () => PT.crane(b, { x: X(f0 + 0.07), y0: Y(X(f0 + 0.07)), z: 0, h: 7, len: 14, side: 1 }, pal));
   }
 
   // -------- ship-specific extras (see tweaks.js) --------
-  if (tw.extra) tw.extra({ b, hull, X, Y, pal, model, spec, rnd, PT, houseH, note, MAT, rgb, shade });
+  if (tw.extra) tw.extra({ b, hull, X, Y, pal, model, spec, rnd, PT, houseH, note, MAT, rgb, shade, part });
 
   // -------- carrier flight deck --------
-  if (carrier) buildCarrier(b, model, spec, hull, pal, tw, X, Y, fdY, rnd, note);
+  if (carrier) buildCarrier(b, model, spec, hull, pal, tw, X, Y, fdY, rnd, note, part);
 
   // -------- AA guns, boats, rails, clutter --------
   const aaTotal = tw.aaCount ?? clamp(Math.round(L / (carrier ? 8 : 9)), 6, 40);
@@ -305,8 +345,10 @@ export function buildShipModel(spec, tw = {}) {
     let y = Y(x), z = sg * hull.halfBeamDeck(x) * (0.55 + 0.35 * rnd());
     if (model.house && x < model.house.x1 && x > model.house.x0 && !carrier) { y += houseH; z = sg * model.house.hw * (0.5 + 0.4 * rnd()); }
     if (carrier) { y = fdY - 2.4; z = sg * (hull.halfBeamDeck(x) + 1.0); }
-    const kind = rnd() < (L > 150 ? 0.4 : 0.15) ? 'bofors4' : rnd() < 0.5 ? 'bofors2' : 'oerlikon';
-    PT.aaGun(b, x, y, z, kind, sg * 1.2 + (rnd() - 0.5), pal);
+    const pick = AA_KINDS[spec.nation] || AA_KINDS.USA;
+    let rr = rnd() * (L > 150 ? 1 : 0.8), kd = pick[pick.length - 1];
+    for (const k of pick) { rr -= k.w; if (rr <= 0) { kd = k; break; } }
+    model.aaMounts.push({ variant: kd.v, cal: kd.cal, n: kd.n, bore: kd.bore, x, y, z, yaw0: sg * Math.PI / 2 + (rnd() - 0.5) * 0.4, label: kd.label });
     model.aa.push([x, y + 1.2, z]);
   }
   if (!carrier) {
@@ -335,12 +377,14 @@ export function buildShipModel(spec, tw = {}) {
   };
   model.topY = topY;
   model.radius = Math.hypot(L / 2, topY);
-  model.mesh = b.build();
+  const built = b.build();
+  model.mesh = built;
+  for (const p of model.parts) { p.mesh = built.groups[p.id]; p.ruin = p.hasRuin ? built.groups[p.id + '_ruin'] : null; }
   return model;
 }
 
 // ---------------------------------------------------------------------------------------------
-function buildCarrier(b, model, spec, hull, pal, tw, X, Y, fdY, rnd, note) {
+function buildCarrier(b, model, spec, hull, pal, tw, X, Y, fdY, rnd, note, part) {
   const L = spec.loa;
   const fdL = spec.flightDeckLength || L * 0.97;
   const fdW = spec.flightDeckWidth || spec.beam;
@@ -371,23 +415,27 @@ function buildCarrier(b, model, spec, hull, pal, tw, X, Y, fdY, rnd, note) {
   const ix = X(isl.fractionFromBow);
   const il = clamp(isl.lengthM || 40, 18, 60), ih = isl.heightAboveDeckM || 15;
   const iz = sg * (hw - 5.5);
-  b.block({ x0: ix - il / 2, x1: ix + il / 2, hw: 3.4, zc: iz, y0: fdY, y1: fdY + ih * 0.55, tx1: ix + il / 2 - 2, thw: 3.1 }, rgb(pal.sup), MAT.HULL);
-  b.block({ x0: ix - il * 0.28, x1: ix + il * 0.26, hw: 3.0, zc: iz, y0: fdY + ih * 0.55, y1: fdY + ih * 0.85, tx1: ix + il * 0.26 - 2 }, rgb(pal.sup), MAT.HULL);
-  b.block({ x0: ix - il * 0.1, x1: ix + il * 0.22, hw: 2.6, zc: iz, y0: fdY + ih * 0.85, y1: fdY + ih, tx1: ix + il * 0.22 - 1.5 }, rgb(pal.sup), MAT.HULL);
-  for (const [y, h] of [[0.2, 2.2], [0.62, 1.6]]) b.block({ x0: ix + il * 0.1, x1: ix + il / 2 + 0.07, hw: 3.1, zc: iz, y0: fdY + ih * y, y1: fdY + ih * y + h * 0.5 }, rgb(pal.glass), MAT.GLASS);
+  const dark = shade(rgb(pal.dark), 1.1);
+  part('tower', 'bridge', 'Îlot', () => {
+    b.block({ x0: ix - il / 2, x1: ix + il / 2, hw: 3.4, zc: iz, y0: fdY, y1: fdY + ih * 0.55, tx1: ix + il / 2 - 2, thw: 3.1 }, rgb(pal.sup), MAT.HULL);
+    b.block({ x0: ix - il * 0.28, x1: ix + il * 0.26, hw: 3.0, zc: iz, y0: fdY + ih * 0.55, y1: fdY + ih * 0.85, tx1: ix + il * 0.26 - 2 }, rgb(pal.sup), MAT.HULL);
+    b.block({ x0: ix - il * 0.1, x1: ix + il * 0.22, hw: 2.6, zc: iz, y0: fdY + ih * 0.85, y1: fdY + ih, tx1: ix + il * 0.22 - 1.5 }, rgb(pal.sup), MAT.HULL);
+    for (const [y, h] of [[0.2, 2.2], [0.62, 1.6]]) b.block({ x0: ix + il * 0.1, x1: ix + il / 2 + 0.07, hw: 3.1, zc: iz, y0: fdY + ih * y, y1: fdY + ih * y + h * 0.5 }, rgb(pal.glass), MAT.GLASS);
+  }, () => b.block({ x0: ix - il / 2, x1: ix + il / 2, hw: 3.4, zc: iz, y0: fdY, y1: fdY + ih * 0.3, tx1: ix + il / 2 - 3, thw: 2.6 }, dark, MAT.DARK));
   // funnel(s) integrated in the island
   const fun = sil.funnels || { count: 1, fractionFromBow: [isl.fractionFromBow - 0.01], heightAboveDeckM: ih * 0.8 };
   const fPos = (fun.fractionFromBow && fun.fractionFromBow.length ? fun.fractionFromBow : [isl.fractionFromBow - 0.015]).slice(0, Math.max(1, fun.count || 1));
-  for (const f of fPos) {
+  fPos.forEach((f, i) => {
     const x = X(f);
-    if (tw.noFunnels) break;
-    PT.funnel(b, { x, y0: fdY + ih * 0.3, h: Math.max(ih * 0.8, 8), lx: il * 0.34, lz: 4.2, rake: 1.2, z: iz }, pal);
+    if (tw.noFunnels) return;
+    const fo = { x, y0: fdY + ih * 0.3, h: Math.max(ih * 0.8, 8), lx: il * 0.34, lz: 4.2, rake: 1.2, z: iz };
+    part('funnel' + i, 'funnel', 'Cheminée ' + (i + 1), () => PT.funnel(b, fo, pal), () => PT.funnelRuin(b, fo, pal));
     model.smoke.push([x - 1, fdY + ih * 0.3 + Math.max(ih * 0.8, 8), iz]);
-  }
+  });
   // mast / radar on the island
-  PT.poleMast(b, { x: ix + il * 0.1, y0: fdY + ih, h: 14, z: iz, r: 0.3, yards: [[0.6, 7]] }, pal);
-  PT.radar(b, { x: ix + il * 0.1, y: fdY + ih + 8, z: iz, kind: ['USA', 'UK'].includes(spec.nation) ? 'bedspring' : 'box', w: 6 }, pal);
-  PT.director(b, { x: ix + il * 0.2, y: fdY + ih, z: iz, w: 3.4, l: 3.2, h: 2.2, kind: spec.nation === 'Japan' ? 'drum' : 'box' }, pal);
+  part('mast0', 'mast', 'Mât de l\'îlot', () => PT.poleMast(b, { x: ix + il * 0.1, y0: fdY + ih, h: 14, z: iz, r: 0.3, yards: [[0.6, 7]] }, pal), () => b.cylinder(ix + il * 0.1, fdY + ih, iz, 0.4, 0.25, fdY + ih + 2.5, dark, MAT.DARK, { seg: 6 }));
+  part('radar0', 'radar', 'Radar de veille', () => PT.radar(b, { x: ix + il * 0.1, y: fdY + ih + 8, z: iz, kind: ['USA', 'UK'].includes(spec.nation) ? 'bedspring' : 'box', w: 6 }, pal));
+  part('director0', 'director', 'Directeur de tir', () => PT.director(b, { x: ix + il * 0.2, y: fdY + ih, z: iz, w: 3.4, l: 3.2, h: 2.2, kind: spec.nation === 'Japan' ? 'drum' : 'box' }, pal), () => b.cylinder(ix + il * 0.2, fdY + ih, iz, 0.5, 0.4, fdY + ih + 0.7, dark, MAT.DARK, { seg: 6 }));
   note(fdY + ih + 16);
   model.island = { x: ix, z: iz, y: fdY + ih };
   model.superBox = { x0: ix - il / 2, x1: ix + il / 2, hw: 3.4, zc: iz, y1: fdY + ih };
@@ -406,12 +454,13 @@ function buildCarrier(b, model, spec, hull, pal, tw, X, Y, fdY, rnd, note) {
     b.block({ x0: x - 2.6, x1: x + 2.6, hw: 2.2, zc: z, y0: y - 1.2, y1: y, tx0: x - 2.0, tx1: x + 2.0, thw: 1.8 }, shade(rgb(pal.hull), 1.1), MAT.HULL);
     model.mounts.push({ group: 'main', kind: 'dp', cal: mc.caliberMm, n: m.guns, bore: mc.boreCalibers, x, z, y: y + 0.1, arcC: sgm * 90 * D2R, arcH: 110 * D2R, label: m.label || ('S' + i) });
   });
-  // parked aircraft on the aft part of the deck
-  const nPlanes = Math.min(14, (spec.aircraft && spec.aircraft.capacity ? Math.round(spec.aircraft.capacity * 0.15) : 8));
+  // parked aircraft on the aft part of the deck: drawn as separate instances (fewer as the air group takes off)
+  const nPlanes = Math.min(16, (spec.aircraft && spec.aircraft.capacity ? Math.round(spec.aircraft.capacity * 0.17) : 8));
   for (let i = 0; i < nPlanes; i++) {
-    const x = x0 + 8 + i * 5.2 * (1 + (i % 2) * 0.1);
-    const z = -sg * (hw * 0.45 + (i % 3 - 1) * 4);
-    PT.aircraft(b, { x, y: fdY + 0.05, z, yaw: 0, kind: 'fighter', col: pal.sup, scale: 1.1 }, pal);
+    const row = i % 3, col = Math.floor(i / 3);
+    const x = x0 + 9 + col * 6.4 + (row === 1 ? 2.2 : 0);
+    const z = -sg * (hw * 0.5 + (row - 1) * 4.6);
+    model.deckSlots.push({ x, y: fdY + 0.05, z, yaw: 0 });
   }
   PT.deckRails(b, hull, x0 + 2, x1 - 4, 0.8, pal, 8);
 }

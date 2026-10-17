@@ -8,6 +8,8 @@ import { updateGunnery, updateTorpedoes } from './weapons.js';
 import { stepShell } from './ballistics.js';
 import { segmentNearShip, segmentHit, resolveShellHit, resolveTorpedoHit } from './damage.js';
 import { updateAir } from './aircraft.js';
+import { spawnPartDebris, stepDebris } from './debris.js';
+import { magazineExplosion, shipGone } from './explosions.js';
 
 const statsCache = new Map();
 function statsFor(spec) {
@@ -33,6 +35,10 @@ export class World {
     this.shells = [];
     this.torpedoes = [];
     this.planes = [];
+    this.bombs = [];
+    this.debris = [];
+    this.seaFires = [];          // burning oil / fuel on the water
+    this.timers = [];            // scheduled callbacks (sequences of explosions)
     this.events = [];
     this.teams = [];
     this.state = 'setup';        // setup | running | finished
@@ -73,6 +79,7 @@ export class World {
 
   clear() {
     this.ships.length = 0; this.shells.length = 0; this.torpedoes.length = 0; this.planes.length = 0;
+    this.bombs.length = 0; this.debris.length = 0; this.seaFires.length = 0; this.timers.length = 0;
     this.events.length = 0; this.time = 0; this.lastCombatT = 0; this.state = 'setup'; this.winner = null; this.kills.length = 0;
     this.nameCounts.clear();
   }
@@ -106,6 +113,16 @@ export class World {
   }
   spawnTorpedo(o) { o.id = nextShell++; o.age = 0; o.travel = 0; this.torpedoes.push(o); }
 
+  /** Run fn after `sec` simulated seconds (used for the sequence of an explosion). */
+  after(sec, fn) { this.timers.push({ t: this.time + sec, fn }); }
+
+  addSeaFire(x, z, r, life, power = 1) {
+    if (this.seaFires.length > 28) this.seaFires.shift();
+    this.seaFires.push({ x, z, r, t: life, life, power });
+  }
+  spawnPartDebris(ship, part, idx) { spawnPartDebris(this, ship, part, idx); }
+  shipGone(ship) { shipGone(this, ship); }
+
   start() { this.state = 'running'; }
 
   // ---- simulation ----------------------------------------------------------------------------------------
@@ -130,6 +147,14 @@ export class World {
     }
     this.stepShells(dt);
     this.stepTorpedoes(dt);
+    stepDebris(this, dt);
+    for (let i = this.seaFires.length - 1; i >= 0; i--) { this.seaFires[i].t -= dt; if (this.seaFires[i].t <= 0) this.seaFires.splice(i, 1); }
+    if (this.timers.length) {
+      for (let i = 0; i < this.timers.length; i++) {
+        const tm = this.timers[i];
+        if (tm.t <= this.time) { this.timers.splice(i--, 1); tm.fn(); }
+      }
+    }
     this.checkVictory(dt);
   }
 
@@ -144,7 +169,7 @@ export class World {
       // ships
       for (const ship of this.ships) {
         if (ship === s.owner || (s.owner && ship.team === s.owner.team)) continue;     // no friendly fire
-        if (ship.state === 'sunk') continue;
+        if (ship.state === 'sunk' || ship.split) continue;
         if (!segmentNearShip(ship, s.px, s.py, s.pz, s.x, s.y, s.z)) continue;
         const hit = segmentHit(ship, s.px, s.py, s.pz, s.x, s.y, s.z);
         if (hit) {
@@ -176,6 +201,14 @@ export class World {
     const arr = this.torpedoes;
     for (let i = arr.length - 1; i >= 0; i--) {
       const t = arr[i];
+      if (t.air && t.h > 0) {
+        // dropped from an aircraft: falls to the water, then starts its run
+        t.hv -= 9.81 * dt; t.h += t.hv * dt;
+        t.x += Math.sin(t.fallDir) * t.fallSpeed * dt; t.z -= Math.cos(t.fallDir) * t.fallSpeed * dt;
+        t.fallSpeed *= Math.exp(-0.3 * dt);
+        if (t.h <= 0) { t.h = 0; this.events.push({ type: 'splash', x: t.x, z: t.z, cal: 330 }); this.events.push({ type: 'torpedoEntry', x: t.x, z: t.z }); }
+        continue;
+      }
       const x0 = t.x, z0 = t.z;
       t.x += t.vx * dt; t.z += t.vz * dt;
       t.travel += t.speed * dt; t.age += dt;
@@ -242,17 +275,7 @@ export class World {
     }
   }
 
-  magazineExplosion(ship, owner, where) {
-    ship.exploded = true;
-    this.events.push({ type: 'explosion', x: where[0], y: where[1], z: where[2], size: ship.stats.L / 60, ship, magazine: true });
-    ship.destroy(owner, 'magazine');
-    // blast hurts neighbours
-    for (const o of this.ships) {
-      if (o === ship || !o.alive) continue;
-      const d = Math.hypot(o.x - ship.x, o.z - ship.z);
-      if (d < 220) o.applyDamage(o.stats.maxHp * 0.02 * (1 - d / 220), owner, 'blast');
-    }
-  }
+  magazineExplosion(ship, owner, where, mag) { magazineExplosion(this, ship, owner, where, mag); }
 
   onShipSunk(ship, killer, cause) {
     this.kills.push({ t: this.time, victim: ship, killer, cause });

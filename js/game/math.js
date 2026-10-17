@@ -109,6 +109,33 @@ export function mat4Mul(out, a, b) {
   return out;
 }
 
+/** Rotation about X (propeller spin etc.), column-major. */
+export function mat4RotX(out, a) {
+  const c = Math.cos(a), s = Math.sin(a);
+  out[0] = 1; out[1] = 0; out[2] = 0; out[3] = 0;
+  out[4] = 0; out[5] = c; out[6] = s; out[7] = 0;
+  out[8] = 0; out[9] = -s; out[10] = c; out[11] = 0;
+  out[12] = 0; out[13] = 0; out[14] = 0; out[15] = 1;
+  return out;
+}
+
+/**
+ * Matrix placing a mesh built on the XZ plane (normal +y) at p, with its +y axis along the unit normal n and a uniform scale.
+ */
+export function mat4Frame(out, px, py, pz, nx, ny, nz, scale = 1, spin = 0) {
+  // a tangent perpendicular to n (helper axis: world Y, or X when n is nearly vertical)
+  const ax = Math.abs(ny) < 0.9 ? 0 : 1, ay = Math.abs(ny) < 0.9 ? 1 : 0;
+  let tx = ay * nz, ty = -ax * nz, tz = ax * ny - ay * nx;
+  let l = Math.hypot(tx, ty, tz) || 1; tx /= l; ty /= l; tz /= l;
+  let bx = ny * tz - nz * ty, by = nz * tx - nx * tz, bz = nx * ty - ny * tx;
+  if (spin) { const c = Math.cos(spin), s = Math.sin(spin); const t2x = tx * c + bx * s, t2y = ty * c + by * s, t2z = tz * c + bz * s; bx = -tx * s + bx * c; by = -ty * s + by * c; bz = -tz * s + bz * c; tx = t2x; ty = t2y; tz = t2z; }
+  out[0] = tx * scale; out[1] = ty * scale; out[2] = tz * scale; out[3] = 0;
+  out[4] = nx * scale; out[5] = ny * scale; out[6] = nz * scale; out[7] = 0;
+  out[8] = bx * scale; out[9] = by * scale; out[10] = bz * scale; out[11] = 0;
+  out[12] = px; out[13] = py; out[14] = pz; out[15] = 1;
+  return out;
+}
+
 /** Rotation about local Y (yaw of a turret) with a translation: used for turret/barrel sub-matrices. */
 export function mat4YawPitchAt(out, tx, ty, tz, yaw, pitch) {
   const sy = Math.sin(yaw), cy = Math.cos(yaw), sp = Math.sin(pitch), cp = Math.cos(pitch);

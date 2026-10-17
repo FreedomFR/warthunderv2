@@ -3,16 +3,15 @@
 import { World, TEAM_COLORS } from './sim/world.js';
 import { spawnFleet, teamStart } from './sim/formation.js';
 import { getModel } from './model/cache.js';
-import { getMountModel } from './model/mounts.js';
-import { MeshBuilder, MAT, rgb } from './model/meshbuilder.js';
-import * as PT from './model/parts.js';
 import { ShipRenderer } from './render/shipRenderer.js';
+import { ShipVisuals } from './render/shipVisual.js';
+import { PlaneVisuals } from './render/aircraftVisual.js';
 import { Particles, K } from './render/particles.js';
 import { Effects } from './render/effects.js';
 import { CameraRig } from './ui/cameras.js';
 import { lightMatrix } from './render/shadows.js';
 import { GameAudio } from './audio.js';
-import { mat4Ship, mountMatrices, D2R, clamp, makeRng } from './math.js';
+import { mat4Ship, D2R, clamp, makeRng } from './math.js';
 
 const SM = new Float32Array(16), HM = new Float32Array(16), GM = new Float32Array(16);
 const S64 = new Float64Array(16), H64 = new Float64Array(16), G64 = new Float64Array(16);
@@ -45,10 +44,9 @@ export class Game {
     this.effects = new Effects(e, this.particles, this);
     this.camera = new CameraRig(e, this.canvas, this);
     this.audio = new GameAudio(this);
-    // plane mesh shared by every aircraft
-    const b = new MeshBuilder();
-    PT.aircraft(b, { x: 0, y: 0, z: 0, yaw: 0, kind: 'fighter', col: '#7d868c', scale: 1.5 }, { sup: '#7d868c', dark: '#222' });
-    this.planeMesh = this.shipRenderer.createMesh(b.build(), 'plane');
+    this.shipVisuals = new ShipVisuals(this.shipRenderer);
+    this.planeVisuals = new PlaneVisuals(this.shipRenderer);
+    this.shipVisuals.planes = this.planeVisuals;
 
     e.hooks.update = (dt, now) => this.update(dt, now);
     e.hooks.prepare = () => this.prepare();
@@ -141,9 +139,11 @@ export class Game {
     this.effects.emitScale = 1 / Math.max(1, this.timeScale * 0.55);
     this.effects.process(ev);
     this.ui?.onEvents?.(ev);
+    this.camera.onEvents(ev);
     this.audio.onEvents(ev);
     this.effects.update(gdt, w);
     this.particles.update(gdt);
+    this.audio.update(dt);
 
     // water probes: 8 points per ship (a few frames of latency, the ship hull filters them)
     const water = this.engine.water;
@@ -193,53 +193,39 @@ export class Game {
     }
   }
 
-  renderModel(ship) {
-    const model = ship.model;
-    let rm = this.renderModels.get(model.id);
-    if (rm) return rm;
-    const r = this.shipRenderer;
-    rm = { hull: r.createMesh(model.mesh, model.id), mounts: new Map() };
-    for (const m of model.mounts) {
-      const mm = getMountModel({ kind: m.kind, cal: m.cal, n: m.n, bore: m.bore, col: model.pal.sup });
-      if (!rm.mounts.has(mm)) rm.mounts.set(mm, { mm, house: r.createMesh(mm.house, model.id + ' house'), guns: r.createMesh(mm.guns, model.id + ' guns') });
-    }
-    rm.mountOf = model.mounts.map((m) => rm.mounts.get(getMountModel({ kind: m.kind, cal: m.cal, n: m.n, bore: m.bore, col: model.pal.sup })));
-    this.renderModels.set(model.id, rm);
-    return rm;
-  }
-
   prepare() {
     const r = this.shipRenderer, cam = this.engine.cam, w = this.world;
     r.begin();
     this.particles.beginFrame();
     for (const s of w.ships) {
       if (s.state === 'sunk') continue;
-      const rm = this.renderModel(s);
       const team = w.teams[s.team];
       const tint = team ? team.rgb : [255, 255, 255];
       const dmg = clamp((1 - s.hpFrac - 0.1) * 1.25, 0, 1);
       const fire = s.fireLevel || 0;
       const rnd = (s.id * 0.6180339) % 1;
       mat4Ship(S64, s.x - cam.x, s.y - cam.y, s.z - cam.z, s.heading, s.pitch, s.roll);
-      for (let i = 0; i < 16; i++) SM[i] = S64[i];
-      r.add(rm.hull, SM, tint, dmg, fire, rnd);
-      for (let i = 0; i < s.mounts.length; i++) {
-        const m = s.mounts[i], mo = rm.mountOf[i], rec = m.rec;
-        const alive = m.alive;
-        const yaw = rec.arcC + m.trainRel;
-        const pitch = alive ? m.elev : -0.12;
-        mountMatrices(H64, G64, S64, rec.x, rec.y, rec.z, yaw, pitch, mo.mm.trunnion[0], mo.mm.trunnion[1], alive ? m.recoil * mo.mm.recoil : 0);
-        for (let k = 0; k < 16; k++) { HM[k] = H64[k]; GM[k] = G64[k]; }
-        r.add(mo.house, HM, tint, dmg, fire, rnd);
-        r.add(mo.guns, GM, tint, dmg, fire, rnd);
-      }
+      this.shipVisuals.addShip(s, S64, tint, dmg, fire, rnd);
     }
-    // aircraft
+    // aircraft, ordnance in flight and wreckage
+    const pv = this.planeVisuals;
     for (const p of w.planes) {
-      if (p.t < 0 && !(p.owner && p.owner.alive)) continue;
-      mat4Ship(S64, p.x - cam.x, p.y - cam.y, p.z - cam.z, p.heading, p.pitch, p.bank);
-      for (let i = 0; i < 16; i++) SM[i] = S64[i];
-      r.add(this.planeMesh, SM, [255, 255, 255], 0, 0, 0.5);
+      const team = w.teams[p.team];
+      const tint = team ? team.rgb : [255, 255, 255];
+      if (p.phase === 'queue' && !(p.owner && p.owner.alive)) continue;
+      const cockpit = this.camera.mode === 'cockpit' && this.camera.plane === p;
+      pv.addPlane(p, cam, tint, (p.id * 0.37) % 1, p.dying ? 0.85 : p.smoke > 0 ? 0.35 : 0, cockpit ? -1 : p.fire > 0.5 ? 0.6 : 0);
+    }
+    for (const b of w.bombs) {
+      const sp = Math.hypot(b.vx, b.vy, b.vz) || 1;
+      pv.addOrdnance(b.mesh, b.x, b.y, b.z, Math.atan2(b.vx, -b.vz), Math.asin(b.vy / sp), cam);
+    }
+    for (const t of w.torpedoes) {
+      if (t.air && t.h > 0.2) pv.addOrdnance('torpedo', t.x, t.h, t.z, t.fallDir, Math.atan2(t.hv, t.fallSpeed || 1), cam);
+    }
+    for (const d of w.debris) {
+      if (d.kind === 'plane') { const team = w.teams[0]; pv.addPiece(d, cam, [120, 120, 120], 0.5); continue; }
+      this.shipVisuals.addDebris(d, cam, [130, 130, 130]);
     }
     r.upload();
     this.updateShadow();

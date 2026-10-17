@@ -2,6 +2,7 @@
 // (+x bow, +y up from the waterline, +z starboard). `pal` is the ship palette
 // { hull, deck, sup, dark, funnel, cap, mast, boat, glass }.
 import { MAT, rgb, shade, mix } from './meshbuilder.js';
+import { drawPlane, floatplaneSpec } from './planes.js';
 
 const PI = Math.PI;
 
@@ -42,6 +43,21 @@ export function funnel(b, o, pal) {
   if (o.pipes !== false) {
     for (const sz of [-1, 1]) b.cylinder(o.x - o.lx * 0.52 - rake * 0.4, o.y0 + o.h * 0.35, z + sz * o.lz * 0.18, 0.28, 0.24, o.y0 + o.h * 0.96, shade(col, 0.8), MAT.HULL, { seg: 6 });
   }
+}
+
+/** Wrecked funnel: a charred, torn stump on the uptake trunk. Same options as funnel(). */
+export function funnelRuin(b, o, pal) {
+  const z = o.z || 0;
+  const burnt = shade(rgb(pal.dark), 1.2), rust = shade(rgb(pal.funnel), 0.45);
+  b.cyl(o.x, o.y0, z, o.lx * 0.6, o.lz * 0.6, o.lx * 0.5, o.lz * 0.5, o.y0 + o.h * 0.22, rust, MAT.HULL, { seg: o.seg || 16, capTop: false, dx: -(o.rake || 0) * 0.2 });
+  // jagged remains of the casing, torn open on one side
+  const top = o.y0 + o.h * 0.22;
+  for (let i = 0; i < 7; i++) {
+    const a = i / 7 * Math.PI * 2, h = o.h * (0.04 + 0.1 * ((i * 37) % 7) / 7);
+    const px = o.x + Math.cos(a) * o.lx * 0.46, pz = z + Math.sin(a) * o.lz * 0.46;
+    b.box(px, top + h / 2, pz, 0.5, h, 0.9, i % 2 ? burnt : rust, MAT.HULL);
+  }
+  b.cyl(o.x - (o.rake || 0) * 0.1, top, z, o.lx * 0.44, o.lz * 0.44, o.lx * 0.4, o.lz * 0.4, top + 0.25, shade(burnt, 0.5), MAT.DARK, { seg: o.seg || 16 });
 }
 
 /** Window strip along a face: thin dark boxes slightly proud of the surface. */
@@ -232,18 +248,10 @@ export function catapult(b, o, pal) {
   b.pop();
 }
 
-/** Small floatplane / carrier aircraft model. kind: 'float' | 'fighter' | 'bomber' */
-export function aircraft(b, o, pal) {
-  const sc = o.scale ?? 1;
-  const col = rgb(o.col || '#8a8f93'), acc = rgb(o.acc || '#5c6166');
-  b.push().translate(o.x, o.y, o.z || 0).rotateY(o.yaw || 0).scale(sc);
-  b.rod(-4.2, 3.4, 0.9, 0, 0.18, 0.5, col, MAT.AIRCRAFT, { seg: 8 });                // fuselage (tail to nose)
-  b.rod(3.2, 3.9, 0.9, 0, 0.5, 0.3, shade(col, 0.8), MAT.DARK, { seg: 8 });             // cowling
-  b.block({ x0: -0.6, x1: 0.9, hw: 5.2, y0: 0.82, y1: 0.95, tx0: -0.3, tx1: 0.5 }, col, MAT.AIRCRAFT);   // wing
-  b.block({ x0: -4.4, x1: -3.5, hw: 1.8, y0: 0.9, y1: 0.97 }, col, MAT.AIRCRAFT);     // tailplane
-  b.block({ x0: -4.4, x1: -3.6, hw: 0.04, y0: 0.9, y1: 2.0, tx1: -3.9 }, col, MAT.AIRCRAFT);    // fin
-  b.rod(3.9, 4.0, 0.9, 0, 0.7, 0.7, acc, MAT.DARK, { seg: 6 });                          // prop disc
-  if (o.kind === 'float') b.rod(-1.5, 2.4, -0.2, 0, 0.3, 0.2, acc, MAT.AIRCRAFT, { seg: 6 });
+/** Catapult floatplane (Walrus, Seagull, Arado 196, Rufe...) at its launch position. */
+export function floatplane(b, o, pal) {
+  b.push().translate(o.x, o.y + 0.3, o.z || 0).rotateY(o.yaw || 0).scale(o.scale ?? 1);
+  drawPlane(b, floatplaneSpec(o.nation), { part: 'whole' });
   b.pop();
 }
 

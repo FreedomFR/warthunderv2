@@ -70,7 +70,11 @@ export function updateGunnery(ship, world, dt) {
   for (const m of ship.mounts) {
     m.recoil = Math.max(0, m.recoil - dt * 1.6);
     m.flash = Math.max(0, m.flash - dt * 5);
+    if (m.jam > 0) m.jam = Math.max(0, m.jam - dt);
     if (!m.alive || !ship.alive) continue;
+    // dual-purpose guns firing at aircraft are handled by the anti-aircraft step
+    if (m.busyAir) { m.busyAir = false; continue; }
+    if (m.noAmmo || m.jam > 0) { neutral(m, dt); m.aimOk = false; continue; }
     m.reload = Math.max(0, m.reload - dt);
     const grp = m.group === 'main' ? cmd.main : cmd.sec;
     let target = grp.target;
@@ -108,7 +112,7 @@ function fireMount(world, ship, m, target, s) {
   const gun = m.gun;
   const b = ball(m);
   const yaw = ship.heading + m.rec.arcC + m.trainRel;
-  const acc = ship.gunAcc;
+  const acc = ship.gunAcc * ship.fcMult;
   const maneuver = 1 + Math.abs(ship.yawRate) * 12 + (ship.stats.type === 'DD' ? 0.35 : 0);
   const sigR = 0.0085 * s.range * acc * maneuver * (gun.cal < 150 ? 1.25 : 1);
   const sigA = 0.0030 * acc * maneuver;
@@ -139,9 +143,9 @@ function fireMount(world, ship, m, target, s) {
     });
   }
   ship.shotsFired += m.n;
-  m.reload = gun.reload * (0.92 + world.rng() * 0.16);
+  m.reload = gun.reload * (0.92 + world.rng() * 0.16) * (1 + (1 - m.hp / m.maxHp) * 0.7);
   m.recoil = 1; m.flash = 1;
-  world.events.push({ type: 'muzzle', ship, mount: m, x: s.px + fwdx * 4, y: s.py + fwdy * 4, z: s.pz + fwdz * 4, dx: fwdx, dy: fwdy, dz: fwdz, cal: gun.cal, n: m.n });
+  world.events.push({ type: 'muzzle', ship, mount: m, x: s.px + fwdx * 4, y: s.py + fwdy * 4, z: s.pz + fwdz * 4, dx: fwdx, dy: fwdy, dz: fwdz, cal: gun.cal, n: m.n, group: m.group });
 }
 
 function chooseShell(ship, target, gun) {

@@ -8,7 +8,7 @@
   "scripts": {
     "start": "node server.mjs",
     "build": "node build.mjs",
-    "test": "node test/models.mjs && node test/manual.mjs && node test/fuzz.mjs 8 && node test/battle.mjs 600"
+    "test": "node test/models.mjs && node test/damage.mjs && node test/manual.mjs && node test/air.mjs 600 && node test/fuzz.mjs 8 && node test/battle.mjs 600"
   },
   "devDependencies": {
     "esbuild": "^0.25.0"

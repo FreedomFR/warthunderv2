@@ -101,9 +101,10 @@ export class ShipRenderer {
   /**
    * Queue an instance (data is copied immediately, callers may reuse their arrays).
    * `mat` is a camera-relative column-major 4x4; tint = [r, g, b] team colour (0-255 sRGB),
-   * damage 0..1 (soot), fire 0..1 (glow), rnd 0..1 per ship.
+   * damage 0..1 (soot), fire 0..1 (glow), rnd 0..1 per ship. cutSide = +1 / -1 keeps only the part of the mesh forward / abaft
+   * of local x = cutX (a ship broken in two), 0 = whole.
    */
-  add(mesh, mat, tint, damage = 0, fire = 0, rnd = 0) {
+  add(mesh, mat, tint, damage = 0, fire = 0, rnd = 0, cutX = 0, cutSide = 0) {
     if (this.count >= MAX_INSTANCES) return;
     if (!mesh.cpu || (mesh.n + 1) * INST_FLOATS > mesh.cpu.length) {
       const bigger = new Float32Array(Math.max(INST_FLOATS * 8, (mesh.cpu ? mesh.cpu.length * 2 : 0)));
@@ -113,7 +114,7 @@ export class ShipRenderer {
     const d = mesh.cpu, o = mesh.n * INST_FLOATS;
     for (let k = 0; k < 16; k++) d[o + k] = mat[k];
     d[o + 16] = tint[0] / 255; d[o + 17] = tint[1] / 255; d[o + 18] = tint[2] / 255; d[o + 19] = damage;
-    d[o + 20] = fire; d[o + 21] = rnd; d[o + 22] = 0; d[o + 23] = 0;
+    d[o + 20] = fire; d[o + 21] = rnd; d[o + 22] = cutX; d[o + 23] = cutSide;
     mesh.n++;
     this.count++;
   }

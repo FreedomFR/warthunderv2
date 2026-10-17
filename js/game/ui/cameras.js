@@ -10,6 +10,14 @@ export const CAMERA_MODES = [
   { id: 'shell', key: '5', name: 'Obus', hint: 'Suit les obus tirés' },
   { id: 'tactical', key: '6', name: 'Tactique', hint: 'Vue de dessus (glisser = déplacer, molette = altitude)' },
   { id: 'free', key: '7', name: 'Libre', hint: 'ZQSD / WASD, Espace/Ctrl, Maj = rapide, glisser = regarder' },
+  { id: 'plane', key: '8', name: 'Avions', hint: 'Suit un avion (N / B : avion suivant, V : changer de vue)' },
+  { id: 'cockpit', key: '9', name: 'Cockpit', hint: 'Vue du pilote (glisser = regarder autour)' },
+];
+
+/** Aircraft phases worth watching. */
+const ATTACK = new Set(['rollin', 'dive', 'pullout', 'run', 'break']);
+export const PLANE_VIEWS = [
+  { id: 'chase', name: 'poursuite' }, { id: 'side', name: 'passage' }, { id: 'victim', name: 'depuis le navire visé' },
 ];
 
 const FOV_DEFAULT = 58 * D2R;
@@ -28,6 +36,8 @@ export class CameraRig {
     this.bridge = { yaw: 0, pitch: -0.02 };
     this.shell = { shell: null, hold: 0, x: 0, y: 0, z: 0, dx: 0, dz: 0, lastImpact: null };
     this.auto = { t: 0, sub: 'follow', hold: 0 };
+    this.plane = null;               // followed aircraft
+    this.planeCam = { yaw: 0, pitch: 0, zoom: 1, view: 'chase', t: 0, fix: null, hold: 0, crash: null, look: { yaw: 0, pitch: 0 } };
     this.smooth = { x: 0, y: 0, z: 0, yaw: 0, pitch: 0, init: false, fov: FOV_DEFAULT };
     this.fovWant = FOV_DEFAULT;
     this.dragging = false;
@@ -52,6 +62,8 @@ export class CameraRig {
       if (!this.target || !this.target.alive) this.pickTarget(1);
     }
     if (id === 'auto') { this.auto.t = 0; }
+    if (id === 'plane' || id === 'cockpit') { if (!this.plane || !this.planeAlive(this.plane)) this.pickPlane(1); this.planeCam.fix = null; this.planeCam.hold = 0; this.planeCam.look.yaw = 0; this.planeCam.look.pitch = 0; }
+    this.fovWant = id === 'cockpit' ? 75 * D2R : (id === 'bridge' ? this.fovWant : FOV_DEFAULT);
     this.game.ui?.onCameraMode?.(id);
   }
 
@@ -80,8 +92,10 @@ export class CameraRig {
       if (e.repeat) return;
       const m = CAMERA_MODES.find((x) => 'Digit' + x.key === e.code || 'Numpad' + x.key === e.code);
       if (m) this.setMode(m.id, true);
-      if (e.code === 'Tab' || e.code === 'KeyN' || e.code === 'BracketRight') { this.pickTarget(e.shiftKey ? -1 : 1); e.preventDefault(); }
-      if (e.code === 'KeyB' || e.code === 'BracketLeft') this.pickTarget(-1);
+      const planeMode = this.mode === 'plane' || this.mode === 'cockpit';
+      if (e.code === 'Tab' || e.code === 'KeyN' || e.code === 'BracketRight') { if (planeMode) this.pickPlane(e.shiftKey ? -1 : 1); else this.pickTarget(e.shiftKey ? -1 : 1); e.preventDefault(); }
+      if (e.code === 'KeyB' || e.code === 'BracketLeft') { if (planeMode) this.pickPlane(-1); else this.pickTarget(-1); }
+      if (e.code === 'KeyV' && this.mode === 'plane') this.nextPlaneView();
     });
     addEventListener('keyup', (e) => { this.keys[e.code] = false; });
     addEventListener('blur', () => { for (const k in this.keys) this.keys[k] = false; });
@@ -121,6 +135,8 @@ export class CameraRig {
         break;
       }
       case 'auto': case 'shell': this.follow.yaw += dx * k; break;
+      case 'plane': this.planeCam.yaw += dx * k; this.planeCam.pitch = clamp(this.planeCam.pitch - dy * k, -1.2, 1.3); break;
+      case 'cockpit': this.planeCam.look.yaw = clamp(this.planeCam.look.yaw + dx * k * 0.6, -2.6, 2.6); this.planeCam.look.pitch = clamp(this.planeCam.look.pitch - dy * k * 0.6, -1.2, 1.2); break;
     }
   }
   onWheel(dy) {
@@ -130,6 +146,8 @@ export class CameraRig {
       case 'follow': this.follow.zoom = clamp(this.follow.zoom * f, 0.25, 6); break;
       case 'orbit': this.orbit.zoom = clamp(this.orbit.zoom * f, 0.25, 8); break;
       case 'tactical': this.tactical.alt = clamp(this.tactical.alt * f, 400, 30000); break;
+      case 'plane': this.planeCam.zoom = clamp(this.planeCam.zoom * f, 0.3, 8); break;
+      case 'cockpit': this.fovWant = clamp(this.fovWant * f, 30 * D2R, 100 * D2R); break;
       case 'bridge': this.fovWant = clamp(this.fovWant * f, 18 * D2R, 80 * D2R); break;
     }
   }
@@ -175,6 +193,12 @@ export class CameraRig {
         yaw = 0; pitch = tilt;
         break;
       }
+      case 'plane': case 'cockpit': {
+        const r = this.computePlane(mode, dt);
+        if (!r) { px = cam.x; py = cam.y; pz = cam.z; yaw = cam.yaw; pitch = cam.pitch; break; }
+        px = r.x; py = r.y; pz = r.z; yaw = r.yaw; pitch = r.pitch;
+        break;
+      }
       case 'follow': case 'orbit': case 'bridge': case 'shell': {
         if (!tgt) { px = cam.x; py = cam.y; pz = cam.z; yaw = cam.yaw; pitch = cam.pitch; break; }
         const r = this.compute(mode, tgt, dt);
@@ -187,7 +211,7 @@ export class CameraRig {
     const hard = mode === 'free' || mode === 'tactical';
     if (!sm.init || hard) { sm.x = px; sm.y = py; sm.z = pz; sm.yaw = yaw; sm.pitch = pitch; sm.init = true; }
     else {
-      const k = 1 - Math.exp(-dt * (mode === 'shell' ? 14 : 9));
+      const k = 1 - Math.exp(-dt * (mode === 'shell' ? 14 : mode === 'cockpit' ? 40 : mode === 'plane' ? 12 : 9));
       sm.x += (px - sm.x) * k; sm.y += (py - sm.y) * k; sm.z += (pz - sm.z) * k;
       sm.yaw += wrapPi(yaw - sm.yaw) * k; sm.pitch += (pitch - sm.pitch) * k;
     }
@@ -267,10 +291,156 @@ export class CameraRig {
     return this.lookAt(ship.x + Math.sin(yaw) * dist, 18 + ship.stats.L * 0.03, ship.z - Math.cos(yaw) * dist, ship.x, ship.model.topY * 0.35, ship.z);
   }
 
+
+  // ---- aircraft cameras ----------------------------------------------------------------------------------------------
+  planeAlive(p) { return this.game.world.planes.includes(p) && !(p.phase === 'queue' && p.t < -1 && !(p.owner && p.owner.alive)); }
+
+  /** Aircraft worth watching, best first. */
+  planeCandidates() {
+    const w = this.game.world, cam = this.engine.cam;
+    const out = [];
+    for (const p of w.planes) {
+      if (p.phase === 'queue') continue;
+      let sc = Math.random() * 1.2;
+      if (ATTACK.has(p.phase)) sc += 5;
+      if (p.dying) sc += 6;
+      if (p.phase === 'final' || p.phase === 'takeoff') sc += 1.5;
+      if (p.ordnance) sc += 1;
+      const d = Math.hypot(p.x - cam.x, p.z - cam.z);
+      sc -= d * 0.00004;
+      out.push({ p, sc });
+    }
+    out.sort((a, b) => b.sc - a.sc);
+    return out;
+  }
+
+  pickPlane(dir = 1) {
+    const w = this.game.world;
+    const list = w.planes.filter((p) => p.phase !== 'queue').sort((a, b) => a.id - b.id);
+    if (!list.length) { this.plane = null; return; }
+    // best candidate when nothing is followed, otherwise the neighbour in the list
+    let i = list.indexOf(this.plane);
+    if (i < 0) { const c = this.planeCandidates(); this.setPlane(c.length ? c[0].p : list[0]); return; }
+    i = (i + dir + list.length) % list.length;
+    this.setPlane(list[i]);
+  }
+  setPlane(p) { this.plane = p; this.planeCam.fix = null; this.planeCam.t = 0; this.smooth.init = false; this.game.ui?.onPlane?.(p); }
+  nextPlaneView() {
+    const pc = this.planeCam;
+    const i = PLANE_VIEWS.findIndex((v) => v.id === pc.view);
+    pc.view = PLANE_VIEWS[(i + 1) % PLANE_VIEWS.length].id;
+    pc.fix = null; this.smooth.init = false;
+    this.game.ui?.onPlaneView?.(pc.view);
+  }
+
+  /** Events that interest the aircraft cameras (a followed aircraft crashing, a bomb being released...). */
+  onEvents(events) {
+    const pc = this.planeCam;
+    for (const e of events) {
+      if (this.mode === 'auto' && (e.type === 'bombDrop' || e.type === 'torpedoDrop' || e.type === 'planeDown') && Math.random() < 0.45 && this.auto.sub !== 'plane') { this.auto.forcePlane = e.plane; this.auto.t = 0; }
+      if (e.type === 'planeCrash' && e.plane === this.plane) {
+        pc.crash = { x: e.x, y: Math.max(e.y, 2), z: e.z, dx: Math.sin(e.plane.heading), dz: -Math.cos(e.plane.heading) };
+        pc.hold = 3.2;
+      }
+    }
+  }
+
+  computePlane(mode, dt) {
+    const w = this.game.world, pc = this.planeCam;
+    let p = this.plane;
+    if (!p || !this.planeAlive(p)) {
+      if (pc.hold > 0 && pc.crash) {
+        // the aircraft we were following has just crashed: stay on the impact for a moment
+        pc.hold -= dt;
+        const c = pc.crash;
+        return this.lookAt(c.x - c.dx * 120 + c.dz * 70, c.y + 38, c.z - c.dz * 120 - c.dx * 70, c.x, c.y + 8, c.z);
+      }
+      pc.crash = null;
+      const c = this.planeCandidates();
+      if (c.length) { this.setPlane(c[0].p); p = this.plane; }
+      else { this.plane = null; return this.noPlaneView(); }
+    }
+    const sh = Math.sin(p.heading), ch = Math.cos(p.heading), cp = Math.cos(p.pitch), sp = Math.sin(p.pitch);
+    const fx = sh * cp, fy = sp, fz = -ch * cp;                      // flight direction
+    if (mode === 'cockpit') {
+      const yaw = p.heading + pc.look.yaw, pitch = clamp(p.pitch + pc.look.pitch, -1.45, 1.45);
+      // the pilot's eye: above the seat, in the canopy
+      const cn = p.spec.canopy[0], ry0 = p.spec.fus.r * p.spec.fus.ar;
+      const ex = (cn.x0 + (cn.x1 - cn.x0) * 0.55), ey = ry0 * 0.78 + cn.h * 0.85;
+      return { x: p.x + fx * ex - Math.sin(p.heading) * 0, y: p.y + ey * Math.cos(p.pitch) + fy * ex, z: p.z + fz * ex, yaw, pitch };
+    }
+    pc.t += dt;
+    const zoom = pc.zoom;
+    if (pc.view === 'chase') {
+      // behind the tail along the flight path (so a dive is followed down the line of the dive), a little above it
+      const U = [-fx * fy, 1 - fy * fy, -fz * fy];
+      const ul = Math.hypot(U[0], U[1], U[2]) || 1; U[0] /= ul; U[1] /= ul; U[2] /= ul;
+      const el = 0.22 + pc.pitch, back = 30 * zoom, ya = pc.yaw;
+      // -F * back * cos(el) + U * back * sin(el), then turned about the vertical by the user's drag
+      const k = Math.cos(el) * back, sn = Math.sin(el) * back;
+      const ox = -fx * k + U[0] * sn, oy = -fy * k + U[1] * sn, oz = -fz * k + U[2] * sn;
+      const px2 = ox * Math.cos(ya) + oz * Math.sin(ya), pz2 = -ox * Math.sin(ya) + oz * Math.cos(ya);
+      this.fovWant = 60 * D2R;
+      return this.lookAt(p.x + px2, Math.max(p.y + oy, 6), p.z + pz2, p.x + fx * 12, p.y + fy * 12, p.z + fz * 12);
+    }
+    if (pc.view === 'side') {
+      // a fixed camera placed ahead of the aircraft to one side: it sweeps past
+      if (!pc.fix || (p.x - pc.fix.x) * fx + (p.z - pc.fix.z) * fz > 25 || pc.fix.age > 12) {
+        const side = (p.id & 1) ? 1 : -1, lead = clamp(p.speed * 2.1, 90, 330) * zoom;
+        const off = 45 + 40 * Math.random();
+        pc.fix = { x: p.x + fx * lead + ch * side * off, y: Math.max(p.y + fy * lead * 0.5 + 5, 6), z: p.z + fz * lead + sh * side * off, age: 0 };
+      }
+      pc.fix.age += dt;
+      this.fovWant = 40 * D2R;
+      return this.lookAt(pc.fix.x, pc.fix.y, pc.fix.z, p.x + fx * 3, p.y, p.z + fz * 3);
+    }
+    // 'victim': from the deck of the ship the aircraft is attacking
+    const tgt = p.target && p.target.state !== 'sunk' ? p.target : null;
+    if (tgt) {
+      const b = tgt.model.bridge || { x: 0, y: tgt.model.topY * 0.6 };
+      const q = [0, 0, 0];
+      tgt.toWorld(b.x + 3, b.y + 2, 0, q);
+      const dist = Math.hypot(p.x - q[0], p.y - q[1], p.z - q[2]);
+      this.fovWant = clamp(dist * 0.013, 16, 52) * D2R;
+      return this.lookAt(q[0], q[1], q[2], p.x, p.y, p.z);
+    }
+    pc.view = 'chase';
+    return null;
+  }
+
+  /** Nothing in the air: look at the flight deck of a carrier that is about to launch (or the nearest one). */
+  noPlaneView() {
+    const w = this.game.world;
+    const cv = w.ships.filter((s) => s.air && s.alive).sort((a, b) => (b.air.cooldown < a.air.cooldown ? 1 : -1))[0];
+    if (!cv) return null;
+    const f = this.follow;
+    const dist = cv.stats.L * 0.55 + 40, yaw = cv.heading + Math.PI * 0.82;
+    return this.lookAt(cv.x + Math.sin(yaw) * dist, cv.y + 28, cv.z - Math.cos(yaw) * dist, cv.x, cv.y + (cv.model.fdY || 15), cv.z);
+  }
+
   /** Automatic director: chooses a ship and a shot every few seconds. */
   updateAuto(dt) {
     const a = this.auto, w = this.game.world;
     a.t -= dt;
+    if (a.sub === 'plane' && !this.planeAlive(this.plane) && this.planeCam.hold <= 0) a.t = 0;
+    // an aircraft is attacking (dive, torpedo run) or has been shot down: cut to it
+    let planeShot = null;
+    if (a.t <= 0) {
+      const forced = a.forcePlane && this.planeAlive(a.forcePlane) ? a.forcePlane : null;
+      a.forcePlane = null;
+      const hot = this.planeCandidates().filter((c) => c.sc > 4.2);
+      if (forced) planeShot = forced;
+      else if (hot.length && Math.random() < 0.5) planeShot = hot[0].p;
+    }
+    if (planeShot) {
+      this.setPlane(planeShot);
+      this.planeCam.view = ['chase', 'side', 'victim', 'chase'][Math.floor(Math.random() * 4)];
+      this.planeCam.yaw = (Math.random() - 0.5) * 0.5; this.planeCam.pitch = Math.random() * 0.1; this.planeCam.zoom = 0.8 + Math.random() * 0.6;
+      this.planeCam.hold = 0; this.planeCam.crash = null; this.planeCam.fix = null;
+      a.sub = 'plane'; a.t = 6 + Math.random() * 5;
+      this.smooth.init = false;
+      return a.sub;
+    }
     if (a.t <= 0 || !this.target || !this.target.alive) {
       // look for the most interesting ship: recently hit / firing / burning
       let best = null, bs = -1;

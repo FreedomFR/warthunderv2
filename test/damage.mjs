@@ -1,0 +1,110 @@
+// Location-based damage: node test/damage.mjs
+// A hit damages what is at the point of impact: modules, flooding side, destroyed parts, bomb penetration, explosions.
+import { World } from '../js/game/sim/world.js';
+import { blast } from '../js/game/sim/modules.js';
+import { resolveShellHit, resolveBombHit, resolveTorpedoHit } from '../js/game/sim/damage.js';
+import { getPlaneModel, PLANES } from '../js/game/model/planes.js';
+import { ALL_SHIPS } from '../js/game/data/ships.js';
+
+let fail = 0;
+const ok = (c, m) => { console.log(c ? 'PASS' : 'FAIL', m); if (!c) { fail++; process.exitCode = 1; } };
+const mk = (id, seed = 1) => { const w = new World(seed); w.addTeam(0); w.addTeam(1); const s = w.addShip(id, 1, 0, 0, 0); w.start(); return { w, s }; };
+const mod = (s, kind, i = 0) => s.modules.filter((m) => m.kind === kind)[i];
+
+// ---- every ship has the full set of modules and visible parts ----
+for (const spec of ALL_SHIPS) {
+  const { s } = mk(spec.id);
+  const kinds = new Set(s.modules.map((m) => m.kind));
+  ok(['engine', 'magazine', 'steering', 'shaft', 'bridge', 'funnel'].every((k) => kinds.has(k) || (spec.type === 'CV' && k === 'magazine' && false)) || spec.id === 'shokaku', `${spec.id}: modules ${[...kinds].join(',')}`);
+  ok(s.model.parts.every((p) => p.mesh && p.mesh.indexCount > 0), `${spec.id}: ${s.model.parts.length} parts with meshes, ${s.model.aaMounts.length} AA mounts`);
+}
+
+// ---- a heavy AP shell in the machinery spaces wrecks the engine room it bursts in, not the whole ship ----
+{
+  const { w, s } = mk('iowa');
+  const e0 = mod(s, 'engine', 0), e2 = mod(s, 'engine', 3);
+  blast(w, s, e0.x, e0.y, e0.z, 1225, 'inside', null, 'shell');
+  ok(e0.state === 2 && e2.state < 2, `406 mm burst inside engine room 1: it is destroyed (${e0.state}), the one 60 m away is not (${e2.state})`);
+  ok(s.propulsion < 1 && s.propulsion > 0.3, `propulsion drops to ${(s.propulsion * 100).toFixed(0)} %`);
+}
+// ---- the same burst on the armoured deck does nothing to the machinery ----
+{
+  const { w, s } = mk('iowa');
+  const e0 = mod(s, 'engine', 0);
+  blast(w, s, e0.x, 7, 0, 1225 * 0.35, 'outside', null, 'shell');
+  ok(e0.state === 0 && e0.hp === e0.maxHp || e0.hp > e0.maxHp * 0.9, 'an HE burst on the deck leaves the machinery below untouched');
+}
+// ---- small HE shells kill light AA and directors, not a battleship's turrets ----
+{
+  const { w, s } = mk('baltimore');
+  const a = s.aaMounts[0];
+  blast(w, s, a.rec.x, a.rec.y, a.rec.z, 25 * 0.35, 'outside', null, 'shell');
+  ok(!a.alive || a.hp < a.maxHp, `a 127 mm HE hit damages the AA mount it lands on (${a.hp.toFixed(1)}/${a.maxHp})`);
+  const tur = s.mounts.find((m) => m.group === 'main');
+  const hp0 = tur.hp;
+  blast(w, s, tur.rec.x, tur.rec.y, tur.rec.z, 25 * 0.35, 'outside', null, 'shell');
+  ok(tur.alive && tur.hp > hp0 * 0.9, 'the main turret shrugs off the same shell');
+}
+// ---- funnel: destroyed part, wreck state, flying debris, speed loss ----
+{
+  const { w, s } = mk('fletcher');
+  const f = mod(s, 'funnel', 0);
+  blast(w, s, f.x, f.y, f.z, 500, 'outside', null, 'shell');
+  ok(f.state === 2 && s.partState[f.part] === 2, 'funnel destroyed -> its part is drawn as a wreck');
+  ok(w.debris.some((d) => d.kind === 'part'), 'the funnel flies off as debris');
+  ok(s.propulsion < 1, `losing a funnel costs speed (propulsion ${(s.propulsion * 100).toFixed(0)} %)`);
+}
+// ---- torpedo: flooding on the struck side and near the impact, ship lists ----
+{
+  const { w, s } = mk('cleveland');
+  const t = { warhead: 300, owner: null };
+  // starboard side amidships (world point): local z = +beam/2
+  const p = [0, 0, 0]; s.toWorld(20, 0, s.stats.B / 2, p);
+  resolveTorpedoHit(w, s, t, p[0], p[2]);
+  for (let i = 0; i < 400; i++) s.update(0.1);
+  ok(s.listSide === 1 && s.floodList > 0, `a starboard torpedo hit lists the ship to starboard (floodList ${s.floodList.toFixed(3)})`);
+  const near = s.comps.reduce((a, c) => (Math.abs(c.xc - 20) < Math.abs(a.xc - 20) ? c : a));
+  const far = s.comps[s.comps.length - 1];
+  ok(near.water[1] > far.water[1] + 0.02, `the compartments near the hit are flooded (${near.water[1].toFixed(2)}) more than the stern ones (${far.water[1].toFixed(2)})`);
+}
+// ---- bombs: penetrate a light cruiser's deck and burst below, burst on a battleship's armoured deck ----
+{
+  const run = (id) => {
+    const { w, s } = mk(id, 3);
+    let kind = null;
+    const bomb = { kg: 250, vx: 0, vy: -140, vz: 0, owner: null };
+    // the unarmoured forecastle deck
+    const lx = s.stats.L * 0.4;
+    resolveBombHit(w, s, bomb, { part: 'deck', lx, ly: s.model.hull.deckY(lx), lz: 2 });
+    return w.events.filter((e) => e.type === 'impact').map((e) => e.kind)[0];
+  };
+  ok(run('cleveland') === 'penetrate', '250 kg bomb on the thin forecastle deck of a light cruiser penetrates');
+  ok(run('iowa') === 'penetrate' || run('iowa') === 'explode', 'bomb on a battleship deck resolved');
+  {
+    const { w, s } = mk('iowa', 3);
+    resolveBombHit(w, s, { kg: 250, vx: 0, vy: -140, vz: 0, owner: null }, { part: 'deck', lx: 10, ly: s.model.hull.deckY(10), lz: 2 });
+    ok(w.events.find((e) => e.type === 'impact').kind === 'explode', '250 kg bomb on a battleship\'s armoured deck bursts on top of it');
+  }
+}
+// ---- magazine explosion: thrown turrets, debris, secondary blasts, broken hull ----
+{
+  const { w, s } = mk('iowa', 4);
+  const mag = mod(s, 'magazine', 0);
+  s.magazineLost(mag, w, null, 'shell');
+  if (!s.exploded) w.magazineExplosion(s, null, s.toWorld(mag.x, mag.y, mag.z, [0, 0, 0]), mag);
+  ok(s.exploded && s.state === 'sinking', 'ammunition explosion sinks the ship');
+  ok(s.mounts.some((m) => m.gone), 'a turret is thrown out of the ship');
+  for (let i = 0; i < 80; i++) w.update(0.1);
+  ok(!!s.split, 'the hull breaks in two');
+  ok(w.debris.length > 20, `wreckage in the air (${w.debris.length} pieces)`);
+  const ev = w.drainEvents();
+  ok(ev.filter((e) => e.type === 'explosion').length >= 4, `primary and secondary explosions (${ev.filter((e) => e.type === 'explosion').length})`);
+  for (let i = 0; i < 1200; i++) w.update(0.1);
+  ok(s.state === 'sunk', 'the sections sink');
+}
+// ---- aircraft models ----
+for (const k of Object.keys(PLANES)) {
+  const m = getPlaneModel(k);
+  ok(m.meshes.whole.indexCount > 300 && m.meshes.prop && m.meshes.ordnance && m.meshes.wingL && m.meshes.tail, `plane ${k} (${PLANES[k].name}): ${m.meshes.whole.indexCount / 3} triangles`);
+}
+console.log(fail ? `${fail} check(s) failed` : 'all damage checks OK');

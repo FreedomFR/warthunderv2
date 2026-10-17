@@ -26,7 +26,7 @@ struct VIn {
   @location(5) m2: vec4f,
   @location(6) m3: vec4f,
   @location(7) tint: vec4f,    // rgb = team colour, a = damage (soot) 0..1
-  @location(8) misc: vec4f,    // x = fire glow, y = per-ship random, z = wetness, w = unused
+  @location(8) misc: vec4f,    // x = fire glow, y = per-ship random, z = cut plane (local x), w = cut side (+1 bow part, -1 stern part, 0 whole)
 };
 struct VOut {
   @builtin(position) pos: vec4f,
@@ -71,12 +71,14 @@ fn ggx(nh: f32, a: f32) -> f32 {
 }
 
 @fragment fn fs(in: VOut, @builtin(front_facing) ff: bool) -> @location(0) vec4f {
+  if (in.misc.w != 0.0 && (in.local.x - in.misc.z) * in.misc.w < 0.0) { discard; }
   var N = normalize(in.nrm);
   if (!ff) { N = -N; }
   let dist = length(in.rel);
   let V = -in.rel / dist;
   let Ld = F.sunDir.xyz;
   let mat = u32(in.col.a * 255.0 + 0.5);
+  if (mat == 2u && in.misc.x < 0.0) { discard; }                 // open canopy in the cockpit view
   var albedo = srgb2lin(in.col.rgb);
   var rough = 0.74;
   var metal = 0.0;
@@ -172,7 +174,17 @@ fn ggx(nh: f32, a: f32) -> f32 {
   let fireN = gnoise(vec2f(lp.x * 0.22 - F.camPos.w * 0.3, lp.z * 0.22 + in.misc.y * 40.0 + F.camPos.w * 0.15));
   // glowing patches on decks and roofs only (hull sides would show vertical streaks)
   let upFace = smoothstep(0.55, 0.9, in.lnrm.y);
-  emissive += vec3f(1.0, 0.34, 0.05) * in.misc.x * smoothstep(0.35, 0.7, fireN) * 2.2 * upFace * smoothstep(1.0, 4.0, lp.y);
+  emissive += vec3f(1.0, 0.34, 0.05) * max(in.misc.x, 0.0) * smoothstep(0.35, 0.7, fireN) * 2.2 * upFace * smoothstep(1.0, 4.0, lp.y);
+
+  // torn edge of a ship broken in two: charred steel, glowing
+  if (in.misc.w != 0.0) {
+    let cd = abs(lp.x - in.misc.z);
+    let hot = 1.0 - smoothstep(0.0, 2.4, cd);
+    let ragged = gnoise(vec2f(lp.y * 1.7 + in.misc.y * 9.0, lp.z * 1.9));
+    let h2 = hot * smoothstep(0.1, 0.8, ragged + hot * 0.6);
+    albedo = mix(albedo, albedo * 0.08, h2 * 0.9);
+    emissive += vec3f(1.0, 0.32, 0.05) * h2 * h2 * (1.2 + 1.6 * gnoise(vec2f(lp.y * 0.8 - F.camPos.w * 2.0, lp.z * 0.8)));
+  }
 
   // ---- lighting ----
   // shadow: surfaces facing away from the sun are already dark; the map handles occlusion by other geometry
