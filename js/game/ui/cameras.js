@@ -7,7 +7,7 @@ export const CAMERA_MODES = [
   { id: 'follow', key: '2', name: 'Poursuite', hint: 'Derrière le navire (glisser = orbite, molette = zoom)' },
   { id: 'orbit', key: '3', name: 'Orbite', hint: 'Tourne lentement autour du navire' },
   { id: 'bridge', key: '4', name: 'Passerelle', hint: 'Vue depuis la passerelle' },
-  { id: 'shell', key: '5', name: 'Obus', hint: 'Suit les obus tirés' },
+  { id: 'shell', key: '5', name: 'Obus', hint: 'Suit les obus tirés et les bombes larguées' },
   { id: 'tactical', key: '6', name: 'Tactique', hint: 'Vue de dessus (glisser = déplacer, molette = altitude)' },
   { id: 'free', key: '7', name: 'Libre', hint: 'ZQSD / WASD, Espace/Ctrl, Maj = rapide, glisser = regarder' },
   { id: 'plane', key: '8', name: 'Avions', hint: 'Suit un avion (N / B : avion suivant, V : changer de vue)' },
@@ -264,11 +264,13 @@ export class CameraRig {
     const sc = this.shell;
     const w = this.game.world;
     // latest shell fired by the ship (or by any ship if it has none in the air)
-    if (!sc.shell || !w.shells.includes(sc.shell)) {
+    if (!sc.shell || !(w.shells.includes(sc.shell) || w.bombs.includes(sc.shell))) {
       if (sc.shell) { sc.hold = 2.4; sc.lastImpact = { x: sc.x, y: Math.max(sc.y, 2), z: sc.z, dx: sc.dx, dz: sc.dz }; sc.shell = null; }
       let found = null;
       for (let i = w.shells.length - 1; i >= 0; i--) if (w.shells[i].owner === ship && w.shells[i].group === 'main') { found = w.shells[i]; break; }
       if (!found && sc.hold <= 0) for (let i = w.shells.length - 1; i >= 0; i--) if (w.shells[i].gun.cal >= 150) { found = w.shells[i]; break; }
+      // no shell in the air: ride a bomb down onto its target
+      if (!found && sc.hold <= 0 && w.bombs.length) found = w.bombs[w.bombs.length - 1];
       if (found && sc.hold <= 0) sc.shell = found;
     }
     if (sc.shell) {

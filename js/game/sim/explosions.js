@@ -89,7 +89,7 @@ export function breakInTwo(world, ship, cutX) {
     return {
       sign, dx: 0, dy: 0, dz: 0,
       vx: sign * (1.5 + rng() * 3) * Math.min(S, 2), vy: 2 + rng() * 5, vz: (rng() - 0.5) * 2,
-      yaw: 0, pitch: 0, roll: 0, wp: -sign * (0.15 + rng() * 0.25), wr: (rng() - 0.5) * 0.6, wy: (rng() - 0.5) * 0.12,
+      yaw: 0, pitch: 0, roll: 0, wp: sign * (0.15 + rng() * 0.25), wr: (rng() - 0.5) * 0.6, wy: (rng() - 0.5) * 0.12,
       // resting attitude: the broken ends point upwards while the section fills with water
       pitchT: isBow ? (0.25 + rng() * 0.45) * (longer ? 0.6 : 1) : -(0.2 + rng() * 0.45),
       rollT: (rng() < 0.5 ? -1 : 1) * (0.15 + rng() * 0.6),
