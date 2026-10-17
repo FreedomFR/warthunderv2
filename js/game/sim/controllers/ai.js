@@ -104,13 +104,24 @@ export class AIController {
     let vx = Math.sin(want), vz = -Math.cos(want);
     for (const o of world.ships) {
       if (o === ship || o.state === 'sunk') continue;
-      const ox = ship.x - o.x, oz = ship.z - o.z;
-      const dist = Math.hypot(ox, oz);
-      const safe = (st.L + o.stats.L) * 0.55 + 140 + (o.alive ? 0 : 120);
-      if (dist < safe && dist > 1) {
-        const k = Math.pow(1 - dist / safe, 1.2) * 2.4;
-        vx += ox / dist * k; vz += oz / dist * k;
-        if (dist < safe * 0.6) thr = Math.min(thr, 0.6);
+      const rx = o.x - ship.x, rz = o.z - ship.z;
+      const dist = Math.hypot(rx, rz);
+      const safe = (st.L + o.stats.L) * 0.5 + 220 + (o.alive ? 0 : 120);
+      // predicted closest point of approach
+      const vx2 = o.vx - ship.vx, vz2 = o.vz - ship.vz;
+      const vv = vx2 * vx2 + vz2 * vz2;
+      let tcpa = vv > 0.01 ? -(rx * vx2 + rz * vz2) / vv : 0;
+      tcpa = clamp(tcpa, 0, 140);
+      const cx = rx + vx2 * tcpa, cz = rz + vz2 * tcpa;
+      const cpa = Math.hypot(cx, cz);
+      if (cpa < safe && dist < 3500) {
+        const k = (1 - cpa / safe) * (1 - tcpa / 160) * 3.2;
+        // steer away from where the other ship will be at the closest approach
+        const cl = Math.max(cpa, 1);
+        vx -= cx / cl * k; vz -= cz / cl * k;
+        // if it is almost on top of us, also push directly away
+        if (dist < safe * 0.7) { vx -= rx / Math.max(dist, 1) * 1.5; vz -= rz / Math.max(dist, 1) * 1.5; }
+        if (dist < safe * 0.9 && tcpa < 40) thr = Math.min(thr, 0.45);
       }
     }
     const r = Math.hypot(ship.x, ship.z);

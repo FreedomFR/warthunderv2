@@ -354,7 +354,7 @@ struct FoamU {
   cascL: array<vec4f, 2>,
   cascInvL: array<vec4f, 2>,
   drift: vec4f,              // foam drift velocity (m/s) xz
-  misc: vec4f,               // stamp count, wake decay rate (1/s), -, -
+  misc: vec4f,               // stamp count (level 1), wake decay rate (1/s), stamp count (level 0), -
 };
 // Foam "stamps" injected by the game (ship wakes, shell splashes, torpedo tracks).
 // a = capsule segment (x0, z0, x1, z1) in world metres; b = (radius, wake, fresh, foam)
@@ -407,7 +407,8 @@ fn main(@builtin(global_invocation_id) id: vec3u) {
   var fresh = max(prev.g * exp(-dt * 1.6), inject);
   // b channel = slowly decaying wake foam (ship wakes, torpedo tracks); J is not stored any more
   var wake = prev.b * exp(-dt * U.misc.y);
-  let ns = u32(U.misc.x);
+  // stamps are sorted on the CPU: the first misc.z touch the fine level-0 window, all misc.x touch level 1
+  let ns = select(u32(U.misc.x), u32(U.misc.z), lvl == 0u);
   for (var i = 0u; i < ns; i++) {
     let st = stamps[i];
     let r = st.b.x;

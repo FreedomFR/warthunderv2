@@ -27,6 +27,9 @@ if (qs.has('preview')) {
     if (qs.get('start') === '1') game.start();
     if (qs.has('mode')) game.camera.setMode(qs.get('mode'));
     if (qs.has('speed')) game.setTimeScale(Number(qs.get('speed')));
+  } else {
+    // start with the default fleets already on the water so there is something to look at
+    game.ui.doSpawn();
   }
 }
 engine.start();

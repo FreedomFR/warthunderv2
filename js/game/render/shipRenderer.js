@@ -1,6 +1,6 @@
 // Instanced renderer for the procedurally built ship meshes. Draws into the engine's main HDR /
 // MSAA / reverse-Z pass (see engine.hooks.drawOpaque). Instances are camera-relative.
-import { SHIP } from '../../wgsl/ship.js';
+import { SHIP, SHIP_SHADOW } from '../../wgsl/ship.js';
 import { VERTEX_STRIDE } from '../model/meshbuilder.js';
 
 const INST_FLOATS = 24;          // 4 x vec4 matrix + tint + misc
@@ -46,6 +46,7 @@ export class ShipRenderer {
       depthStencil: { format: g.DEPTH, depthWriteEnabled: true, depthCompare: 'greater' },
       multisample: { count: g.MSAA },
     });
+    const sh = this.engine.shadow;
     this.bindGroup = this.device.createBindGroup({
       layout: this.pipeline.getBindGroupLayout(0),
       entries: [
@@ -55,8 +56,29 @@ export class ShipRenderer {
         { binding: 3, resource: g.sampClamp },
         { binding: 4, resource: g.envCubeView },
         { binding: 5, resource: { buffer: g.sunVisBuf } },
+        { binding: 6, resource: sh.view },
+        { binding: 7, resource: sh.sampler },
+        { binding: 8, resource: { buffer: sh.ubo } },
       ],
     });
+    // depth-only shadow pass (same vertex / instance layouts)
+    const smod = await g.shader(SHIP_SHADOW, 'ship shadow');
+    this.shadowPipeline = await this.device.createRenderPipelineAsync({
+      label: 'ship shadow', layout: 'auto',
+      vertex: {
+        module: smod, entryPoint: 'vs',
+        buffers: [
+          { arrayStride: VERTEX_STRIDE, stepMode: 'vertex', attributes: [{ shaderLocation: 0, offset: 0, format: 'float32x3' }] },
+          { arrayStride: INST_FLOATS * 4, stepMode: 'instance', attributes: [
+            { shaderLocation: 3, offset: 0, format: 'float32x4' }, { shaderLocation: 4, offset: 16, format: 'float32x4' },
+            { shaderLocation: 5, offset: 32, format: 'float32x4' }, { shaderLocation: 6, offset: 48, format: 'float32x4' },
+          ] },
+        ],
+      },
+      primitive: { topology: 'triangle-list', cullMode: 'none' },
+      depthStencil: { format: 'depth32float', depthWriteEnabled: true, depthCompare: 'less', depthBias: 3, depthBiasSlopeScale: 2.5, depthBiasClamp: 0 },
+    });
+    this.shadowBG = this.device.createBindGroup({ layout: this.shadowPipeline.getBindGroupLayout(0), entries: [{ binding: 0, resource: { buffer: sh.ubo } }] });
   }
 
   /** Upload a built mesh ({vertices, indices, indexCount, aabb}) and return a handle. */
@@ -105,6 +127,26 @@ export class ShipRenderer {
       if (m.n) { d.set(m.cpu.subarray(0, m.n * INST_FLOATS), o); o += m.n * INST_FLOATS; }
     }
     if (o) this.device.queue.writeBuffer(this.instBuf, 0, d, 0, o);
+  }
+
+  /** Render all queued instances into the sun shadow map. */
+  drawShadow(enc) {
+    if (!this.shadowPipeline || !this.count) return;
+    const sh = this.engine.shadow;
+    const pass = enc.beginRenderPass({
+      colorAttachments: [],
+      depthStencilAttachment: { view: sh.view, depthClearValue: 1, depthLoadOp: 'clear', depthStoreOp: 'store' },
+    });
+    pass.setPipeline(this.shadowPipeline);
+    pass.setBindGroup(0, this.shadowBG);
+    pass.setVertexBuffer(1, this.instBuf);
+    for (const m of this.meshes) {
+      if (!m.n) continue;
+      pass.setVertexBuffer(0, m.vbuf);
+      pass.setIndexBuffer(m.ibuf, 'uint32');
+      pass.drawIndexed(m.indexCount, m.n, 0, 0, m.first);
+    }
+    pass.end();
   }
 
   draw(rp) {

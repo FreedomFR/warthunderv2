@@ -1,13 +1,14 @@
 {
-  "name": "web-ocean",
+  "name": "naval-combat-sim",
   "version": "1.0.0",
-  "description": "Real-time WebGPU ocean renderer: FFT waves, whitecaps, physically based sunset sky.",
+  "description": "WWII naval combat simulation on a real-time WebGPU ocean: real ships by nation and class, autonomous AI fleets.",
   "license": "MIT",
   "private": true,
   "type": "module",
   "scripts": {
     "start": "node server.mjs",
-    "build": "node build.mjs"
+    "build": "node build.mjs",
+    "test": "node test/battle.mjs"
   },
   "devDependencies": {
     "esbuild": "^0.25.0"

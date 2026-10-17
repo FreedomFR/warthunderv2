@@ -6,6 +6,37 @@ import { K } from './particles.js';
 const rnd = Math.random;
 const rr = (a, b) => a + (b - a) * rnd();
 
+/**
+ * Foam stamps of a moving ship: bow wave, foam along the hull sides, propeller wash and the diverging
+ * wake arms (a fan of stripes behind the stern). s needs x, z, heading, speed, state and stats.{L,B,maxSpeed}.
+ */
+export function addWakeStamps(foam, s, d, forceSpeed) {
+  const st = s.stats;
+  const fx = Math.sin(s.heading), fz = -Math.cos(s.heading);
+  const speedF = forceSpeed ?? Math.min(1, Math.abs(s.speed) / Math.max(1, st.maxSpeed));
+  const L = st.L, B = st.B;
+  const sf = s.state === 'sinking' ? 0.5 : speedF;
+  if (!(sf > 0.04 || s.state === 'sinking')) return;
+  const bowX = s.x + fx * L * 0.46, bowZ = s.z + fz * L * 0.46;
+  const sternX = s.x - fx * L * 0.46, sternZ = s.z - fz * L * 0.46;
+  const rx = -fz, rz = fx;
+  // bow wave
+  foam.add(bowX, bowZ, bowX - fx * L * 0.14, bowZ - fz * L * 0.14, B * 0.62, 0.35 * sf, 0.7 * sf, 0.55 * sf);
+  // hull sides
+  for (const sg of [-1, 1]) {
+    const o = sg * B * 0.5;
+    foam.add(bowX - fx * L * 0.1 + rx * o, bowZ - fz * L * 0.1 + rz * o, sternX + rx * o, sternZ + rz * o, 2.4, 0.38 * sf, 0.35 * sf, 0.2 * sf);
+  }
+  // propeller wash: a turbulent core, then a longer fading trail (kept below full cover so the foam texture shows)
+  foam.add(sternX, sternZ, sternX - fx * L * 0.22, sternZ - fz * L * 0.22, B * 0.36, 0.6 * sf, 0.28 * sf, 0.12 * sf);
+  foam.add(sternX - fx * L * 0.2, sternZ - fz * L * 0.2, sternX - fx * L * 1.4, sternZ - fz * L * 1.4, B * 0.3, 0.45 * sf, 0, 0);
+  // diverging wake arms
+  if (d < 700) for (let k = 1; k <= 4; k++) {
+    const back = L * (0.5 + 0.8 * k), lat = back * 0.3;
+    for (const sg of [-1, 1]) foam.add(s.x - fx * back + rx * lat * sg, s.z - fz * back + rz * lat * sg, s.x - fx * back + rx * lat * sg - fx * 8, s.z - fz * back + rz * lat * sg - fz * 8, 3 + 2 * k, 0.62 * sf / (0.5 + 0.5 * k), 0, 0);
+  }
+}
+
 export class Effects {
   constructor(engine, particles, game) {
     this.engine = engine; this.p = particles; this.game = game;
@@ -200,29 +231,7 @@ export class Effects {
       const fxs = s._fx || (s._fx = { smoke: 0, fire: 0, steam: 0 });
 
       // ---- wakes (foam stamps) ----
-      if (d < 1400) {
-        const L = st.L, B = st.B;
-        const sf = s.state === 'sinking' ? 0.5 : speedF;
-        if (sf > 0.04 || s.state === 'sinking') {
-          const bowX = s.x + fx * L * 0.46, bowZ = s.z + fz * L * 0.46;
-          const sternX = s.x - fx * L * 0.46, sternZ = s.z - fz * L * 0.46;
-          // bow wave
-          foam.add(bowX, bowZ, bowX - fx * L * 0.14, bowZ - fz * L * 0.14, B * 0.62, 0.45 * sf, 0.95 * sf, 0.85 * sf);
-          // hull sides
-          const rx = -fz, rz = fx;
-          for (const sg of [-1, 1]) {
-            const o = sg * B * 0.5;
-            foam.add(bowX - fx * L * 0.1 + rx * o, bowZ - fz * L * 0.1 + rz * o, sternX + rx * o, sternZ + rz * o, 2.4, 0.38 * sf, 0.35 * sf, 0.2 * sf);
-          }
-          // propeller wash
-          foam.add(sternX, sternZ, sternX - fx * L * 0.3, sternZ - fz * L * 0.3, B * 0.5, 0.95 * sf, 0.8 * sf, 0.55 * sf);
-          // diverging wake arms
-          if (d < 700) for (let k = 1; k <= 4; k++) {
-            const back = L * (0.5 + 0.8 * k), lat = back * 0.3;
-            for (const sg of [-1, 1]) foam.add(s.x - fx * back + rx * lat * sg, s.z - fz * back + rz * lat * sg, s.x - fx * back + rx * lat * sg - fx * 6, s.z - fz * back + rz * lat * sg - fz * 6, 2.2 + k, 0.5 * sf / (0.6 + 0.4 * k), 0, 0);
-          }
-        }
-      }
+      if (d < 1400) addWakeStamps(foam, s, d);
 
       // ---- funnel smoke ----
       if (d < 26000 && s.state === 'afloat' && s.model.smoke.length) {

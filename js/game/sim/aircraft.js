@@ -64,7 +64,7 @@ export function updateAir(world, dt) {
     for (const s of world.ships) {
       if (s.team === p.team || !s.alive) continue;
       const d = Math.hypot(s.x - p.x, s.z - p.z);
-      if (d < AA_RANGE && p.y < 3500) kill += s.stats.aaPower * 0.00085 * Math.pow(1 - d / AA_RANGE, 1.4);
+      if (d < AA_RANGE && p.y < 3500) kill += s.stats.aaPower * 0.00013 * Math.pow(1 - d / AA_RANGE, 1.4);
       if (d < AA_RANGE && world.rng() < dt * 1.5 && s.model.aa.length) {
         const a = s.model.aa[Math.floor(world.rng() * s.model.aa.length)];
         world.events.push({ type: 'aaFire', ship: s, plane: p, lx: a[0], ly: a[1], lz: a[2] });
@@ -134,9 +134,9 @@ export function updateAir(world, dt) {
       const dx = o.x - p.x, dz = o.z - p.z;
       const range = Math.hypot(dx, dz);
       wantHeading = Math.atan2(dx, -dz);
-      wantAlt = range < 1800 ? Math.max(40, range * 0.1) : CRUISE_ALT * 0.8;
-      wantSpeed = range < 700 ? 55 : SPEED;
-      if (range < 160 && p.y < 40) {
+      wantAlt = range < 2500 ? Math.max(40, range * 0.04) : CRUISE_ALT * 0.8;
+      wantSpeed = range < 900 ? 55 : SPEED;
+      if (range < 280 && p.y < 160) {
         o.air.ready++;
         world.events.push({ type: 'planeLanded', plane: p });
         arr.splice(i, 1);

@@ -4,8 +4,11 @@
 import { ShipRenderer } from './game/render/shipRenderer.js';
 import { BY_ID } from './game/data/ships.js';
 import { buildShipModel } from './game/model/shipbuilder.js';
+import { TWEAKS } from './game/model/tweaks.js';
 import { getMountModel } from './game/model/mounts.js';
 import { mat4Ship, mountMatrices, D2R } from './game/math.js';
+import { addWakeStamps } from './game/render/effects.js';
+import { makeStats } from './game/sim/shipdata.js';
 
 export async function runPreview(engine, ids, qs) {
   const renderer = new ShipRenderer(engine);
@@ -15,7 +18,7 @@ export async function runPreview(engine, ids, qs) {
   for (const id of ids) {
     const spec = BY_ID[id];
     if (!spec) throw new Error('unknown ship ' + id);
-    const model = buildShipModel(spec, {});
+    const model = buildShipModel(spec, TWEAKS[id] || {});
     const mesh = renderer.createMesh(model.mesh, id);
     const cacheMeshes = new Map();
     const mounts = model.mounts.map((m) => {
@@ -25,7 +28,7 @@ export async function runPreview(engine, ids, qs) {
       return { m, mm, house: meshes.house, guns: meshes.guns };
     });
     items.push({ id, model, mesh, mounts, x: xOff, z: 0 });
-    xOff += model.L * 0.6;
+    xOff += 1200;
   }
   const view = (qs.get('view') || '').split(',').map(Number);
   const st = { dist: view[0] || 260, az: (view[1] ?? 35) * D2R, el: (view[2] ?? 18) * D2R, lookY: view[3] ?? 12, target: 0, lookX: 0, heading: (Number(qs.get('heading')) || 0) * D2R };
@@ -34,7 +37,11 @@ export async function runPreview(engine, ids, qs) {
   const SM = new Float32Array(16), HM = new Float32Array(16), GM = new Float32Array(16);
   const pitchDeg = Number(qs.get('elev')) || 0;
   const tint = [220, 60, 50];
+  // ?wake=1 : stamp a sailing ship's wake around the first model (visual test of the foam stamps)
+  const wake = qs.get('wake') === '1';
+  const wakeShip = wake ? { x: items[0].x, z: items[0].z, heading: 0, speed: 15, state: 'afloat', stats: makeStats(BY_ID[ids[0]]) } : null;
   engine.hooks.update = () => {
+    if (wakeShip) { wakeShip.heading = st.heading; addWakeStamps(engine.foam, wakeShip, 100, 0.9); }
     const tx = items[st.target].x + st.lookX, tz = items[st.target].z, ty = st.lookY;
     const cx = tx + st.dist * Math.sin(st.az) * Math.cos(st.el), cy = ty + st.dist * Math.sin(st.el), cz = tz - st.dist * Math.cos(st.az) * Math.cos(st.el);
     cam.x = cx; cam.y = Math.max(cy, 3); cam.z = cz;

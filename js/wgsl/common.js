@@ -32,6 +32,40 @@ struct Frame {
 };
 `;
 
+// Fraction of the near-sea-level haze seen along a ray from the camera down to the sea: the haze is an
+// exponential layer (scale height ~1.2 km), so (1 - e^-x) / x with x = camera altitude / scale height.
+export const HAZE_WGSL = /* wgsl */ `
+fn hazeAltFactor(camY: f32) -> f32 {
+  let x = max(camY, 0.0) / 1200.0;
+  return (1.0 - exp(-x)) / max(x, 1e-3);
+}
+`;
+
+// Sun shadow map lookup (3x3 PCF). The including shader declares
+//   shadowTex: texture_depth_2d, shadowSamp: sampler_comparison, SH: ShadowU (uniform)
+// with its own binding numbers. `rel` is a camera-relative position.
+export const SHADOW_STRUCT_WGSL = /* wgsl */ `
+struct ShadowU { vp: mat4x4f, p: vec4f };   // p = (texel uv size, depth bias, enabled, -)
+`;
+export const SHADOW_FUNC_WGSL = /* wgsl */ `
+fn shadowAt(rel: vec3f) -> f32 {
+  if (SH.p.z < 0.5) { return 1.0; }
+  let c = SH.vp * vec4f(rel, 1.0);
+  let uv = vec2f(c.x * 0.5 + 0.5, 0.5 - c.y * 0.5);
+  if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0 || c.z > 1.0 || c.z < 0.0) { return 1.0; }
+  let t = SH.p.x;
+  var s = 0.0;
+  for (var j = -1; j <= 1; j++) {
+    for (var i = -1; i <= 1; i++) {
+      s += textureSampleCompareLevel(shadowTex, shadowSamp, uv + vec2f(f32(i), f32(j)) * t, c.z - SH.p.y);
+    }
+  }
+  s /= 9.0;
+  let e = min(min(uv.x, 1.0 - uv.x), min(uv.y, 1.0 - uv.y));
+  return mix(1.0, s, smoothstep(0.0, 0.06, e));
+}
+`;
+
 export const ATMO_CORE_WGSL = /* wgsl */ `
 const PI: f32 = 3.14159265358979;
 const RG: f32 = 6360.0;

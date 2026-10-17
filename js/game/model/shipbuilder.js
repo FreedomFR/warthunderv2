@@ -20,6 +20,8 @@ function makePalette(spec, tw) {
     sup, dark: '#202327', cap: '#18191b', funnel: p.funnel || sup, mast: rgb(shade(sup, 0.82)).map(Math.round),
     boat: '#8c9296', glass: '#0e151b', ...(tw.pal || {}),
   };
+  // linoleum / teak decks: keep them from looking orange-bright under the strong sun
+  pal.deck = '#' + mix(pal.deck, '#5b5348', 0.42).map((v) => Math.round(v).toString(16).padStart(2, '0')).join('');
   for (const k of ['mast']) if (Array.isArray(pal[k])) pal[k] = '#' + pal[k].map((v) => v.toString(16).padStart(2, '0')).join('');
   return pal;
 }
@@ -57,6 +59,22 @@ function towerTiers(spec) {
   for (let i = 0; i < n; i++) {
     const s = Math.pow(0.84, i);
     tiers.push({ len: len0 * s, w: w0 * Math.pow(0.86, i), h: th * (i === 0 ? 1.1 : 1), rake: 0.9 + i * 0.25, wings: i === 1 || i === 2 ? 1.0 : 0, dx: -i * 0.15 * len0 * 0.3 });
+  }
+  return tiers;
+}
+
+/**
+ * Japanese pagoda foremast: many stacked, slightly offset tiers with projecting platforms.
+ * n tiers from a base of (len0 x w0), total height `h`.
+ */
+export function pagodaTiers(len0, w0, n, h, shrink = 0.86, rake = 1.2) {
+  const tiers = [];
+  const hs = [];
+  let sum = 0;
+  for (let i = 0; i < n; i++) { const k = 1.15 - 0.5 * (i / Math.max(1, n - 1)); hs.push(k); sum += k; }
+  for (let i = 0; i < n; i++) {
+    const s = Math.pow(shrink, i);
+    tiers.push({ len: len0 * s, w: w0 * Math.pow(shrink, i * 0.9), h: h * hs[i] / sum, rake: rake * (0.6 + 0.2 * (i % 3)), dx: -0.55 * i, wings: i % 2 === 1 ? 1.4 : 0.7, windows: true });
   }
   return tiers;
 }
@@ -126,7 +144,7 @@ export function buildShipModel(spec, tw = {}) {
   if (!carrier) {
     const x = X(towerF);
     const y0 = Y(x) + (towerF > 0.2 ? 0 : 0);
-    const tiers = tw.tiers || towerTiers(spec);
+    const tiers = tw.tiers || (tw.pagoda ? pagodaTiers(...tw.pagoda) : towerTiers(spec));
     const r = PT.tower(b, { x, y0, tiers }, pal);
     let y = r.topY;
     const topW = tiers[tiers.length - 1].w;
@@ -270,6 +288,9 @@ export function buildShipModel(spec, tw = {}) {
     PT.crane(b, { x: X(f0 + 0.07), y0: Y(X(f0 + 0.07)), z: 0, h: 7, len: 14, side: 1 }, pal);
   }
 
+  // -------- ship-specific extras (see tweaks.js) --------
+  if (tw.extra) tw.extra({ b, hull, X, Y, pal, model, spec, rnd, PT, houseH, note, MAT, rgb, shade });
+
   // -------- carrier flight deck --------
   if (carrier) buildCarrier(b, model, spec, hull, pal, tw, X, Y, fdY, rnd, note);
 
@@ -354,7 +375,7 @@ function buildCarrier(b, model, spec, hull, pal, tw, X, Y, fdY, rnd, note) {
   for (const [y, h] of [[0.2, 2.2], [0.62, 1.6]]) b.block({ x0: ix + il * 0.1, x1: ix + il / 2 + 0.07, hw: 3.1, zc: iz, y0: fdY + ih * y, y1: fdY + ih * y + h * 0.5 }, rgb(pal.glass), MAT.GLASS);
   // funnel(s) integrated in the island
   const fun = sil.funnels || { count: 1, fractionFromBow: [isl.fractionFromBow - 0.01], heightAboveDeckM: ih * 0.8 };
-  const fPos = (fun.fractionFromBow && fun.fractionFromBow.length ? fun.fractionFromBow : [isl.fractionFromBow - 0.015]);
+  const fPos = (fun.fractionFromBow && fun.fractionFromBow.length ? fun.fractionFromBow : [isl.fractionFromBow - 0.015]).slice(0, Math.max(1, fun.count || 1));
   for (const f of fPos) {
     const x = X(f);
     if (tw.noFunnels) break;

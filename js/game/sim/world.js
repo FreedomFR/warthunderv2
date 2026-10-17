@@ -231,7 +231,7 @@ export class World {
           const rv = Math.hypot(a.vx - b.vx, a.vz - b.vz);
           a.speed *= 0.97; b.speed *= 0.97;
           if (rv > 1.5 && (a.alive || b.alive)) {
-            const e = rv * rv * 12;
+            const e = rv * rv * 1.6;
             if (a.alive) a.applyDamage(e * wa * 0.6, null, 'collision');
             if (b.alive) b.applyDamage(e * wb * 0.6, null, 'collision');
             this.events.push({ type: 'collision', x: (c.px + c.qx) / 2, z: (c.pz + c.qz) / 2, power: rv });

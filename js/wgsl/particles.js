@@ -1,9 +1,9 @@
 // Camera-facing particle quads: smoke, fire, spray, tracers, flashes. Premultiplied alpha: smoke /
 // spray use alpha, fire / tracers / flashes write alpha 0 so they add light.
-import { FRAME_WGSL, ATMO_CORE_WGSL, ENV_MIPS } from './common.js';
+import { FRAME_WGSL, ATMO_CORE_WGSL, HAZE_WGSL, ENV_MIPS } from './common.js';
 import { SKY_RENDER_FUNCS } from './sky.js';
 
-export const PARTICLES = FRAME_WGSL + ATMO_CORE_WGSL + /* wgsl */ `
+export const PARTICLES = FRAME_WGSL + ATMO_CORE_WGSL + HAZE_WGSL + /* wgsl */ `
 @group(0) @binding(0) var<uniform> F: Frame;
 @group(0) @binding(1) var transLUT: texture_2d<f32>;
 @group(0) @binding(2) var skyLUT: texture_2d<f32>;
@@ -107,7 +107,7 @@ fn vnoise(p: vec2f) -> f32 {
     }
   }
   // aerial perspective
-  let T = exp(-max(F.fogExt.rgb, vec3f(F.fogExt.w)) * dist);
+  let T = exp(-max(F.fogExt.rgb, vec3f(F.fogExt.w)) * dist * hazeAltFactor(F.camPos.y));
   var out = vec3f(0.0);
   if (add > 0.0) {
     out = rgb * add * T;

@@ -32,7 +32,7 @@ export function makeStats(spec) {
   const L = spec.loa, dispFull = spec.displacementFull || spec.displacementStd * 1.15;
   const maxSpeed = spec.speedKn * KN;
   const main = gunStats(spec.main, 'main');
-  const secs = (spec.secondary || []).filter((s) => s.caliberMm >= 70 && s.mounts > 0).map((s) => gunStats(s, 'sec'));
+  const secs = (spec.secondary || []).map((s, i) => ({ s, i })).filter(({ s }) => s.caliberMm >= 70 && s.mounts > 0).map(({ s, i }) => gunStats(s, 'sec', { specIndex: i }));
   const arm = spec.armour || {};
   const stats = {
     id: spec.id, nation: spec.nation, type: t, className: spec.className, refShip: spec.refShip, classShips: spec.classShips || [spec.refShip],
@@ -56,7 +56,7 @@ export function makeStats(spec) {
     // gameplay-scaled magazine / turret toughness
     mountHp: (cal) => (cal >= 300 ? 900 : cal >= 180 ? 520 : cal >= 120 ? 240 : 110),
     // chance that a penetrating hit in the citadel detonates the magazine
-    magazineChance: { DD: 0.12, CL: 0.06, CA: 0.05, BB: 0.018, CV: 0.03 }[t],
+    magazineChance: { DD: 0.35, CL: 0.14, CA: 0.11, BB: 0.035, CV: 0.05 }[t],
     // fraction of torpedo damage that gets through underwater protection
     torpFactor: { DD: 1.3, CL: 1.0, CA: 0.9, BB: 0.6, CV: 0.8 }[t],
     sinkTime: { DD: 28, CL: 45, CA: 55, BB: 90, CV: 80 }[t],

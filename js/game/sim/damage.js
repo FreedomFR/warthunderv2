@@ -151,7 +151,7 @@ export function resolveShellHit(world, ship, shell, hit) {
           if (rng() < 0.28) ship.engine = Math.max(0.15, ship.engine - 0.2 - 0.3 * rng());
           let near = 0.0;
           for (const m of ship.mounts) if (m.rec.group === 'main' && Math.abs(hit.lx - m.rec.x) < 18) { near = 1; break; }
-          const pm = st.magazineChance * clamp(cal / 250, 0.2, 1.2) * (near ? 2.0 : 0.5);
+          const pm = st.magazineChance * Math.pow(clamp(cal / 400, 0.15, 1.3), 1.4) * (near ? 2.0 : 0.5);
           if (rng() < pm) { world.magazineExplosion(ship, owner, where); return; }
         }
         if (hit.lx < -st.L * 0.38 && rng() < 0.12) { ship.rudderJam = (rng() < 0.5 ? -1 : 1) * 0.6; }

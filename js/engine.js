@@ -231,6 +231,7 @@ export async function createEngine(canvas, options = {}) {
   let foamFirst = true;
   let foamCur = 0;
   const stampBuf = mkBuf(MAX_STAMPS * 32, GU.STORAGE | GU.COPY_DST, 'foam stamps');
+  const stampSorted = new Float32Array(MAX_STAMPS * 8);
   const samplerSim = device.createSampler({
     magFilter: 'linear', minFilter: 'linear', mipmapFilter: 'linear', addressModeU: 'repeat', addressModeV: 'repeat',
   });
@@ -265,6 +266,29 @@ export async function createEngine(canvas, options = {}) {
     magFilter: 'linear', minFilter: 'linear', mipmapFilter: 'linear',
     addressModeU: 'repeat', addressModeV: 'repeat', maxAnisotropy: 16,
   });
+  // sun shadow map (filled by the game through hooks.preMain; cleared to "no occluder" until then)
+  const SHADOW_SIZE = 2048;
+  const shadowTex = device.createTexture({ label: 'shadow map', size: [SHADOW_SIZE, SHADOW_SIZE], format: 'depth32float', usage: TU.RENDER_ATTACHMENT | TU.TEXTURE_BINDING });
+  const shadowView = shadowTex.createView();
+  const shadowSamp = device.createSampler({ compare: 'less-equal', magFilter: 'linear', minFilter: 'linear' });
+  const shadowUBO = mkBuf(80, GU.UNIFORM | GU.COPY_DST, 'shadow ubo');
+  const shadowU = new Float32Array(20);
+  {
+    const enc = device.createCommandEncoder();
+    enc.beginRenderPass({ colorAttachments: [], depthStencilAttachment: { view: shadowView, depthClearValue: 1, depthLoadOp: 'clear', depthStoreOp: 'store' } }).end();
+    device.queue.submit([enc.finish()]);
+    device.queue.writeBuffer(shadowUBO, 0, shadowU);
+  }
+  const shadow = {
+    size: SHADOW_SIZE, view: shadowView, sampler: shadowSamp, ubo: shadowUBO, enabled: false,
+    /** vp: camera-relative light view-projection (column-major), texelUv = 1 / size, bias in clip depth */
+    setLight(vp, bias, enabled) {
+      shadowU.set(vp, 0);
+      shadowU[16] = 1 / SHADOW_SIZE; shadowU[17] = bias; shadowU[18] = enabled ? 1 : 0; shadowU[19] = 0;
+      device.queue.writeBuffer(shadowUBO, 0, shadowU);
+      shadow.enabled = !!enabled;
+    },
+  };
   const frameUBO = mkBuf(384, GU.UNIFORM | GU.COPY_DST, 'frame ubo');
   const sunVisBuf = mkBuf(16, GU.STORAGE, 'sun visibility');
   const transView = transLUT.createView();
@@ -329,7 +353,7 @@ export async function createEngine(canvas, options = {}) {
 
   const bgOcean = [0, 1].map((i) => bg(oceanPipe, [{ buffer: frameUBO }, transView, skyView, sampClamp,
     fullArr(dispTex), fullArr(derivTex), fullArr(momTex), foamTex.createView(), envCubeView, sampRepeat,
-    fullArr(foamW[i]), { buffer: sunVisBuf }], 'ocean' + i));
+    fullArr(foamW[i]), { buffer: sunVisBuf }, shadowView, shadowSamp, { buffer: shadowUBO }], 'ocean' + i));
   const bgSky = bg(skyPipe, [{ buffer: frameUBO }, transView, skyView, sampClamp], 'sky');
 
   // --------------------------------------------------------------------------------------
@@ -651,6 +675,8 @@ export async function createEngine(canvas, options = {}) {
     update: null,
     /** (frame) — upload per-frame GPU data that depends on the final camera. */
     prepare: null,
+    /** (commandEncoder) — extra passes before the main one (shadow map). */
+    preMain: null,
     /** (renderPass) — opaque geometry, drawn before the ocean (ships). */
     drawOpaque: null,
     /** (renderPass) — blended geometry, drawn after the sky (particles). */
@@ -707,9 +733,25 @@ export async function createEngine(canvas, options = {}) {
     for (let c = 0; c < C; c++) { foamUF[16 + c] = CASC_L[c]; foamUF[24 + c] = 1 / CASC_L[c]; }
     const drift = 0.03 * P.windSpeed;
     foamUF[32] = Math.cos(P.windDir * D2R) * drift; foamUF[33] = Math.sin(P.windDir * D2R) * drift;
-    foamUF[36] = foam.count; foamUF[37] = foam.wakeDecay; foamUF[38] = 0; foamUF[39] = 0;
+    // order the stamps: those touching the fine (level 0) window first, so that level 0 only loops over them
+    let nNear = 0;
+    if (foam.count) {
+      const src = foam.stamps, dst = stampSorted;
+      const half = FOAM_LEVEL_SIZE[0] * 0.5 + 6;
+      let a = 0, bIdx = foam.count;
+      for (let i = 0; i < foam.count; i++) {
+        const o = i * 8, r = src[o + 4];
+        const minx = Math.min(src[o], src[o + 2]) - r, maxx = Math.max(src[o], src[o + 2]) + r;
+        const minz = Math.min(src[o + 1], src[o + 3]) - r, maxz = Math.max(src[o + 1], src[o + 3]) + r;
+        const near = maxx > cam.x - half && minx < cam.x + half && maxz > cam.z - half && minz < cam.z + half;
+        const d = near ? a++ : --bIdx;
+        dst.set(src.subarray(o, o + 8), d * 8);
+      }
+      nNear = a;
+      device.queue.writeBuffer(stampBuf, 0, dst, 0, foam.count * 8);
+    }
+    foamUF[36] = foam.count; foamUF[37] = foam.wakeDecay; foamUF[38] = nNear; foamUF[39] = 0;
     device.queue.writeBuffer(foamUBO, 0, foamUArr);
-    if (foam.count) device.queue.writeBuffer(stampBuf, 0, foam.stamps, 0, foam.count * 8);
   }
 
   function frame(now) {
@@ -798,6 +840,7 @@ export async function createEngine(canvas, options = {}) {
     }
     cp.end();
 
+    if (hooks.preMain) hooks.preMain(enc);
     const rp = enc.beginRenderPass(mainPass);
     if (hooks.drawOpaque) hooks.drawOpaque(rp);
     if (nodeCount) {
@@ -922,7 +965,7 @@ export async function createEngine(canvas, options = {}) {
   addEventListener('resize', resize);
 
   const engine = {
-    device, canvas, P, qs, cam, hooks, water, foam, stats, hasTS, offscreen,
+    device, canvas, P, qs, cam, hooks, water, foam, shadow, stats, hasTS, offscreen,
     /** shared GPU resources for game pipelines (same pass layout as the ocean) */
     gpu: {
       device, HDR, DEPTH, MSAA, swapFormat, frameUBO, transView, skyView, sampClamp, sampRepeat, envCubeView, sunVisBuf,

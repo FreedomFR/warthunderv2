@@ -10,6 +10,8 @@ import { ShipRenderer } from './render/shipRenderer.js';
 import { Particles, K } from './render/particles.js';
 import { Effects } from './render/effects.js';
 import { CameraRig } from './ui/cameras.js';
+import { lightMatrix } from './render/shadows.js';
+import { GameAudio } from './audio.js';
 import { mat4Ship, mountMatrices, D2R, clamp, makeRng } from './math.js';
 
 const SM = new Float32Array(16), HM = new Float32Array(16), GM = new Float32Array(16);
@@ -27,6 +29,9 @@ export class Game {
     this.ui = null;
     this.shakeT = 0;
     this._wp = [0, 0];
+    this.lightVP = new Float32Array(16);
+    this.shadowsOn = new URLSearchParams(location.search).get('shadows') !== '0';
+    this.shadowActive = false;
   }
 
   async init() {
@@ -36,6 +41,7 @@ export class Game {
     await Promise.all([this.shipRenderer.ready, this.particles.ready]);
     this.effects = new Effects(e, this.particles, this);
     this.camera = new CameraRig(e, this.canvas, this);
+    this.audio = new GameAudio(this);
     // plane mesh shared by every aircraft
     const b = new MeshBuilder();
     PT.aircraft(b, { x: 0, y: 0, z: 0, yaw: 0, kind: 'fighter', col: '#7d868c', scale: 1.5 }, { sup: '#7d868c', dark: '#222' });
@@ -43,6 +49,7 @@ export class Game {
 
     e.hooks.update = (dt, now) => this.update(dt, now);
     e.hooks.prepare = () => this.prepare();
+    e.hooks.preMain = (enc) => { if (this.shadowActive) this.shipRenderer.drawShadow(enc); };
     e.hooks.drawOpaque = (rp) => this.shipRenderer.draw(rp);
     e.hooks.drawOverlay = (rp) => this.particles.draw(rp);
     e.hooks.onWater = (tag, n) => this.onWater(tag, n);
@@ -50,7 +57,7 @@ export class Game {
 
   // ---- setup / lifecycle -------------------------------------------------------------------------------------
   /** Build (or rebuild) the fleets from `config.teams` and put them on the water. */
-  spawn() {
+  spawn(keepCamera = false) {
     const w = this.world;
     w.clear();
     this.particles.n = 0;
@@ -63,7 +70,13 @@ export class Game {
     });
     this.state = 'ready';
     this.paused = false;
-    this.camera.target = w.ships[0] || null;
+    // show the first fleet from a pleasant angle (unless the player is just editing the fleets)
+    if (!keepCamera || !this.camera.target || !w.ships.includes(this.camera.target)) {
+      if (!keepCamera) this.camera.setMode('orbit');
+      // the first team's flagship (largest ship) is the centre of attention
+      const flag = w.ships.filter((s) => s.team === 0).sort((a, b) => b.stats.L - a.stats.L)[0] || w.ships[0];
+      if (flag) this.camera.setTarget(flag);
+    }
     this.ui?.onSpawn?.();
   }
 
@@ -78,12 +91,29 @@ export class Game {
   reset() {
     this.world.clear();
     this.particles.n = 0;
+    this.camera.target = null;
+    this.camera.setMode('free');
     this.state = 'setup';
     this.ui?.onReset?.();
   }
 
   setTimeScale(s) { this.timeScale = s; this.ui?.onTimeScale?.(s); }
   togglePause() { this.paused = !this.paused; this.ui?.onPause?.(this.paused); }
+
+  /** Advance the battle by `sec` simulated seconds without rendering (also runs the effects). Dev / test helper. */
+  fastForward(sec, step = 0.1) {
+    const w = this.world;
+    for (let t = 0; t < sec; t += step) {
+      w.update(step);
+      const ev = w.drainEvents();
+      this.effects.emitScale = 0.5;
+      this.effects.process(ev);
+      this.effects.update(step, w);
+      this.particles.update(step);
+      this.ui?.onEvents?.(ev);
+      if (w.state === 'finished') break;
+    }
+  }
 
   battleRadius() {
     let r = 1000;
@@ -106,6 +136,7 @@ export class Game {
     this.effects.emitScale = 1 / Math.max(1, this.timeScale * 0.55);
     this.effects.process(ev);
     this.ui?.onEvents?.(ev);
+    this.audio.onEvents(ev);
     this.effects.update(gdt, w);
     this.particles.update(gdt);
 
@@ -196,6 +227,7 @@ export class Game {
       r.add(this.planeMesh, SM, [255, 255, 255], 0, 0, 0.5);
     }
     r.upload();
+    this.updateShadow();
     // shells: bright streaks along their velocity
     for (const s of w.shells) {
       const sp = Math.hypot(s.vx, s.vy, s.vz);
@@ -208,6 +240,28 @@ export class Game {
       this.particles.streak(s.x, s.y, s.z, s.vx / sp, s.vy / sp, s.vz / sp, len * (1 + d / 8000), wid, 1, 0.68, 0.28, 6);
     }
     this.particles.upload();
+  }
+
+  /** Position the sun shadow map around the ship the camera is looking at (or the nearest one). */
+  updateShadow() {
+    const e = this.engine, cam = e.cam, w = this.world, P = e.P;
+    const se = P.sunElev * D2R, sa = P.sunAzim * D2R;
+    const sun = [Math.sin(sa) * Math.cos(se), Math.sin(se), -Math.cos(sa) * Math.cos(se)];
+    const off = () => { if (this.shadowActive) e.shadow.setLight(this.lightVP, 0, false); this.shadowActive = false; };
+    if (!this.shadowsOn || sun[1] < 0.015) return off();
+    let focus = this.camera.target && this.camera.target.state !== 'sunk' ? this.camera.target : null;
+    const dist = (s) => Math.hypot(s.x - cam.x, s.y - cam.y, s.z - cam.z);
+    if (!focus || dist(focus) > 2500) {
+      focus = null;
+      let bd = 2500;
+      for (const s of w.ships) if (s.state !== 'sunk' && dist(s) < bd) { bd = dist(s); focus = s; }
+    }
+    if (!focus) return off();
+    const d = dist(focus);
+    const R = clamp(d * 0.8 + focus.stats.L * 0.55, 170, 800);
+    const info = lightMatrix(this.lightVP, sun, focus.x - cam.x, focus.y + focus.model.topY * 0.25 - cam.y, focus.z - cam.z, R, e.shadow.size);
+    e.shadow.setLight(this.lightVP, 0.9 / info.depthRange, true);
+    this.shadowActive = true;
   }
 
   /** Click on the canvas (no drag): select the ship under the cursor. */

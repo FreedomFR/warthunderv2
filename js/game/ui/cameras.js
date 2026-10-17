@@ -45,7 +45,7 @@ export class CameraRig {
     if (id === 'tactical') {
       const c = this.focusPoint();
       this.tactical.x = c.x; this.tactical.z = c.z;
-      this.tactical.alt = clamp(this.game.battleRadius() * 2.4 + 1500, 1500, 22000);
+      this.tactical.alt = clamp(this.game.battleRadius() * 2.0 + 800, 1500, 22000);
     }
     if (id === 'follow' || id === 'orbit' || id === 'bridge' || id === 'shell') {
       if (!this.target || !this.target.alive) this.pickTarget(1);

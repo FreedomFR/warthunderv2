@@ -28,7 +28,7 @@ function describe(spec) {
   const m = spec.main;
   const sec = (spec.secondary || []).filter((s) => s.caliberMm >= 70).map((s) => `${s.mounts * s.gunsPerMount} × ${s.caliberMm} mm`).join(', ');
   const parts = [
-    `${spec.className} — ${Math.round(spec.loa)} m × ${Math.round(spec.beam)} m, ${Math.round(spec.displacementFull / 100) / 10} kt, ${Math.round(spec.speedKn)} nœuds`,
+    `${spec.className} — ${Math.round(spec.loa)} m × ${Math.round(spec.beam)} m, ${Math.round(spec.displacementFull).toLocaleString('fr-FR')} t, ${Math.round(spec.speedKn)} nœuds`,
     `${m.gunsTotal} × ${m.caliberMm} mm` + (sec ? ` · ${sec}` : ''),
   ];
   if (spec.torpedoes && spec.torpedoes.tubes) parts.push(`${spec.torpedoes.tubes} tubes lance-torpilles de ${spec.torpedoes.caliberMm} mm`);
@@ -156,19 +156,14 @@ export function createUI(game) {
   let respawnTimer = 0;
   function changed() {
     // once the fleets are on the water, edits update them live
-    if (game.state === 'ready') { clearTimeout(respawnTimer); respawnTimer = setTimeout(() => { game.spawn(); }, 200); }
+    if (game.state === 'ready') { clearTimeout(respawnTimer); respawnTimer = setTimeout(() => { game.spawn(true); }, 200); }
   }
   function doSpawn() {
     ensureTeams();
     game.spawn();
     camSetup();
   }
-  function camSetup() {
-    // show the first fleet from a pleasant angle
-    state.firstSpawn = true;
-    game.camera.setMode('orbit');
-    if (world.ships[0]) game.camera.setTarget(world.ships[0]);
-  }
+  function camSetup() { state.firstSpawn = true; }
 
   // =========================================================================================
   // HUD
@@ -178,6 +173,7 @@ export function createUI(game) {
   const speedBtns = [0, 0.5, 1, 2, 4, 8].map((s) => h('button', { class: 'btn tiny', 'data-s': s, onclick: () => { if (s === 0) game.togglePause(); else { game.paused = false; game.setTimeScale(s); } } }, s === 0 ? '⏸' : s + '×'));
   const topbar = h('div', { id: 'topbar', class: 'hud' }, clock, h('span', { class: 'sp' }, speedBtns), fpsEl,
     h('button', { class: 'btn tiny', title: 'Composer les flottes', onclick: () => setup.classList.toggle('collapsed') }, 'Flottes'),
+    h('button', { class: 'btn tiny', id: 'btn-sound', title: 'Son (M)', onclick: () => toggleSound() }, 'Son'),
     h('button', { class: 'btn tiny', title: 'Plaques de nom (L)', onclick: () => { state.labels = !state.labels; } }, 'Noms'),
     h('button', { class: 'btn tiny', title: 'Réglages (H)', onclick: () => toggleSettings() }, 'Réglages'),
     h('button', { class: 'btn tiny', title: 'Aide (F1)', onclick: () => helpEl.classList.toggle('hidden') }, '?'));
@@ -201,7 +197,7 @@ export function createUI(game) {
       h('b', {}, 'Glisser / molette'), h('span', {}, 'Orbiter autour du navire, zoom (altitude en vue tactique, vitesse en caméra libre)'),
       h('b', {}, 'ZQSD / WASD, Espace, Ctrl, Maj'), h('span', {}, 'Déplacement en caméra libre (Maj = rapide)'),
       h('b', {}, 'Espace  ·  , .'), h('span', {}, 'Pause ; ralentir / accélérer le temps (0,5× à 8×)'),
-      h('b', {}, 'L  ·  H  ·  F1'), h('span', {}, 'Plaques de nom ; réglages océan et ciel ; cette aide'),
+      h('b', {}, 'L  ·  M  ·  H  ·  F1'), h('span', {}, 'Plaques de nom ; son ; réglages océan et ciel ; cette aide'),
       h('b', {}, 'Contrôle manuel'), h('span', {}, 'Prévu : tous les navires utilisent déjà les mêmes commandes que l\'IA (voir js/game/sim/controllers/manual.js).')),
     h('div', { class: 'hint' }, 'Cliquer pour fermer'));
 
@@ -209,6 +205,7 @@ export function createUI(game) {
   const settings = h('div', { id: 'settings', class: 'panel hidden' }, h('div', { class: 'title' }, h('span', { class: 'big' }, 'Réglages')));
   {
     const scaleVal = h('output', {}, Math.round(engine.getRenderScale() * 100) + '%');
+    settings.append(h('label', { class: 'slider' }, h('span', {}, 'Ombres des navires'), h('input', { type: 'checkbox', checked: game.shadowsOn, onchange: (e) => { game.shadowsOn = e.target.checked; } }), h('span')));
     settings.append(h('label', { class: 'slider' }, h('span', {}, 'Résolution de rendu'), h('input', { type: 'range', min: 0.4, max: 1.5, step: 0.05, value: engine.getRenderScale(), oninput: (e) => { engine.setRenderScale(Number(e.target.value)); scaleVal.textContent = Math.round(e.target.value * 100) + '%'; } }), scaleVal));
     for (const [key, label, min, max, step, kind] of SLIDERS) {
       const val = h('output', {}, String(engine.P[key]));
@@ -216,6 +213,12 @@ export function createUI(game) {
     }
   }
   function toggleSettings() { settings.classList.toggle('hidden'); }
+  function toggleSound() {
+    game.audio.unlock();
+    const muted = game.audio.toggleMute();
+    document.getElementById('btn-sound').textContent = muted ? 'Son coupé' : 'Son';
+  }
+  if (game.audio.muted) setTimeout(() => { const b = document.getElementById('btn-sound'); if (b) b.textContent = 'Son coupé'; }, 0);
 
   root.append(setup, topbar, teamsHud, camBar, shipInfo, feed, labelsBox, banner, results, helpEl, settings);
   setHudVisible(false);
@@ -358,7 +361,7 @@ export function createUI(game) {
       ),
       s.state !== 'afloat' ? h('div', { class: 'si-state' }, 'NAVIRE COULÉ') : null,
     ];
-    shipInfo.replaceChildren(...lines);
+    shipInfo.replaceChildren(...lines.filter(Boolean));
   }
 
   function updateLabels() {
@@ -425,11 +428,15 @@ export function createUI(game) {
     else if (e.code === 'Period') { const steps = [0.5, 1, 2, 4, 8]; const i = steps.indexOf(game.timeScale); game.paused = false; game.setTimeScale(steps[Math.min(steps.length - 1, i + 1)] ?? 1); }
     else if (e.code === 'Comma') { const steps = [0.5, 1, 2, 4, 8]; const i = steps.indexOf(game.timeScale); game.paused = false; game.setTimeScale(steps[Math.max(0, i - 1)] ?? 1); }
     else if (e.code === 'KeyL') state.labels = !state.labels;
+    else if (e.code === 'KeyM') toggleSound();
     else if (e.code === 'KeyH') toggleSettings();
     else if (e.code === 'F1') { helpEl.classList.toggle('hidden'); e.preventDefault(); }
     else if (e.code === 'KeyG') { state.hudHidden = !state.hudHidden; setHudVisible(game.state !== 'setup'); }
   });
 
+  // buttons must not keep the keyboard focus (Space would activate them again)
+  addEventListener('pointerup', () => { const a = document.activeElement; if (a && a.tagName === 'BUTTON') a.blur(); });
   renderTeams();
+  ui.doSpawn = doSpawn;
   return ui;
 }

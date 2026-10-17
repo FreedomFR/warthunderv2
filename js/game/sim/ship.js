@@ -70,7 +70,7 @@ export class Ship {
 
     // mounts (runtime state of the model's mount records)
     this.mounts = model.mounts.map((rec, i) => {
-      const gun = rec.group === 'main' ? stats.main : (stats.secs[rec.si] || stats.secs[0] || stats.main);
+      const gun = rec.group === 'main' ? stats.main : (stats.secs.find((g) => g.specIndex === rec.si) || stats.secs[0] || stats.main);
       return {
         rec, idx: i, group: rec.group, gun, n: rec.n,
         trainRel: 0, elev: 0, reload: world.rng.range(0, gun.reload * 0.6),
@@ -218,7 +218,7 @@ export class Ship {
         if (f.t <= 0) this.fires.splice(i, 1);
       }
       this.fireLevel = sat(burn * 0.35);
-      if (burn > 0) this.applyDamage(burn * 0.0009 * st.maxHp * dt, null, 'fire');
+      if (burn > 0) this.applyDamage(Math.min(burn, 3.5) * 0.00036 * st.maxHp * dt, null, "fire");
       if (this.floodRate > 0) {
         this.applyDamage(this.floodRate * dt, null, 'flood');
         this.floodRate = Math.max(0, this.floodRate - st.maxHp * 0.00012 * dt);    // pumps and counter-flooding
