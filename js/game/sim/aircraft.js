@@ -147,10 +147,12 @@ function stepPlane(world, p, dt) {
       hdg = Math.atan2(dx, -dz);
       if (p.kind === 'dive') {
         // climb to the attack altitude on the way
-        const want = Math.min(p.cruiseAlt, Math.max(p.y, 500 + range * 0.07));
         gam = clamp((p.cruiseAlt - p.y) / 700, -0.1, 0.1);
-        if (range < 3600 || (range < 7000 && p.y > p.cruiseAlt - 150)) {
-          // roll in from the side: lead the target a little and go over the top
+        // roll in so that the dive line (about 60 degrees) passes through the ship: horizontal distance covered while
+        // pushing over (~2.4 s) plus the descent from here to the release altitude
+        const alt = Math.max(p.y, 600);
+        const diveRange = (alt - p.relAlt) / Math.tan(p.diveAng) + p.relAlt / Math.tan(p.diveAng) * 0.55 + 330 + p.speed * 1.5;
+        if (range < diveRange && (p.y > 650 || range < 1300)) {
           p.phase = 'rollin'; p.t = 0; p.rollSide = p.jitter > 0 ? 1 : -1;
           p.diveAlt = p.y;
         }
@@ -202,7 +204,7 @@ function stepPlane(world, p, dt) {
       // aim point: the ship (+ a systematic error, bigger when the pilot is being shot at)
       const err = 14 + 36 * clamp(p.harass, 0, 1.5);
       const tof = Math.sqrt(2 * Math.max(p.y, 50) / G) * 0.55;
-      const ax = tgt.x + tgt.vx * (tof + 1.5) + p.aimErr[0] * err * 0.5, az = tgt.z + tgt.vz * (tof + 1.5) + p.aimErr[1] * err * 0.5;
+      const ax = tgt.x + tgt.vx * (tof + 1.5) + Math.sin(p.heading) * 22 + p.aimErr[0] * err * 0.5, az = tgt.z + tgt.vz * (tof + 1.5) - Math.cos(p.heading) * 22 + p.aimErr[1] * err * 0.5;
       const dx = ax - p.x, dz = az - p.z;
       const range = Math.hypot(dx, dz);
       hdg = Math.atan2(dx, -dz);

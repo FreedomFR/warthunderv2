@@ -44,6 +44,7 @@ export class Effects {
     this.shake = 0;
     this._v = [0, 0, 0];
     this.rings = [];          // expanding shock waves on the water
+    this.timers = [];         // delayed effects (the cap of a smoke column)
     this.acc = { planeSmoke: new Map() };
   }
 
@@ -181,18 +182,18 @@ export class Effects {
       return;
     }
     // ---- primary explosion (ammunition): flash, fireball, shock wave, rising smoke column ----
-    p.add({ kind: K.FLASH, x: e.x, y: e.y + 6, z: e.z, s0: 120 * s, s1: 360 * s, life: 0.9, r: 1, g: 0.78, b: 0.45, a0: 14, a1: 0 });
-    p.add({ kind: K.FLASH, x: e.x, y: e.y + 4, z: e.z, s0: 50 * s, s1: 180 * s, life: 1.6, r: 1, g: 0.6, b: 0.25, a0: 8, a1: 0 });
+    p.add({ kind: K.FLASH, x: e.x, y: e.y + 6, z: e.z, s0: 100 * s, s1: 300 * s, life: 0.8, r: 1, g: 0.66, b: 0.32, a0: 7, a1: 0 });
+    p.add({ kind: K.FLASH, x: e.x, y: e.y + 4, z: e.z, s0: 50 * s, s1: 170 * s, life: 1.5, r: 1, g: 0.5, b: 0.18, a0: 4, a1: 0 });
     const nf = Math.round(70 * this.emitScale + 30);
     for (let i = 0; i < nf; i++) {
       const a = rnd() * 6.283, el = rr(0.1, 1.45), sp = rr(10, 60) * s;
       p.add({ kind: K.FIRE, x: e.x + Math.cos(a) * rr(0, 12) * s, y: e.y + rr(0, 10) * s, z: e.z + Math.sin(a) * rr(0, 12) * s, vx: Math.cos(a) * Math.cos(el) * sp, vy: Math.sin(el) * sp * 1.2, vz: Math.sin(a) * Math.cos(el) * sp, s0: 24 * s, s1: rr(50, 100) * s, life: rr(1.6, 3.6), r: 1, g: 0.55, b: 0.16, a0: 5, a1: 0, drag: 0.75 });
     }
     // smoke column: a stem rising fast, then a mushroom cap spreading at the top
-    const ns = Math.round(70 * this.emitScale + 30);
+    const ns = Math.round(52 * this.emitScale + 22);
     for (let i = 0; i < ns; i++) {
       const a = rnd() * 6.283, sp = rr(0, 14) * s;
-      p.add({ kind: K.SMOKE, x: e.x + Math.cos(a) * rr(0, 14) * s, y: e.y + rr(0, 14) * s, z: e.z + Math.sin(a) * rr(0, 14) * s, vx: Math.cos(a) * sp, vy: rr(26, 90) * Math.sqrt(s), vz: Math.sin(a) * sp, s0: 18 * s, s1: rr(60, 120) * s, life: rr(14, 30), r: 0.06, g: 0.057, b: 0.052, a0: 0.9, a1: 0, drag: 0.22, wind: 1, grav: -0.1 });
+      p.add({ kind: K.SMOKE, x: e.x + Math.cos(a) * rr(0, 14) * s, y: e.y + rr(0, 14) * s, z: e.z + Math.sin(a) * rr(0, 14) * s, vx: Math.cos(a) * sp, vy: rr(34, 100) * Math.sqrt(s), vz: Math.sin(a) * sp, s0: 11 * s, s1: rr(46, 95) * s, life: rr(14, 30), r: 0.06, g: 0.057, b: 0.052, a0: 0.9, a1: 0, drag: 0.22, wind: 1, grav: -0.1 });
     }
     // hot embers and large pieces glowing in the fireball
     for (let i = 0; i < 40; i++) {
@@ -206,6 +207,15 @@ export class Effects {
       p.add({ kind: K.SPRAY, x: e.x, y: 1, z: e.z, vx: Math.cos(a) * sp, vy: rr(5, 14), vz: Math.sin(a) * sp, s0: 8 * s, s1: rr(26, 44) * s, life: rr(1.6, 2.8), r: 0.93, g: 0.95, b: 0.98, a0: 0.8, a1: 0, grav: 6, drag: 0.7, wind: 0 });
     }
     this.rings.push({ x: e.x, z: e.z, t: 0, size: s });
+    // the head of the mushroom: smoke spreading sideways at the top of the column
+    this.later(2.1, () => {
+      const top = e.y + 105 * Math.sqrt(s);
+      const nc = Math.round(34 * this.emitScale + 14);
+      for (let i = 0; i < nc; i++) {
+        const a = rnd() * 6.283, sp = rr(8, 24) * Math.pow(s, 0.7), rad = rr(0, 16) * s;
+        p.add({ kind: K.SMOKE, x: e.x + Math.cos(a) * rad, y: top + rr(-10, 14) * s, z: e.z + Math.sin(a) * rad, vx: Math.cos(a) * sp, vy: rr(-1, 7), vz: Math.sin(a) * sp, s0: 30 * s, s1: rr(70, 130) * s, life: rr(14, 26), r: 0.07, g: 0.065, b: 0.06, a0: 0.8, a1: 0, drag: 0.28, wind: 1, grav: 0.02 });
+      }
+    });
     this.addShake(1.6 * s, e.x, e.z);
     if (d < 1300) this.engine.foam.add(e.x, e.z, e.x, e.z, 110 * s, 0.9, 1, 1);
   }
@@ -358,8 +368,11 @@ export class Effects {
     this.impact({ kind: 'penetrate', x: w[0], y: w[1], z: w[2], cal: Math.max(m.rec.cal, 200) });
   }
 
+  later(sec, fn) { this.timers.push({ t: sec, fn }); }
+
   // ---- continuous ---------------------------------------------------------------------------------------
   update(dt, world) {
+    for (let i = this.timers.length - 1; i >= 0; i--) { const tm = this.timers[i]; tm.t -= dt; if (tm.t <= 0) { this.timers.splice(i, 1); tm.fn(); } }
     const cam = this.engine.cam;
     const P = this.engine.P;
     const wa = P.windDir * D2R, ws = Math.min(8, P.windSpeed * 0.6);
@@ -406,7 +419,7 @@ export class Effects {
 
       // ---- sinking: steam, bubbles, heavy smoke ----
       if (s.state === 'sinking' && d < 22000) {
-        fxs.steam += dt * 16 * this.emitScale;
+        fxs.steam += dt * (s.exploded ? 7 : 16) * this.emitScale;
         while (fxs.steam >= 1) {
           fxs.steam -= 1;
           const lx = rr(-st.L * 0.4, st.L * 0.4), lz = rr(-st.B * 0.3, st.B * 0.3);
@@ -467,11 +480,11 @@ export class Effects {
       if (dd.burn <= 0.05) continue;
       const d = Math.hypot(dd.x - cam.x, dd.z - cam.z);
       if (d > 9000) continue;
-      dd.trail += dt * (7 + 14 * dd.burn) * this.emitScale * (d > 3000 ? 0.5 : 1);
+      dd.trail += dt * (10 + 22 * dd.burn) * this.emitScale * (d > 3000 ? 0.5 : 1);
       while (dd.trail >= 1) {
         dd.trail -= 1;
         const sz = clamp(dd.size, 1, 14);
-        this.p.add({ kind: K.SMOKE, x: dd.x + rr(-0.5, 0.5), y: dd.y + rr(-0.5, 0.5), z: dd.z + rr(-0.5, 0.5), vx: dd.vx * 0.05, vy: rr(0.5, 2), vz: dd.vz * 0.05, s0: 0.8 + sz * 0.15, s1: 4 + sz * 1.1, life: rr(3, 6), r: 0.06, g: 0.058, b: 0.055, a0: 0.8, a1: 0, drag: 0.5, wind: 1 });
+        this.p.add({ kind: K.SMOKE, x: dd.x + rr(-0.5, 0.5), y: dd.y + rr(-0.5, 0.5), z: dd.z + rr(-0.5, 0.5), vx: dd.vx * 0.05, vy: rr(0.5, 2), vz: dd.vz * 0.05, s0: 1.3 + sz * 0.2, s1: 6 + sz * 1.3, life: rr(3, 6), r: 0.06, g: 0.058, b: 0.055, a0: 0.75, a1: 0, drag: 0.5, wind: 1 });
         if (dd.burn > 0.45 && rnd() < 0.6) this.p.add({ kind: K.FIRE, x: dd.x, y: dd.y, z: dd.z, vx: dd.vx * 0.1, vy: 1, vz: dd.vz * 0.1, s0: 0.9 + sz * 0.2, s1: 2.5 + sz * 0.6, life: rr(0.25, 0.5), r: 1, g: 0.6, b: 0.2, a0: 3, a1: 0, drag: 1.5 });
       }
     }

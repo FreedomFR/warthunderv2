@@ -111,6 +111,9 @@
   .lab.sel { border-color: var(--amber); background: #0b0f14d8; }
   .lab.far .ln, .lab.far .ld { display: none; }
   .lab.dead { opacity: .4; }
+  .lab.plane { pointer-events: auto; cursor: pointer; padding: 0 5px; font-size: 13px; line-height: 1.25; color: var(--tc); background: #0b0f1488; }
+  .lab.plane.hot { border-color: var(--tc); background: #0b0f14d0; }
+  .lab.plane:hover { background: #ffffff30; }
   #banner { position: fixed; top: 22%; left: 50%; transform: translateX(-50%); font-size: 34px; font-weight: 800; letter-spacing: 1px; text-shadow: 0 2px 14px #000c; pointer-events: none; animation: fadein .5s; color: #fff; }
   #results { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); min-width: 520px; max-width: 92vw; max-height: 86vh; overflow: auto; }
   #results table { width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 12.5px; }

@@ -197,6 +197,7 @@ export class GameAudio {
         case 'collision': this.play('collision', e.x, 4, e.z, { gain: 1.1, ref: 1300, pri: 3, wet: 0.3 }); break;
         // ---- anti-aircraft ----
         case 'aaFire': {
+          if (rnd() > (this.active > 40 ? 0.3 : 0.7)) break;          // a lot of guns: sample the bursts
           const cb = e.cal >= 35 ? 40 : e.cal >= 22 ? 25 : 20;
           this.play('aa_burst', e.x, e.y, e.z, { arg: cb, gain: 0.55 + 0.08 * Math.min(e.n, 4), ref: cb >= 40 ? 700 : 450, pri: 1, wet: 0.12, rate: R(0.94, 1.08) });
           break;

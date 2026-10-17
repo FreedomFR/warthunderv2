@@ -429,7 +429,7 @@ export function createUI(game) {
   }
 
   function updateLabels() {
-    if (!state.labels || game.state === 'setup') { for (const el of labelEls.values()) el.style.display = 'none'; return; }
+    if (!state.labels || game.state === 'setup') { for (const el of labelEls.values()) el.style.display = 'none'; for (const el of planeEls.values()) el.style.display = 'none'; return; }
     const out = [0, 0, 0];
     const cam = engine.cam;
     const seen = new Set();
@@ -458,6 +458,33 @@ export function createUI(game) {
       bar.style.width = (s.alive ? s.hpFrac * 100 : 0).toFixed(0) + '%';
     }
     for (const [id, el] of labelEls) if (!seen.has(id)) { el.remove(); labelEls.delete(id); }
+    updatePlaneMarkers(out, cam);
+  }
+
+  // small markers on the aircraft: a click follows that aircraft
+  const planeEls = new Map();
+  function updatePlaneMarkers(out, cam) {
+    const seen = new Set();
+    for (const p of world.planes) {
+      if (p.phase === 'queue' || p.phase === 'rollout' || p.phase === 'takeoff') continue;
+      const dist = Math.hypot(p.x - cam.x, p.y - cam.y, p.z - cam.z);
+      const pr = engine.project(p.x, p.y + 6, p.z, out);
+      if (!pr || dist > 16000 || dist < 25 || out[0] < -30 || out[0] > innerWidth + 30 || out[1] < -20 || out[1] > innerHeight + 20) continue;
+      let el = planeEls.get(p.id);
+      if (!el) {
+        const t = world.teams[p.team];
+        el = h('div', { class: 'lab plane', style: `--tc:${css(t.rgb)}`, title: p.spec.name, onclick: () => { game.camera.setMode('plane', true); game.camera.setPlane(p); } }, '✈');
+        labelsBox.append(el);
+        planeEls.set(p.id, el);
+      }
+      seen.add(p.id);
+      el.style.display = '';
+      el.style.transform = `translate(${out[0].toFixed(0)}px, ${out[1].toFixed(0)}px) translate(-50%, -120%)`;
+      el.classList.toggle('hot', ['rollin', 'dive', 'run', 'pullout', 'break'].includes(p.phase) || p.dying);
+      el.classList.toggle('sel', game.camera.plane === p && (game.camera.mode === 'plane' || game.camera.mode === 'cockpit'));
+      el.style.opacity = dist > 6000 ? '0.55' : '1';
+    }
+    for (const [id, el] of planeEls) if (!seen.has(id)) { el.remove(); planeEls.delete(id); }
   }
 
   // =========================================================================================
