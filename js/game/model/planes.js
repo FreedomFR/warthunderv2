@@ -21,91 +21,94 @@ const PAINT = {
 };
 
 // ---- aircraft specification sheets --------------------------------------------------------------------------
+// The tailplane span is the TOTAL span (the three aircraft with a drawing -- SBD 5.4 m, B5N 4.9 m, Skua 4.9 m -- were measured on it; the others
+// are 0.33 of the wing span, estimated: they had been drawn at about half the real size). Exception: the Ju 87's tailplane, measured on a 1:72
+// sheet, is only 3.0 m (0.22 of the span).
 // L length, span, fus: {r maximum radius, ar ratio height/width}, engine: {r cowl radius, len, type},
 // wing: {cr root chord, ct tip chord, x mid-chord position, y height, dih dihedral, gull inverted gull, sweep, t thickness}
 export const PLANES = {
   sbd: {
     name: 'SBD-3 Dauntless', nation: 'USA', role: 'dive', kind: 'mono', L: 9.7, span: 12.65, mass: 3.2, hp: 3.2, bombKg: 450,
     fus: { r: 0.62, ar: 1.18, x: -0.2 }, engine: { type: 'radial', r: 0.74, len: 1.35 }, prop: { r: 1.7, n: 3, x: 0 },
-    wing: { cr: 2.7, ct: 1.3, x: -0.1, y: -0.32, dih: 0.35, sweep: 0.45, t: 0.34 },
-    tail: { x: -3.9, chord: 1.4, span: 2.0, fin: 1.55, finChord: 1.8, y: 0.15 }, canopy: [{ x0: 0.1, x1: 1.4, tx1: 1.1, h: 0.62 }, { x0: -1.9, x1: -0.7, tx1: -0.9, h: 0.5 }],
+    wing: { cr: 3.0, ct: 1.3, x: 0.80, y: -0.32, dih: 0.35, sweep: 0.45, t: 0.34 },
+    tail: { x: -4.25, chord: 1.6, span: 5.4, fin: 1.55, finChord: 1.8, y: 0.15 }, canopy: [{ x0: 0.1, x1: 1.4, tx1: 1.1, h: 0.62 }, { x0: -1.9, x1: -0.7, tx1: -0.9, h: 0.5 }],
     gear: 'retract', ordnance: 'bomb', stripes: false,
   },
   tbf: {
     name: 'TBF-1 Avenger', nation: 'USA', role: 'torp', kind: 'mono', L: 12.2, span: 16.5, mass: 5.6, hp: 4.5,
     fus: { r: 0.98, ar: 1.12, x: -0.6 }, engine: { type: 'radial', r: 0.95, len: 1.5 }, prop: { r: 2.0, n: 3, x: 0 },
-    wing: { cr: 3.3, ct: 1.7, x: -0.3, y: -0.42, dih: 0.55, sweep: 0.6, t: 0.42 },
-    tail: { x: -4.9, chord: 1.8, span: 2.6, fin: 1.9, finChord: 2.2, y: 0.35 }, canopy: [{ x0: 0.4, x1: 1.8, tx1: 1.4, h: 0.62 }, { x0: -2.6, x1: -1.1, tx1: -1.4, h: 0.55 }],
+    wing: { cr: 3.3, ct: 1.7, x: 0.60, y: -0.42, dih: 0.55, sweep: 0.6, t: 0.42 },
+    tail: { x: -5.8, chord: 2.4, span: 5.4, fin: 1.9, finChord: 2.2, y: 0.35 }, canopy: [{ x0: 0.4, x1: 1.8, tx1: 1.4, h: 0.62 }, { x0: -2.6, x1: -1.1, tx1: -1.4, h: 0.55 }],
     gear: 'retract', ordnance: 'torp', turret: true,
   },
   d3a: {
     name: 'Aichi D3A1 Type 99', nation: 'Japan', role: 'dive', kind: 'mono', L: 10.2, span: 14.4, mass: 3.6, hp: 2.8, bombKg: 250,
     fus: { r: 0.58, ar: 1.15, x: -0.4 }, engine: { type: 'radial', r: 0.64, len: 1.1 }, prop: { r: 1.55, n: 3, x: 0 },
-    wing: { cr: 2.5, ct: 1.0, x: -0.2, y: -0.28, dih: 0.3, sweep: 0.3, t: 0.3, elliptic: true },
-    tail: { x: -4.2, chord: 1.3, span: 1.8, fin: 1.45, finChord: 1.6, y: 0.1 }, canopy: [{ x0: 0.0, x1: 1.5, tx1: 1.2, h: 0.62 }, { x0: -2.0, x1: -0.8, tx1: -1.0, h: 0.5 }],
+    wing: { cr: 2.5, ct: 1.0, x: 1.00, y: -0.28, dih: 0.3, sweep: 0.3, t: 0.3, elliptic: true },
+    tail: { x: -5.4, chord: 2.0, span: 4.8, fin: 1.45, finChord: 1.6, y: 0.1 }, canopy: [{ x0: 0.0, x1: 1.5, tx1: 1.2, h: 0.62 }, { x0: -2.0, x1: -0.8, tx1: -1.0, h: 0.5 }],
     gear: 'spats', ordnance: 'bomb',
   },
   b5n: {
     name: 'Nakajima B5N2 Type 97', nation: 'Japan', role: 'torp', kind: 'mono', L: 10.3, span: 15.5, mass: 3.8, hp: 2.9,
     fus: { r: 0.6, ar: 1.2, x: -0.6 }, engine: { type: 'radial', r: 0.64, len: 1.1 }, prop: { r: 1.6, n: 3, x: 0 },
-    wing: { cr: 2.6, ct: 1.2, x: -0.3, y: -0.2, dih: 0.4, sweep: 0.35, t: 0.3 },
-    tail: { x: -4.2, chord: 1.3, span: 2.1, fin: 1.4, finChord: 1.7, y: 0.25 }, canopy: [{ x0: 0.2, x1: 3.3, tx1: 2.9, h: 0.72 }],
+    wing: { cr: 3.3, ct: 1.2, x: 1.00, y: -0.2, dih: 0.4, sweep: 0.35, t: 0.3 },
+    tail: { x: -4.2, chord: 1.3, span: 4.9, fin: 1.4, finChord: 1.7, y: 0.25 }, canopy: [{ x0: 0.2, x1: 3.3, tx1: 2.9, h: 0.72 }],
     gear: 'retract', ordnance: 'torp',
   },
   swordfish: {
-    name: 'Fairey Swordfish', nation: 'UK', role: 'torp', kind: 'bi', L: 10.9, span: 13.9, mass: 3.4, hp: 3.4,
+    name: 'Fairey Swordfish', nation: 'UK', role: 'torp', kind: 'bi', L: 11.0, span: 13.9, mass: 3.4, hp: 3.4,
     fus: { r: 0.62, ar: 1.1, x: -0.6 }, engine: { type: 'radial', r: 0.75, len: 1.1 }, prop: { r: 1.75, n: 3, x: 0 },
-    wing: { cr: 1.95, ct: 1.95, x: 0.1, y: 0.0, gap: 1.75, dih: 0.0, sweep: 0.5, t: 0.14, stagger: 0.5 },
-    tail: { x: -4.1, chord: 1.5, span: 3.0, fin: 1.4, finChord: 1.6, y: 0.2 }, canopy: [{ x0: -0.2, x1: 0.5, tx1: 0.3, h: 0.2, open: true }, { x0: -2.0, x1: -1.4, tx1: -1.6, h: 0.2, open: true }],
+    wing: { cr: 1.95, ct: 1.95, x: 0.95, y: 0.0, gap: 1.75, dih: 0.0, sweep: 0.5, t: 0.14, stagger: 0.1 },
+    tail: { x: -5.3, chord: 2.0, span: 4.6, fin: 1.4, finChord: 1.6, y: 0.2 }, canopy: [{ x0: -0.2, x1: 0.5, tx1: 0.3, h: 0.2, open: true }, { x0: -2.0, x1: -1.4, tx1: -1.6, h: 0.2, open: true }],
     gear: 'fixedbig', ordnance: 'torp',
   },
   skua: {
     name: 'Blackburn Skua', nation: 'UK', role: 'dive', kind: 'mono', L: 10.85, span: 14.1, mass: 3.8, hp: 3.2, bombKg: 230,
     fus: { r: 0.62, ar: 1.15, x: -0.4 }, engine: { type: 'radial', r: 0.72, len: 1.2 }, prop: { r: 1.7, n: 3, x: 0 },
     wing: { cr: 2.8, ct: 1.4, x: -0.2, y: -0.3, dih: 0.4, sweep: 0.4, t: 0.34 },
-    tail: { x: -4.4, chord: 1.4, span: 2.2, fin: 1.4, finChord: 1.7, y: 0.15 }, canopy: [{ x0: 0.0, x1: 1.5, tx1: 1.15, h: 0.6 }, { x0: -2.0, x1: -0.7, tx1: -1.0, h: 0.5 }],
+    tail: { x: -4.4, chord: 1.4, span: 4.9, fin: 1.4, finChord: 1.7, y: 0.15 }, canopy: [{ x0: 0.0, x1: 1.5, tx1: 1.15, h: 0.6 }, { x0: -2.0, x1: -0.7, tx1: -1.0, h: 0.5 }],
     gear: 'retract', ordnance: 'bomb',
   },
   ju87: {
     name: 'Junkers Ju 87 C Stuka', nation: 'Germany', role: 'dive', kind: 'mono', L: 11.1, span: 13.8, mass: 4.6, hp: 3.6, bombKg: 500, siren: true,
     fus: { r: 0.62, ar: 1.2, x: -0.3 }, engine: { type: 'inline', r: 0.46, len: 1.9 }, prop: { r: 1.7, n: 3, x: 0 },
-    wing: { cr: 3.0, ct: 1.5, x: -0.1, y: -0.45, dih: 0.0, gull: 0.95, sweep: 0.15, t: 0.4 },
-    tail: { x: -4.8, chord: 1.4, span: 2.4, fin: 1.7, finChord: 1.9, y: 0.2 }, canopy: [{ x0: 0.0, x1: 2.9, tx1: 2.2, h: 0.78 }],
+    wing: { cr: 2.9, ct: 1.1, x: -0.1, y: -0.45, dih: 0.0, gull: 0.95, sweep: 0.15, t: 0.4 },
+    tail: { x: -4.8, chord: 1.0, span: 3.0, fin: 1.7, finChord: 1.9, y: 0.2 }, canopy: [{ x0: 0.0, x1: 2.9, tx1: 2.2, h: 0.78 }],
     gear: 'spats', ordnance: 'bomb',
   },
   fi167: {
     name: 'Fieseler Fi 167', nation: 'Germany', role: 'torp', kind: 'bi', L: 11.4, span: 13.5, mass: 4.2, hp: 3.5,
     fus: { r: 0.64, ar: 1.15, x: -0.4 }, engine: { type: 'inline', r: 0.48, len: 1.8 }, prop: { r: 1.7, n: 3, x: 0 },
-    wing: { cr: 1.9, ct: 1.5, x: 0.0, y: 0.0, gap: 1.7, dih: 0.0, sweep: 0.3, t: 0.14, stagger: 0.3, lowerShort: 0.78 },
-    tail: { x: -4.4, chord: 1.5, span: 2.8, fin: 1.4, finChord: 1.7, y: 0.25 }, canopy: [{ x0: -0.1, x1: 2.2, tx1: 1.7, h: 0.66 }],
+    wing: { cr: 1.9, ct: 1.5, x: 0.40, y: 0.0, gap: 1.7, dih: 0.0, sweep: 0.3, t: 0.14, stagger: 0.3, lowerShort: 0.78 },
+    tail: { x: -5.6, chord: 1.5, span: 4.5, fin: 1.4, finChord: 1.7, y: 0.25 }, canopy: [{ x0: -0.1, x1: 2.2, tx1: 1.7, h: 0.66 }],
     gear: 'retract', ordnance: 'torp',
   },
   ln401: {
     name: 'Loire-Nieuport LN.401', nation: 'France', role: 'dive', kind: 'mono', L: 9.7, span: 14.0, mass: 2.9, hp: 2.7, bombKg: 225,
-    fus: { r: 0.5, ar: 1.15, x: -0.2 }, engine: { type: 'inline', r: 0.42, len: 1.8 }, prop: { r: 1.5, n: 3, x: 0 },
-    wing: { cr: 2.4, ct: 1.2, x: -0.1, y: -0.35, dih: 0.0, gull: 0.85, sweep: 0.2, t: 0.3 },
-    tail: { x: -4.0, chord: 1.2, span: 2.0, fin: 1.4, finChord: 1.6, y: 0.15 }, canopy: [{ x0: 0.0, x1: 1.9, tx1: 1.5, h: 0.6 }],
+    fus: { r: 0.5, ar: 1.3, x: -0.2 }, engine: { type: 'inline', r: 0.42, len: 1.8 }, prop: { r: 1.5, n: 3, x: 0 },
+    wing: { cr: 2.4, ct: 1.2, x: -0.1, y: -0.35, dih: 0.0, gull: 0.85, kneeFrac: 0.23, tipRise: 0.95, sweep: 0.2, t: 0.3 },
+    tail: { x: -4.3, chord: 1.6, span: 3.9, plates: { h: 1.7, chord: 1.5 }, fin: 1.4, finChord: 1.6, y: 0.15 }, canopy: [{ x0: 0.0, x1: 1.9, tx1: 1.5, h: 0.6 }],
     gear: 'spats', ordnance: 'bomb',
   },
   pl10: {
     name: 'Levasseur PL.10', nation: 'France', role: 'torp', kind: 'bi', L: 12.0, span: 15.5, mass: 4.0, hp: 3.6,
     fus: { r: 0.66, ar: 1.1, x: -0.6 }, engine: { type: 'inline', r: 0.5, len: 1.7 }, prop: { r: 1.9, n: 3, x: 0 },
     wing: { cr: 2.1, ct: 2.1, x: 0.1, y: 0.0, gap: 1.9, dih: 0.0, sweep: 0.2, t: 0.15, stagger: 0.5 },
-    tail: { x: -4.5, chord: 1.6, span: 3.2, fin: 1.5, finChord: 1.7, y: 0.25 }, canopy: [{ x0: -0.2, x1: 0.6, tx1: 0.4, h: 0.2, open: true }, { x0: -2.1, x1: -1.5, tx1: -1.7, h: 0.2, open: true }],
+    tail: { x: -4.5, chord: 1.6, span: 5.1, fin: 1.5, finChord: 1.7, y: 0.25 }, canopy: [{ x0: -0.2, x1: 0.6, tx1: 0.4, h: 0.2, open: true }, { x0: -2.1, x1: -1.5, tx1: -1.7, h: 0.2, open: true }],
     gear: 'fixedbig', ordnance: 'torp',
   },
   re2001: {
     name: 'Reggiane Re.2001', nation: 'Italy', role: 'dive', kind: 'mono', L: 8.2, span: 11.0, mass: 2.6, hp: 2.6, bombKg: 250,
     fus: { r: 0.46, ar: 1.15, x: -0.2 }, engine: { type: 'inline', r: 0.4, len: 1.7 }, prop: { r: 1.45, n: 3, x: 0 },
-    wing: { cr: 2.2, ct: 1.0, x: -0.1, y: -0.28, dih: 0.3, sweep: 0.25, t: 0.26, elliptic: true },
-    tail: { x: -3.2, chord: 1.1, span: 1.7, fin: 1.1, finChord: 1.4, y: 0.1 }, canopy: [{ x0: -0.1, x1: 1.5, tx1: 1.15, h: 0.52 }],
+    wing: { cr: 2.2, ct: 1.0, x: 0.40, y: -0.28, dih: 0.3, sweep: 0.25, t: 0.26, elliptic: true },
+    tail: { x: -4.0, chord: 1.4, span: 3.6, fin: 1.5, finChord: 2.0, y: 0.1 }, canopy: [{ x0: -0.1, x1: 1.5, tx1: 1.15, h: 0.52 }],
     gear: 'retract', ordnance: 'bomb',
   },
   re2001t: {
     name: 'Reggiane Re.2001 G', nation: 'Italy', role: 'torp', kind: 'mono', L: 8.2, span: 11.0, mass: 2.8, hp: 2.6,
     fus: { r: 0.46, ar: 1.15, x: -0.2 }, engine: { type: 'inline', r: 0.4, len: 1.7 }, prop: { r: 1.45, n: 3, x: 0 },
-    wing: { cr: 2.2, ct: 1.0, x: -0.1, y: -0.28, dih: 0.3, sweep: 0.25, t: 0.26, elliptic: true },
-    tail: { x: -3.2, chord: 1.1, span: 1.7, fin: 1.1, finChord: 1.4, y: 0.1 }, canopy: [{ x0: -0.1, x1: 1.5, tx1: 1.15, h: 0.52 }],
+    wing: { cr: 2.2, ct: 1.0, x: 0.40, y: -0.28, dih: 0.3, sweep: 0.25, t: 0.26, elliptic: true },
+    tail: { x: -4.0, chord: 1.4, span: 3.6, fin: 1.5, finChord: 2.0, y: 0.1 }, canopy: [{ x0: -0.1, x1: 1.5, tx1: 1.15, h: 0.52 }],
     gear: 'retract', ordnance: 'torp',
   },
 };
@@ -322,14 +325,22 @@ export function drawPlane(b, s, { part = 'whole' } = {}) {
     for (const sg of [-1, 1]) {
       panel(b, [tx + t.chord * 0.6, ty, sg * 0.15], [tx + t.chord * 0.55 - 0.25, ty, sg * t.span / 2], [tx - t.chord * 0.1, ty, sg * t.span / 2], [tx - t.chord * 0.4, ty, sg * 0.15], 0.1, 0.06, top, bot);
     }
-    // fin and rudder
+    // fin and rudder (t.plates: twin end-plate fins at the tailplane tips instead of a central one: LN.401)
     const fy = ry0 * 0.15;
+    if (t.plates) {
+      const ph = t.plates.h, pc = t.plates.chord;
+      for (const sg of [-1, 1]) {
+        const z0 = sg * t.span / 2, y0 = ty - ph * 0.5, y1 = ty + ph * 0.5;
+        for (const fz of [0.05, -0.05]) b.quad([tx + pc * 0.5, y0, z0 + fz], [tx + pc * 0.5 - 0.2, y1, z0 + fz], [tx - pc * 0.5, y1 - 0.1, z0 + fz], [tx - pc * 0.5, y0, z0 + fz], top, MAT.AIRCRAFT, [tx, ty, z0 + fz * 40], 1);
+      }
+    } else {
     b.quad([tx + t.finChord * 0.4, fy, 0.05], [tx + t.finChord * 0.4 - 0.4, fy + t.fin, 0.05], [tx - t.finChord * 0.3, fy + t.fin * 0.95, 0.05], [tx - t.finChord * 0.45, fy, 0.05], top, MAT.AIRCRAFT, [tx, fy, -1], 1);
     b.quad([tx + t.finChord * 0.4, fy, -0.05], [tx - t.finChord * 0.45, fy, -0.05], [tx - t.finChord * 0.3, fy + t.fin * 0.95, -0.05], [tx + t.finChord * 0.4 - 0.4, fy + t.fin, -0.05], top, MAT.AIRCRAFT, [tx, fy, 1], 1);
     b.quad([tx + t.finChord * 0.4, fy, 0.05], [tx - t.finChord * 0.45, fy, 0.05], [tx - t.finChord * 0.45, fy, -0.05], [tx + t.finChord * 0.4, fy, -0.05], top, MAT.AIRCRAFT, [tx, fy + 1, 0], 1);
     // team identification band on the fin (tinted with the team colour by the renderer)
     b.quad([tx - t.finChord * 0.05, fy + t.fin * 0.5, 0.062], [tx - t.finChord * 0.05 - 0.35, fy + t.fin * 0.5, 0.062], [tx - t.finChord * 0.2 - 0.33, fy + t.fin * 0.82, 0.062], [tx - t.finChord * 0.2, fy + t.fin * 0.82, 0.062], acc, MAT.FLAG, [tx, fy, -1], 1);
     b.quad([tx - t.finChord * 0.05, fy + t.fin * 0.5, -0.062], [tx - t.finChord * 0.2, fy + t.fin * 0.82, -0.062], [tx - t.finChord * 0.2 - 0.33, fy + t.fin * 0.82, -0.062], [tx - t.finChord * 0.05 - 0.35, fy + t.fin * 0.5, -0.062], acc, MAT.FLAG, [tx, fy, 1], 1);
+    }   // end of the central fin
     // tail wheel
     if (s.gear !== 'float' && s.gear !== 'retract') b.cylinder(tx + 0.3, -ry0 * 0.1, 0, 0.05, 0.05, ry0 * 0.15, dark, MAT.DARK, { seg: 5 });
     if (s.gear === 'float') b.beam([tx + 0.3, ry0 * 0.05, 0], [tx + 0.4, -ry0 * 0.5, 0], 0.07, 0.07, dark, MAT.DARK);
@@ -343,14 +354,14 @@ export function drawPlane(b, s, { part = 'whole' } = {}) {
     const yr = w.y, x0 = w.x;
     if (w.gull) {
       // inverted gull: the inner panel drops from the fuselage, the outer panel rises
-      const kneeZ = hs * 0.3, drop = w.gull;
+      const kneeZ = hs * (w.kneeFrac ?? 0.3), drop = w.gull, rise = w.tipRise ?? 0.6;   // kneeFrac: where the wing bends (fraction of the half span), tipRise: how far the tip stands above the knee line
       const root = [[x0 + cr / 2, yr + 0.1, 0.0], [x0 - cr / 2, yr + 0.1, 0.0]];
       const knee = [[x0 + cr * 0.34 + 0.1, yr - drop * 0.5, sg * kneeZ], [x0 - cr * 0.34, yr - drop * 0.5, sg * kneeZ]];
-      const tip = [[x0 + ct / 2 + w.sweep * 0.5, yr - drop * 0.1 + 0.6, sg * hs], [x0 - ct / 2 + w.sweep * 0.5, yr - drop * 0.1 + 0.6, sg * hs]];
+      const tip = [[x0 + ct / 2 + w.sweep * 0.5, yr - drop * 0.1 + rise, sg * hs], [x0 - ct / 2 + w.sweep * 0.5, yr - drop * 0.1 + rise, sg * hs]];
       panel(b, root[0], knee[0], knee[1], root[1], w.t * 1.05, w.t * 0.9, top, bot);
       panel(b, knee[0], tip[0], tip[1], knee[1], w.t * 0.9, w.t * 0.5, top, bot);
-      insignia(b, s.nation, x0 - 0.1, yr - drop * 0.1 + 0.62 + w.t * 0.3, sg * hs * 0.72, 0.55, 'y', 1);
-      insignia(b, s.nation, x0 - 0.1, yr - drop * 0.1 + 0.62 - w.t * 0.3, sg * hs * 0.72, 0.55, 'y', -1);
+      insignia(b, s.nation, x0 - 0.1, yr - drop * 0.1 + rise + 0.02 + w.t * 0.3, sg * hs * 0.72, 0.55, 'y', 1);
+      insignia(b, s.nation, x0 - 0.1, yr - drop * 0.1 + rise + 0.02 - w.t * 0.3, sg * hs * 0.72, 0.55, 'y', -1);
       // wing leading-edge stripe (team colour)
       return;
     }

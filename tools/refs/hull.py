@@ -21,6 +21,7 @@ def load(ref):
     for e in ref.get('erase', []): d.paste(255, tuple(e))
     x0, y0, x1, y1 = ref['crop']; d = d.crop((x0, y0, x1, y1))
     ink = d.point(lambda v: 255 if v < ref.get('threshold', 200) else 0)
+    if ref.get('dilate'): ink = ink.filter(ImageFilter.MaxFilter(ref['dilate']))
     k = ref.get('close', 3)
     ink = ink.filter(ImageFilter.MaxFilter(k)).filter(ImageFilter.MinFilter(k))
     ko = ref.get('open', 3 if ref is cfg.get('side') else 0)
