@@ -280,8 +280,8 @@ export const SCENES = {
     // the second salvo from the forecastle, looking back at the turret (as in the photograph of Iowa firing in 1952)
     await T.until(() => mains().some((q) => q.aimOk && q.fireT < 0.05), { max: 400, dt: 1 / 60 });
     const m2 = mains().find((q) => q.fireT < 0.05) || mains()[0];
-    if (ship.spec.type === 'carrier') {
-      // the flight deck hides the forecastle view: look at the sponson from the quarter, outside the hull
+    if (ship.spec.type === 'carrier' || m2.rec.x < 20) {
+      // the flight deck or the superstructure hides the forecastle view: look at the mount from the quarter, outside the hull
       await T.shot('fire_deck', 2.4, () => { const q = [0, 0, 0]; ship.toWorld(m2.rec.x, m2.rec.y, m2.rec.z, q); return { p: [q[0] - 30, q[1] + 3, q[2] - 24], l: [q[0] + 8, q[1] + 3, q[2] - 14], fov: 52 }; });
     } else {
       await T.shot('fire_deck', 2.4, () => ({ p: mv.at(ship, m2.rec.x + 46, m2.rec.y + 2.5, 3), l: mv.at(ship, m2.rec.x + 10, m2.rec.y + 3.5, -22), fov: 58 }));
