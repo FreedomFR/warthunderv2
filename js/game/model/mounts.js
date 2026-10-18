@@ -31,6 +31,16 @@ const FAMILY = {
   drh34: { kind: 'turret', cal: 380, n: 2, spacing: 4.6, trunX: 2.6, trunY: 1.6, face: 5.8, port: 5.2, fwd: 16.1, back: 2.6, rB: 0.58, rP: 0.49, rM: 0.29, bagR: 0.85, bagLen: 1.1, recoil: 1.15, lift: 3.4, h: 3.5, barbR: 5.3, barb: 1.2 },
   // Bismarck's 15 cm SK C/28 twin turrets (Drh LC/34): 7.2 m long, 2.8 m high, on a low barbette on the upper deck
   drh28_150: { kind: 'turret', cal: 150, n: 2, spacing: 1.9, trunX: 1.3, trunY: 1.25, face: 3.6, port: 3.1, fwd: 7.2, back: 1.2, rB: 0.24, rP: 0.19, rM: 0.1, bagR: 0.3, bagLen: 0.45, recoil: 0.55, lift: 2.4, h: 2.8, barbR: 2.7 },
+  // Littorio class (ONI 202 profile and plan, 1943): 381/50 triple, a long low house 15 m from face to rear, 4.4 m above the deck, barrels
+  // 12.6 m clear of the face, 2.75 m apart; superfiring turret 4.5 m above the lower one
+  lit381: { kind: 'turret', cal: 381, n: 3, spacing: 2.75, trunX: 5.5, trunY: 1.9, face: 8.5, port: 7.9, fwd: 15.6, back: 2.8, rB: 0.55, rP: 0.46, rM: 0.27, bagR: 0.95, bagLen: 1.2, recoil: 1.2, lift: 4.5, h: 4.4, barbR: 6.0, barb: 0.4 },
+  // the 152/55 triple turrets of the same class: 9 m long, 3.4 m high, a low rounded house
+  lit152: { kind: 'turret', cal: 152, n: 3, spacing: 1.55, trunX: 2.2, trunY: 1.35, face: 4.6, port: 4.2, fwd: 8.6, back: 1.4, rB: 0.24, rP: 0.19, rM: 0.1, bagR: 0.3, bagLen: 0.45, recoil: 0.55, lift: 2.4, h: 3.4, barbR: 3.3 },
+  // Richelieu class (class profile with the machinery, Commons CC BY-SA 4.0): the 380 mm quadruple turret, 14 m from rear to face, house 3.5 m
+  // high on a barbette 1.5 m above the forecastle (5.5 m for the superfiring turret, 3.9 m higher), barrels 11.2 m clear of the face
+  rich380: { kind: 'turret', cal: 380, n: 4, spacing: 2.5, trunX: 3.0, trunY: 1.8, face: 6.2, port: 5.6, fwd: 14.4, back: 2.8, rB: 0.5, rP: 0.42, rM: 0.25, bagR: 0.85, bagLen: 1.1, recoil: 1.1, lift: 3.9, h: 3.5, barbR: 7.0, barb: 1.5 },
+  // the 152 mm Mle 1936 triple: an 8 m house 2.9 m high on a tall barbette, barrels 4.8 m clear of the face
+  fr152: { kind: 'turret', cal: 152, n: 3, spacing: 1.5, trunX: 1.4, trunY: 1.5, face: 3.2, port: 2.8, fwd: 6.6, back: 1.0, rB: 0.22, rP: 0.18, rM: 0.1, bagR: 0.28, bagLen: 0.4, recoil: 0.5, lift: 2.4, h: 2.9, barbR: 3.3 },
   mk28: { kind: 'dp', cal: 127, n: 2, spacing: 0.78, trunX: 0.55, trunY: 1.35, face: 1.9, fwd: 3.6, back: 0.9, rB: 0.19, rP: 0.15, rM: 0.085, bagR: 0.3, bagLen: 0.3, recoil: 0.5, lift: 3.0, h: 2.9 },
   mk30: { kind: 'shield', cal: 127, n: 1, spacing: 0, trunX: 0.5, trunY: 1.3, face: 1.5, fwd: 3.4, back: 0.9, rB: 0.19, rP: 0.15, rM: 0.085, bagR: 0.0, bagLen: 0, recoil: 0.5, lift: 2.4, h: 2.5 },
 };
@@ -147,6 +157,29 @@ function houseDrh34(hb, col, dark, f) {
   }
 }
 
+/**
+ * A gun house of the flat-roofed, sloped-face kind (Italian and French turrets of the 1930s). o: { rear (m behind the training axis), hw
+ * (half width), slope (how far back the face plate slopes at the roof), ears (rear rangefinder hood radius, 0 = none), tubeHw }.
+ */
+function boxHouse(o) {
+  return (hb, col, dark, f) => {
+    const light = shade(col, 1.08), shadow = shade(col, 0.82), r = o.hw + 0.05;
+    hb.cylinder(0, -0.1, 0, r, r + 0.05, 0.2, shadow, MAT.HULL, { seg: 26 });
+    hb.block({ x0: -o.rear, x1: f.face, hw: o.hw, y0: 0.15, y1: f.h, tx0: -o.rear + 0.2, tx1: f.face - o.slope, thw: o.hw * 0.95 }, col, MAT.HULL);   // walls, sloped face, roof
+    hb.block({ x0: -o.rear - 1.0, x1: -o.rear + 0.2, hw: o.hw * 0.57, y0: 0.5, y1: f.h * 0.66, tx0: -o.rear - 0.8, thw: o.hw * 0.53 }, shade(col, 0.9), MAT.HULL);   // rear overhang
+    if (o.ears) hb.cyl(-o.rear + 1.2, f.h - 0.2, 0, o.ears, o.ears * 1.3, o.ears * 0.9, o.ears * 1.15, f.h + o.ears, light, MAT.HULL, { seg: 12 });   // rangefinder hood
+    for (const sg of [-1, 1]) hb.cylinder(-o.rear * 0.33, f.h - 0.1, sg * o.hw * 0.53, 0.4, 0.36, f.h + 0.5, shadow, MAT.HULL, { seg: 8 });   // periscope hoods
+    for (let i = 0; i < f.n; i++) {
+      const z = (i - (f.n - 1) / 2) * f.spacing;
+      hb.block({ x0: f.port - 0.5, x1: f.port + 0.4, hw: o.tubeHw ?? 0.8, zc: z, y0: f.trunY - 0.6, y1: f.trunY + 0.6 }, dark, MAT.DARK);
+    }
+  };
+}
+const houseLit381 = boxHouse({ rear: 6.6, hw: 6.0, slope: 3.2, ears: 1.0 });       // Italian 381/50 triple (Littorio class)
+const houseLit152 = boxHouse({ rear: 4.4, hw: 3.2, slope: 1.8, ears: 0, tubeHw: 0.4 });   // Italian 152/55 triple
+const houseRich380 = boxHouse({ rear: 7.9, hw: 6.3, slope: 3.4, ears: 1.1 });      // French 380 mm quadruple (Richelieu class)
+const houseFr152 = boxHouse({ rear: 5.0, hw: 3.3, slope: 1.5, ears: 0, tubeHw: 0.4 });    // French 152 mm Mle 1936 triple
+
 /** German 15 cm twin turret (Bismarck's secondary battery): sloped face and roof edges, rangefinder hoods at the rear corners. */
 function houseDrh28(hb, col, dark, f) {
   const light = shade(col, 1.08), shadow = shade(col, 0.82);
@@ -184,7 +217,7 @@ function houseMk30(hb, col, dark, f) {
   hb.block({ x0: f.face - 0.3, x1: f.face, hw: 0.28, y0: f.trunY - 0.3, y1: f.trunY + 0.3 }, dark, MAT.DARK);
 }
 
-const HOUSES = { mk7: houseMk7, type94: houseType94, type3_155: houseType3, drh28_150: houseDrh28, drh34: houseDrh34, mk28: houseMk28, mk30: houseMk30 };
+const HOUSES = { mk7: houseMk7, type94: houseType94, type3_155: houseType3, drh28_150: houseDrh28, lit381: houseLit381, lit152: houseLit152, rich380: houseRich380, fr152: houseFr152, drh34: houseDrh34, mk28: houseMk28, mk30: houseMk30 };
 
 function makeFamily(s, f) {
   const col = rgb(s.col || '#6b7076'), dark = rgb(s.dark || '#1d1f22');

@@ -140,5 +140,368 @@
       ],
       "threshold": 245
     }
+  },
+  "littorio": {
+    "loa": 237.76,
+    "side": {
+      "file": "refs/littorio/Oni-Littorio.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Oni-Littorio.JPG (ONI 202, February 1943, public domain); height scale in feet (15 ft = 24 px) confirms the aspect; above the waterline only",
+      "crop": [
+        0,
+        52,
+        1392,
+        324
+      ],
+      "stern": 71,
+      "bow": 1312,
+      "wl": 320.5,
+      "close": 5,
+      "tol": 1.5,
+      "threshold": 236,
+      "erase": [
+        [
+          0,
+          50,
+          62,
+          324
+        ],
+        [
+          1322,
+          50,
+          1392,
+          324
+        ],
+        [
+          770,
+          50,
+          1392,
+          67
+        ],
+        [
+          0,
+          82,
+          712,
+          87
+        ],
+        [
+          735,
+          82,
+          1392,
+          87
+        ],
+        [
+          0,
+          66,
+          130,
+          82
+        ]
+      ],
+      "open": 7
+    },
+    "top": {
+      "file": "refs/littorio/Oni-Littorio.jpg",
+      "source": "same sheet, plan view",
+      "crop": [
+        0,
+        385,
+        1392,
+        578
+      ],
+      "stern": 70,
+      "bow": 1312,
+      "cl": 480,
+      "close": 3,
+      "tol": 1.0,
+      "threshold": 170,
+      "erase": [
+        [
+          0,
+          385,
+          200,
+          430
+        ],
+        [
+          0,
+          538,
+          200,
+          578
+        ]
+      ]
+    }
+  },
+  "richelieu": {
+    "loa": 247.85,
+    "side": {
+      "file": "refs/richelieu/Richelieu_class_battleships_inboard_profile_EN.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Richelieu_class_battleships_inboard_profile_EN.svg (CC BY-SA 4.0): the class profile with the machinery, magazines and directors labelled; 15.05 px/m both ways (drawn hull depth 9.4 m for the 9.9 m draft); no plan view found",
+      "crop": [
+        0,
+        150,
+        3840,
+        845
+      ],
+      "stern": 49,
+      "bow": 3780,
+      "wl": 678,
+      "close": 5,
+      "open": 7,
+      "threshold": 250,
+      "tol": 1.5,
+      "under": true,
+      "erase": [
+        [
+          1460,
+          60,
+          1700,
+          200
+        ],
+        [
+          1920,
+          50,
+          2200,
+          100
+        ],
+        [
+          1950,
+          115,
+          2400,
+          160
+        ],
+        [
+          2000,
+          180,
+          2230,
+          222
+        ],
+        [
+          2085,
+          240,
+          2370,
+          285
+        ],
+        [
+          2085,
+          296,
+          2340,
+          335
+        ],
+        [
+          2085,
+          348,
+          2430,
+          388
+        ],
+        [
+          2540,
+          310,
+          2810,
+          360
+        ],
+        [
+          2540,
+          360,
+          2740,
+          400
+        ],
+        [
+          2540,
+          405,
+          2860,
+          455
+        ],
+        [
+          1540,
+          310,
+          1730,
+          400
+        ],
+        [
+          930,
+          320,
+          1180,
+          385
+        ],
+        [
+          1110,
+          205,
+          1380,
+          262
+        ],
+        [
+          260,
+          335,
+          400,
+          390
+        ],
+        [
+          60,
+          400,
+          260,
+          490
+        ],
+        [
+          410,
+          445,
+          590,
+          495
+        ],
+        [
+          2540,
+          0,
+          3840,
+          300
+        ],
+        [
+          0,
+          0,
+          1450,
+          50
+        ]
+      ]
+    }
+  },
+  "shokaku": {
+    "loa": 257.5,
+    "side": {
+      "file": "refs/shokaku/Fig_of_japanese_aircraft_carrier_Shokaku_in_1942.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Fig_of_japanese_aircraft_carrier_Shokaku_in_1942.gif (CC BY-SA 3.0, Snow Cloud in Summer); the 50 m scale bar of the drawing gives 4.0 px/m: 257.8 m from the stern overhang to the bow tip",
+      "crop": [
+        0,
+        56,
+        1100,
+        172
+      ],
+      "stern": 33,
+      "bow": 1064,
+      "wl": 131,
+      "close": 3,
+      "open": 3,
+      "threshold": 250,
+      "tol": 1.5,
+      "under": true,
+      "erase": [
+        [
+          0,
+          0,
+          200,
+          60
+        ],
+        [
+          630,
+          0,
+          668,
+          46
+        ]
+      ]
+    },
+    "top": {
+      "file": "refs/shokaku/Fig_of_japanese_aircraft_carrier_Shokaku_in_1942.jpg",
+      "source": "same drawing, plan view",
+      "crop": [
+        0,
+        205,
+        1100,
+        440
+      ],
+      "stern": 33,
+      "bow": 1064,
+      "cl": 327.5,
+      "close": 3,
+      "tol": 1.5,
+      "threshold": 250,
+      "erase": [
+        [
+          0,
+          395,
+          300,
+          500
+        ],
+        [
+          980,
+          455,
+          1100,
+          500
+        ]
+      ]
+    }
+  },
+  "illustrious": {
+    "loa": 229.6,
+    "side": {
+      "file": "refs/illustrious/IllustriousRecognitionDrawing.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:IllustriousRecognitionDrawing.jpg (ONI 201, public domain): flight deck 40 ft and stack top 91.5 ft above the waterline are printed on the sheet (4.17 px/m: the flight deck reads 12.1 m); above the waterline only; the plan view of the sheet is drawn at another scale and is too small to measure",
+      "crop": [
+        0,
+        54,
+        999,
+        256
+      ],
+      "stern": 24,
+      "bow": 982,
+      "wl": 252.5,
+      "close": 3,
+      "open": 3,
+      "threshold": 215,
+      "tol": 1.5,
+      "erase": [
+        [
+          840,
+          50,
+          999,
+          140
+        ],
+        [
+          0,
+          0,
+          999,
+          45
+        ]
+      ]
+    }
+  },
+  "kgv": {
+    "loa": 227.1,
+    "side": {
+      "file": "refs/kgv/gonzalez_kgv1941_doy1945.jpg",
+      "source": "\u00a9 Manuel P. Gonz\u00e1lez L\u00f3pez, 'King George V 1941 / Duke of York 1945' (all rights reserved; consulted for measurements only, never redistributed: refs/ is git-ignored); scale ruler in metres at the foot of the profile: 11.77 px/m; the first (1941) profile",
+      "crop": [
+        0,
+        170,
+        3250,
+        860
+      ],
+      "stern": 281,
+      "bow": 2953,
+      "wl": 755,
+      "close": 5,
+      "open": 5,
+      "threshold": 240,
+      "tol": 1.5,
+      "under": true
+    },
+    "top": {
+      "file": "refs/kgv/gonzalez_kgv1941_doy1945.jpg",
+      "source": "\u00a9 Manuel P. Gonz\u00e1lez L\u00f3pez, 'King George V 1941 / Duke of York 1945' (all rights reserved; consulted for measurements only, never redistributed: refs/ is git-ignored); scale ruler in metres at the foot of the profile: 11.77 px/m; the first (1941) plan view",
+      "crop": [
+        0,
+        1890,
+        3250,
+        2330
+      ],
+      "stern": 281,
+      "bow": 2963,
+      "cl": 2109,
+      "close": 3,
+      "tol": 1.0,
+      "threshold": 235,
+      "erase": [
+        [
+          0,
+          1890,
+          260,
+          2330
+        ]
+      ]
+    }
   }
 }
