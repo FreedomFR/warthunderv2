@@ -774,6 +774,39 @@
         "dilate": 3,
         "open": 7
       }
+    },
+    "swordfish": {
+      "length": 11.0,
+      "span": 13.87,
+      "top": {
+        "file": "refs/plane_swordfish/threeview_a.png",
+        "source": "a Fairey Swordfish 3-view (330 x 388 px), shared by the project owner (author unknown: measurements only, not in the repository); the cutaway sheet gives 36 ft 1 in (11.0 m) length, 45 ft 6 in (13.87 m) upper span, 44 ft 9 in lower span",
+        "crop": [
+          0,
+          108,
+          246,
+          388
+        ],
+        "threshold": 170,
+        "dilate": 5,
+        "open": 0,
+        "flip": true,
+        "scaleBy": "span"
+      },
+      "side": {
+        "file": "refs/plane_swordfish/threeview_a.png",
+        "source": "same 3-view, side view",
+        "crop": [
+          0,
+          0,
+          330,
+          98
+        ],
+        "threshold": 170,
+        "dilate": 5,
+        "open": 0,
+        "flip": true
+      }
     }
   }
 }
