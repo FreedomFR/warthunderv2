@@ -25,7 +25,11 @@ const FAMILY = {
   type94: { kind: 'turret', cal: 460, n: 3, spacing: 3.52, trunX: 3.6, trunY: 1.9, face: 7.6, port: 6.4, fwd: 16.1, back: 2.9, rB: 0.70, rP: 0.60, rM: 0.35, bagR: 1.05, bagLen: 1.3, recoil: 1.3, lift: 3.5, h: 4.3, barbR: 6.6, barb: 0.3, whiteMuzzle: true },
   // Yamato's 15.5 cm/60 triple (ex-Mogami): 8.6 m long, 3.1 m high, barrels 5.9 m clear of the face, on a 6.6-7.1 m barbette
   type3_155: { kind: 'turret', cal: 155, n: 3, spacing: 1.7, trunX: 1.2, trunY: 1.3, face: 3.6, port: 3.2, fwd: 8.3, back: 1.2, rB: 0.26, rP: 0.2, rM: 0.11, bagR: 0.33, bagLen: 0.5, recoil: 0.6, lift: 2.6, h: 3.1, barbR: 3.0 },
-  drh34: { kind: 'turret', cal: 380, n: 2, spacing: 4.6, trunX: 2.8, trunY: 2.3, face: 6.1, fwd: 13.3, back: 2.6, rB: 0.58, rP: 0.49, rM: 0.29, bagR: 0.9, bagLen: 1.2, recoil: 1.15, lift: 4.2, h: 4.9, barbR: 5.3 },
+  // Bismarck profile (Commons, CC0) and Bundesarchiv photographs: 13.3 m long, 3.5 m high, barrels 13.5 m clear of the face, on a
+  // 1.2 m barbette; the superfiring turrets 3.7 m higher
+  drh34: { kind: 'turret', cal: 380, n: 2, spacing: 4.6, trunX: 2.6, trunY: 1.6, face: 5.8, port: 5.2, fwd: 16.1, back: 2.6, rB: 0.58, rP: 0.49, rM: 0.29, bagR: 0.85, bagLen: 1.1, recoil: 1.15, lift: 3.7, h: 3.5, barbR: 5.3, barb: 1.2 },
+  // Bismarck's 15 cm SK C/28 twin turrets (Drh LC/34): 7.2 m long, 2.8 m high, on a low barbette on the upper deck
+  drh28_150: { kind: 'turret', cal: 150, n: 2, spacing: 1.9, trunX: 1.3, trunY: 1.25, face: 3.6, port: 3.1, fwd: 7.2, back: 1.2, rB: 0.24, rP: 0.19, rM: 0.1, bagR: 0.3, bagLen: 0.45, recoil: 0.55, lift: 2.4, h: 2.8, barbR: 2.7 },
   mk28: { kind: 'dp', cal: 127, n: 2, spacing: 0.78, trunX: 0.55, trunY: 1.35, face: 1.9, fwd: 3.6, back: 0.9, rB: 0.19, rP: 0.15, rM: 0.085, bagR: 0.3, bagLen: 0.3, recoil: 0.5, lift: 3.0, h: 2.9 },
   mk30: { kind: 'shield', cal: 127, n: 1, spacing: 0, trunX: 0.5, trunY: 1.3, face: 1.5, fwd: 3.4, back: 0.9, rB: 0.19, rP: 0.15, rM: 0.085, bagR: 0.0, bagLen: 0, recoil: 0.5, lift: 2.4, h: 2.5 },
 };
@@ -125,21 +129,33 @@ function houseType3(hb, col, dark, f) {
   }
 }
 
-/** German Drh LC/34 38 cm twin turret (Bismarck): wide, low, a flat sloped roof, rangefinder housing with end hoods at the rear. */
+/** German Drh LC/34 38 cm twin turret (Bismarck): wide and low, a face plate sloped back, a flat roof, the rangefinder across the rear
+ *  with its hoods out at the sides. */
 function houseDrh34(hb, col, dark, f) {
-  const mid = shade(col, 0.96), light = shade(col, 1.08), shadow = shade(col, 0.82);
-  hb.cylinder(0, -0.15, 0, 5.6, 5.7, 0.6, shadow, MAT.HULL, { seg: 26 });
-  hb.block({ x0: -7.4, x1: f.face, hw: 5.2, y0: 0.45, y1: 3.2, tx0: -7.2, tx1: f.face - 0.5, thw: 5.0 }, col, MAT.HULL);
-  // the roof slopes down towards the front, its front plate is steep
-  hb.block({ x0: -7.2, x1: f.face - 0.5, hw: 5.0, y0: 3.2, y1: f.h, tx0: -6.6, tx1: 3.6, thw: 4.4 }, mid, MAT.HULL);
-  hb.block({ x0: -8.8, x1: -7.2, hw: 4.2, y0: 1.0, y1: 4.3, tx0: -8.4, tx1: -7.2, thw: 3.9 }, shade(col, 0.9), MAT.HULL);
-  hb.rodZ(-6.4, 4.9, -6.2, 6.2, 0.5, 0.5, shade(col, 0.88), MAT.HULL, { seg: 10 });                            // rangefinder
-  for (const sg of [-1, 1]) hb.cyl(-6.4, 4.5, sg * 5.9, 0.85, 0.8, 0.7, 0.68, 5.5, light, MAT.HULL, { seg: 10 });
-  hb.cylinder(-3.8, f.h * 0.92, 2.4, 0.5, 0.45, f.h + 0.7, shadow, MAT.HULL, { seg: 8 });
-  hb.cylinder(-3.8, f.h * 0.92, -2.4, 0.5, 0.45, f.h + 0.7, shadow, MAT.HULL, { seg: 8 });
+  const light = shade(col, 1.08), shadow = shade(col, 0.82);
+  hb.cylinder(0, -0.1, 0, 5.3, 5.35, 0.2, shadow, MAT.HULL, { seg: 26 });
+  hb.block({ x0: -7.5, x1: f.face, hw: 5.2, y0: 0.15, y1: f.h, tx0: -7.3, tx1: 4.0, thw: 5.0 }, col, MAT.HULL);     // walls, sloped face, roof
+  hb.block({ x0: -8.4, x1: -7.3, hw: 4.0, y0: 0.6, y1: 2.8, tx0: -8.1, thw: 3.8 }, shade(col, 0.9), MAT.HULL);   // rear overhang
+  hb.rodZ(-5.6, f.h - 0.9, -6.0, 6.0, 0.45, 0.45, shade(col, 0.88), MAT.HULL, { seg: 10 });                      // rangefinder
+  for (const sg of [-1, 1]) hb.cyl(-5.6, f.h - 1.5, sg * 5.75, 0.75, 0.7, 0.62, 0.6, f.h - 0.3, light, MAT.HULL, { seg: 10 });
+  for (const sg of [-1, 1]) hb.cylinder(-3.2, f.h - 0.1, sg * 2.4, 0.45, 0.4, f.h + 0.5, shadow, MAT.HULL, { seg: 8 });
+  hb.box(-1.6, f.h + 0.04, 0, 2.6, 0.1, 2.0, light, MAT.HULL);
   for (let i = 0; i < f.n; i++) {
     const z = (i - (f.n - 1) / 2) * f.spacing;
-    hb.block({ x0: f.face - 0.9, x1: f.face - 0.3, hw: 0.9, zc: z, y0: f.trunY - 0.8, y1: f.trunY + 0.8 }, dark, MAT.DARK);
+    hb.block({ x0: f.port - 0.5, x1: f.port + 0.45, hw: 0.85, zc: z, y0: f.trunY - 0.65, y1: f.trunY + 0.65 }, dark, MAT.DARK);
+  }
+}
+
+/** German 15 cm twin turret (Bismarck's secondary battery): sloped face and roof edges, rangefinder hoods at the rear corners. */
+function houseDrh28(hb, col, dark, f) {
+  const light = shade(col, 1.08), shadow = shade(col, 0.82);
+  hb.cylinder(0, -0.05, 0, 2.6, 2.65, 0.12, shadow, MAT.HULL, { seg: 20 });
+  hb.block({ x0: -3.6, x1: f.face, hw: 2.5, y0: 0.1, y1: f.h, tx0: -3.3, tx1: 2.3, thw: 2.2 }, col, MAT.HULL);
+  for (const sg of [-1, 1]) hb.block({ x0: -3.0, x1: -1.9, hw: 0.3, zc: sg * 2.6, y0: 1.5, y1: 2.4, tx0: -2.9, tx1: -2.1, thw: 0.25 }, light, MAT.HULL);
+  hb.cylinder(-1.2, f.h - 0.05, 1.1, 0.28, 0.25, f.h + 0.35, shadow, MAT.HULL, { seg: 6 });
+  for (let i = 0; i < f.n; i++) {
+    const z = (i - (f.n - 1) / 2) * f.spacing;
+    hb.block({ x0: f.port - 0.3, x1: f.port + 0.25, hw: 0.4, zc: z, y0: f.trunY - 0.4, y1: f.trunY + 0.4 }, dark, MAT.DARK);
   }
 }
 
@@ -167,7 +183,7 @@ function houseMk30(hb, col, dark, f) {
   hb.block({ x0: f.face - 0.3, x1: f.face, hw: 0.28, y0: f.trunY - 0.3, y1: f.trunY + 0.3 }, dark, MAT.DARK);
 }
 
-const HOUSES = { mk7: houseMk7, type94: houseType94, type3_155: houseType3, drh34: houseDrh34, mk28: houseMk28, mk30: houseMk30 };
+const HOUSES = { mk7: houseMk7, type94: houseType94, type3_155: houseType3, drh28_150: houseDrh28, drh34: houseDrh34, mk28: houseMk28, mk30: houseMk30 };
 
 function makeFamily(s, f) {
   const col = rgb(s.col || '#6b7076'), dark = rgb(s.dark || '#1d1f22');

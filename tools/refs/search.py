@@ -11,5 +11,6 @@ d = json.loads(subprocess.run(['curl', '-sS', '-m', '60', '-A', UA, u], capture_
 pages = sorted((d.get('query') or {}).get('pages', {}).values(), key=lambda p: p.get('index', 0))
 for p in pages:
     ii = (p.get('imageinfo') or [{}])[0]
-    lic = ii.get('extmetadata', {}).get('LicenseShortName', {}).get('value', '?')
+    em = ii.get('extmetadata') or {}
+    lic = em.get('LicenseShortName', {}).get('value', '?') if isinstance(em, dict) else '?'
     print(f"{ii.get('width', 0):>5}x{ii.get('height', 0):<5} {lic:<16} {p['title'][5:]}")

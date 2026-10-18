@@ -26,26 +26,15 @@ function shokakuFunnels({ b, X, spec, pal, model, MAT, rgb, shade, part }) {
   });
 }
 
-/** Bismarck: tall tower bridge with three large rangefinder drums. */
-function bismarckTower({ b, model, pal, MAT, rgb, shade }) {
-  const br = model.bridge;
-  if (!br) return;
-  const col = shade(rgb(pal.sup), 0.92);
-  // the drums are part of the tower: they are destroyed with it
-  b.group('tower', () => {
-    for (const [dy, r] of [[-12.5, 2.5], [-7.5, 2.3], [-2.5, 2.1]]) {
-      b.cyl(br.x + 2.5, br.y + dy, 0, r, r, r * 0.95, r * 0.95, br.y + dy + 2.3, col, MAT.HULL, { seg: 14 });
-      b.rodZ(br.x + 2.5, br.y + dy + 1.2, -r * 1.7, r * 1.7, 0.28, 0.28, shade(col, 0.8), MAT.HULL);
-    }
-  });
-}
-
 export const TWEAKS = {
   // Iowa: measured on the class profile and plan drawing (Commons, public domain), checked on photographs 80-G-K-15631 (port profile in
   // silhouette) and NH 44538. Heights are above the local deck: 01 level 2.3 m, 02 level 4.8 m, forward bridge 13.2 m, the block around
   // the forward funnel 19.4 m, Mk 38 director 29.3-32.5 m; funnel tops 23.8 / 22.9 m; after director tower 18 m.
   iowa: {
     mainVariant: 'mk7', secVariant: ['mk28'], houseH: 2.3,
+    // freeboards from the profile: 13.5 m at the stem, about 6.5 m amidships, 7.8 m at the stern; a bulwark only round the bow
+    fb: [[0, 13.5], [0.04, 11.6], [0.08, 10.9], [0.12, 10.2], [0.16, 8.8], [0.2, 8.2], [0.26, 7.2], [0.42, 6.4], [0.5, 6.5], [0.7, 6.6], [0.85, 7.4], [1, 7.8]],
+    bulwarkF: [0, 0.07],
     // hull lines: the deck edge from the plan view (a long, narrow bow, full beam only from turret 2 aft); the waterline a little finer
     // than the deck forward of turret 2, where the bow flares, and plumb sides amidships
     planDeck: [[0, 0.08], [0.02, 0.17], [0.04, 0.22], [0.06, 0.25], [0.1, 0.31], [0.13, 0.36], [0.16, 0.41], [0.2, 0.49], [0.25, 0.63], [0.3, 0.77], [0.35, 0.87], [0.4, 0.94], [0.45, 0.985], [0.5, 1], [0.7, 1], [0.8, 0.965], [0.85, 0.9], [0.9, 0.77], [0.95, 0.58], [0.98, 0.41], [1, 0.3]],
@@ -91,6 +80,7 @@ export const TWEAKS = {
     mainVariant: 'type94', secVariant: ['type3_155'], dirKind: 'drum', houseH: 3.9,
     fb: [[0, 10.0], [0.03, 9.2], [0.09, 8.4], [0.18, 7.7], [0.27, 7.5], [0.4, 8.2], [0.5, 8.667], [0.7, 8.7], [0.76, 8.5], [0.86, 6.7], [1, 6.4]],
     stern: { overhang: 1.5, rise: 7 },
+    bulwarkF: [0, 0.08],
     planDeck: [[0, 0.1], [0.01, 0.28], [0.02, 0.33], [0.04, 0.36], [0.06, 0.39], [0.08, 0.42], [0.1, 0.46], [0.13, 0.53], [0.16, 0.59], [0.2, 0.71], [0.25, 0.82], [0.3, 0.92], [0.35, 0.98], [0.4, 1.04], [0.45, 1.054], [0.72, 1.054], [0.75, 1.02], [0.8, 0.93], [0.85, 0.89], [0.9, 0.78], [0.95, 0.55], [0.98, 0.3], [1, 0.08]],
     planWL: [[0, 0], [0.03, 0.12], [0.06, 0.2], [0.1, 0.3], [0.15, 0.42], [0.2, 0.56], [0.25, 0.7], [0.3, 0.82], [0.35, 0.91], [0.4, 0.97], [0.45, 1], [0.7, 1], [0.75, 0.97], [0.8, 0.9], [0.85, 0.8], [0.9, 0.65], [0.95, 0.42], [1, 0.12]],
     house: { plan: [[0.452, 5], [0.47, 12], [0.5, 16.2], [0.62, 16.2], [0.655, 13], [0.675, 6], [0.685, 3]] },
@@ -120,16 +110,39 @@ export const TWEAKS = {
   takao: { pagoda: [13, 11, 9, 34], dirKind: 'drum', funnelRake: 3.0 },
   kagero: { dirKind: 'drum', tiers: [{ len: 6.5, w: 5.4, h: 2.4, rake: 1.2 }, { len: 5.2, w: 4.4, h: 2.2, rake: 1, wings: 0.8 }, { len: 4, w: 3.4, h: 2.0, rake: 0.8 }] },
   agano: { dirKind: 'drum' },
-  // Bismarck (photographs Bundesarchiv 193-04-1-23 / -26, 193-06-7-16): massive block bridge tower with rangefinder drums, one tall oval funnel
+  // Bismarck (May 1941): measured on the profile drawing "Battleship Bismark.svg" (Commons, CC0) and the Bundesarchiv photographs
+  // 193-04-1-23 / -26, 193-06-7-16. Freeboard 10.9 m at the stem, 6.6 m amidships, 7.9 m at the stern; the 01 level 3.5 m, the forward
+  // superstructure 9.3 m, the forward bridge 13.8 m, the tower to 26 m with the foretop rangefinder cupola on top, the funnel 19.8 m;
+  // the athwartships catapult between the funnel and the hangars, the mainmast rising from the after hangar.
   bismarck: {
-    mainVariant: 'drh34', funnelW: 0.27, funnelLen: 1.45, funnelH: 15, funnelRake: 2.6, funnelTop: 0.92, houseH: 3.8, extra: bismarckTower,
-    tiers: [
-      { len: 20, w: 15, h: 4.0, rake: 1.0, wings: 1.5 },
-      { len: 15.5, w: 13, h: 4.2, rake: 0.8, wings: 1.2 },
-      { len: 11, w: 10, h: 4.4, rake: 0.6 },
-      { len: 8.5, w: 8, h: 4.0, round: true, taper: 0.9 },
-      { len: 6.2, w: 6, h: 3.0 },
+    mainVariant: 'drh34', secVariant: ['drh28_150'], dirKind: 'drum', houseH: 3.5, bulwarkF: [0, 0],
+    fb: [[0, 10.9], [0.03, 9.8], [0.06, 8.9], [0.115, 7.7], [0.172, 7.2], [0.258, 7.0], [0.5, 6.6], [0.75, 6.7], [0.87, 6.9], [1, 7.9]],
+    house: { plan: [[0.331, 5], [0.36, 8.5], [0.70, 8.5], [0.761, 5]] },   // narrow: the 15 cm turrets stand on the deck outboard of it
+    decks: [
+      { f: [0.331, 0.455], hw: 7.5, y: [3.5, 9.3], rake: 1.5, windows: true },                         // forward superstructure
+      { f: [0.352, 0.405], hw: 7, y: [9.3, 13.8], rake: 1.0, windows: true },                        // forward bridge
+      { f: [0.475, 0.53], hw: 7, y: [3.5, 9.3] },                                                     // funnel casing
+      { f: [0.545, 0.62], hw: 7.5, y: [3.5, 8.0] },                                                     // hangars
+      { f: [0.62, 0.70], hw: 7, y: [3.5, 9.3], rakeA: 1.0, windows: true },                          // after superstructure
+      { f: [0.632, 0.666], round: true, hw: 3.5, y: [9.3, 12.0], taper: 0.9 },                       // after fire control
     ],
+    towerF: 0.433, towerY0: 9.3,
+    tiers: [
+      { len: 11, w: 9, h: 5.0, rake: 0.8, windows: true },                                            // admiral's bridge
+      { len: 13, w: 11, h: 0.8, dx: 0.5, windows: false },
+      { len: 9, w: 8, h: 6.0, round: true, taper: 0.9 },                                              // tower
+      { len: 15, w: 12, h: 1.2, dx: -1, windows: false },                                             // searchlight platform
+      { len: 7, w: 6.5, h: 3.7, round: true, taper: 0.9 },
+    ],
+    dir0: { dx: 0, w: 6, l: 4, h: 2.8 },
+    foremast: { dx: -8.5, y0: 16.3 },
+    funnels: [{ lx: 11, lz: 7.5, y0: 3.5, h: 16.3, rake: 1.5, top: 0.92 }],
+    mastY0: { 1: 8.0 },
+    directors: [
+      { f: 0.398, y: 13.8, kind: 'drum', w: 5.8, l: 3, h: 2.5, label: 'Télémètre avant' },
+      { f: 0.649, y: 12.0, kind: 'drum', w: 5.8, l: 3.5, h: 2.0, label: 'Télémètre arrière' },
+    ],
+    cat: { f: 0.538, y: 3.6, yaw: Math.PI / 2, len: 30, craneF: 0.565, craneY: 8.0, craneZ: 0 },
   },
   shokaku: { noFunnels: true, elevators: [0.22, 0.56, 0.80], extra: shokakuFunnels },
   essex: { mainVariant: { 2: 'mk28', 1: 'mk30' }, elevators: [0.27, 0.80, 0.50], deckEdge: true },

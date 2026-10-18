@@ -44,7 +44,7 @@ export function pchip(points) {
  *   mid: { pb, flare, tumble }    section fullness exponent, deck flare, tumblehome
  *   planWL, planDeck: [[t, ratio], ...]  measured half-breadths (fraction of B/2) at the waterline and at the deck edge along the
  *                                 length (t = 0 at the stem); they replace the bow / stern formulas and the flare above water
- *   hullCol, deckCol, camber, bulwark, bulwarkCol
+ *   hullCol, deckCol, camber, bulwark, bulwarkCol, bulwarkF: [f0, f1] (the bulwark only runs between these fractions from the bow)
  * }
  */
 export function buildHull(b, h) {
@@ -190,7 +190,8 @@ export function buildHull(b, h) {
       let prev = null;
       for (let i = 0; i <= NS; i++) {
         const p = P[i][top];
-        if (p[2] < 0.3) { prev = null; continue; }
+        const fi = (L / 2 - p[0]) / L;
+        if (p[2] < 0.3 || (h.bulwarkF && (fi < h.bulwarkF[0] || fi > h.bulwarkF[1]))) { prev = null; continue; }
         const inw = Math.max(p[2] - 0.14, 0.05);
         const A = [p[0], p[1], p[2] * sg], Ai = [p[0], p[1], inw * sg];
         const Au = [p[0], p[1] + bw, p[2] * sg], Aiu = [p[0], p[1] + bw, inw * sg];

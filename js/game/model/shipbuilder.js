@@ -51,7 +51,7 @@ function hullParams(spec, tw) {
     bow: { ...preset.bow, ...(tw.bow || {}) }, stern: { ...preset.stern, ...(tw.stern || {}) },
     mid: { ...preset.mid, flare: t === 'CV' ? preset.mid.flare : Math.max(preset.mid.flare, flareMid), ...(tw.mid || {}) },
     camber: dd ? 0.18 : 0.3, bulwark: dd ? 0.85 : 0.95,
-    planWL: tw.planWL, planDeck: tw.planDeck,
+    planWL: tw.planWL, planDeck: tw.planDeck, bulwarkF: tw.bulwarkF,
   };
 }
 
@@ -391,7 +391,8 @@ export function buildShipModel(spec, tw = {}) {
   // -------- aircraft facilities (cruisers / battleships) --------
   if (!carrier && spec.aircraft && spec.aircraft.catapults > 0) {
     const mid = kindOf(spec.aircraft.hangar + ' ' + spec.aircraft.notes, 'amidships|between the funnels|athwart');
-    // tw.cat: measured { f, z (m off the centreline), yaw (rad, bow end turned outboard), len, y (above the deck), craneF }
+    // tw.cat: measured { f, z (m off the centreline), yaw (rad, bow end turned outboard; a single catapult turns by yaw), len,
+    // y (above the deck), craneF, craneY (base above the deck), craneZ }
     const tc = tw.cat || {};
     const f0 = tc.f ?? (mid ? 0.575 : 0.84);
     const nCat = spec.aircraft.catapults;
@@ -399,7 +400,7 @@ export function buildShipModel(spec, tw = {}) {
       const sg = nCat === 1 ? 0 : (i === 0 ? -1 : 1);
       const x = X(f0), y = Y(x) + (tc.y ?? 0.2);
       const z = sg * (tc.z ?? (mid ? B * 0.12 : B * 0.2));
-      const cy = sg * (tc.yaw ?? 0.5 * (mid ? 1 : 0));
+      const cy = nCat === 1 ? (tc.yaw ?? 0) : sg * (tc.yaw ?? 0.5 * (mid ? 1 : 0));
       const len = tc.len ?? 18;
       part('cat' + i, 'catapult', 'Catapulte et hydravion', () => {
         PT.catapult(b, { x, y, z, len, yaw: cy }, pal);
@@ -407,7 +408,7 @@ export function buildShipModel(spec, tw = {}) {
       }, () => PT.catapult(b, { x, y, z, len, yaw: cy }, { ...pal, sup: charred(pal) }));
     }
     const cf = tc.craneF ?? f0 + 0.07;
-    part('crane', 'crane', 'Grue', () => PT.crane(b, { x: X(cf), y0: Y(X(cf)), z: 0, h: 7, len: 14, side: 1 }, pal));
+    part('crane', 'crane', 'Grue', () => PT.crane(b, { x: X(cf), y0: Y(X(cf)) + (tc.craneY ?? 0), z: tc.craneZ ?? 0, h: 7, len: 14, side: 1 }, pal));
   }
 
   // -------- measured fire-control directors (tweaks.directors): { f, z, y (above the deck), ped (pedestal height), w, l, h, kind } --------
