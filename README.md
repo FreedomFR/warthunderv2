@@ -7,6 +7,17 @@ tirent dessus jusqu'à ce qu'il ne reste qu'une équipe.
 
 ![Bataille : l'Iowa tire sous un ciel de coucher de soleil](docs/battle.jpg)
 
+## Bande-annonce — version 0.0.1
+
+[![Bande-annonce de la version 0.0.1 (aperçu animé)](docs/trailer-v0.0.1.gif)](docs/trailer-v0.0.1.mp4)
+
+▶ [**Voir la bande-annonce complète** (MP4, 48 s, 1280×720, 15 Mo)](docs/trailer-v0.0.1.mp4)
+
+Toutes les images sont rendues par le jeu lui-même, image par image (rendu WebGPU logiciel, environ 3 h de calcul sans carte graphique), les
+sons sont ceux du jeu et la musique est synthétisée par programme. Les plans sont cadrés par script (`js/trailerScenes.js`) ; pour deux
+d'entre eux (la bombe sur le croiseur et la torpille sur le Takao), l'arme est placée près de sa cible pour que l'impact tombe dans le
+champ de la caméra : l'impact lui-même est calculé par le vrai modèle de dégâts du jeu. Voir `tools/trailer/README.md` pour refaire la vidéo.
+
 ## Lancer le jeu
 
 Il faut un Chrome (ou Edge) récent avec WebGPU et une carte graphique correcte.

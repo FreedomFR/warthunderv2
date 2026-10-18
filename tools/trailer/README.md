@@ -16,3 +16,12 @@ node tools/trailer/assemble.mjs tools/trailer/edit.json         # cut, grade, ti
 * `js/trailerMusic.js` — the score (oscillators and filtered noise, rendered with an `OfflineAudioContext`).
 * Engine switches used by the recorder: `?manual=1` (the page only renders when asked: `engine.step(dt)`), `?grid=8` and `?fft=128` (lighter ocean),
   `?stride=N` (render every Nth frame: contact sheets while developing a shot).
+
+Notes on the v0.0.1 edit (`edit.json`):
+
+* `musicEnv` / `sfxEnv`: gain curves in dB (`[[seconds, dB], ...]`) applied to the score and to the game sounds, so the mix has an arc
+  (quiet intro, build-up, climax on the magazine explosion). `sfxDb` on a clip adjusts the game sound of that clip only.
+* The loudness is measured on a first pass and applied as one static gain (`loudnorm ... linear=true`): the dynamic mode would flatten the arc.
+* `--music file.wav` and `--frames dir` override the paths of the edit list; `--keep` keeps the intermediate clips.
+* Recording takes about 10 s per 720p frame on 4 CPU cores (software rendering): the 48 s trailer is 1 150 frames, about 3 hours.
+* Two shots are staged for the camera (the bomb of `dive_b`, the torpedo of `torp_b`): the weapon starts close to its target, the hit is the game's own model.

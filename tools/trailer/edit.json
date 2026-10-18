@@ -5,10 +5,10 @@
   "fps": 24,
   "w": 1280,
   "h": 720,
-  "musicDb": -9,
-  "sfxDb": -1,
-  "grain": 5,
-  "crf": 20,
+  "musicDb": -1,
+  "sfxDb": -7,
+  "grain": 2,
+  "crf": 24,
   "clips": [
     {
       "scene": "open",
@@ -49,7 +49,8 @@
     {
       "scene": "carrier",
       "shot": "carrier_b",
-      "dur": 3.6
+      "dur": 3.6,
+      "sfxDb": -4
     },
     {
       "scene": "dive",
@@ -110,7 +111,9 @@
       "text": "1939 – 1945",
       "size": 58,
       "sub": "Six marines. Trente navires. Le combat s'engage seul.",
-      "subSize": 26
+      "subSize": 26,
+      "y": "h*0.15",
+      "subY": "h*0.15+82"
     },
     {
       "at": 8.7,
@@ -120,7 +123,8 @@
       "y": "h*0.80",
       "sub": "Cuirassés · croiseurs · destroyers · porte-avions · 6 nations",
       "subSize": 22,
-      "subY": "h*0.80+58"
+      "subY": "h*0.80+58",
+      "box": true
     },
     {
       "at": 14.6,
@@ -130,7 +134,8 @@
       "y": "h*0.80",
       "sub": "Décollage, piqué, torpillage",
       "subSize": 22,
-      "subY": "h*0.80+58"
+      "subY": "h*0.80+58",
+      "box": true
     },
     {
       "at": 18.2,
@@ -140,7 +145,8 @@
       "y": "h*0.80",
       "sub": "Les dégâts se calculent module par module",
       "subSize": 22,
-      "subY": "h*0.80+58"
+      "subY": "h*0.80+58",
+      "box": true
     },
     {
       "at": 25.0,
@@ -150,7 +156,8 @@
       "y": "h*0.80",
       "sub": "Inondation, gîte, colonne d'eau",
       "subSize": 22,
-      "subY": "h*0.80+58"
+      "subY": "h*0.80+58",
+      "box": true
     },
     {
       "at": 31.4,
@@ -160,7 +167,8 @@
       "y": "h*0.80",
       "sub": "Balistique, blindage, pénétration",
       "subSize": 22,
-      "subY": "h*0.80+58"
+      "subY": "h*0.80+58",
+      "box": true
     },
     {
       "at": 37.9,
@@ -170,7 +178,8 @@
       "y": "h*0.80",
       "sub": "Soutes, incendies, avaries",
       "subSize": 22,
-      "subY": "h*0.80+58"
+      "subY": "h*0.80+58",
+      "box": true
     },
     {
       "at": 44.1,
@@ -198,5 +207,73 @@
       "y": "h*0.22+148",
       "fade": 0.6
     }
+  ],
+  "musicEnv": [
+    [
+      0,
+      -26
+    ],
+    [
+      1.6,
+      -9
+    ],
+    [
+      8.4,
+      -8
+    ],
+    [
+      9.4,
+      -7
+    ],
+    [
+      18,
+      -6
+    ],
+    [
+      31.2,
+      -4
+    ],
+    [
+      37.4,
+      -2
+    ],
+    [
+      37.6,
+      2
+    ],
+    [
+      43.4,
+      2
+    ],
+    [
+      43.8,
+      -3
+    ],
+    [
+      46,
+      -6
+    ],
+    [
+      47.8,
+      -14
+    ]
+  ],
+  "sfxEnv": [
+    [
+      0,
+      0
+    ],
+    [
+      37,
+      0
+    ],
+    [
+      37.6,
+      3
+    ],
+    [
+      43.6,
+      0
+    ]
   ]
 }
