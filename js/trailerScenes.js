@@ -163,16 +163,12 @@ export const SCENES = {
     // speed of a bomb dropped from a 60 degree dive (the real hit model: armour, fuze delay, fire, magazines)
     const tf = 2.0, vh = 58, vv = -112, y0 = victim.y + 12 - (vv * tf - 4.905 * tf * tf);
     const aimX = victim.x + Math.sin(victim.heading) * victim.speed * tf, aimZ = victim.z - Math.cos(victim.heading) * victim.speed * tf;
-    T.w.bombs.push({ id: 900000, owner: lead.owner, team: lead.team, kg: 250, x: aimX - hd[0] * vh * tf, y: y0, z: aimZ - hd[2] * vh * tf, vx: hd[0] * vh, vy: vv, vz: hd[2] * vh, age: 0, mesh: 'bomb500', target: victim, plane: lead });
+    T.w.bombs.push({ id: 900000, owner: lead.owner, team: lead.team, kg: lead.spec.bombKg || 454, x: aimX - hd[0] * vh * tf, y: y0, z: aimZ - hd[2] * vh * tf, vx: hd[0] * vh, vy: vv, vz: hd[2] * vh, age: 0, mesh: 'bomb500', target: victim, plane: lead });
     lead.ordnance = false;
-    const aim = [aimX, victim.y + 10, aimZ];
-    const camB = [aimX - hd[2] * 150, 15, aimZ + hd[0] * 150];
-    const staged = T.w.bombs[T.w.bombs.length - 1];
-    let nlog = 0;
-    await T.shot('dive_b', 3.4, (t) => {
-      if (nlog++ % 12 === 0) T.log('dbg bomb', t.toFixed(2), T.w.bombs.includes(staged) ? [staged.x - victim.x, staged.y, staged.z - victim.z].map((v) => v.toFixed(0)).join(',') : 'gone', 'impacts', T.count('impact'), victim.name, victim.hpFrac.toFixed(2), 'v', victim.speed.toFixed(1));
-      return { p: camB, l: [aim[0], 62, aim[2]], fov: 58 };
-    });
+    // camera on the side the bomb comes from, abeam of the impact
+    const starboard = [Math.cos(victim.heading), Math.sin(victim.heading)], sgn = hd[0] * starboard[0] + hd[2] * starboard[1] > 0 ? -1 : 1;
+    const camB = [aimX + starboard[0] * 150 * sgn, 14, aimZ + starboard[1] * 150 * sgn];
+    await T.shot('dive_b', 3.4, () => ({ p: camB, l: [aimX, 38, aimZ], fov: 55 }));
   },
 
   // ---- torpedo: low level torpedo attack, then the hit seen from the water ----------------------------------------------
