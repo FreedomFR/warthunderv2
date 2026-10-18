@@ -910,6 +910,48 @@
         "dilate": 5,
         "open": 0
       }
+    },
+    "fi167": {
+      "length": 11.4,
+      "span": 13.5,
+      "top": {
+        "file": "refs/plane_fi167/fi167_3view.gif",
+        "source": "a Fieseler Fi 167 3-view (906 px wide), shared by the project owner (author unknown: measurements only, not in the repository); scaled on the 13.5 m span",
+        "crop": [
+          0,
+          725,
+          910,
+          1455
+        ],
+        "preErase": [
+          [
+            670,
+            650,
+            910,
+            730
+          ]
+        ],
+        "rotate": 90,
+        "flip": true,
+        "threshold": 150,
+        "dilate": 5,
+        "open": 0,
+        "scaleBy": "span"
+      },
+      "side": {
+        "file": "refs/plane_fi167/fi167_3view.gif",
+        "source": "same 3-view, side view",
+        "crop": [
+          0,
+          0,
+          910,
+          385
+        ],
+        "flip": true,
+        "threshold": 150,
+        "dilate": 5,
+        "open": 0
+      }
     }
   }
 }

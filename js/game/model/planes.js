@@ -79,8 +79,8 @@ export const PLANES = {
   fi167: {
     name: 'Fieseler Fi 167', nation: 'Germany', role: 'torp', kind: 'bi', L: 11.4, span: 13.5, mass: 4.2, hp: 3.5,
     fus: { r: 0.64, ar: 1.15, x: -0.4 }, engine: { type: 'inline', r: 0.48, len: 1.8 }, prop: { r: 1.7, n: 3, x: 0 },
-    wing: { cr: 1.9, ct: 1.5, x: 0.0, y: 0.0, gap: 1.7, dih: 0.0, sweep: 0.3, t: 0.14, stagger: 0.3, lowerShort: 0.78 },
-    tail: { x: -4.4, chord: 1.5, span: 4.5, fin: 1.4, finChord: 1.7, y: 0.25 }, canopy: [{ x0: -0.1, x1: 2.2, tx1: 1.7, h: 0.66 }],
+    wing: { cr: 1.9, ct: 1.5, x: 0.40, y: 0.0, gap: 1.7, dih: 0.0, sweep: 0.3, t: 0.14, stagger: 0.3, lowerShort: 0.78 },
+    tail: { x: -5.6, chord: 1.5, span: 4.5, fin: 1.4, finChord: 1.7, y: 0.25 }, canopy: [{ x0: -0.1, x1: 2.2, tx1: 1.7, h: 0.66 }],
     gear: 'retract', ordnance: 'torp',
   },
   ln401: {

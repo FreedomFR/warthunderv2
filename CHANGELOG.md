@@ -17,6 +17,8 @@
 - **TBF Avenger and D3A Val**: compared with drawings shared by the project owner (a blueprint poster with the dimensions printed; Printscale and Artscale
   decal art; copyright, measurements only). Wings 0.9 / 1.2 m too far aft and tails 0.9 / 1.2 m too far forward with too short a chord:
   corrected (TBF tail chord 1.8 -> 2.4 m, D3A 1.3 -> 2.0 m). Planform mean difference TBF 5.3 -> 1.7 m, D3A 3.3 -> 1.6 m.
+- **Fi 167**: a clean 3-view shared by the project owner (measurements only): the wing planform already matched (13.5 m span); the tail was 1.2 m too far
+  forward (-4.4 -> -5.6 m), the wing 0.4 m too far aft. Planform mean difference 1.6 -> 1.0 m.
 - **Ju 87 Stuka**: a 1:72 sheet with a scale bar (Zurek) and D-5 plans, shared by the project owner (copyright; measurements only). The tailplane is only 3.0 m
   across (0.22 of the span, measured on the plan view) with a 1.0 m chord, not the estimated 4.6 m; wing root chord 2.9 m, tip 1.1 m. The wing's position
   could not be checked reliably: the sheet's other views leak into the planform comparison.
