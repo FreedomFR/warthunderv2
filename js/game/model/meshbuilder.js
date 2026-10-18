@@ -18,7 +18,11 @@ export const MAT = {
   CANVAS: 7,    // canvas, rope, rubber
   FLAG: 8,      // pennants (double sided, unlit-ish)
   AIRCRAFT: 9,  // aircraft skins (slightly glossy)
+  ENSIGN: 10,   // national ensign: rgb = (u, v, length) of the cloth, drawn and waved by the shader
+  GLYPH: 11,    // hull number glyph: rgb = (glyph index, u, v) inside the glyph box
 };
+
+import { bakeAO } from './ao.js';
 
 export const VERTEX_STRIDE = 24;
 
@@ -345,7 +349,12 @@ export class MeshBuilder {
   get triangleCount() { return this.idx.length / 3; }
 
   /** Pack the main geometry (and, as `.groups`, every named group) into GPU-ready buffers. */
-  build() {
+  build(opts = {}) {
+    if (opts.ao !== false) {
+      const list = [{ P: this.p, N: this.n, IDX: this.idx }];
+      for (const [name, g] of this.groups) list.push({ P: g.p, N: g.n, IDX: g.idx, occluder: !name.endsWith('_ruin') });
+      bakeAO(list, opts.aoOpts);
+    }
     const out = packMesh(this.p, this.n, this.c, this.idx);
     out.groups = {};
     for (const [name, g] of this.groups) out.groups[name] = packMesh(g.p, g.n, g.c, g.idx);

@@ -13,6 +13,16 @@ import { lightMatrix } from './render/shadows.js';
 import { GameAudio } from './audio.js';
 import { mat4Ship, D2R, clamp, makeRng } from './math.js';
 
+const QUALITY_MODES = ['auto', 'high', 'medium', 'low'];
+// presets walked by the adaptive quality controller: render scale, effects density, shadows
+const QUALITY_LADDER = [
+  { scale: 1.0, fx: 1.0, shadows: true },
+  { scale: 0.88, fx: 0.85, shadows: true },
+  { scale: 0.76, fx: 0.7, shadows: true },
+  { scale: 0.64, fx: 0.55, shadows: false },
+  { scale: 0.52, fx: 0.4, shadows: false },
+];
+
 const SM = new Float32Array(16), HM = new Float32Array(16), GM = new Float32Array(16);
 const S64 = new Float64Array(16), H64 = new Float64Array(16), G64 = new Float64Array(16);
 
@@ -31,9 +41,38 @@ export class Game {
     this.lightVP = new Float32Array(16);
     this.shadowsOn = new URLSearchParams(location.search).get('shadows') !== '0';
     this.shadowActive = false;
-    // adaptive resolution: lower the render scale when the GPU cannot keep up (never in headless tests / when forced by the URL)
-    this.autoScale = !engine.offscreen && !new URLSearchParams(location.search).has('scale');
-    this.slowT = 0;
+    this.shadowFocus = null; this.shadowR = 0;
+    // quality: 'auto' walks a ladder of presets (render scale, effects density, shadows) down when the GPU cannot keep up and
+    // back up when it has room to spare; the fixed presets pin one rung. Never in headless tests / when forced by the URL.
+    const qs = new URLSearchParams(location.search);
+    this.canAuto = !engine.offscreen && !qs.has('scale');
+    let saved = null;
+    try { saved = localStorage.getItem('naval.quality'); } catch (e) { /* storage blocked */ }
+    this.qualityMode = QUALITY_MODES.includes(qs.get('quality') || saved) ? (qs.get('quality') || saved) : 'auto';
+    this.qLevel = this.qualityMode === 'auto' ? 0 : { high: 0, medium: 2, low: 4 }[this.qualityMode];
+    this.fxScale = 1;
+    this.userShadows = this.shadowsOn;
+    this.slowT = 0; this.fastT = 0;
+    this.applyQuality();
+  }
+
+  get autoScale() { return this.canAuto && this.qualityMode === 'auto'; }
+
+  /** Select 'auto' | 'high' | 'medium' | 'low'. */
+  setQuality(mode) {
+    this.qualityMode = mode;
+    this.qLevel = mode === 'auto' ? Math.min(this.qLevel, 2) : { high: 0, medium: 2, low: 4 }[mode];
+    this.slowT = this.fastT = 0;
+    try { localStorage.setItem('naval.quality', mode); } catch (e) { /* storage blocked */ }
+    this.applyQuality();
+  }
+
+  applyQuality() {
+    const q = QUALITY_LADDER[this.qLevel];
+    this.fxScale = q.fx;
+    if (this.canAuto) this.engine.setRenderScale(q.scale);
+    this.shadowsOn = this.userShadows && q.shadows;
+    this.ui?.onRenderScale?.(this.engine.getRenderScale());
   }
 
   async init() {
@@ -136,7 +175,7 @@ export class Game {
     if (w.state === 'finished' && this.state === 'running') { this.state = 'finished'; this.ui?.onFinished?.(); }
 
     const ev = w.drainEvents();
-    this.effects.emitScale = 1 / Math.max(1, this.timeScale * 0.55);
+    this.effects.emitScale = this.fxScale / Math.max(1, this.timeScale * 0.55);
     this.effects.process(ev);
     this.ui?.onEvents?.(ev);
     this.camera.onEvents(ev);
@@ -160,15 +199,12 @@ export class Game {
     water.count = k;
     water.tag = list;
 
-    // adaptive resolution
+    // adaptive quality
     if (this.autoScale) {
       const fps = this.engine.stats.fps;
-      if (fps > 0 && fps < 26) this.slowT += dt; else this.slowT = Math.max(0, this.slowT - dt * 0.5);
-      if (this.slowT > 3.5) {
-        this.slowT = 0;
-        const sc = this.engine.getRenderScale();
-        if (sc > 0.52) { this.engine.setRenderScale(Math.max(0.5, sc - 0.12)); this.ui?.onRenderScale?.(this.engine.getRenderScale()); }
-      }
+      if (fps > 0 && fps < 26) { this.slowT += dt; this.fastT = 0; } else { this.slowT = Math.max(0, this.slowT - dt * 0.5); this.fastT = fps > 56 ? this.fastT + dt : 0; }
+      if (this.slowT > 3.5 && this.qLevel < QUALITY_LADDER.length - 1) { this.slowT = 0; this.qLevel++; this.applyQuality(); }
+      else if (this.fastT > 12 && this.qLevel > 0) { this.fastT = 0; this.qLevel--; this.applyQuality(); }
     }
     this.camera.update(dt);
     // camera shake from explosions
@@ -204,7 +240,18 @@ export class Game {
       const dmg = clamp((1 - s.hpFrac - 0.1) * 1.25, 0, 1);
       const fire = s.fireLevel || 0;
       const rnd = (s.id * 0.6180339) % 1;
-      mat4Ship(S64, s.x - cam.x, s.y - cam.y, s.z - cam.z, s.heading, s.pitch, s.roll);
+      const rx = s.x - cam.x, ry = s.y - cam.y, rz = s.z - cam.z;
+      const dist = Math.hypot(rx, ry, rz);
+      // culling and level of detail: off-screen ships are skipped (unless they cast a shadow onto the focus ship),
+      // distant ones lose their small guns, close ones get the fine detail (lifelines, boats, rigging)
+      const sf = this.shadowFocus;
+      const casts = !!sf && this.shadowActive && Math.hypot(s.x - sf.x, s.z - sf.z) < this.shadowR + s.stats.L;
+      if (!casts && !this.engine.sphereVisible(rx, ry, rz, s.model.radius * 1.05)) continue;
+      s.casts = casts;
+      s.near = dist < 250 + s.stats.L * 0.9;
+      s.aaNear = dist < 900 + s.stats.L;
+      s.lod = dist > 7000 ? 2 : dist > 2400 ? 1 : 0;
+      mat4Ship(S64, rx, ry, rz, s.heading, s.pitch, s.roll);
       this.shipVisuals.addShip(s, S64, tint, dmg, fire, rnd);
     }
     // aircraft, ordnance in flight and wreckage
@@ -263,6 +310,7 @@ export class Game {
     const info = lightMatrix(this.lightVP, sun, focus.x - cam.x, focus.y + focus.model.topY * 0.25 - cam.y, focus.z - cam.z, R, e.shadow.size);
     e.shadow.setLight(this.lightVP, 0.9 / info.depthRange, true);
     this.shadowActive = true;
+    this.shadowFocus = focus; this.shadowR = R;
   }
 
   /** Click on the canvas (no drag): select the ship under the cursor. */

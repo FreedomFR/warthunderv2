@@ -200,6 +200,21 @@ export function buildHull(b, h) {
     }
   }
 
+  /** starboard half-breadth of the hull skin at longitudinal position x and height y above the waterline (y >= 0) */
+  const sideZ = (x, y) => {
+    let prevY = null, prevZ = null;
+    for (let j = 0; j < NK; j++) {
+      const k = levels[j];
+      if (k < 0) continue;
+      const xS = xStem(k), xA = xAft(k);
+      const t = clamp((xS - x) / (xS - xA || 1), 0, 1);
+      const f = clamp((L / 2 - x) / L, 0, 1);
+      const yy = k * fbF(f), zz = (B / 2) * shape(t) * sec(k, t);
+      if (prevY !== null && y <= yy) return prevZ + (zz - prevZ) * clamp((y - prevY) / Math.max(yy - prevY, 1e-6), 0, 1);
+      prevY = yy; prevZ = zz;
+    }
+    return prevZ ?? 0;
+  };
   const half = (x) => {
     const f = clamp((L / 2 - x) / L, 0, 1);
     return (B / 2) * shape(f) * sec(1, f);
@@ -211,6 +226,7 @@ export function buildHull(b, h) {
     deckY: (x) => fbF(clamp((L / 2 - x) / L, 0, 1)) + camber,
     /** half-breadth at the deck edge */
     halfBeamDeck: half,
+    sideZ,
     /** half-breadth at the waterline */
     halfBeamWL: (x) => { const f = clamp((L / 2 - x) / L, 0, 1); return (B / 2) * shape(f); },
     fracToX: (f) => L / 2 - f * L,

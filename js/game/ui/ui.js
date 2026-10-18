@@ -211,7 +211,10 @@ export function createUI(game) {
   {
     const scaleVal = h('output', {}, Math.round(engine.getRenderScale() * 100) + '%');
     ui.onRenderScale = (v) => { scaleVal.textContent = Math.round(v * 100) + '%'; const inp = scaleVal.previousSibling; if (inp) inp.value = v; };
-    settings.append(h('label', { class: 'slider' }, h('span', {}, 'Ombres des navires'), h('input', { type: 'checkbox', checked: game.shadowsOn, onchange: (e) => { game.shadowsOn = e.target.checked; } }), h('span')));
+    const qsel = h('select', { onchange: (e) => game.setQuality(e.target.value) },
+      ...[['auto', 'Automatique'], ['high', 'Haute'], ['medium', 'Moyenne'], ['low', 'Basse']].map(([v, l]) => h('option', { value: v, selected: game.qualityMode === v }, l)));
+    settings.append(h('label', { class: 'slider' }, h('span', {}, 'Qualité graphique'), qsel, h('span')));
+    settings.append(h('label', { class: 'slider' }, h('span', {}, 'Ombres des navires'), h('input', { type: 'checkbox', checked: game.shadowsOn, onchange: (e) => { game.userShadows = e.target.checked; game.applyQuality(); } }), h('span')));
     settings.append(h('label', { class: 'slider' }, h('span', {}, 'Résolution de rendu'), h('input', { type: 'range', min: 0.4, max: 1.5, step: 0.05, value: engine.getRenderScale(), oninput: (e) => { engine.setRenderScale(Number(e.target.value)); scaleVal.textContent = Math.round(e.target.value * 100) + '%'; } }), scaleVal));
     for (const [key, label, min, max, step, kind] of SLIDERS) {
       const val = h('output', {}, String(engine.P[key]));

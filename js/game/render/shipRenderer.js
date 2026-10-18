@@ -3,7 +3,7 @@
 import { SHIP, SHIP_SHADOW } from '../../wgsl/ship.js';
 import { VERTEX_STRIDE } from '../model/meshbuilder.js';
 
-const INST_FLOATS = 24;          // 4 x vec4 matrix + tint + misc
+const INST_FLOATS = 28;          // 4 x vec4 matrix + tint + misc + paint
 const MAX_INSTANCES = 8192;
 const GU = GPUBufferUsage;
 
@@ -15,6 +15,8 @@ export class ShipRenderer {
     this.instData = new Float32Array(MAX_INSTANCES * INST_FLOATS);
     this.instBuf = this.device.createBuffer({ size: this.instData.byteLength, usage: GU.VERTEX | GU.COPY_DST, label: 'ship instances' });
     this.count = 0;
+    this.paint = [0, 0, 0, 0];     // livery of the instances queued next (camouflage, seed, nation, palette); see setPaint()
+    this.casting = true;           // do the instances queued next cast sun shadows (ships far from the shadow focus do not)
     this.ready = this._init();
   }
 
@@ -38,6 +40,7 @@ export class ShipRenderer {
             { shaderLocation: 6, offset: 48, format: 'float32x4' },
             { shaderLocation: 7, offset: 64, format: 'float32x4' },
             { shaderLocation: 8, offset: 80, format: 'float32x4' },
+            { shaderLocation: 9, offset: 96, format: 'float32x4' },
           ] },
         ],
       },
@@ -87,35 +90,48 @@ export class ShipRenderer {
     this.device.queue.writeBuffer(vbuf, 0, built.vertices);
     const ibuf = this.device.createBuffer({ size: built.indices.byteLength, usage: GU.INDEX | GU.COPY_DST, label: label + ' ib' });
     this.device.queue.writeBuffer(ibuf, 0, built.indices);
-    const mesh = { id: this.meshes.length, vbuf, ibuf, indexCount: built.indexCount, aabb: built.aabb, label, first: 0, n: 0, cpu: null };
+    const mesh = { id: this.meshes.length, vbuf, ibuf, indexCount: built.indexCount, aabb: built.aabb, label, first: 0, n: 0, n2: 0, cpu: null, cpu2: null };
     this.meshes.push(mesh);
     return mesh;
   }
 
+  /** Do the instances added from now on cast sun shadows? (default yes) */
+  setCasting(on) { this.casting = on; }
+
+  /** Livery for the instances added from now on: [camouflage pattern, seed, nation id, palette]; pass nothing to reset. */
+  setPaint(p) { const q = this.paint; q[0] = p ? p[0] : 0; q[1] = p ? p[1] : 0; q[2] = p ? p[2] : 0; q[3] = p ? p[3] : 0; }
+
   /** Start collecting instances for a new frame. */
   begin() {
-    for (const m of this.meshes) m.n = 0;
+    for (const m of this.meshes) { m.n = 0; m.n2 = 0; }
     this.count = 0;
   }
 
   /**
    * Queue an instance (data is copied immediately, callers may reuse their arrays).
-   * `mat` is a camera-relative column-major 4x4; tint = [r, g, b] team colour (0-255 sRGB),
+   * `mat` is a camera-relative column-major 4x4 (the current livery is attached, see setPaint); tint = [r, g, b] team colour (0-255 sRGB),
    * damage 0..1 (soot), fire 0..1 (glow), rnd 0..1 per ship. cutSide = +1 / -1 keeps only the part of the mesh forward / abaft
    * of local x = cutX (a ship broken in two), 0 = whole.
    */
   add(mesh, mat, tint, damage = 0, fire = 0, rnd = 0, cutX = 0, cutSide = 0) {
     if (this.count >= MAX_INSTANCES) return;
-    if (!mesh.cpu || (mesh.n + 1) * INST_FLOATS > mesh.cpu.length) {
-      const bigger = new Float32Array(Math.max(INST_FLOATS * 8, (mesh.cpu ? mesh.cpu.length * 2 : 0)));
-      if (mesh.cpu) bigger.set(mesh.cpu);
-      mesh.cpu = bigger;
+    // shadow casters and non-casters are staged separately so the shadow pass can draw a prefix of each mesh's instances
+    const cast = this.casting;
+    let d = cast ? mesh.cpu : mesh.cpu2;
+    const idx = cast ? mesh.n : mesh.n2;
+    if (!d || (idx + 1) * INST_FLOATS > d.length) {
+      const bigger = new Float32Array(Math.max(INST_FLOATS * 8, d ? d.length * 2 : 0));
+      if (d) bigger.set(d);
+      d = bigger;
+      if (cast) mesh.cpu = d; else mesh.cpu2 = d;
     }
-    const d = mesh.cpu, o = mesh.n * INST_FLOATS;
+    const o = idx * INST_FLOATS;
     for (let k = 0; k < 16; k++) d[o + k] = mat[k];
     d[o + 16] = tint[0] / 255; d[o + 17] = tint[1] / 255; d[o + 18] = tint[2] / 255; d[o + 19] = damage;
     d[o + 20] = fire; d[o + 21] = rnd; d[o + 22] = cutX; d[o + 23] = cutSide;
-    mesh.n++;
+    const pt = this.paint;
+    d[o + 24] = pt[0]; d[o + 25] = pt[1]; d[o + 26] = pt[2]; d[o + 27] = pt[3];
+    if (cast) mesh.n++; else mesh.n2++;
     this.count++;
   }
 
@@ -126,6 +142,7 @@ export class ShipRenderer {
     for (const m of this.meshes) {
       m.first = o / INST_FLOATS;
       if (m.n) { d.set(m.cpu.subarray(0, m.n * INST_FLOATS), o); o += m.n * INST_FLOATS; }
+      if (m.n2) { d.set(m.cpu2.subarray(0, m.n2 * INST_FLOATS), o); o += m.n2 * INST_FLOATS; }
     }
     if (o) this.device.queue.writeBuffer(this.instBuf, 0, d, 0, o);
   }
@@ -142,7 +159,7 @@ export class ShipRenderer {
     pass.setBindGroup(0, this.shadowBG);
     pass.setVertexBuffer(1, this.instBuf);
     for (const m of this.meshes) {
-      if (!m.n) continue;
+      if (!m.n) continue;          // only the shadow casters
       pass.setVertexBuffer(0, m.vbuf);
       pass.setIndexBuffer(m.ibuf, 'uint32');
       pass.drawIndexed(m.indexCount, m.n, 0, 0, m.first);
@@ -156,10 +173,11 @@ export class ShipRenderer {
     rp.setBindGroup(0, this.bindGroup);
     rp.setVertexBuffer(1, this.instBuf);
     for (const m of this.meshes) {
-      if (!m.n) continue;
+      const n = m.n + m.n2;
+      if (!n) continue;
       rp.setVertexBuffer(0, m.vbuf);
       rp.setIndexBuffer(m.ibuf, 'uint32');
-      rp.drawIndexed(m.indexCount, m.n, 0, 0, m.first);
+      rp.drawIndexed(m.indexCount, n, 0, 0, m.first);
     }
   }
 }

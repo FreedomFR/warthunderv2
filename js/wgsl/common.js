@@ -1,6 +1,8 @@
 // Shared constants and WGSL snippets.
-export const N = 256;          // FFT resolution per cascade
-export const LOGN = 8;
+// FFT resolution per cascade (256 by default; ?fft=128 trades fine ripple detail for speed on slow GPUs / software rasterisers)
+const FFT_REQ = typeof location !== 'undefined' ? Number(new URLSearchParams(location.search).get('fft')) : 0;
+export const N = [64, 128, 256, 512].includes(FFT_REQ) ? FFT_REQ : 256;
+export const LOGN = Math.round(Math.log2(N));
 export const CASCADES = 6;
 export const SKY_W = 256;      // sky-view LUT size
 export const SKY_H = 144;

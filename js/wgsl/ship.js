@@ -3,6 +3,18 @@
 // weathering, wet hull near the waterline, soot and fire glow when damaged.
 import { FRAME_WGSL, ATMO_CORE_WGSL, HAZE_WGSL, SHADOW_STRUCT_WGSL, SHADOW_FUNC_WGSL, ENV_MIPS } from './common.js';
 import { SKY_RENDER_FUNCS } from './sky.js';
+import { PALETTES } from '../game/model/livery.js';
+import { GLYPH_BITS } from '../game/model/glyphs.js';
+
+// camouflage palettes (generated from the livery tables) and the 5x7 hull-number font
+const hexToVec = (h) => { const n = parseInt(h.slice(1), 16); return `vec3f(${((n >> 16) & 255) / 255}, ${((n >> 8) & 255) / 255}, ${(n & 255) / 255})`; };
+const PALETTE_WGSL = `fn camoColor(pal: u32, tone: u32) -> vec3f {
+  switch (pal) {
+${PALETTES.map((p, i) => `    case ${i}u: { if (tone == 0u) { return ${hexToVec(p[0])}; } if (tone == 1u) { return ${hexToVec(p[1])}; } return ${hexToVec(p[2])}; }`).join('\n')}
+    default: { return vec3f(0.5); }
+  }
+}`;
+const GLYPH_WGSL = `var<private> GLYPH: array<vec2<u32>, ${GLYPH_BITS.length}> = array<vec2<u32>, ${GLYPH_BITS.length}>(${GLYPH_BITS.map((g) => `vec2<u32>(${g[0]}u, ${g[1]}u)`).join(', ')});`;
 
 export const SHIP = FRAME_WGSL + ATMO_CORE_WGSL + HAZE_WGSL + SHADOW_STRUCT_WGSL + /* wgsl */ `
 @group(0) @binding(0) var<uniform> F: Frame;
@@ -14,7 +26,7 @@ export const SHIP = FRAME_WGSL + ATMO_CORE_WGSL + HAZE_WGSL + SHADOW_STRUCT_WGSL
 @group(0) @binding(6) var shadowTex: texture_depth_2d;
 @group(0) @binding(7) var shadowSamp: sampler_comparison;
 @group(0) @binding(8) var<uniform> SH: ShadowU;
-` + SHADOW_FUNC_WGSL + SKY_RENDER_FUNCS + /* wgsl */ `
+` + SHADOW_FUNC_WGSL + SKY_RENDER_FUNCS + PALETTE_WGSL + GLYPH_WGSL + /* wgsl */ `
 const ENV_MAXMIP: f32 = ${ENV_MIPS - 1}.0;
 
 struct VIn {
@@ -27,6 +39,7 @@ struct VIn {
   @location(6) m3: vec4f,
   @location(7) tint: vec4f,    // rgb = team colour, a = damage (soot) 0..1
   @location(8) misc: vec4f,    // x = fire glow, y = per-ship random, z = cut plane (local x), w = cut side (+1 bow part, -1 stern part, 0 whole)
+  @location(9) paint: vec4f,   // x = camouflage pattern, y = pattern seed, z = nation (ensign), w = camouflage palette
 };
 struct VOut {
   @builtin(position) pos: vec4f,
@@ -38,26 +51,145 @@ struct VOut {
   @location(5) tint: vec4f,
   @location(6) misc: vec4f,
   @location(7) lnrm: vec3f,
+  @location(8) paint: vec4f,
 };
 
 @vertex fn vs(v: VIn) -> VOut {
   let M = mat4x4f(v.m0, v.m1, v.m2, v.m3);
-  let rel = (M * vec4f(v.pos, 1.0)).xyz;
+  var lpos = v.pos;
+  var lnrm = v.nrm.xyz;
+  let vmat = u32(v.col.a * 255.0 + 0.5);
+  if (vmat == 10u) {
+    // ensign: cloth rippling away from the staff (u = distance along the flag, length in decimetres in the blue channel)
+    let u = v.col.r;
+    let len = max(v.col.b * 25.5, 0.5);
+    let ph = F.camPos.w * 6.2 - u * 6.5 + v.pos.y * 0.9 + v.misc.y * 20.0;
+    let amp = 0.11 * u * min(len, 6.0);
+    lpos.z += (sin(ph) + 0.35 * sin(ph * 2.3 + 1.7)) * amp;
+    let dzdu = (cos(ph) * (-6.5) + 0.35 * cos(ph * 2.3 + 1.7) * (-6.5 * 2.3)) * amp + (sin(ph) + 0.35 * sin(ph * 2.3 + 1.7)) * 0.11 * min(len, 6.0);
+    lnrm = normalize(vec3f(dzdu / len * 1.0, 0.0, 1.0));
+  }
+  let rel = (M * vec4f(lpos, 1.0)).xyz;
   var o: VOut;
   o.pos = F.viewProj * vec4f(rel, 1.0);
   o.rel = rel;
-  o.nrm = normalize((M * vec4f(v.nrm.xyz, 0.0)).xyz);
-  o.lnrm = v.nrm.xyz;
-  o.local = v.pos;
+  o.nrm = normalize((M * vec4f(lnrm, 0.0)).xyz);
+  o.lnrm = lnrm;
+  o.local = lpos;
   o.col = v.col;
   o.ao = v.nrm.w;
   o.tint = v.tint;
   o.misc = v.misc;
+  o.paint = v.paint;
   return o;
 }
 
 fn srgb2lin(c: vec3f) -> vec3f { return pow(max(c, vec3f(0.0)), vec3f(2.2)); }
-fn hash11(p: f32) -> f32 { return fract(sin(p * 127.1) * 43758.5453); }
+fn hash11(p: f32) -> f32 { return f32(pcgHash(bitcast<u32>(p)) >> 8u) * (1.0 / 16777216.0); }
+
+
+// integer hash (exact on every rasteriser): a random value in [0, 1) for a pair of cell indices
+fn hash21(p: vec2f) -> f32 {
+  let a = u32(i32(p.x * 10.0 + 4096.0));
+  let b = u32(i32(p.y * 10.0 + 4096.0));
+  return f32(pcgHash(a * 1664525u + pcgHash(b + 1013904223u)) >> 8u) * (1.0 / 16777216.0);
+}
+
+// ---- camouflage: which of the three palette tones a point of the hull wears ----
+fn camoTone(lp: vec3f, scheme: u32, seed: f32) -> u32 {
+  let sd = select(-1.0, 1.0, lp.z > 0.0);              // the two sides are painted differently
+  let sx = lp.x + seed * 61.0 + select(0.0, 23.0, lp.z > 0.0);
+  var h = 0.5;
+  if (scheme == 1u) {          // dazzle: slanted bands broken by a coarser second grid
+    let u = sx * 0.19 + lp.y * 0.62 * sd;
+    let w = sx * 0.085 - lp.y * 0.34 * sd + 5.0;
+    h = hash21(vec2f(floor(u), floor(w) + seed * 9.0));
+  } else if (scheme == 2u) {   // Admiralty disruptive: wide raked polygons
+    let u = sx * 0.07 + lp.y * 0.30 * sd;
+    let w = sx * 0.045 - lp.y * 0.52 * sd + 2.0;
+    h = hash21(vec2f(floor(u) * 1.3, floor(w) + seed * 7.0));
+  } else if (scheme == 3u) {   // sunburst: triangular panels fanning out from a point low on the bow
+    let a = atan2(lp.y + 7.0, (sx - 40.0) * 0.16) * 3.4 * sd + seed * 5.0;
+    h = hash21(vec2f(floor(a), floor(sx * 0.018)));
+  } else {                     // splotches
+    let n = gnoise(vec2f(sx * 0.055 + sd * 3.0, lp.y * 0.16)) + 0.5 * gnoise(vec2f(sx * 0.14, lp.y * 0.38 + 7.0));
+    h = n * 1.2 + 0.5;
+  }
+  return select(select(0u, 1u, h > 0.34), 2u, h > 0.68);
+}
+
+// ---- national ensigns (uv: x from the hoist to the fly, y from the top down) ----
+fn rect(uv: vec2f, c: vec2f, hs: vec2f) -> bool { let d = abs(uv - c); return d.x < hs.x && d.y < hs.y; }
+fn ensign(n: u32, uv: vec2f) -> vec3f {
+  let white = vec3f(0.92, 0.92, 0.9);
+  let red = vec3f(0.70, 0.08, 0.10);
+  if (n == 1u) {               // USA: 13 stripes, 50 stars
+    var c = select(white, red, (u32(floor(uv.y * 13.0)) % 2u) == 0u);
+    if (uv.x < 0.4 && uv.y < 7.0 / 13.0) {
+      c = vec3f(0.10, 0.13, 0.37);
+      let cx = uv.x / 0.4;
+      let cy = uv.y / (7.0 / 13.0);
+      let row = floor(cy * 9.0);
+      let even = (u32(row) % 2u) == 0u;
+      let sx = select(clamp(round(cx * 6.0), 1.0, 5.0) / 6.0, (clamp(round(cx * 6.0 - 0.5), 0.0, 5.0) + 0.5) / 6.0, even);
+      let sy = (row + 0.5) / 9.0;
+      if (length(vec2f((cx - sx) * 0.4, (cy - sy) * (7.0 / 13.0))) < 0.015) { c = white; }
+    }
+    return c;
+  }
+  if (n == 2u) {               // Japan: rising sun with sixteen rays
+    let p = vec2f((uv.x - 0.42) * 1.5, uv.y - 0.5);
+    let r = length(p);
+    let ray = sin(atan2(p.y, p.x) * 16.0) > 0.0;
+    return select(white, red, r < 0.17 || (r < 1.4 && ray));
+  }
+  if (n == 3u) {               // UK: White Ensign
+    var c = white;
+    if (abs(uv.x - 0.5) < 0.06 || abs(uv.y - 0.5) < 0.09) { c = red; }
+    if (uv.x < 0.5 && uv.y < 0.5) {
+      let q = vec2f(uv.x * 2.0, uv.y * 2.0);
+      c = vec3f(0.07, 0.10, 0.34);
+      let d1 = abs(q.x * 1.5 - q.y * 1.0) / 1.8;
+      let d2 = abs((1.0 - q.x) * 1.5 - q.y) / 1.8;
+      if (d1 < 0.10 || d2 < 0.10) { c = white; }
+      if (d1 < 0.04 || d2 < 0.04) { c = red; }
+      if (abs(q.x - 0.5) < 0.17 || abs(q.y - 0.5) < 0.17) { c = white; }
+      if (abs(q.x - 0.5) < 0.09 || abs(q.y - 0.5) < 0.09) { c = red; }
+    }
+    return c;
+  }
+  if (n == 4u) {               // Germany: Reichskriegsflagge of 1921 (black-white-red, iron cross in the canton)
+    var c = select(select(red, white, uv.y < 0.667), vec3f(0.03), uv.y < 0.333);
+    if (uv.x < 0.34 && uv.y < 0.5) {
+      c = red;
+      let q = vec2f(uv.x / 0.34, uv.y / 0.5);
+      if (abs(q.x - 0.5) < 0.12 || abs(q.y - 0.5) < 0.16) { c = vec3f(0.03); }
+      if ((abs(q.x - 0.5) < 0.05 && abs(q.y - 0.5) < 0.30) || (abs(q.y - 0.5) < 0.07 && abs(q.x - 0.5) < 0.30)) { c = white; }
+    }
+    return c;
+  }
+  if (n == 5u) {               // France: tricolour
+    return select(select(vec3f(0.08, 0.14, 0.45), white, uv.x > 0.333), red, uv.x > 0.667);
+  }
+  // Italy: tricolour with the Savoy arms
+  var c = select(select(vec3f(0.0, 0.40, 0.20), white, uv.x > 0.333), red, uv.x > 0.667);
+  if (rect(uv, vec2f(0.5, 0.52), vec2f(0.085, 0.16))) { c = red; if (abs(uv.x - 0.5) < 0.016 || abs(uv.y - 0.52) < 0.025) { c = white; } }
+  if (rect(uv, vec2f(0.5, 0.30), vec2f(0.07, 0.035))) { c = vec3f(0.80, 0.62, 0.15); }
+  return c;
+}
+
+// Normal perturbation from a procedural height field (Mikkelsen), no tangents needed.
+fn bumpNormal(N: vec3f, p: vec3f, h: f32) -> vec3f {
+  let sx = dpdx(p);
+  let sy = dpdy(p);
+  let dhx = dpdx(h);
+  let dhy = dpdy(h);
+  let r1 = cross(sy, N);
+  let r2 = cross(N, sx);
+  let det = dot(sx, r1);
+  let g = sign(det) * (dhx * r1 + dhy * r2);
+  return select(normalize(abs(det) * N - g), N, abs(det) < 1e-10);
+}
 
 fn fresnelSchlick(c: f32, f0: vec3f) -> vec3f {
   let x = 1.0 - clamp(c, 0.0, 1.0);
@@ -74,6 +206,7 @@ fn ggx(nh: f32, a: f32) -> f32 {
   if (in.misc.w != 0.0 && (in.local.x - in.misc.z) * in.misc.w < 0.0) { discard; }
   var N = normalize(in.nrm);
   if (!ff) { N = -N; }
+  let Ng = N;                                              // geometric normal (shadow offset), before any bump
   let dist = length(in.rel);
   let V = -in.rel / dist;
   let Ld = F.sunDir.xyz;
@@ -94,6 +227,11 @@ fn ggx(nh: f32, a: f32) -> f32 {
   let streakN = gnoise(vec2f(lp.x * 0.9 + lp.z * 0.9, lp.y * 0.07 + in.misc.y * 7.0));
   var weather = 1.0 + 0.10 * mott + 0.05 * fineN * smoothstep(40.0, 4.0, dist);
 
+  var hgt = 0.0;                                         // procedural relief (metres), turned into a normal perturbation below
+  let scheme = u32(in.paint.x + 0.5);
+  let nearFade = 1.0 - smoothstep(30.0, 140.0, dist);
+  let isSide = abs(in.lnrm.y) < 0.55;
+
   switch (mat) {
     case 5u: {   // hull plating with waterline bands
       let y = lp.y;
@@ -103,12 +241,18 @@ fn ggx(nh: f32, a: f32) -> f32 {
       let fadeS = 1.0 - smoothstep(0.02, 0.12, fw * 1.9);
       let seam = (smoothstep(0.93, 1.0, sy) * 0.6 + smoothstep(0.985, 1.0, sx) * 0.45) * fadeS;
       weather *= 1.0 - 0.18 * seam;
+      // overlapping strakes: each plate stands a little proud of the one below it
+      hgt = (0.05 * smoothstep(0.0, 0.1, fract(y / 1.9)) + 0.02 * smoothstep(0.0, 0.05, fract((lp.x + 1.3) / 7.5))) * fadeS * nearFade;
       // scuttles (portholes): a row of dark discs along the topsides, only resolved when close
       if (abs(in.lnrm.z) > 0.65 && y > 1.6 && y < 6.5) {
         let px = (fract((lp.x + in.misc.y * 3.0) / 3.1) - 0.5) * 3.1;
         let d = length(vec2f(px, y - 3.4));
         let m = (1.0 - smoothstep(0.17, 0.24, d)) * (1.0 - smoothstep(0.08, 0.35, fw));
         weather *= 1.0 - 0.72 * m;
+      }
+      // camouflage over the topsides
+      if (scheme > 0u) {
+        albedo = srgb2lin(camoColor(u32(in.paint.w + 0.5), camoTone(lp, scheme, in.paint.y)));
       }
       let rustStreak = smoothstep(0.35, 0.8, streakN) * smoothstep(-0.2, 2.5, y) * 0.35;
       albedo = mix(albedo, albedo * vec3f(1.1, 0.7, 0.5) * 0.9, rustStreak * 0.5);
@@ -120,6 +264,19 @@ fn ggx(nh: f32, a: f32) -> f32 {
       albedo = mix(albedo, vec3f(0.19, 0.05, 0.04), red);
       rough = 0.72;
     }
+    case 0u: {   // painted steel (superstructure, funnels, turret houses)
+      if (scheme > 0u && isSide && lp.y > 1.5) {
+        albedo = srgb2lin(camoColor(u32(in.paint.w + 0.5), camoTone(lp, scheme, in.paint.y)));
+      }
+      // fine plate lines on large vertical surfaces
+      if (isSide) {
+        let px = abs(fract(lp.y / 1.2) - 0.5) * 2.0;
+        let fadeP = (1.0 - smoothstep(0.02, 0.10, fw * 1.6)) * nearFade;
+        weather *= 1.0 - 0.10 * smoothstep(0.94, 1.0, px) * fadeP;
+        hgt = 0.03 * smoothstep(0.0, 0.08, fract(lp.y / 1.2)) * fadeP;
+      }
+      rough = 0.7;
+    }
     case 1u: {   // wooden / linoleum deck: planks
       let pz = lp.z / 0.24;
       let pl = abs(fract(pz) - 0.5) * 2.0;
@@ -129,6 +286,7 @@ fn ggx(nh: f32, a: f32) -> f32 {
       let line = (smoothstep(0.9, 1.0, pl) * 0.5 + smoothstep(0.975, 1.0, jx) * 0.35) * fade;
       let tone = 0.88 + 0.24 * hash11(floor(pz) * 3.1 + seg * 1.7);
       albedo = albedo * tone * (1.0 - 0.45 * line);
+      hgt = -0.012 * (smoothstep(0.9, 1.0, pl) + smoothstep(0.975, 1.0, jx)) * fade * nearFade;
       weather *= 1.0 + 0.08 * mott;
       rough = 0.9;
     }
@@ -136,7 +294,11 @@ fn ggx(nh: f32, a: f32) -> f32 {
       let sx = abs(fract(lp.x / 14.0) - 0.5) * 2.0;
       let fade = 1.0 - smoothstep(0.1, 0.6, fw * 2.0);
       albedo = albedo * (0.9 + 0.15 * fineN) * (1.0 - 0.3 * smoothstep(0.985, 1.0, sx) * fade);
-      rough = 0.7;
+      // wear: lighter, polished strips where aircraft wheels run, rubber streaks at the arrester wires
+      let wear = smoothstep(0.35, 0.8, gnoise(vec2f(lp.x * 0.35, lp.z * 3.0)));
+      albedo *= 1.0 + 0.10 * wear;
+      hgt = -0.01 * smoothstep(0.985, 1.0, sx) * fade * nearFade;
+      rough = mix(0.72, 0.55, wear);
     }
     case 2u: {   // glass
       albedo = vec3f(0.012, 0.018, 0.024);
@@ -158,8 +320,24 @@ fn ggx(nh: f32, a: f32) -> f32 {
       emissive = albedo * 0.12;
     }
     case 9u: { rough = 0.4; f0 = vec3f(0.05); }
+    case 10u: {  // national ensign
+      albedo = srgb2lin(ensign(u32(in.paint.z + 0.5), in.col.rg));
+      rough = 0.9;
+      emissive = albedo * 0.10;
+    }
+    case 11u: {  // hull number glyph: red channel = glyph index, green / blue = position in the glyph box
+      let gi = u32(in.col.r * 255.0 + 0.5);
+      let cu = u32(clamp(floor(in.col.g * 5.0), 0.0, 4.0));
+      let cv = u32(clamp(floor(in.col.b * 7.0), 0.0, 6.0));
+      let bit = cv * 5u + cu;
+      let word = select(GLYPH[gi].x, GLYPH[gi].y, bit >= 32u);
+      if (((word >> (bit & 31u)) & 1u) == 0u) { discard; }
+      albedo = vec3f(0.78, 0.78, 0.74);
+      rough = 0.8;
+    }
     default: { rough = 0.74; }
   }
+  N = bumpNormal(N, in.rel, hgt);
   albedo *= weather;
 
   // wet hull near the waterline: darker and glossier, the spray zone
@@ -188,7 +366,7 @@ fn ggx(nh: f32, a: f32) -> f32 {
 
   // ---- lighting ----
   // shadow: surfaces facing away from the sun are already dark; the map handles occlusion by other geometry
-  let shadow = shadowAt(in.rel + N * 0.35);
+  let shadow = shadowAt(in.rel + Ng * 0.35);
   let sunE = sunIlluminance() * sunVis[0] * shadow;
   let NdL = dot(N, Ld);
   // soft terminator: ships have lots of small features, a bit of wrap avoids hard black faces
@@ -217,7 +395,9 @@ fn ggx(nh: f32, a: f32) -> f32 {
   Rr.y = max(Rr.y, -0.1);
   let envLod = clamp(rough * 7.0, 0.0, ENV_MAXMIP);
   let refl = textureSampleLevel(envCube, sampC, normalize(Rr), envLod).rgb;
-  let Fe = fresnelSchlick(nv, mix(f0, albedo, metal));
+  // roughness-aware Fresnel for the environment reflection: rough paint does not turn into a mirror at grazing angles
+  let F0e = mix(f0, albedo, metal);
+  let Fe = F0e + (max(vec3f(1.0 - rough), F0e) - F0e) * pow(1.0 - clamp(nv, 0.0, 1.0), 5.0);
   col = col * (1.0 - metal * 0.8) + spec + refl * Fe * ao * mix(0.55, 1.0, 1.0 - rough);
   col += emissive;
   col = mix(col, albedo * (sunE * 0.15 + amb) , select(0.0, 0.3, mat == 8u));

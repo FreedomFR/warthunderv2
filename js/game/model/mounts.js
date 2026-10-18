@@ -41,22 +41,32 @@ function makeMount(s) {
   height = h;
 
   if (s.kind === 'turret') {
-    // gun house: sloped face, tapering sides, small rear overhang
-    const x0 = -len * 0.5, x1 = len * 0.42;
-    hb.block({ x0, x1, hw: wid / 2, y0: 0, y1: h, tx0: x0 + len * 0.02, tx1: x1 - len * 0.2, thw: wid / 2 * 0.9, sideCol: col }, col, MAT.HULL);
-    // rear counterweight bulge + roof hatches
-    hb.block({ x0: x0 - len * 0.05, x1: x0 + len * 0.1, hw: wid / 2 * 0.85, y0: h * 0.2, y1: h * 0.82, top: true }, shade(col, 0.95), MAT.HULL);
-    hb.box(x0 + len * 0.28, h + 0.1, wid * 0.22, len * 0.12, 0.2, calM * 2.4, shade(col, 1.1), MAT.HULL);
-    hb.box(x0 + len * 0.28, h + 0.1, -wid * 0.22, len * 0.12, 0.2, calM * 2.4, shade(col, 1.1), MAT.HULL);
-    // rangefinder hood on large turrets
-    if (calM > 0.3) hb.rodZ(x0 + len * 0.12, h * 0.62, -wid / 2 - calM * 1.2, wid / 2 + calM * 1.2, calM * 0.22, calM * 0.22, shade(col, 0.9), MAT.HULL);
-    // gun ports
+    // gun house: vertical lower walls with the gun ports, a sloped roof / front plate, a rear counterweight bulge,
+    // rangefinder, periscope hoods and hatches
+    const x0 = -len * 0.5, xf = len * 0.36, hw = wid / 2;
+    const mid = shade(col, 0.96), light = shade(col, 1.1), canvas = rgb('#3d3f3e');
+    hb.cylinder(0, -0.05, 0, hw * 0.92, hw * 0.95, 0.35, shade(col, 0.8), MAT.HULL, { seg: 20 });                    // rotating skirt
+    hb.block({ x0, x1: xf, hw, y0: 0.3, y1: h * 0.6, tx0: x0 + len * 0.02, tx1: xf, thw: hw * 0.97 }, col, MAT.HULL);
+    hb.block({ x0: x0 + len * 0.015, x1: xf - len * 0.015, hw: hw * 0.97, y0: h * 0.6, y1: h, tx0: x0 + len * 0.1, tx1: xf - len * 0.34, thw: hw * 0.84 }, mid, MAT.HULL);
+    hb.block({ x0: x0 - len * 0.07, x1: x0 + len * 0.12, hw: hw * 0.8, y0: h * 0.18, y1: h * 0.78, tx0: x0 - len * 0.02, tx1: x0 + len * 0.1, thw: hw * 0.7 }, shade(col, 0.9), MAT.HULL);
+    // roof fittings
+    hb.cylinder(x0 + len * 0.3, h * 0.97, hw * 0.36, calM * 0.55, calM * 0.5, h * 0.97 + calM * 1.0, shade(col, 0.8), MAT.HULL, { seg: 6 });
+    hb.cylinder(x0 + len * 0.3, h * 0.97, -hw * 0.36, calM * 0.55, calM * 0.5, h * 0.97 + calM * 1.0, shade(col, 0.8), MAT.HULL, { seg: 6 });
+    hb.box(x0 + len * 0.45, h * 0.99, 0, len * 0.14, 0.14, hw * 0.5, light, MAT.HULL);
+    if (calM > 0.3) {
+      // rangefinder tube with its end hoods
+      const rz = hw + calM * 1.3, ry = h * 0.84, rx = x0 + len * 0.16;
+      hb.rodZ(rx, ry, -rz, rz, calM * 0.2, calM * 0.2, shade(col, 0.85), MAT.HULL, { seg: 8 });
+      for (const sg of [-1, 1]) hb.cyl(rx, ry - calM * 0.35, sg * (rz - calM * 0.3), calM * 0.55, calM * 0.45, calM * 0.5, calM * 0.4, ry + calM * 0.35, light, MAT.HULL, { seg: 8, dz: sg * calM * 0.3 });
+    }
+    // gun ports with blast bags
     for (let i = 0; i < n; i++) {
       const z = (i - (n - 1) / 2) * spacing;
-      hb.block({ x0: x1 - len * 0.2 - 0.05, x1: x1 - len * 0.2 + 0.06, hw: calM * 1.25, zc: z, y0: h * 0.3, y1: h * 0.3 + calM * 2.0 }, dark, MAT.DARK);
+      hb.block({ x0: xf - 0.04, x1: xf + 0.08, hw: calM * 1.45, zc: z, y0: h * 0.22, y1: h * 0.22 + calM * 2.4 }, dark, MAT.DARK);
+      hb.block({ x0: xf + 0.02, x1: xf + 0.22, hw: calM * 1.15, zc: z, y0: h * 0.22 + calM * 0.4, y1: h * 0.22 + calM * 2.0 }, canvas, MAT.CANVAS);
     }
-    trunX = x1 - len * 0.2 - len * 0.12;
-    trunY = h * 0.3 + calM;
+    trunX = xf - len * 0.2;
+    trunY = h * 0.22 + calM * 1.2;
   } else if (s.kind === 'dp') {
     // enclosed dual-purpose mount (rounded octagonal house)
     const r = Math.max(wid / 2, 1.1), L2 = Math.max(len * 0.9, 2.2);

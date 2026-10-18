@@ -6,6 +6,8 @@ import { MeshBuilder, MAT, rgb, shade, mix } from './meshbuilder.js';
 import { buildHull } from './hull.js';
 import * as PT from './parts.js';
 import { makeRng } from '../math.js';
+import { paintOf, hullNumber, LIVERY, PALETTES } from './livery.js';
+import * as DT from './details.js';
 
 const clamp = (v, a, c) => (v < a ? a : v > c ? c : v);
 const D2R = Math.PI / 180;
@@ -20,6 +22,8 @@ function makePalette(spec, tw) {
     sup, dark: '#202327', cap: '#18191b', funnel: p.funnel || sup, mast: rgb(shade(sup, 0.82)).map(Math.round),
     boat: '#8c9296', glass: '#0e151b', ...(tw.pal || {}),
   };
+  const lv = LIVERY[spec.id];
+  if (lv) { const m = PALETTES[lv.pal]; pal.hull = m[1]; pal.sup = m[2]; pal.funnel = m[1]; pal.mast = m[1]; pal.boat = m[2]; }
   // linoleum / teak decks: keep them from looking orange-bright under the strong sun
   pal.deck = '#' + mix(pal.deck, '#5b5348', 0.42).map((v) => Math.round(v).toString(16).padStart(2, '0')).join('');
   for (const k of ['mast']) if (Array.isArray(pal[k])) pal[k] = '#' + pal[k].map((v) => v.toString(16).padStart(2, '0')).join('');
@@ -111,14 +115,16 @@ export function buildShipModel(spec, tw = {}) {
   const sil = spec.silhouette || {};
   const model = {
     id: spec.id, spec, L, B, D: hp.D, mounts: [], smoke: [], aa: [], aaMounts: [], tubes: [], floatPts: [], hull, pal,
-    topY: 0, catapults: [], hangar: null, island: null, deckPoints: [], parts: [], deckSlots: [],
+    topY: 0, catapults: [], hangar: null, island: null, deckPoints: [], parts: [], deckSlots: [], paint: paintOf(spec),
   };
   // A destroyable piece: built into its own mesh (+ an optional wrecked version drawn once it is destroyed).
   const part = (id, kind, label, fn, ruinFn, extra = {}) => {
     const bb = b.group(id, fn);
     if (!isFinite(bb[0])) return null;
     if (ruinFn) b.group(id + '_ruin', ruinFn);
-    const p = { id, kind, label, bb, hasRuin: !!ruinFn, ...extra };
+    if (extra.fine) b.group(id + '_fine', extra.fine);
+    const p = { id, kind, label, bb, hasRuin: !!ruinFn, hasFine: !!extra.fine, ...extra };
+    delete p.fine;
     model.parts.push(p);
     return p;
   };
@@ -148,6 +154,7 @@ export function buildShipModel(spec, tw = {}) {
     model.house = { x0: hx1, x1: hx0, hw, y: hy + houseH };
   }
 
+  const funnelTops = [];
   // -------- funnels --------
   for (let i = 0; i < Math.min(fCount, fF.length); i++) {
     const x = X(fF[i]);
@@ -156,8 +163,9 @@ export function buildShipModel(spec, tw = {}) {
     if (carrier) continue;
     const small = tw.funnelScale ? tw.funnelScale[i] ?? 1 : 1;
     const fo = { x, y0, h: fh * small, lx: funLx * (tw.funnelX?.[i] ?? 1), lz: funLz * (tw.funnelZ?.[i] ?? 1), rake: tw.funnelRake ?? fh * 0.14, band: tw.funnelBand };
-    part('funnel' + i, 'funnel', 'Cheminée ' + (i + 1), () => PT.funnel(b, fo, pal), () => PT.funnelRuin(b, fo, pal));
+    part('funnel' + i, 'funnel', 'Cheminée ' + (i + 1), () => PT.funnel(b, fo, pal), () => PT.funnelRuin(b, fo, pal), { fine: () => PT.funnelDetail(b, fo, pal) });
     model.smoke.push([x - (tw.funnelRake ?? fh * 0.14) * 0.9, y0 + fh * small, 0]);
+    funnelTops.push([x - (tw.funnelRake ?? fh * 0.14) * 0.9, y0 + fh * small, 0]);
     note(y0 + fh);
   }
 
@@ -168,34 +176,50 @@ export function buildShipModel(spec, tw = {}) {
     const tiers = tw.tiers || (tw.pagoda ? pagodaTiers(...tw.pagoda) : towerTiers(spec));
     let r = null;
     part('tower', 'bridge', 'Passerelle', () => { r = PT.tower(b, { x, y0, tiers }, pal); },
-      () => PT.tower(b, { x, y0, tiers: tiers.slice(0, 1).map((t) => ({ ...t, col: charred(pal), windows: false, wings: 0 })) }, pal));
+      () => PT.tower(b, { x, y0, tiers: tiers.slice(0, 1).map((t) => ({ ...t, col: charred(pal), windows: false, wings: 0 })) }, pal),
+      { fine: () => PT.towerDetail(b, { x, y0, tiers }, pal) });
     let y = r.topY;
     const topW = tiers[tiers.length - 1].w;
     // main director on top + radar, then a mast
     const mastDesc = (sil.masts && sil.masts[0] && sil.masts[0].kind) || '';
     const mastH = (sil.masts && sil.masts[0] && sil.masts[0].heightAboveWaterM) || (t === 'DD' ? 22 : 40);
+    const ensLen = clamp(L * 0.021, 2.2, 6.2);
+    const ensOnFore = !(sil.masts && sil.masts.length > 1);
     const mastTopY = Math.max(mastH, y + 4);
     const dirKind = spec.nation === 'Japan' ? 'drum' : 'box';
     const dirO = { x: x + 0.3, y, z: 0, w: topW * 0.7, l: topW * 0.75, h: t === 'DD' ? 1.6 : 2.4, kind: tw.dirKind || dirKind };
     part('director0', 'director', 'Directeur de tir avant', () => PT.director(b, dirO, pal), () => b.cylinder(dirO.x, dirO.y, 0, 0.5, 0.4, dirO.y + 0.7, rgb(charred(pal)), MAT.DARK, { seg: 6 }));
     y += t === 'DD' ? 2.0 : 3.0;
     const mastBase = r.tops[Math.max(0, tiers.length - 3)];
+    // rigging of the foremast: forestay to the bow, stays to the funnels, a flag hoist on the yardarms
+    const foreFine = () => {
+      const top = [x - 0.9, mastTopY - 0.8, 0], sc = rgb(pal.dark);
+      DT.stay(b, top, [X(0.012), Y(X(0.012)) + 1.4, 0], sc, 0.05);
+      DT.stay(b, [x - 0.9, mastTopY * 0.82, 0], [X(0.03), Y(X(0.03)) + 1.0, 0.3], sc, 0.04);
+      for (const ft of funnelTops.slice(0, 2)) DT.stay(b, [x - 0.9, mastTopY * 0.74, 0], [ft[0], ft[1] - 0.6, 0], sc, 0.04);
+      b.rodZ(x - 0.8, mastTopY * 0.66 + 0.1, -4.4, 4.4, 0.06, 0.04, sc, MAT.HULL, { seg: 5 });
+      PT.signalHoist(b, x - 0.8, mastTopY * 0.66, 3.2, 4, 1);
+      PT.signalHoist(b, x - 0.8, mastTopY * 0.66, -3.6, 5, 4);
+    };
     const mastRuin = (mx, my, mh) => () => b.cylinder(mx, my, 0, 0.5, 0.3, my + Math.max(2.5, mh * 0.18), rgb(charred(pal)), MAT.DARK, { seg: 6 });
     if (kindOf(mastDesc, 'tripod')) {
       part('mast0', 'mast', 'Mât avant', () => {
         PT.tripod(b, { x: x - 1, y0: mastBase, h: mastTopY - mastBase, legSpread: topW * 0.6, legBack: 4, legFront: 2, platforms: [0.55], yards: [[0.8, 8]] }, pal);
         PT.pennant(b, x - 0.8, mastTopY + 0.2, 0.3, 4.5, 0, '#ffffff');
-      }, mastRuin(x - 1, mastBase, mastTopY - mastBase));
+        if (ensOnFore) PT.ensign(b, { x: x - 1.1, y: mastTopY - 7, z: 0, len: ensLen });
+      }, mastRuin(x - 1, mastBase, mastTopY - mastBase), { fine: foreFine });
     } else if (kindOf(mastDesc, 'cage|lattice')) {
       part('mast0', 'mast', 'Mât avant', () => {
         PT.cageMast(b, { x: x - 1, y0: mastBase, h: mastTopY - mastBase - 4, r0: 2.4, r1: 1.0 }, pal);
         PT.pennant(b, x - 0.8, mastTopY + 0.2, 0.3, 4.5, 0, '#ffffff');
-      }, mastRuin(x - 1, mastBase, mastTopY - mastBase));
+        if (ensOnFore) PT.ensign(b, { x: x - 1.1, y: mastTopY - 7, z: 0, len: ensLen });
+      }, mastRuin(x - 1, mastBase, mastTopY - mastBase), { fine: foreFine });
     } else {
       part('mast0', 'mast', 'Mât avant', () => {
         PT.poleMast(b, { x: x - 0.8, y0: y, h: Math.max(mastTopY - y, 6), r: 0.38, yards: [[0.55, 9], [0.8, 6]] }, pal);
         PT.pennant(b, x - 0.8, mastTopY + 0.2, 0.3, 4.5, 0, '#ffffff');
-      }, mastRuin(x - 0.8, y, Math.max(mastTopY - y, 6)));
+        if (ensOnFore) PT.ensign(b, { x: x - 1.1, y: mastTopY - 7, z: 0, len: ensLen });
+      }, mastRuin(x - 0.8, y, Math.max(mastTopY - y, 6)), { fine: foreFine });
     }
     // radar
     const rkind = ['USA', 'UK'].includes(spec.nation) ? 'bedspring' : 'box';
@@ -221,7 +245,17 @@ export function buildShipModel(spec, tw = {}) {
       part('mast' + i, 'mast', 'Mât ' + (i === 1 ? 'arrière' : 'secondaire'), () => {
         if (kindOf(m.kind, 'tripod')) PT.tripod(b, { x, y0, h, legSpread: 3.5, legBack: 4, legFront: 1.5, platforms: [0.6], yards: [[0.78, 7]] }, pal);
         else PT.poleMast(b, { x, y0, h, r: 0.36, yards: [[0.6, 8]] }, pal);
-      }, () => b.cylinder(x, y0, 0, 0.45, 0.3, y0 + Math.max(2.2, h * 0.16), rgb(charred(pal)), MAT.DARK, { seg: 6 }));
+        if (i === masts.length - 1) PT.ensign(b, { x: x - 0.7, y: y0 + h * 0.8, z: 0, len: clamp(L * 0.021, 2.2, 6.2) });
+      }, () => b.cylinder(x, y0, 0, 0.45, 0.3, y0 + Math.max(2.2, h * 0.16), rgb(charred(pal)), MAT.DARK, { seg: 6 }), {
+        fine: () => {
+          const sc = rgb(pal.dark), top = [x, y0 + h - 0.6, 0];
+          if (i === masts.length - 1) DT.stay(b, top, [X(0.99), Y(X(0.99)) + 1.4, 0], sc, 0.05);
+          for (const ft of funnelTops.slice(-2)) DT.stay(b, [x, y0 + h * 0.7, 0], [ft[0], ft[1] - 0.6, 0], sc, 0.04);
+          // flat-top antenna wires towards the foremast
+          const fx = X((sil.masts[0] && sil.masts[0].fractionFromBow) || 0.33);
+          for (const zz of [-1.4, 1.4]) DT.stay(b, [x, y0 + h * 0.92, zz], [fx - 1.0, Math.max(y0 + h * 0.92, 22), zz * 0.6], sc, 0.03);
+        },
+      });
       note(y0 + h);
     }
   }
@@ -353,16 +387,50 @@ export function buildShipModel(spec, tw = {}) {
   }
   if (!carrier) {
     PT.forecastle(b, hull, X(0.04), pal);
-    PT.deckRails(b, hull, X(0.02), X(0.28), 0.9, pal, 6);
-    PT.deckRails(b, hull, X(0.62), X(0.97), 0.9, pal, 6);
     PT.deckClutter(b, hull, X(0.05), X(0.30), Math.round(L / 20), rnd, pal);
     PT.deckClutter(b, hull, X(0.64), X(0.96), Math.round(L / 18), rnd, pal);
-    const nb = L > 150 ? 2 : 1;
-    for (let i = 0; i < nb; i++) for (const sg of [-1, 1]) {
-      const x = X(0.46 + i * 0.07), hy = Y(x) + (model.house && x < model.house.x1 && x > model.house.x0 ? houseH : 0);
-      PT.boat(b, { x, y: hy + 0.4, z: sg * (model.house ? model.house.hw * 0.75 : hull.halfBeamDeck(x) * 0.7), yaw: 0, len: L > 150 ? 10 : 7 }, pal);
-    }
+    // fine detail, drawn only when the ship is close
+    const rf = makeRng(hashStr(spec.id + ':fine'));
+    b.group('fine', () => {
+      DT.lifelines(b, hull, X(0.975), X(0.025), pal);
+      DT.rubbingStrake(b, hull, X(0.9), X(0.08), 1.7, pal);
+      DT.anchorAndHawse(b, hull, X(0.05), Math.max(Y(X(0.05)) * 0.58, 2.4), pal);
+      DT.mooring(b, hull, X(0.07), X(0.17), pal, 3);
+      DT.mooring(b, hull, X(0.85), X(0.96), pal, 3);
+      if (t === 'DD') DT.depthCharges(b, hull, X(0.93), pal);
+      const nb = L > 150 ? 2 : 1;
+      for (let i = 0; i < nb; i++) for (const sg of [-1, 1]) {
+        const x = X(0.46 + i * 0.075), onH = model.house && x < model.house.x1 && x > model.house.x0;
+        const hy = Y(x) + (onH ? houseH : 0);
+        DT.launch(b, { x, y: hy + 0.55, z: sg * (model.house ? model.house.hw * 0.74 : hull.halfBeamDeck(x) * 0.66), yaw: 0, len: L > 150 ? 10.5 : 7.5, cabin: i === 0, davits: true }, pal);
+      }
+      // life rafts stacked along the deckhouse sides and on the quarterdeck
+      const nr = Math.round(clamp(L / 20, 5, 14));
+      for (let i = 0; i < nr; i++) {
+        const f = i % 2 ? 0.66 + 0.2 * rf() : 0.28 + 0.2 * rf();
+        const x = X(f), sg = rf() < 0.5 ? -1 : 1;
+        const onH = model.house && x < model.house.x1 && x > model.house.x0;
+        const z = sg * Math.max(1.2, (onH ? model.house.hw : hull.halfBeamDeck(x) * 0.8) - 1.0);
+        DT.raft(b, x, Y(x) + (onH ? houseH : 0) + 0.15, z, rf() * 3.14, pal);
+      }
+      // ventilators
+      const nv = Math.round(clamp(L / 14, 6, 18));
+      for (let i = 0; i < nv; i++) {
+        const f = rf() < 0.5 ? 0.12 + 0.2 * rf() : 0.62 + 0.3 * rf();
+        const x = X(f), onH = model.house && x < model.house.x1 && x > model.house.x0;
+        const hb = onH ? model.house.hw : hull.halfBeamDeck(x);
+        DT.vent(b, x, Y(x) + (onH ? houseH : 0), (rf() * 2 - 1) * hb * 0.7, rf() * 6.28, pal, 0.8 + rf() * 0.5);
+      }
+    });
     PT.pennant(b, X(0.985), Y(X(0.985)) + 0.8, 0, 3.5, 0, '#ffffff');
+    PT.ensign(b, { x: X(0.985), y: Y(X(0.985)) + 4.4, z: 0, len: clamp(L * 0.016, 1.6, 4.4), staff: true });
+  }
+  {
+    const num = hullNumber(spec);
+    if (num) {
+      const nx = X(carrier ? 0.1 : 0.14), nh = clamp(L * 0.011, 1.2, 3.1);
+      PT.hullNumber(b, hull, num, { x: nx, y: Math.max(Y(nx) * 0.56 + 0.3, nh), h: nh });
+    }
   }
 
   // -------- buoyancy sample points & hit zones --------
@@ -379,7 +447,8 @@ export function buildShipModel(spec, tw = {}) {
   model.radius = Math.hypot(L / 2, topY);
   const built = b.build();
   model.mesh = built;
-  for (const p of model.parts) { p.mesh = built.groups[p.id]; p.ruin = p.hasRuin ? built.groups[p.id + '_ruin'] : null; }
+  for (const p of model.parts) { p.mesh = built.groups[p.id]; p.ruin = p.hasRuin ? built.groups[p.id + '_ruin'] : null; p.fineMesh = p.hasFine ? built.groups[p.id + '_fine'] : null; }
+  model.fine = built.groups.fine || null;
   return model;
 }
 
@@ -433,7 +502,7 @@ function buildCarrier(b, model, spec, hull, pal, tw, X, Y, fdY, rnd, note, part)
     model.smoke.push([x - 1, fdY + ih * 0.3 + Math.max(ih * 0.8, 8), iz]);
   });
   // mast / radar on the island
-  part('mast0', 'mast', 'Mât de l\'îlot', () => PT.poleMast(b, { x: ix + il * 0.1, y0: fdY + ih, h: 14, z: iz, r: 0.3, yards: [[0.6, 7]] }, pal), () => b.cylinder(ix + il * 0.1, fdY + ih, iz, 0.4, 0.25, fdY + ih + 2.5, dark, MAT.DARK, { seg: 6 }));
+  part('mast0', 'mast', 'Mât de l\'îlot', () => { PT.poleMast(b, { x: ix + il * 0.1, y0: fdY + ih, h: 14, z: iz, r: 0.3, yards: [[0.6, 7]] }, pal); PT.ensign(b, { x: ix + il * 0.1 - 0.5, y: fdY + ih + 10.5, z: iz, len: clamp(L * 0.02, 3, 6) }); }, () => b.cylinder(ix + il * 0.1, fdY + ih, iz, 0.4, 0.25, fdY + ih + 2.5, dark, MAT.DARK, { seg: 6 }));
   part('radar0', 'radar', 'Radar de veille', () => PT.radar(b, { x: ix + il * 0.1, y: fdY + ih + 8, z: iz, kind: ['USA', 'UK'].includes(spec.nation) ? 'bedspring' : 'box', w: 6 }, pal));
   part('director0', 'director', 'Directeur de tir', () => PT.director(b, { x: ix + il * 0.2, y: fdY + ih, z: iz, w: 3.4, l: 3.2, h: 2.2, kind: spec.nation === 'Japan' ? 'drum' : 'box' }, pal), () => b.cylinder(ix + il * 0.2, fdY + ih, iz, 0.5, 0.4, fdY + ih + 0.7, dark, MAT.DARK, { seg: 6 }));
   note(fdY + ih + 16);
@@ -463,4 +532,19 @@ function buildCarrier(b, model, spec, hull, pal, tw, X, Y, fdY, rnd, note, part)
     model.deckSlots.push({ x, y: fdY + 0.05, z, yaw: 0 });
   }
   PT.deckRails(b, hull, x0 + 2, x1 - 4, 0.8, pal, 8);
+  // fine detail: catwalk nets along the deck edge, hangar openings on open-hangar carriers, anchors, boats and rafts
+  const rf = makeRng(hashStr(spec.id + ':fine'));
+  b.group('fine', () => {
+    DT.deckNets(b, x0, x1, hw, fdY, pal);
+    if (['USA', 'Japan', 'France'].includes(spec.nation) && !tw.closedHangar) DT.hangarOpenings(b, hull, X(0.64), X(0.16), fdY - 6.6, fdY - 3.7, pal);
+    DT.anchorAndHawse(b, hull, X(0.06), Math.max(fdY * 0.42, 3), pal);
+    for (const sgn of [-1, 1]) {
+      const bx = X(0.58 + 0.05 * sgn * 0);
+      DT.launch(b, { x: bx, y: fdY - 5.2, z: sgn * (hull.halfBeamDeck(bx) + 0.9), yaw: 0, len: 9.5, cabin: sgn > 0, davits: false }, pal);
+    }
+    for (let i = 0; i < 8; i++) {
+      const x = X(0.15 + rf() * 0.7), sgn = rf() < 0.5 ? -1 : 1;
+      DT.raft(b, x, fdY - 2.15, sgn * (hull.halfBeamDeck(x) + 1.2), rf() * 3.14, pal);
+    }
+  });
 }

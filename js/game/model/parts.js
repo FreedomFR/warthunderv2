@@ -3,6 +3,8 @@
 // { hull, deck, sup, dark, funnel, cap, mast, boat, glass }.
 import { MAT, rgb, shade, mix } from './meshbuilder.js';
 import { drawPlane, floatplaneSpec } from './planes.js';
+import { glyphIndex } from './glyphs.js';
+import { roofRail } from './details.js';
 
 const PI = Math.PI;
 
@@ -331,3 +333,117 @@ export function pennant(b, x, y, z, len, team, flagCol) {
   b.triFlat(a, tip, c, col, MAT.FLAG, null, 1);
   b.pop();
 }
+
+/**
+ * National ensign: a cloth grid streaming aft (-x) from the hoist at (x, y, z), `y` being the top edge. The shader paints the
+ * nation's flag from the (u, v) stored in the vertex colour and ripples it. staff: draws a flag staff up to the top edge.
+ */
+export function ensign(b, o) {
+  const len = o.len, h = o.h ?? len * 2 / 3, z = o.z || 0;
+  const NU = 8, NV = 2;
+  const ids = [];
+  for (let j = 0; j <= NV; j++) {
+    const row = [];
+    for (let i = 0; i <= NU; i++) {
+      const u = i / NU, v = j / NV;
+      row.push(b.vert(o.x - u * len, o.y - v * h, z, 0, 0, 1, [u * 255, v * 255, Math.min(255, len * 10)], MAT.ENSIGN, 1));
+    }
+    ids.push(row);
+  }
+  for (let j = 0; j < NV; j++) for (let i = 0; i < NU; i++) b.quadIdx(ids[j][i], ids[j][i + 1], ids[j + 1][i + 1], ids[j + 1][i]);
+  if (o.staff) {
+    b.cylinder(o.x, o.y - h - 0.3, z, 0.07, 0.045, o.y + 0.5, rgb('#d8d4c8'), MAT.HULL, { seg: 6 });
+    b.sphere(o.x, o.y + 0.55, z, 0.08, 0.08, 0.08, rgb('#c9a24a'), MAT.HULL, { seg: 6, rings: 4 });
+  }
+}
+
+/**
+ * Hull number on both sides of the bow. `text` is drawn with the bitmap font (see glyphs.js); the quads follow the flare of the hull.
+ */
+export function hullNumber(b, hull, text, o) {
+  const chars = text.split('');
+  const h = o.h, w = h * 5 / 7, gap = w * 0.38;
+  const total = chars.length * w + (chars.length - 1) * gap;
+  for (const sg of [1, -1]) {
+    // starboard reads towards the bow (+x), port towards the stern
+    chars.forEach((ch, ci) => {
+      const gi = glyphIndex(ch);
+      if (gi < 0) return;
+      const u0 = ci * (w + gap), u1 = u0 + w;
+      const x0 = o.x + sg * (u0 - total / 2), x1 = o.x + sg * (u1 - total / 2);
+      const yt = o.y + h / 2, yb = o.y - h / 2;
+      const zt = hull.sideZ((x0 + x1) / 2, yt) + 0.08, zb = hull.sideZ((x0 + x1) / 2, yb) + 0.08;
+      const col = (u, v) => [gi, u * 255, v * 255];
+      const a = b.vert(x0, yt, sg * zt, 0, 0.15, sg, col(0, 0), MAT.GLYPH, 1);
+      const c = b.vert(x1, yt, sg * zt, 0, 0.15, sg, col(1, 0), MAT.GLYPH, 1);
+      const d = b.vert(x1, yb, sg * zb, 0, 0.15, sg, col(1, 1), MAT.GLYPH, 1);
+      const e = b.vert(x0, yb, sg * zb, 0, 0.15, sg, col(0, 1), MAT.GLYPH, 1);
+      b.quadIdx(e, d, c, a);
+    });
+  }
+}
+
+/** A hoist of signal flags hanging from a yardarm. */
+export function signalHoist(b, x, y, z, n, seed = 0) {
+  const cols = ['#b3202a', '#e8e4d8', '#1d3f8a', '#e0b92a', '#202428', '#e8e4d8', '#2a7a3a', '#b3202a'];
+  b.beam([x, y, z], [x, y - n * 0.62 - 0.2, z], 0.025, 0.025, rgb('#444'), MAT.HULL, { caps: false });
+  for (let i = 0; i < n; i++) {
+    const c = rgb(cols[(i * 3 + seed) % cols.length]);
+    const y0 = y - 0.1 - i * 0.62;
+    const ph = (i + seed) * 0.9;
+    // a slightly rippled square flag
+    b.quad([x, y0, z], [x - 0.55, y0 - 0.02, z + 0.05 * Math.sin(ph)], [x - 0.55, y0 - 0.5, z + 0.07 * Math.sin(ph + 1)], [x, y0 - 0.5, z], c, MAT.CANVAS, null, 1);
+  }
+}
+
+/** Detail of the bridge tower (drawn when close): window mullions, roof rails, searchlights, a ladder and flag hoists. */
+export function towerDetail(b, o, pal) {
+  const rail = shade(rgb(pal.sup), 1.25), mull = shade(rgb(pal.sup), 0.8);
+  let y = o.y0;
+  o.tiers.forEach((t, i) => {
+    const x = o.x + (t.dx || 0), z = o.z || 0, hw = t.w / 2;
+    // mullions between the panes of the window band
+    if (t.windows !== false && t.h > 1.8 && !t.round) {
+      const wy = y + t.h * 0.42, wh = Math.min(t.h * 0.34, 1.1);
+      for (let mx = x - t.len / 2 + 1.0; mx < x + t.len / 2 - 0.8; mx += 1.15) for (const sg of [-1, 1]) b.box(mx, wy + wh / 2, z + sg * (hw + 0.06), 0.09, wh, 0.06, mull, MAT.HULL);
+      for (let mz = -hw + 0.8; mz < hw - 0.5; mz += 1.0) b.box(x + t.len / 2 - (t.rake || 0) * 0.4 + 0.1, wy + wh / 2, z + mz, 0.06, wh, 0.08, mull, MAT.HULL);
+    }
+    const top = y + t.h;
+    // open wings: railing + two searchlights
+    if (t.wings) {
+      const wl = t.len * 0.55, ww = hw + t.wings;
+      roofRail(b, x - t.len * 0.025, top + 0.1, z, wl / 2, ww, rail, { h: 0.9 });
+      for (const sg of [-1, 1]) {
+        b.cylinder(x + t.len * 0.12, top + 0.1, z + sg * (ww - 0.5), 0.1, 0.08, top + 0.55, rgb(pal.dark), MAT.DARK, { seg: 5 });
+        b.cyl(x + t.len * 0.12, top + 0.55, z + sg * (ww - 0.5), 0.36, 0.36, 0.36, 0.36, top + 1.05, shade(rgb(pal.sup), 0.85), MAT.HULL, { seg: 8 });
+        b.box(x + t.len * 0.12 + 0.4, top + 0.8, z + sg * (ww - 0.5), 0.1, 0.34, 0.34, rgb('#cfd3c4'), MAT.EMISSIVE);
+      }
+    } else if (i === o.tiers.length - 1) {
+      roofRail(b, x, top, z, t.len * 0.45, hw * 0.9, rail, { h: 0.85 });
+    }
+    y = top;
+  });
+  // vertical ladder on the front of the first tier
+  const t0 = o.tiers[0], r1 = rgb(pal.dark);
+  for (const sg of [-1, 1]) {
+    const lx = o.x + (t0.dx || 0) - t0.len / 2 - 0.03;
+    b.beam([lx, o.y0, sg * (t0.w / 2 - 0.9)], [lx, o.y0 + t0.h, sg * (t0.w / 2 - 0.9)], 0.04, 0.04, r1, MAT.HULL, { caps: false });
+  }
+}
+
+/** Funnel detail: ladder up the after side, rungs, cap grating. */
+export function funnelDetail(b, o, pal) {
+  const z = o.z || 0, col = shade(rgb(pal.funnel), 0.7), rake = o.rake || 0;
+  const lx = o.x - o.lx * 0.5 - rake * 0.2 - 0.04;
+  const y0 = o.y0 + o.h * 0.22, y1 = o.y0 + o.h * 0.92;
+  b.beam([lx - rake * 0.35, y0, z - 0.2], [lx - rake * 0.75, y1, z - 0.2], 0.045, 0.045, col, MAT.HULL, { caps: false });
+  b.beam([lx - rake * 0.35, y0, z + 0.2], [lx - rake * 0.75, y1, z + 0.2], 0.045, 0.045, col, MAT.HULL, { caps: false });
+  for (let y = y0 + 0.5; y < y1; y += 0.55) {
+    const f = (y - y0) / (y1 - y0);
+    b.beam([lx - rake * (0.35 + 0.4 * f), y, z - 0.2], [lx - rake * (0.35 + 0.4 * f), y, z + 0.2], 0.03, 0.03, col, MAT.HULL, { caps: false });
+  }
+  // grating across the mouth
+  const cx = o.x - rake * 0.8, ty = o.y0 + o.h - 0.1;
+  for (let i = -2; i <= 2; i++) b.beam([cx - o.lx * 0.4, ty, z + i * o.lz * 0.17], [cx + o.lx * 0.4, ty, z + i * o.lz * 0.17], 0.05, 0.05, rgb('#0b0c0d'), MAT.DARK, { caps: false });
+}
+

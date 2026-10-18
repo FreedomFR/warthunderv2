@@ -79,7 +79,9 @@ export class ShipVisuals {
     M64[14] = pz - (F64[2] * cx + F64[6] * cy + F64[10] * cz);
     M64[15] = 1;
     for (let k = 0; k < 16; k++) M32[k] = M64[k];
+    r.setPaint(d.kind === 'part' ? d.model.paint : null);
     r.add(mesh, M32, tint, dmg, d.burn, 0.4);
+    r.setPaint(null);
   }
 
   forModel(model) {
@@ -89,7 +91,11 @@ export class ShipVisuals {
     const mkey = (m) => ({ kind: m.kind, cal: m.cal, n: m.n, bore: m.bore, col: model.pal.sup, variant: m.variant });
     rm = {
       hull: r.createMesh(model.mesh, model.id),
-      parts: model.parts.map((p) => ({ intact: r.createMesh(p.mesh, model.id + ' ' + p.id), ruin: p.ruin ? r.createMesh(p.ruin, model.id + ' ' + p.id + ' ruin') : null, cx: (p.bb[0] + p.bb[3]) / 2 })),
+      fine: model.fine ? r.createMesh(model.fine, model.id + ' fine') : null,       // lifelines, boats, rafts...: only drawn up close
+      parts: model.parts.map((p) => ({
+        intact: r.createMesh(p.mesh, model.id + ' ' + p.id), ruin: p.ruin ? r.createMesh(p.ruin, model.id + ' ' + p.id + ' ruin') : null,
+        fine: p.fineMesh ? r.createMesh(p.fineMesh, model.id + ' ' + p.id + ' fine') : null, cx: (p.bb[0] + p.bb[3]) / 2,
+      })),
       mounts: new Map(), aa: new Map(),
     };
     for (const m of model.mounts) {
@@ -111,6 +117,12 @@ export class ShipVisuals {
    * ship: { model, mounts[], aaMounts[], partState[], scars[], split, parked, id }
    */
   addShip(ship, S64, tint, dmg, fire, rnd) {
+    this.r.setCasting(ship.casts !== false);
+    this._addShip(ship, S64, tint, dmg, fire, rnd);
+    this.r.setCasting(true);
+  }
+
+  _addShip(ship, S64, tint, dmg, fire, rnd) {
     if (ship.split) {
       for (const h of ship.split.halves) {
         // section matrix: ship * T(cut + offset) * R * T(-cut)
@@ -128,21 +140,31 @@ export class ShipVisuals {
     const r = this.r, model = ship.model;
     const rm = this.forModel(model);
     const inHalf = (x) => half === 0 || (x - cutX) * half >= 0;
+    const lod = ship.lod | 0;                 // 0 everything, 1 no light AA, 2 hull / bridge / funnels / main guns only
     for (let i = 0; i < 16; i++) M32[i] = S[i];
+    r.setPaint(model.paint);
     r.add(rm.hull, M32, tint, dmg, fire, rnd, cutX, half);
+    const near = ship.near !== false;
+    if (near && rm.fine) r.add(rm.fine, M32, tint, dmg, fire, rnd, cutX, half);
     // destroyable parts
     for (let i = 0; i < rm.parts.length; i++) {
       const p = rm.parts[i];
       if (!inHalf(p.cx)) continue;
+      if (lod >= 2 && model.parts[i].kind !== 'bridge' && model.parts[i].kind !== 'funnel') continue;
       const st = ship.partState ? ship.partState[i] : 0;
       if (st === 2) { if (p.ruin) r.add(p.ruin, M32, tint, 1, 0.55, rnd); }
-      else r.add(p.intact, M32, tint, st === 1 ? Math.max(dmg, 0.6) : dmg, st === 1 ? Math.max(fire, 0.3) : fire, rnd);
+      else {
+        r.add(p.intact, M32, tint, st === 1 ? Math.max(dmg, 0.6) : dmg, st === 1 ? Math.max(fire, 0.3) : fire, rnd);
+        if (near && p.fine) r.add(p.fine, M32, tint, st === 1 ? Math.max(dmg, 0.6) : dmg, st === 1 ? Math.max(fire, 0.3) : fire, rnd);
+      }
     }
+    r.setPaint(null);
     // main and secondary mounts
     const mounts = ship.mounts;
     for (let i = 0; i < model.mounts.length; i++) {
       const rec = model.mounts[i];
       if (!inHalf(rec.x)) continue;
+      if (lod >= 2 && rec.group !== 'main') continue;
       const m = mounts ? mounts[i] : null, mo = rm.mountOf[i];
       if (m && m.gone) continue;           // torn out of the ship by an explosion
       const alive = m ? !m.wrecked : true;
@@ -157,7 +179,7 @@ export class ShipVisuals {
     }
     // light AA mounts
     const aas = ship.aaMounts;
-    for (let i = 0; i < model.aaMounts.length; i++) {
+    for (let i = 0; i < (lod === 0 && ship.aaNear !== false ? model.aaMounts.length : 0); i++) {
       const rec = model.aaMounts[i];
       if (!inHalf(rec.x)) continue;
       const a = aas ? aas[i] : null, mo = rm.aaOf[i];

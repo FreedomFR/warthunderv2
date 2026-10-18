@@ -754,8 +754,16 @@ export async function createEngine(canvas, options = {}) {
     device.queue.writeBuffer(foamUBO, 0, foamUArr);
   }
 
+  // Manual mode (?manual=1): no free-running loop. engine.step(dt) renders exactly one frame of `dt` seconds, which is what the
+  // offline video recorder (tools/trailer) needs to be deterministic.
+  const manual = qs.get('manual') === '1';
+  let forcedDt = 0;
   function frame(now) {
     requestAnimationFrame(frame);
+    if (manual) return;
+    renderFrame(now);
+  }
+  function renderFrame(now) {
     // Back-pressure: never let the CPU run more than 2 frames ahead of the GPU (software
     // rasterisers in particular would otherwise queue up work without bound).
     if (inflight >= 2) return;
@@ -770,6 +778,7 @@ export async function createEngine(canvas, options = {}) {
     }
     stats.gpuMs = gpuMs; stats.nodes = nodeCount; stats.width = W; stats.height = H;
     if (fixedDt) dt = fixedDt;
+    if (forcedDt) dt = forcedDt;
 
     water.count = 0;
     foam.count = 0;
@@ -977,6 +986,17 @@ export async function createEngine(canvas, options = {}) {
     get simTime() { return simTime; },
     get frameIndex() { return frameIndex; },
     project,
+    /** Is a sphere (camera-relative centre, radius) inside the side planes of the view frustum? (reverse-Z: no far plane) */
+    sphereVisible(rx, ry, rz, r) {
+      const m = viewProj;
+      // planes = row3 +/- row0, row3 +/- row1 of the column-major view-projection matrix
+      for (let k = 0; k < 4; k++) {
+        const sgn = (k & 1) ? -1 : 1, row = k < 2 ? 0 : 1;
+        const a = m[3] + sgn * m[row], b = m[7] + sgn * m[4 + row], c = m[11] + sgn * m[8 + row], d = m[15] + sgn * m[12 + row];
+        if (a * rx + b * ry + c * rz + d < -r * Math.hypot(a, b, c)) return false;
+      }
+      return true;
+    },
     setRenderScale(s) { renderScale = Math.max(0.25, Math.min(2, s)); W = H = 0; },
     getRenderScale() { return renderScale; },
     /** flag a parameter change: 'spec' rebuilds the wave spectrum, 'lut' the atmosphere, anything refreshes the env map */
@@ -988,6 +1008,19 @@ export async function createEngine(canvas, options = {}) {
     /** PNG of the next rendered frame, as a base64 string */
     capture() { return new Promise((res, rej) => { capturePending = { res, rej }; }); },
     start() { requestAnimationFrame(frame); },
+    manual,
+    /** Manual mode: render one frame of `dt` seconds, wait for the GPU, and resolve with the PNG (base64) when `capture` is set. */
+    async step(dt, capture = false) {
+      forcedDt = dt;
+      inflight = 0;
+      const cap = capture ? this.capture() : null;
+      renderFrame(performance.now());
+      forcedDt = 0;
+      await device.queue.onSubmittedWorkDone();
+      // let the asynchronous water-height read-back of this frame land before the simulation moves on
+      for (let i = 0; i < 200 && probeSlots.some((p) => p.busy); i++) await new Promise((r) => setTimeout(r, 2));
+      return cap ? await cap : null;
+    },
   };
   return engine;
 }
