@@ -16,8 +16,11 @@ cfg = json.load(open(os.path.join(HERE, 'plans.json')))['planes'][a.key]
 FOV, H = 8, 1000
 ppm = H / 60.0 * 1.0        # the camera fills 60 m over the height
 
-def silhouette(img, thr, fill=True, dil=3):
-    g = img.convert('L'); ink = g.point(lambda v: 255 if v < thr else 0)
+def silhouette(img, thr, fill=True, dil=3, invert=False, opn=0):
+    g = img.convert('L')
+    if invert: g = g.point(lambda v: 255 - v)        # light lines on a dark ground (blueprints)
+    ink = g.point(lambda v: 255 if v < thr else 0)
+    if opn: ink = ink.filter(ImageFilter.MinFilter(opn)).filter(ImageFilter.MaxFilter(opn))   # remove hairlines (aerial wires, dimension lines)
     if dil: ink = ink.filter(ImageFilter.MaxFilter(dil))
     if not fill: return ink
     # fill the inside of the outline: flood the outside from the corners on the inverse, what stays is the silhouette
@@ -55,13 +58,17 @@ for view in ('top', 'side'):
     mprof, (ml, mh) = profile(mm, 0, 0, ppm)
     im = Image.open(os.path.join(HERE, '..', '..', d['file'])).convert('RGBA'); bg = Image.new('RGBA', im.size, (255, 255, 255, 255)); bg.alpha_composite(im); im = bg.convert('RGB')
     x0, y0, x1, y1 = d['crop']; im = im.crop((x0, y0, x1, y1))
+    bgc = (0, 0, 0) if d.get('invert') else (255, 255, 255)
+    for e in d.get('preErase', []): ImageDraw.Draw(im).rectangle(e, fill=bgc)      # rectangles in the crop, before the rotation
+    if d.get('rotate'): im = im.rotate(d['rotate'], expand=True, fillcolor=bgc)     # counter-clockwise degrees: nose to the left
     if d.get('flip'): im = im.transpose(Image.FLIP_LEFT_RIGHT)
-    for e in d.get('erase', []): ImageDraw.Draw(im).rectangle(e, fill=(255, 255, 255))
-    ds = silhouette(im, d.get('threshold', 140), True, d.get('dilate', 3))
+    for e in d.get('erase', []): ImageDraw.Draw(im).rectangle(e, fill=bgc)
+    ds = silhouette(im, d.get('threshold', 140), True, d.get('dilate', 3), d.get('invert', False), d.get('open', 0))
+    ds.save(os.path.join(a.out, f'plane_{a.key}_{view}_drawing.png'))
     bx0, by0, bx1, by1 = bbox(ds)
-    # scale: the drawing's length (x extent) is the real length
+    # scale: the drawing's length (x extent) is the real length, or the real span for a view marked scaleBy: span (top view, no propeller disc)
     L = cfg['length']
-    dppm = (bx1 - bx0) / L
+    dppm = (by1 - by0) / cfg['span'] if d.get('scaleBy') == 'span' else (bx1 - bx0) / L
     dprof, (dl, dh) = profile(ds, 0, 0, dppm)
     errs = []
     for x, (w, c) in mprof.items():

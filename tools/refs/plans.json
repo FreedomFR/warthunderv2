@@ -657,6 +657,123 @@
         "dilate": 3,
         "flip": true
       }
+    },
+    "tbf": {
+      "length": 12.195,
+      "span": 16.51,
+      "top": {
+        "file": "refs/plane_tbf/avenger_blueprint.jpg",
+        "source": "a Grumman TBF Avenger blueprint poster with the dimensions printed (length 12.195 m, span 16.51 m), shared by the project owner (author unknown: measurements only, not in the repository)",
+        "crop": [
+          22,
+          228,
+          830,
+          815
+        ],
+        "rotate": 90,
+        "flip": true,
+        "invert": true,
+        "threshold": 90,
+        "dilate": 5,
+        "open": 0,
+        "scaleBy": "span",
+        "preErase": [
+          [
+            330,
+            0,
+            790,
+            70
+          ],
+          [
+            8,
+            337,
+            330,
+            480
+          ],
+          [
+            8,
+            560,
+            200,
+            590
+          ]
+        ],
+        "erase": [
+          [
+            100,
+            0,
+            275,
+            300
+          ],
+          [
+            515,
+            445,
+            587,
+            808
+          ]
+        ]
+      },
+      "side": {
+        "file": "refs/plane_tbf/avenger_profile_colour.png",
+        "source": "a colour profile of a TBF Avenger (author unknown, shared by the project owner: measurements only)",
+        "crop": [
+          0,
+          0,
+          978,
+          370
+        ],
+        "flip": false,
+        "threshold": 150,
+        "dilate": 3,
+        "open": 5
+      }
+    },
+    "d3a": {
+      "length": 10.195,
+      "span": 14.365,
+      "top": {
+        "file": "refs/plane_d3a/printscale_d3a2_decals.png",
+        "source": "Printscale 1/72 decal sheet \"Aichi D3A2 Model 22\" (copyright; shared by the project owner: measurements only, not in the repository): the green plan view",
+        "crop": [
+          10,
+          235,
+          330,
+          450
+        ],
+        "rotate": -90,
+        "flip": false,
+        "threshold": 150,
+        "dilate": 3,
+        "open": 3,
+        "scaleBy": "span",
+        "preErase": [
+          [
+            226,
+            170,
+            275,
+            215
+          ],
+          [
+            0,
+            150,
+            60,
+            215
+          ]
+        ]
+      },
+      "side": {
+        "file": "refs/plane_d3a/artscale_d3a1_profiles.jpg",
+        "source": "Artscale profiles of the Aichi D3A1 (copyright; shared by the project owner: measurements only): the first profile",
+        "crop": [
+          380,
+          285,
+          2950,
+          1170
+        ],
+        "flip": false,
+        "threshold": 200,
+        "dilate": 3,
+        "open": 7
+      }
     }
   }
 }

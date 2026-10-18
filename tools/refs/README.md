@@ -55,7 +55,7 @@ the length when the entry has none); the King George V has none.
 
 `node tools/refs/planecheck.mjs sbd` renders the matte top and side views of `plane:sbd` (nose to the right), then
 `python3 tools/refs/planecheck.py sbd` compares them with the 3-view drawing of `plans.json` -> `planes.sbd` (real length and span, crop of
-each view on the sheet, `flip` because the drawings have the nose to the left): the width along the length every 0.1 m, the model's own length
+each view on the sheet, `flip` because the drawings have the nose to the left, `rotate` / `preErase` / `erase` / `invert` / `open` / `scaleBy: span` for sheets that are not clean 3-views): the width along the length every 0.1 m, the model's own length
 and span against the real ones, a picture (red: only on the drawing). Set `PLANE_TABLE=1` for the width table. Wires and wheels drawn on the
 sheet distort the side view's bounding box: trust the planform.
 

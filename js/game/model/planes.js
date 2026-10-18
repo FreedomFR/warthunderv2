@@ -36,15 +36,15 @@ export const PLANES = {
   tbf: {
     name: 'TBF-1 Avenger', nation: 'USA', role: 'torp', kind: 'mono', L: 12.2, span: 16.5, mass: 5.6, hp: 4.5,
     fus: { r: 0.98, ar: 1.12, x: -0.6 }, engine: { type: 'radial', r: 0.95, len: 1.5 }, prop: { r: 2.0, n: 3, x: 0 },
-    wing: { cr: 3.3, ct: 1.7, x: -0.3, y: -0.42, dih: 0.55, sweep: 0.6, t: 0.42 },
-    tail: { x: -4.9, chord: 1.8, span: 5.4, fin: 1.9, finChord: 2.2, y: 0.35 }, canopy: [{ x0: 0.4, x1: 1.8, tx1: 1.4, h: 0.62 }, { x0: -2.6, x1: -1.1, tx1: -1.4, h: 0.55 }],
+    wing: { cr: 3.3, ct: 1.7, x: 0.60, y: -0.42, dih: 0.55, sweep: 0.6, t: 0.42 },
+    tail: { x: -5.8, chord: 2.4, span: 5.4, fin: 1.9, finChord: 2.2, y: 0.35 }, canopy: [{ x0: 0.4, x1: 1.8, tx1: 1.4, h: 0.62 }, { x0: -2.6, x1: -1.1, tx1: -1.4, h: 0.55 }],
     gear: 'retract', ordnance: 'torp', turret: true,
   },
   d3a: {
     name: 'Aichi D3A1 Type 99', nation: 'Japan', role: 'dive', kind: 'mono', L: 10.2, span: 14.4, mass: 3.6, hp: 2.8, bombKg: 250,
     fus: { r: 0.58, ar: 1.15, x: -0.4 }, engine: { type: 'radial', r: 0.64, len: 1.1 }, prop: { r: 1.55, n: 3, x: 0 },
-    wing: { cr: 2.5, ct: 1.0, x: -0.2, y: -0.28, dih: 0.3, sweep: 0.3, t: 0.3, elliptic: true },
-    tail: { x: -4.2, chord: 1.3, span: 4.8, fin: 1.45, finChord: 1.6, y: 0.1 }, canopy: [{ x0: 0.0, x1: 1.5, tx1: 1.2, h: 0.62 }, { x0: -2.0, x1: -0.8, tx1: -1.0, h: 0.5 }],
+    wing: { cr: 2.5, ct: 1.0, x: 1.00, y: -0.28, dih: 0.3, sweep: 0.3, t: 0.3, elliptic: true },
+    tail: { x: -5.4, chord: 2.0, span: 4.8, fin: 1.45, finChord: 1.6, y: 0.1 }, canopy: [{ x0: 0.0, x1: 1.5, tx1: 1.2, h: 0.62 }, { x0: -2.0, x1: -0.8, tx1: -1.0, h: 0.5 }],
     gear: 'spats', ordnance: 'bomb',
   },
   b5n: {

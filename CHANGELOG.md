@@ -14,6 +14,9 @@
   The tailplane span of every aircraft had been drawn at about half the real size (SBD 2.0 m instead of 5.4 m, which the BuAer plan prints
   as 17 ft 9 in): measured for the three with a drawing, 0.33 of the wing span (estimated) for the others. SBD and B5N wings moved forward
   by 0.9 / 1.3 m and deepened (3.0 / 3.3 m root chord), the SBD tail aft. Planform mean difference SBD 3.1 -> 1.1 m.
+- **TBF Avenger and D3A Val**: compared with drawings shared by the project owner (a blueprint poster with the dimensions printed; Printscale and Artscale
+  decal art; copyright, measurements only). Wings 0.9 / 1.2 m too far aft and tails 0.9 / 1.2 m too far forward with too short a chord:
+  corrected (TBF tail chord 1.8 -> 2.4 m, D3A 1.3 -> 2.0 m). Planform mean difference TBF 5.3 -> 1.7 m, D3A 3.3 -> 1.6 m.
 - Builder: the carrier island can be built from measured blocks with its own mast, radar and director positions (`island.blocks`); lifts
   take a measured size and position; carriers take a measured flight deck outline (`fdPlan`).
 - Tools: `planecheck.mjs` / `planecheck.py` (aircraft planform and profile against a 3-view), `dilate` for 1 px line drawings, `open`
