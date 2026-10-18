@@ -13,6 +13,19 @@ import argparse, json, math, os
 from PIL import Image, ImageFilter, ImageChops
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+
+def auto_rulers(d, region, thr=0.22, dark=235):
+    """rows of the sheet that are observer-height lines: dark in at least thr of a sky region (x0, x1, y0, y1)"""
+    x0, x1, y0, y1 = region; px = d.load(); rows = []
+    for y in range(y0, y1):
+        n = sum(1 for x in range(x0, x1) if px[x, y] < dark)
+        if n > (x1 - x0) * thr: rows.append(y)
+    groups = []
+    for y in rows:
+        if groups and y - groups[-1][-1] <= 3: groups[-1].append(y)
+        else: groups.append([y])
+    return [(g[0], g[-1]) for g in groups]
+
 ap = argparse.ArgumentParser()
 ap.add_argument('ship'); ap.add_argument('view'); ap.add_argument('render')
 ap.add_argument('--out', default='out/check'); ap.add_argument('--tol', type=float, default=None)
@@ -40,7 +53,10 @@ cx, cy = W / 2, H / 2 + (cam.get('lookY', 0) * ppm if a.view == 'side' else 0)
 # ---- drawing mask (ink, closed so that stippled fills become solid) ----
 d = Image.open(os.path.join(HERE, '..', '..', ref['file'])).convert('RGBA')
 bg = Image.new('RGBA', d.size, (255, 255, 255, 255)); bg.alpha_composite(d); d = bg.convert('L')
-for e in ref.get('erase', []): d.paste(255, tuple(e))      # parts of the sheet that are not the ship (legend, aircraft, wireless aerials)
+for e in ref.get('erase', []): d.paste(255, tuple(e))
+for y in ref.get('rulers', []): d.paste(255, (0, int(y) - 2, d.width, int(y) + 3))     # the horizontal observer-height lines of the ONI sheets
+if ref.get('rulerRegion'):                 # or found automatically in a sky region of the sheet
+    for y0_, y1_ in auto_rulers(d, ref['rulerRegion']): d.paste(255, (0, y0_ - 4, d.width, y1_ + 5))      # parts of the sheet that are not the ship (legend, aircraft, wireless aerials)
 x0, y0, x1, y1 = ref['crop']
 d = d.crop((x0, y0, x1, y1))
 ink = d.point(lambda v: 255 if v < ref.get('threshold', 200) else 0)

@@ -1029,5 +1029,456 @@
         "open": 0
       }
     }
+  },
+  "takao": {
+    "loa": 203.76,
+    "side": {
+      "file": "refs/takao/Takao_class_recognition_drawings.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Takao_class_recognition_drawings.jpg (ONI 41-42 sheet \"Atago class\", October 1942, public domain; profile and plan at the same scale, observer-height ruler in feet); the spec length is the 1939 rebuild",
+      "crop": [
+        70,
+        95,
+        1700,
+        410
+      ],
+      "stern": 90,
+      "bow": 1676,
+      "wl": 402,
+      "close": 3,
+      "open": 7,
+      "threshold": 235,
+      "tol": 1.5
+    },
+    "top": {
+      "file": "refs/takao/Takao_class_recognition_drawings.jpg",
+      "source": "same sheet, plan view",
+      "crop": [
+        70,
+        505,
+        1700,
+        735
+      ],
+      "stern": 85,
+      "bow": 1673,
+      "cl": 611,
+      "close": 3,
+      "open": 0,
+      "threshold": 235,
+      "tol": 1.0,
+      "erase": [
+        [
+          0,
+          690,
+          300,
+          740
+        ]
+      ]
+    }
+  },
+  "admiral_hipper": {
+    "loa": 212.5,
+    "side": {
+      "file": "refs/admiral_hipper/Prinz_Eugen_ONI-204-48.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Prinz_Eugen_ONI-204-48.JPG (ONI 204 sheet, August 1942, public domain: Prinz Eugen, same class as the Hipper); profile and plan at the same scale",
+      "close": 5,
+      "open": 5,
+      "threshold": 235,
+      "tol": 1.5,
+      "crop": [
+        100,
+        150,
+        1760,
+        470
+      ],
+      "stern": 116,
+      "bow": 1740,
+      "wl": 460,
+      "rulerRegion": [
+        130,
+        650,
+        150,
+        372
+      ]
+    },
+    "top": {
+      "file": "refs/admiral_hipper/Prinz_Eugen_ONI-204-48.jpg",
+      "source": "same sheet, plan view",
+      "close": 3,
+      "open": 0,
+      "threshold": 235,
+      "tol": 1.0,
+      "crop": [
+        100,
+        520,
+        1760,
+        740
+      ],
+      "stern": 114,
+      "bow": 1739,
+      "cl": 637,
+      "erase": [
+        [
+          0,
+          700,
+          330,
+          760
+        ]
+      ]
+    }
+  },
+  "koenigsberg": {
+    "loa": 174.0,
+    "side": {
+      "file": "refs/koenigsberg/K_ln_ONI-204-72.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:K%C3%B6ln_ONI-204-72.JPG (ONI 204 sheet, August 1942, public domain: Koln, Konigsberg class); profile and plan at the same scale",
+      "close": 5,
+      "open": 5,
+      "threshold": 225,
+      "tol": 1.5,
+      "crop": [
+        50,
+        44,
+        1020,
+        256
+      ],
+      "stern": 67,
+      "bow": 1000,
+      "wl": 224,
+      "rulerRegion": [
+        85,
+        350,
+        45,
+        176
+      ]
+    },
+    "top": {
+      "file": "refs/koenigsberg/K_ln_ONI-204-72.jpg",
+      "source": "same sheet, plan view",
+      "close": 3,
+      "open": 0,
+      "threshold": 235,
+      "tol": 1.0,
+      "crop": [
+        50,
+        280,
+        1020,
+        380
+      ],
+      "stern": 67,
+      "bow": 1000,
+      "cl": 332,
+      "erase": [
+        [
+          0,
+          358,
+          100,
+          400
+        ],
+        [
+          100,
+          368,
+          300,
+          400
+        ]
+      ]
+    }
+  },
+  "montecuccoli": {
+    "loa": 182.2,
+    "side": {
+      "file": "refs/montecuccoli/Montecuccoli-class_ONI_image.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Montecuccoli-class_ONI_image.jpg (ONI 202 sheet, public domain); profile and plan at the same scale",
+      "close": 5,
+      "open": 5,
+      "threshold": 232,
+      "tol": 1.5,
+      "crop": [
+        60,
+        146,
+        1780,
+        550
+      ],
+      "stern": 100,
+      "bow": 1748,
+      "wl": 481,
+      "rulerRegion": [
+        120,
+        1700,
+        140,
+        392
+      ],
+      "erase": [
+        [
+          60,
+          140,
+          400,
+          200
+        ],
+        [
+          770,
+          205,
+          980,
+          265
+        ]
+      ]
+    },
+    "top": {
+      "file": "refs/montecuccoli/Montecuccoli-class_ONI_image.jpg",
+      "source": "same sheet, plan view",
+      "close": 3,
+      "open": 0,
+      "threshold": 235,
+      "tol": 1.0,
+      "crop": [
+        60,
+        580,
+        1780,
+        760
+      ],
+      "stern": 100,
+      "bow": 1748,
+      "cl": 666,
+      "erase": [
+        [
+          0,
+          712,
+          330,
+          770
+        ]
+      ]
+    }
+  },
+  "zara": {
+    "loa": 182.8,
+    "side": {
+      "file": "refs/zara/Zara-class_cruiser_drawing.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Zara-class_cruiser_drawing.jpg (ONI sheet, public domain); profile and plan at one scale",
+      "close": 5,
+      "open": 5,
+      "threshold": 225,
+      "tol": 1.5,
+      "crop": [
+        30,
+        0,
+        2560,
+        700
+      ],
+      "stern": 59,
+      "bow": 2539,
+      "wl": 688
+    },
+    "top": {
+      "file": "refs/zara/Zara-class_cruiser_drawing.jpg",
+      "source": "same sheet, plan view",
+      "close": 3,
+      "open": 0,
+      "threshold": 225,
+      "tol": 1.0,
+      "crop": [
+        30,
+        780,
+        2560,
+        1140
+      ],
+      "stern": 59,
+      "bow": 2539,
+      "cl": 978
+    }
+  },
+  "la_galissoniere": {
+    "loa": 179.5,
+    "side": {
+      "file": "refs/la_galissoniere/La_Galissonniere_class_drawing.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:La_Galissonniere_class_drawing.jpg (ONI sheet, public domain, low resolution: 5 px per metre); profile and plan at one scale",
+      "close": 3,
+      "open": 3,
+      "threshold": 200,
+      "tol": 1.5,
+      "crop": [
+        0,
+        0,
+        930,
+        186
+      ],
+      "stern": 18,
+      "bow": 919,
+      "wl": 178
+    },
+    "top": {
+      "file": "refs/la_galissoniere/La_Galissonniere_class_drawing.jpg",
+      "source": "same sheet, plan view",
+      "close": 3,
+      "open": 0,
+      "threshold": 200,
+      "tol": 1.0,
+      "crop": [
+        0,
+        196,
+        930,
+        320
+      ],
+      "stern": 18,
+      "bow": 919,
+      "cl": 255
+    }
+  },
+  "algerie": {
+    "loa": 186.2,
+    "side": {
+      "file": "refs/algerie/Algerie_drawing.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Alg%C3%A9rie_drawing.jpg (ONI sheet, public domain, low resolution: 4.7 px per metre); profile and plan at one scale",
+      "close": 3,
+      "open": 3,
+      "threshold": 200,
+      "tol": 1.5,
+      "crop": [
+        0,
+        0,
+        920,
+        196
+      ],
+      "stern": 18,
+      "bow": 893,
+      "wl": 192
+    },
+    "top": {
+      "file": "refs/algerie/Algerie_drawing.jpg",
+      "source": "same sheet, plan view",
+      "close": 3,
+      "open": 0,
+      "threshold": 200,
+      "tol": 1.0,
+      "crop": [
+        0,
+        240,
+        920,
+        360
+      ],
+      "stern": 18,
+      "bow": 893,
+      "cl": 297
+    }
+  },
+  "cleveland": {
+    "loa": 185.9,
+    "side": {
+      "file": "refs/cleveland/user_colosseum.png",
+      "source": "USS Cleveland CL-55 (1942) Measure 12 modified, Colosseum drawing with scale bar (shared by the project owner; license unknown, consulted for measurements only); 3.9 px per metre",
+      "close": 3,
+      "open": 3,
+      "threshold": 200,
+      "tol": 1.5,
+      "crop": [
+        0,
+        60,
+        750,
+        190
+      ],
+      "stern": 15,
+      "bow": 739,
+      "wl": 187.3
+    },
+    "top": {
+      "file": "refs/cleveland/user_pitroad.png",
+      "source": "Pit-Road 1/700 box art plan view (shared by the project owner; copyright of the publisher, consulted for measurements only); 3.7 px per metre",
+      "close": 3,
+      "open": 0,
+      "threshold": 170,
+      "tol": 1.2,
+      "crop": [
+        0,
+        225,
+        750,
+        315
+      ],
+      "stern": 27,
+      "bow": 715,
+      "cl": 270,
+      "erase": [
+        [
+          575,
+          205,
+          700,
+          242
+        ],
+        [
+          585,
+          296,
+          740,
+          315
+        ]
+      ]
+    }
+  },
+  "baltimore": {
+    "loa": 205.3,
+    "side": {
+      "file": "refs/baltimore/user_shipbucket.png",
+      "source": "USS Baltimore CA-68 (October 1944) Measure 33/16D, Shipbucket drawing by Ian B. Roberts with a 100 m scale bar (shared by the project owner; license unknown, consulted for measurements only); 6.54 px per metre",
+      "close": 3,
+      "open": 3,
+      "threshold": 230,
+      "tol": 1.5,
+      "crop": [
+        0,
+        30,
+        1393,
+        322
+      ],
+      "stern": 35,
+      "bow": 1378,
+      "wl": 319,
+      "erase": [
+        [
+          820,
+          0,
+          1300,
+          62
+        ],
+        [
+          0,
+          0,
+          700,
+          26
+        ]
+      ]
+    },
+    "top": {
+      "file": "refs/baltimore/user_tzoli.jpg",
+      "source": "US Navy Baltimore class heavy cruiser 1944, TZoli drawing (shared by the project owner; license unknown, consulted for measurements only); 5.46 px per metre",
+      "close": 3,
+      "open": 0,
+      "threshold": 235,
+      "tol": 1.2,
+      "crop": [
+        20,
+        435,
+        1180,
+        575
+      ],
+      "stern": 39,
+      "bow": 1159,
+      "cl": 503
+    }
+  },
+  "agano": {
+    "loa": 174.1,
+    "side": {
+      "file": "refs/agano/Agano-kai-class.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Agano-kai-class.png (SnowCloudInSummer, CC BY 3.0): a stylised profile with a scale bar and the waterline, 2.1 px per metre",
+      "close": 3,
+      "open": 3,
+      "threshold": 200,
+      "tol": 2.0,
+      "crop": [
+        0,
+        25,
+        400,
+        102
+      ],
+      "stern": 13,
+      "bow": 384,
+      "wl": 99.5
+    }
   }
 }
