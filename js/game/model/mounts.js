@@ -73,6 +73,13 @@ const FAMILY = {
   // Kagero class 12.7 cm/50 Type 3 Model C twin (Commons outline drawing, MacMoreno, scaled to the 118.5 m length): a house 6.2 m long, 4.6 m wide and 3.0 m high, barrels 5.8 m clear
   // of the pivot, the superfiring turret on the deckhouse 2.3 m above the lower one
   type3_127: { kind: 'turret', cal: 127, n: 2, spacing: 1.0, trunX: 0.4, trunY: 1.5, face: 2.8, port: 2.6, fwd: 5.8, back: 0.9, rB: 0.15, rP: 0.12, rM: 0.07, bagR: 0.22, bagLen: 0.3, recoil: 0.4, lift: 2.3, h: 2.8, barbR: 2.6 },
+  // Tribal class 4.7 in/45 QF Mk XII twin (TZoli profile / plan scaled to the 114.9 m length): a house 3.5 m long, 3.4 m wide and 2.6 m high, barrels 4.4 m clear of the pivot, the
+  // superfiring turret on a bridge deck 2.2 m above the lower one
+  brit120: { kind: 'turret', cal: 120, n: 2, spacing: 0.95, trunX: 0.3, trunY: 1.35, face: 1.6, port: 1.5, fwd: 4.4, back: 0.8, rB: 0.14, rP: 0.11, rM: 0.065, bagR: 0.2, bagLen: 0.3, recoil: 0.4, lift: 2.2, h: 2.6, barbR: 1.9 },
+  // Type 1936A (Mob) 15 cm: the forward Drh LC/38 twin turret (low, 2.9 m high) and the TbtKC/36 single shield mounts aft (3.1 m wide, barrels 5.4 m clear of the pivot); dimensions
+  // read on a small 3-view (about +-0.8 m), the single on the deckhouse and the superfiring one 2.3 m above their decks
+  de150_2: { kind: 'turret', cal: 150, n: 2, spacing: 1.5, trunX: 0.5, trunY: 1.35, face: 2.8, port: 2.5, fwd: 7.0, back: 1.0, rB: 0.2, rP: 0.16, rM: 0.09, bagR: 0.26, bagLen: 0.4, recoil: 0.5, lift: 2.3, h: 2.9, barbR: 2.5 },
+  de150_1: { kind: 'shield', cal: 150, n: 1, spacing: 0, trunX: 0.5, trunY: 1.3, face: 1.9, fwd: 5.6, back: 1.0, rB: 0.2, rP: 0.16, rM: 0.09, bagR: 0.0, bagLen: 0, recoil: 0.5, lift: 2.3, h: 2.6 },
   mk28: { kind: 'dp', cal: 127, n: 2, spacing: 0.78, trunX: 0.55, trunY: 1.35, face: 1.9, fwd: 3.6, back: 0.9, rB: 0.19, rP: 0.15, rM: 0.085, bagR: 0.3, bagLen: 0.3, recoil: 0.5, lift: 3.0, h: 2.9 },
   mk30: { kind: 'shield', cal: 127, n: 1, spacing: 0, trunX: 0.5, trunY: 1.3, face: 1.5, fwd: 3.4, back: 0.9, rB: 0.19, rP: 0.15, rM: 0.085, bagR: 0.0, bagLen: 0, recoil: 0.5, lift: 1.7, h: 2.9 },
 };
@@ -221,6 +228,8 @@ const houseType41_152 = boxHouse({ rear: 3.2, hw: 2.6, slope: 1.0, ears: 0, tube
 const houseBrit152 = boxHouse({ rear: 3.9, hw: 3.2, slope: 1.4, ears: 0, tubeHw: 0.4 });   // British 6 in triple (Town class)
 const houseBrit203 = boxHouse({ rear: 4.4, hw: 3.6, slope: 1.8, ears: 0.5, tubeHw: 0.6 });   // British 8 in twin (County class)
 const houseType3_127 = boxHouse({ rear: 3.4, hw: 2.3, slope: 1.2, ears: 0, tubeHw: 0.35 });   // Japanese 12.7 cm twin (Kagero class)
+const houseBrit120 = boxHouse({ rear: 2.0, hw: 1.7, slope: 0.8, ears: 0, tubeHw: 0.3 });   // British 4.7 in twin (Tribal class)
+const houseDe150_2 = boxHouse({ rear: 2.6, hw: 2.4, slope: 1.0, ears: 0, tubeHw: 0.35 });   // German 15 cm Drh LC/38 twin (Type 1936A)
 const houseType3_203 = boxHouse({ rear: 5.2, hw: 3.4, slope: 1.7, ears: 0.6, tubeHw: 0.6 });   // Japanese 20 cm twin (Takao class)
 const houseDrh203 = boxHouse({ rear: 4.8, hw: 3.3, slope: 1.2, ears: 0.5, tubeHw: 0.6 });   // German 20.3 cm twin (Admiral Hipper class)
 
@@ -261,7 +270,7 @@ function houseMk30(hb, col, dark, f) {
   hb.block({ x0: f.face - 0.3, x1: f.face, hw: 0.28, y0: f.trunY - 0.3, y1: f.trunY + 0.3 }, dark, MAT.DARK);
 }
 
-const HOUSES = { mk7: houseMk7, type94: houseType94, type3_155: houseType3, drh28_150: houseDrh28, lit381: houseLit381, lit152: houseLit152, rich380: houseRich380, fr152: houseFr152, it152: houseIt152, us152: houseUs152, brit152: houseBrit152, type3_127: houseType3_127, brit203: houseBrit203, type41_152: houseType41_152, us203: houseUs203, fr203: houseFr203, fr152_30: houseFr152_30, zara203: houseZara203, type3_203: houseType3_203, drh203: houseDrh203, drh34: houseDrh34, mk28: houseMk28, mk30: houseMk30 };
+const HOUSES = { mk7: houseMk7, type94: houseType94, type3_155: houseType3, drh28_150: houseDrh28, lit381: houseLit381, lit152: houseLit152, rich380: houseRich380, fr152: houseFr152, it152: houseIt152, us152: houseUs152, brit152: houseBrit152, de150_2: houseDe150_2, de150_1: houseMk30, brit120: houseBrit120, type3_127: houseType3_127, brit203: houseBrit203, type41_152: houseType41_152, us203: houseUs203, fr203: houseFr203, fr152_30: houseFr152_30, zara203: houseZara203, type3_203: houseType3_203, drh203: houseDrh203, drh34: houseDrh34, mk28: houseMk28, mk30: houseMk30 };
 
 function makeFamily(s, f) {
   const col = rgb(s.col || '#6b7076'), dark = rgb(s.dark || '#1d1f22');

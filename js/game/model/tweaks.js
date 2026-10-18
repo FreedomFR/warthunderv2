@@ -432,6 +432,55 @@ export const TWEAKS = {
   // +-0.2 m): a flush deck sweeping from 6.8 m at the stem to 3.0 m aft of f 0.6; the 5 in mounts at 0.177 / 0.238 (forecastle, the second 1.2 m higher) and 0.679 / 0.754 (on the
   // after deckhouse) / 0.831 (fantail); the bridge block 0.27-0.35 (director 16.8 m), a pole mast at 0.375 (top 28.7 m), funnels at 0.419 and 0.534 (tops 13.8 / 13.4 m), the quintuple
   // tubes at 0.465 and 0.585, the after structure 0.69-0.74 with a Bofors platform (10.9 m) and a signal pole at 0.69 (16.6 m).
+  // Tribal class (TZoli profile and plan, shared by the project owner, measured only; scaled to the 114.9 m length, 15.4 px per metre, about +-0.3 m; the waterline is taken at the black
+  // boot-topping band, so the heights are good to about 0.5 m): a forecastle at 6.3 m (7 m at the stem) ending at f 0.455 over a 3.7 m main deck; turrets A / B at 0.177 / 0.254
+  // (B on the bridge deck) and X / Y at 0.808 / 0.905 (X on the deckhouse); the bridge block 0.304-0.407 (12.7 m, director 17 m), a leaning lattice mast with the radar at 0.433
+  // (top 29.4 m), funnels at 0.448 and 0.57 (tops 13.4 / 13.2 m), the quadruple tubes at 0.63, a long deckhouse 0.67-0.83 (6.8 m) with the pom-pom at 0.727 and a mast at 0.767 (21 m).
+  tribal: {
+    mainVariant: 'brit120', dirKind: 'drum', houseH: 2.2, bulwarkF: [0, 0.02],
+    fb: [[0, 7.0], [0.05, 6.7], [0.15, 6.5], [0.3, 6.35], [0.44, 6.25], [0.447, 6.2], [0.462, 3.8], [0.6, 3.7], [1, 3.6]],
+    planDeck: [[0, 0.106], [0.042, 0.505], [0.083, 0.716], [0.125, 0.833], [0.167, 0.892], [0.208, 0.939], [0.25, 0.974], [0.292, 1.0], [0.333, 1.0], [0.417, 1.0], [0.5, 1.0], [0.583, 1.0], [0.667, 1.0], [0.708, 1.0], [0.75, 1.0], [0.792, 1.0], [0.833, 0.986], [0.875, 0.927], [0.917, 0.833], [0.958, 0.775], [1, 0.317]],
+    planWL: [[0, 0], [0.04, 0.32], [0.1, 0.6], [0.2, 0.84], [0.3, 0.95], [0.4, 0.99], [0.5, 1], [0.7, 1], [0.8, 0.94], [0.9, 0.78], [0.95, 0.6], [1, 0.35]],
+    decks: [
+      { f: [0.304, 0.407], hw: 3.2, y: [0, 2.3], windows: true },             // bridge base, 8.6 m
+      { f: [0.304, 0.352], hw: 2.8, y: [2.3, 6.9], windows: true },           // the forward block, 13.4 m
+      { f: [0.36, 0.40], hw: 2.0, y: [2.3, 6.4], windows: true },             // 12.7 m
+      { f: [0.372, 0.398], round: true, hw: 1.3, y: [6.4, 9.2], taper: 0.9 },  // the compass platform and director, 15.5 m
+      { f: [0.67, 0.865], hw: 3.0, y: [0, 3.1], windows: true },              // the long deckhouse, 6.8 m
+    ],
+    towerF: 0.38, towerY0: 9.0,
+    tiers: [{ len: 2.5, w: 2.5, h: 0.1 }],
+    dir0: { dx: 0, w: 2.0, l: 2.0, h: 1.5 },
+    foremast: { dx: -5.9, y0: 0.2, base: 0.5, apex: 0.8, platform: 0.4, spread: 0.4, back: 0.8, front: 0.4 },
+    funnels: [{ lx: 2.8, lz: 2.1, y0: 1.2, h: 8.5, rake: 1.2, top: 0.8, pipes: false }, { lx: 2.8, lz: 2.1, y0: 1.2, h: 8.3, rake: 1.2, top: 0.8, pipes: false }],
+    mastY0: { 1: 3.1 },
+    boats: [{ f0: 0.415, f1: 0.484, z: 4.3, y: 0.5, cabin: false, davits: true }, { f0: 0.535, f1: 0.6, z: 4.2, y: 0.5, cabin: false, davits: true }],
+    aa: [{ k: 'q40', f: 0.727, z: 0, y: 3.1 }, { k: 'o20', f: 0.357, z: 3.6, y: 2.3 }, { k: 'o20', f: 0.37, z: 4.8, y: 0 }, { k: 'o20', f: 0.108, z: 4.4, y: 0 }, { k: 'o20', f: 0.93, z: 4.6, y: 0 }],
+  },
+  // Type 1936A (Mob) (a coloured profile and plan from a small 3-view, 500 px native, shared by the project owner, measured only: about +-0.8 m, heights +-0.5 m; the waterline is the
+  // top of the red boot): a forecastle at 6.3 m (flush to f 0.38, then 4.9 m) down to 3.2 m aft; the Drh LC/38 twin turret at 0.19 (barrels forward), the single mounts at
+  // 0.76 (on the deckhouse) / 0.81 / 0.868; the bridge block 0.248-0.332 (10-12.4 m, director 13.5 m), a pole foremast at 0.333 (yard 22 m, top 28.7 m), funnels at 0.374 and 0.505
+  // (tops 13.3 / 12.2 m), the quadruple tubes at 0.45 and 0.64, the after deckhouse 0.69-0.775 (7.1 m) with the signal pole at 0.697 (16.2 m).
+  type1936a_mob: {
+    mainVariant: { 2: 'de150_2', 1: 'de150_1' }, dirKind: 'drum', houseH: 2.4, bulwarkF: [0, 0.02],
+    fb: [[0, 6.3], [0.05, 6.1], [0.2, 5.9], [0.3, 5.5], [0.38, 5.1], [0.45, 4.8], [0.55, 4.3], [0.67, 3.8], [0.9, 3.0], [1, 3.2]],
+    planDeck: [[0, 0.08], [0.042, 0.49], [0.083, 0.708], [0.125, 0.828], [0.167, 0.915], [0.208, 0.959], [0.25, 0.98], [0.292, 1.02], [0.333, 1.04], [0.417, 1.06], [0.5, 1.07], [0.583, 1.06], [0.625, 1.046], [0.667, 1.035], [0.708, 1.0], [0.75, 0.98], [0.792, 0.948], [0.833, 0.9], [0.875, 0.85], [0.917, 0.8], [0.958, 0.7], [1, 0.48]],
+    planWL: [[0, 0], [0.04, 0.3], [0.1, 0.56], [0.2, 0.8], [0.3, 0.93], [0.4, 0.99], [0.5, 1], [0.6, 1], [0.7, 0.97], [0.8, 0.88], [0.9, 0.68], [0.95, 0.5], [1, 0.3]],
+    decks: [
+      { f: [0.248, 0.332], hw: 3.3, y: [0, 5.0], windows: true },            // bridge block, 10.4 m
+      { f: [0.27, 0.325], hw: 2.6, y: [5.0, 7.0], windows: true },           // 12.4 m
+      { f: [0.286, 0.31], round: true, hw: 1.3, y: [7.0, 8.4], taper: 0.9 },  // the director, 13.8 m
+      { f: [0.69, 0.775], hw: 3.2, y: [0, 3.3] },                            // the after deckhouse, 7.1 m
+      { f: [0.795, 0.835], hw: 2.5, y: [0, 2.0] },                           // under the superfiring mount
+    ],
+    towerF: 0.298, towerY0: 7.8,
+    tiers: [{ len: 2.5, w: 2.5, h: 0.1 }],
+    dir0: { dx: 0, w: 2.0, l: 2.2, h: 1.4 },
+    foremast: { dx: -4.4, y0: 5.5 },
+    funnels: [{ lx: 3.0, lz: 2.3, y0: 0.4, h: 8.0, rake: 0.8, top: 0.92, pipes: false }, { lx: 3.0, lz: 2.3, y0: 0.4, h: 7.4, rake: 0.6, top: 0.92, pipes: false }],
+    mastY0: { 1: 3.6 },
+    aa: [{ k: 't37', f: 0.727, z: 0, y: 3.3 }, { k: 'o20', f: 0.55, z: 4.6, y: 0 }, { k: 'o20', f: 0.35, z: 3.9, y: 5.0 }, { k: 'o20', f: 0.93, z: 3.0, y: 0 }],
+  },
   fletcher: {
     mainVariant: 'mk30', dirKind: 'drum', houseH: 2.2, bulwarkF: [0, 0.02],
     fb: [[0, 6.8], [0.04, 6.1], [0.1, 5.5], [0.2, 4.9], [0.3, 4.5], [0.4, 4.0], [0.5, 3.4], [0.6, 3.0], [1, 3.0]],

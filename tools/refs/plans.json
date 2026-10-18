@@ -2029,5 +2029,89 @@
       "bow": 1901,
       "cl": 853.5
     }
+  },
+  "tribal": {
+    "loa": 114.9,
+    "side": {
+      "file": "refs/tribal/tribal_2000.png",
+      "source": "Royal Navy Tribal class destroyer, profile and plan by TZoli (shared by the project owner; copyright of the author, consulted for measurements only); scaled to the 114.9 m length (no scale bar), 15.4 px per metre; the waterline is taken at the black boot-topping band",
+      "close": 3,
+      "open": 3,
+      "threshold": 170,
+      "tol": 0.8,
+      "dilate": 3,
+      "crop": [
+        0,
+        60,
+        2000,
+        570
+      ],
+      "stern": 122,
+      "bow": 1892,
+      "wl": 550,
+      "erase": [
+        [
+          1330,
+          0,
+          2000,
+          240
+        ]
+      ]
+    },
+    "top": {
+      "file": "refs/tribal/tribal_2000.png",
+      "source": "same sheet, plan view",
+      "close": 5,
+      "open": 0,
+      "threshold": 170,
+      "tol": 0.6,
+      "dilate": 7,
+      "crop": [
+        0,
+        620,
+        2000,
+        830
+      ],
+      "stern": 129,
+      "bow": 1893,
+      "cl": 721
+    }
+  },
+  "type1936a_mob": {
+    "loa": 127.0,
+    "side": {
+      "file": "refs/mob/mob_flip.png",
+      "source": "German Type 1936A (Mob) destroyer, coloured profile and plan from a 3-view (shared by the project owner, copyright of the author, consulted for measurements only); native size 500 px, scaled up 4x and mirrored (bow to the right): 3.9 px per metre native, so about +-0.8 m",
+      "close": 5,
+      "open": 5,
+      "threshold": 225,
+      "tol": 1.5,
+      "crop": [
+        0,
+        20,
+        2000,
+        540
+      ],
+      "stern": 20,
+      "bow": 1988,
+      "wl": 468
+    },
+    "top": {
+      "file": "refs/mob/mob_flip.png",
+      "source": "same sheet, plan view",
+      "close": 5,
+      "open": 0,
+      "threshold": 225,
+      "tol": 1.0,
+      "crop": [
+        0,
+        590,
+        2000,
+        810
+      ],
+      "stern": 14,
+      "bow": 1990,
+      "cl": 700
+    }
   }
 }
