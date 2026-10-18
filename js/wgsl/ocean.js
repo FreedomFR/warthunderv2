@@ -1,5 +1,5 @@
 // Ocean surface + sky background rendering.
-import { FRAME_WGSL, ATMO_CORE_WGSL, HAZE_WGSL, SHADOW_STRUCT_WGSL, SHADOW_FUNC_WGSL, ENV_MIPS, ENV_SIZE, N, CASCADES } from './common.js';
+import { FRAME_WGSL, ATMO_CORE_WGSL, HAZE_WGSL, SHADOW_STRUCT_WGSL, SHADOW_FUNC_WGSL, SANE_WGSL, ENV_MIPS, ENV_SIZE, N, CASCADES } from './common.js';
 import { SKY_RENDER_FUNCS, SKY_CLOUD_FUNCS } from './sky.js';
 
 const RENDER_BINDINGS = /* wgsl */ `
@@ -11,7 +11,7 @@ const RENDER_BINDINGS = /* wgsl */ `
 
 // Full-resolution sky + clouds. Cloud silhouettes are anti-aliased analytically: the
 // screen-space derivative of each layer's edge function sets the width of its opacity edge.
-export const SKY_BG = FRAME_WGSL + ATMO_CORE_WGSL + RENDER_BINDINGS + SKY_RENDER_FUNCS + SKY_CLOUD_FUNCS + /* wgsl */ `
+export const SKY_BG = FRAME_WGSL + ATMO_CORE_WGSL + RENDER_BINDINGS + SKY_RENDER_FUNCS + SKY_CLOUD_FUNCS + SANE_WGSL + /* wgsl */ `
 struct VO { @builtin(position) pos: vec4f, @location(0) ndc: vec2f };
 @vertex fn vs(@builtin(vertex_index) i: u32) -> VO {
   let p = vec2f(f32((i << 1u) & 2u), f32(i & 2u)) * 2.0 - 1.0;
@@ -35,11 +35,11 @@ struct VO { @builtin(position) pos: vec4f, @location(0) ndc: vec2f };
   var sunT = 1.0;
   let cl = cloudLayers(d2, pixAng, aa, &sunT);
   let L = skyAtmo(d2) * (1.0 - cl.a) + cl.rgb + sunDisk(dir) * sunT;
-  return vec4f(L, 1.0);
+  return vec4f(sane(L), 1.0);
 }
 `;
 
-export const OCEAN = FRAME_WGSL + ATMO_CORE_WGSL + HAZE_WGSL + SHADOW_STRUCT_WGSL + RENDER_BINDINGS + /* wgsl */ `
+export const OCEAN = FRAME_WGSL + ATMO_CORE_WGSL + HAZE_WGSL + SHADOW_STRUCT_WGSL + RENDER_BINDINGS + SANE_WGSL + /* wgsl */ `
 @group(0) @binding(4) var dispTex: texture_2d_array<f32>;
 @group(0) @binding(5) var derivTex: texture_2d_array<f32>;
 @group(0) @binding(6) var momTex: texture_2d_array<f32>;
@@ -272,7 +272,7 @@ fn foamPattern(xz: vec2f, t: f32) -> f32 {
   let hz = normalize(vec3f(-V.x, 0.002, -V.z));
   let fogCol = skyAtmo(hz);
   col = col * T + fogCol * (1.0 - T);
-  return vec4f(col, 1.0);
+  return vec4f(sane(col), 1.0);
 }
 `;
 

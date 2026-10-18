@@ -1,7 +1,7 @@
 // Warship surface shader. Lit with the same sky / sun / aerial-perspective model as the ocean so
 // ships sit in the scene. Everything is procedural (no textures): plating seams, deck planks,
 // weathering, wet hull near the waterline, soot and fire glow when damaged.
-import { FRAME_WGSL, ATMO_CORE_WGSL, HAZE_WGSL, SHADOW_STRUCT_WGSL, SHADOW_FUNC_WGSL, ENV_MIPS } from './common.js';
+import { FRAME_WGSL, ATMO_CORE_WGSL, HAZE_WGSL, SHADOW_STRUCT_WGSL, SHADOW_FUNC_WGSL, SANE_WGSL, ENV_MIPS } from './common.js';
 import { SKY_RENDER_FUNCS } from './sky.js';
 import { PALETTES } from '../game/model/livery.js';
 import { GLYPH_BITS } from '../game/model/glyphs.js';
@@ -16,7 +16,7 @@ ${PALETTES.map((p, i) => `    case ${i}u: { if (tone == 0u) { return ${hexToVec(
 }`;
 const GLYPH_WGSL = `var<private> GLYPH: array<vec2<u32>, ${GLYPH_BITS.length}> = array<vec2<u32>, ${GLYPH_BITS.length}>(${GLYPH_BITS.map((g) => `vec2<u32>(${g[0]}u, ${g[1]}u)`).join(', ')});`;
 
-export const SHIP = FRAME_WGSL + ATMO_CORE_WGSL + HAZE_WGSL + SHADOW_STRUCT_WGSL + /* wgsl */ `
+export const SHIP = FRAME_WGSL + ATMO_CORE_WGSL + HAZE_WGSL + SHADOW_STRUCT_WGSL + SANE_WGSL + /* wgsl */ `
 @group(0) @binding(0) var<uniform> F: Frame;
 @group(0) @binding(1) var transLUT: texture_2d<f32>;
 @group(0) @binding(2) var skyLUT: texture_2d<f32>;
@@ -407,7 +407,7 @@ fn ggx(nh: f32, a: f32) -> f32 {
   let hz = normalize(vec3f(-V.x, 0.002, -V.z));
   let fogCol = skyAtmo(hz);
   col = col * T + fogCol * (1.0 - T);
-  return vec4f(col, 1.0);
+  return vec4f(sane(col), 1.0);
 }
 `;
 

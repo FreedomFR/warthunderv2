@@ -1,6 +1,6 @@
 {
   "name": "naval-combat-sim",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "WWII naval combat simulation on a real-time WebGPU ocean: real ships by nation and class, autonomous AI fleets.",
   "license": "MIT",
   "private": true,
@@ -8,9 +8,13 @@
   "scripts": {
     "start": "node server.mjs",
     "build": "node build.mjs",
-    "test": "node test/models.mjs && node test/damage.mjs && node test/audio.mjs && node test/manual.mjs && node test/air.mjs 600 && node test/fuzz.mjs 8 && node test/battle.mjs 600"
+    "test": "node test/models.mjs && node test/damage.mjs && node test/audio.mjs && node test/manual.mjs && node test/air.mjs 600 && node test/fuzz.mjs 8 && node test/battle.mjs 600",
+    "check:shaders": "node tools/wgslcheck.mjs",
+    "trailer:record": "node tools/trailer/record.mjs",
+    "trailer:assemble": "node tools/trailer/assemble.mjs tools/trailer/edit.json"
   },
   "devDependencies": {
-    "esbuild": "^0.25.0"
+    "esbuild": "^0.25.0",
+    "playwright-core": "^1.54.2"
   }
 }

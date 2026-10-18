@@ -17,6 +17,18 @@ for (const spec of ALL_SHIPS) {
   const bb = m.mesh.aabb;
   check(bb[3] - bb[0] >= spec.loa * 0.95, `${spec.id}: model shorter than the real ship (${(bb[3] - bb[0]).toFixed(1)} vs ${spec.loa})`);
   check(Math.abs(bb[5]) >= spec.beam / 2 * 0.9, `${spec.id}: model narrower than the real ship`);
+  // baked ambient occlusion stays in range and actually darkens something; the vertex data of every group is finite
+  {
+    const dv = new DataView(m.mesh.vertices);
+    let lo = 1, hi = 0, nan = 0;
+    for (let i = 0; i < m.mesh.vertexCount; i++) { const a = dv.getInt16(i * 24 + 12 + 6, true) / 32767; if (!(a >= 0 && a <= 1.0001)) nan++; lo = Math.min(lo, a); hi = Math.max(hi, a); }
+    check(nan === 0, `${spec.id}: ${nan} vertices with an AO value outside 0..1`);
+    check(lo < 0.7 && hi > 0.9, `${spec.id}: AO looks unbaked (${lo.toFixed(2)}..${hi.toFixed(2)})`);
+    for (const p of m.parts) check(p.mesh.indexCount > 0, `${spec.id}: part ${p.id} is empty`);
+  }
+  // fine detail (drawn only up close) and the livery vector
+  check(m.fine && m.fine.indexCount > 600, `${spec.id}: no fine detail group`);
+  check(Array.isArray(m.paint) && m.paint.length === 4 && m.paint[2] > 0, `${spec.id}: bad paint vector ${m.paint}`);
   console.log(`${spec.id.padEnd(16)} ${String(m.mesh.indexCount / 3).padStart(6)} tris, ${main.length} main mounts (${mainGuns} guns), ${m.mounts.length - main.length} secondary, ${m.smoke.length} funnels`);
 }
 console.log(fail ? `${fail} check(s) failed` : 'all models OK');

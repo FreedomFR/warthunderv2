@@ -26,7 +26,21 @@ export class GameAudio {
 
   unlock() {
     if (this.ctx || typeof AudioContext === 'undefined') { this.ctx?.resume?.(); return; }
-    const ctx = this.ctx = new AudioContext();
+    this.build(new AudioContext());
+  }
+
+  /**
+   * Offline mode for the trailer recorder: the sounds are scheduled on an OfflineAudioContext whose clock is driven by hand
+   * (offline.t = time of the frame being recorded) and rendered to a buffer at the end of a scene.
+   */
+  useOffline(ctx) {
+    this.offline = { t: 0, on: false, ends: [] };
+    Object.defineProperty(ctx, 'currentTime', { get: () => this.offline.t, configurable: true });
+    this.build(ctx);
+  }
+
+  build(ctx) {
+    this.ctx = ctx;
     this.master = ctx.createGain();
     this.master.gain.value = this.muted ? 0 : this.volume;
     const comp = ctx.createDynamicsCompressor();
@@ -60,6 +74,7 @@ export class GameAudio {
 
   get live() {
     const g = this.game;
+    if (this.offline) return this.offline.on && !this.muted;
     return this.ctx && !this.muted && !g.paused && g.timeScale <= 2.5 && this.ctx.state === 'running' && g.state !== 'setup';
   }
 
@@ -82,6 +97,7 @@ export class GameAudio {
   play(name, x, y, z, o = {}) {
     if (!this.live) return null;
     const ref = o.ref ?? 600, pri = o.pri ?? 1;
+    if (this.offline) { const o = this.offline; o.ends = o.ends.filter((e) => e > o.t); this.active = o.ends.length; }
     if (this.active >= MAX_VOICES && pri < 3) return null;
     if (this.active >= MAX_VOICES + 12) return null;
     const m = this.geo(x, y, z);
@@ -104,8 +120,11 @@ export class GameAudio {
     const wet = (o.wet ?? 0.15) * (0.4 + Math.min(1, m.d / 3500));
     let send = null;
     if (wet > 0.02) { send = ctx.createGain(); send.gain.value = wet; lp.connect(send); send.connect(this.reverb); }
-    this.active++;
-    src.onended = () => { this.active--; src.disconnect(); lp.disconnect(); g.disconnect(); if (pan) pan.disconnect(); if (send) send.disconnect(); };
+    if (this.offline) this.offline.ends.push(t0 + src.buffer.duration / Math.max(0.1, o.rate ?? 1));
+    else {
+      this.active++;
+      src.onended = () => { this.active--; src.disconnect(); lp.disconnect(); g.disconnect(); if (pan) pan.disconnect(); if (send) send.disconnect(); };
+    }
     src.start(t0);
     return src;
   }
@@ -278,7 +297,7 @@ export class GameAudio {
     for (const [k, v] of this.loops) {
       if (v.seen) continue;
       v.g.gain.setTargetAtTime(0, t, 0.1);
-      if (t - (v.dead ??= t) > 0.6) { try { v.src.stop(); } catch (e) { /* stopped */ } v.src.disconnect(); v.lp.disconnect(); v.g.disconnect(); if (v.pan) v.pan.disconnect(); this.loops.delete(k); }
+      if (t - (v.dead ??= t) > 0.6) { try { v.src.stop(t); } catch (e) { /* stopped */ } v.src.disconnect(); v.lp.disconnect(); v.g.disconnect(); if (v.pan) v.pan.disconnect(); this.loops.delete(k); }
     }
     for (const v of this.loops.values()) if (v.seen) v.dead = undefined;
   }

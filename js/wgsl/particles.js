@@ -59,7 +59,17 @@ struct VOut {
   return o;
 }
 
-fn hash21(p: vec2f) -> f32 { return fract(sin(dot(p, vec2f(127.1, 311.7))) * 43758.5453); }
+// integer hash of a lattice point (exact on every rasteriser, unlike fract(sin()) hashes)
+fn pcg(v: u32) -> u32 {
+  let s = v * 747796405u + 2891336453u;
+  let w = ((s >> ((s >> 28u) + 4u)) ^ s) * 277803737u;
+  return (w >> 22u) ^ w;
+}
+fn hash21(p: vec2f) -> f32 {
+  let a = u32(i32(floor(p.x) + 8192.0));
+  let b = u32(i32(floor(p.y) + 8192.0));
+  return f32(pcg(a * 1664525u + pcg(b + 1013904223u)) >> 8u) * (1.0 / 16777216.0);
+}
 fn vnoise(p: vec2f) -> f32 {
   let i = floor(p); let f = fract(p);
   let u = f * f * (3.0 - 2.0 * f);
@@ -77,14 +87,21 @@ fn vnoise(p: vec2f) -> f32 {
   // never let a huge billboard pop in front of the lens
   let near = smoothstep(in.size * 0.15, in.size * 0.9 + 2.0, dist);
   switch (kind) {
-    case 0u: {   // smoke / mist: soft noisy puff, lit by sun and sky
-      let n = vnoise(in.uv * 2.4 + vec2f(seed * 17.0, seed * 5.0)) * 0.6 + vnoise(in.uv * 5.1 + vec2f(seed * 3.0, 11.0)) * 0.4;
-      let shape = smoothstep(1.0, 0.25, d);
-      alpha = shape * shape * (0.45 + 0.8 * n) * in.col.a;
+    case 0u: {   // smoke / mist: billowy puff with a noise-eroded edge, lit by the sun and the sky
+      let p = in.uv * 2.1 + vec2f(seed * 17.0, seed * 5.0);
+      let wv = vec2f(vnoise(p * 1.4 + vec2f(3.1, 1.7)), vnoise(p * 1.4 + vec2f(8.7, 4.3))) - vec2f(0.5);
+      let q = p + wv * 1.7;
+      let n = vnoise(q) * 0.5 + vnoise(q * 2.1 + vec2f(5.0, 2.0)) * 0.3 + vnoise(q * 4.4 + vec2f(9.0, 7.0)) * 0.2;
+      let r = d / (0.7 + 0.42 * n);
+      let dens = smoothstep(1.0, 0.3, r) * (0.5 + 0.75 * n);
+      alpha = clamp(dens, 0.0, 1.0) * in.col.a;
+      // light comes from the sun side of the screen: bright rim facing it, dark body, shaded far side
+      let sd = vec2f(dot(normalize(F.sunDir.xyz), normalize(F.camRight.xyz)), dot(normalize(F.sunDir.xyz), normalize(F.camUp.xyz)));
+      let facing = clamp(0.5 + 0.9 * dot(in.uv, sd) * (0.4 + n), 0.0, 1.0);
       let sunE = sunIlluminance() * sunVis[0];
       let amb = textureSampleLevel(envCube, sampC, vec3f(0.0, 1.0, 0.0), ENV_MAXMIP - 2.0).rgb;
-      let lit = sunE * 0.07 * (0.55 + 0.45 * (1.0 - in.uv.y * 0.5)) + amb * 0.95;
-      rgb = rgb * lit;
+      let lit = sunE * 0.085 * (0.25 + 0.95 * facing) * mix(0.55, 1.0, n) + amb * (0.55 + 0.4 * facing);
+      rgb = rgb * lit * mix(0.7, 1.15, smoothstep(0.1, 0.9, d));
     }
     case 1u: {   // fire / glow (additive)
       let n = vnoise(in.uv * 3.0 + vec2f(seed * 9.0, F.camPos.w * 2.0));

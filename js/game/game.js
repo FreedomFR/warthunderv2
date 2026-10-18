@@ -283,8 +283,10 @@ export class Game {
       const d = Math.hypot(s.x - cam.x, s.z - cam.z);
       if (d > 30000) continue;
       const cal = s.gun.cal;
-      const len = cal >= 300 ? 60 : cal >= 150 ? 40 : 18;
-      const wid = (cal >= 300 ? 1.1 : cal >= 150 ? 0.8 : 0.5) * (1 + d / 5000);
+      // streaks shrink when the shell is close to the lens (a 60 m white bar a few metres from the camera looks absurd)
+      const near = clamp(d / 400, 0.18, 1);
+      const len = (cal >= 300 ? 60 : cal >= 150 ? 40 : 18) * near;
+      const wid = (cal >= 300 ? 1.1 : cal >= 150 ? 0.8 : 0.5) * (1 + d / 5000) * clamp(d / 250, 0.3, 1);
       this.particles.streak(s.x, s.y, s.z, s.vx / sp, s.vy / sp, s.vz / sp, len * (1 + d / 8000), wid, 1, 0.68, 0.28, 6);
     }
     this.particles.upload();

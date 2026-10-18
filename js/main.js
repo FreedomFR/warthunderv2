@@ -18,6 +18,14 @@ if (qs.has('preview')) {
   window.__game = game;
   const { createUI } = await import('./game/ui/ui.js');
   game.ui = createUI(game);
+  if (qs.has('trailer')) {
+    // offline trailer recorder (tools/trailer): scripted scenes, see js/trailer.js
+    const { Trailer } = await import('./trailer.js');
+    const { SCENES } = await import('./trailerScenes.js');
+    const T = new Trailer(game);
+    T.sink = (...a) => window.__sink(...a);
+    window.__trailer = { T, scenes: Object.keys(SCENES), run: async (name) => { await SCENES[name](T); await T.finish(name); }, music: (spec) => T.music(spec) };
+  }
   // quick start from the URL: ?scenario=duel&start=1&cam=orbit
   const preset = PRESETS.find((p) => p.id === qs.get('scenario'));
   if (preset) {

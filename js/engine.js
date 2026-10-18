@@ -39,6 +39,8 @@ export const P = {
   clouds: 0.40,
   veil: 0.36,
   bloom: 0.10,
+  // colour grade (not in the sliders; the trailer director changes them per scene)
+  vignette: 0.10, saturation: 1.05, contrast: 1.06, warmth: -0.19,
 };
 
 // [key, label, min, max, step, dirty]  dirty: 'spec' = rebuild spectrum, 'lut' = rebuild atmosphere
@@ -396,7 +398,8 @@ export async function createEngine(canvas, options = {}) {
   };
 
   // CDLOD grid mesh
-  const GRID = 32;
+  // quads per node edge (?grid=16 / 8 thins the surface mesh for slow GPUs and software rasterisers)
+  const GRID = [8, 16, 24, 32, 48, 64].includes(Number(qs.get('grid'))) ? Number(qs.get('grid')) : 32;
   const LEAF = 2.0;           // finest node size (m) -> 6.25 cm vertex spacing
   const R0 = 8 * LEAF;        // LOD 0 range
   const LODS = 17;
@@ -431,7 +434,7 @@ export async function createEngine(canvas, options = {}) {
   let renderScale = options.renderScale ?? (Number(qs.get('scale')) || 1);
   // Test mode for software rasterisers: after the first frames the wave / sky / foam compute
   // only runs every `lite` frames (0 = always, the normal mode).
-  const lite = options.lite ?? (Number(qs.get('lite')) || 0);
+  let lite = options.lite ?? (Number(qs.get('lite')) || 0);
   const skipFoam = qs.get('skipfoam') === '1';
   let W = 0, H = 0;
   let colorMS, depthMS, hdrTex, bloomTex, offTex = null;
@@ -758,6 +761,7 @@ export async function createEngine(canvas, options = {}) {
   // offline video recorder (tools/trailer) needs to be deterministic.
   const manual = qs.get('manual') === '1';
   let forcedDt = 0;
+  let computeOnly = false;      // manual mode: run the simulation / probe passes but draw nothing (pre-roll of a recorded scene)
   function frame(now) {
     requestAnimationFrame(frame);
     if (manual) return;
@@ -849,47 +853,50 @@ export async function createEngine(canvas, options = {}) {
     }
     cp.end();
 
-    if (hooks.preMain) hooks.preMain(enc);
-    const rp = enc.beginRenderPass(mainPass);
-    if (hooks.drawOpaque) hooks.drawOpaque(rp);
-    if (nodeCount) {
-      rp.setPipeline(oceanPipe);
-      rp.setBindGroup(0, bgOcean[foamCur]);
-      rp.setVertexBuffer(0, instBuf);
-      rp.setIndexBuffer(idxBuf, 'uint16');
-      rp.drawIndexed(GRID * GRID * 6, nodeCount);
-    }
-    rp.setPipeline(skyPipe);
-    rp.setBindGroup(0, bgSky);
-    rp.draw(3);
-    if (hooks.drawOverlay) hooks.drawOverlay(rp);
-    rp.end();
+    let outTex = null;
+    if (!computeOnly) {
+      if (hooks.preMain) hooks.preMain(enc);
+      const rp = enc.beginRenderPass(mainPass);
+      if (hooks.drawOpaque) hooks.drawOpaque(rp);
+      if (nodeCount) {
+        rp.setPipeline(oceanPipe);
+        rp.setBindGroup(0, bgOcean[foamCur]);
+        rp.setVertexBuffer(0, instBuf);
+        rp.setIndexBuffer(idxBuf, 'uint16');
+        rp.drawIndexed(GRID * GRID * 6, nodeCount);
+      }
+      rp.setPipeline(skyPipe);
+      rp.setBindGroup(0, bgSky);
+      rp.draw(3);
+      if (hooks.drawOverlay) hooks.drawOverlay(rp);
+      rp.end();
 
-    for (let m = 0; m < BLOOM_LEVELS; m++) {
-      const p = enc.beginRenderPass(downPasses[m]);
-      p.setPipeline(downPipe);
-      p.setBindGroup(0, downBGs[m]);
-      p.draw(3);
-      p.end();
-    }
-    for (let i = 0; i < upPasses.length; i++) {
-      const p = enc.beginRenderPass(upPasses[i]);
-      p.setPipeline(upPipe);
-      p.setBindGroup(0, upBGs[i]);
-      p.draw(3);
-      p.end();
-    }
+      for (let m = 0; m < BLOOM_LEVELS; m++) {
+        const p = enc.beginRenderPass(downPasses[m]);
+        p.setPipeline(downPipe);
+        p.setBindGroup(0, downBGs[m]);
+        p.draw(3);
+        p.end();
+      }
+      for (let i = 0; i < upPasses.length; i++) {
+        const p = enc.beginRenderPass(upPasses[i]);
+        p.setPipeline(upPipe);
+        p.setBindGroup(0, upBGs[i]);
+        p.draw(3);
+        p.end();
+      }
 
-    compData[0] = P.exposure; compData[1] = P.bloom; compData[2] = frameIndex % 64; compData[3] = 0.10;
-    compData[4] = 1.05; compData[5] = 1.06; compData[6] = -0.19; compData[7] = 0;
-    device.queue.writeBuffer(compUBO, 0, compData);
-    const outTex = offscreen ? offTex : ctx.getCurrentTexture();
-    compPass.colorAttachments[0].view = outTex.createView();
-    const pc = enc.beginRenderPass(compPass);
-    pc.setPipeline(compPipe);
-    pc.setBindGroup(0, bgComp);
-    pc.draw(3);
-    pc.end();
+      compData[0] = P.exposure; compData[1] = P.bloom; compData[2] = frameIndex % 64; compData[3] = P.vignette;
+      compData[4] = P.saturation; compData[5] = P.contrast; compData[6] = P.warmth; compData[7] = 0;
+      device.queue.writeBuffer(compUBO, 0, compData);
+      outTex = offscreen ? offTex : ctx.getCurrentTexture();
+      compPass.colorAttachments[0].view = outTex.createView();
+      const pc = enc.beginRenderPass(compPass);
+      pc.setPipeline(compPipe);
+      pc.setBindGroup(0, bgComp);
+      pc.draw(3);
+      pc.end();
+    }
 
     if (slot) {
       const bytes = nProbe * 4;
@@ -903,7 +910,7 @@ export async function createEngine(canvas, options = {}) {
       doTs = true;
     }
     let capture = null;
-    if (capturePending) {
+    if (capturePending && outTex) {
       capture = capturePending; capturePending = null;
       const bpr = Math.ceil(W * 4 / 256) * 256;
       capture.buf = device.createBuffer({ size: bpr * H, usage: GU.MAP_READ | GU.COPY_DST });
@@ -1009,13 +1016,17 @@ export async function createEngine(canvas, options = {}) {
     capture() { return new Promise((res, rej) => { capturePending = { res, rej }; }); },
     start() { requestAnimationFrame(frame); },
     manual,
+    /** Change the 'lite' interval (heavy compute every Nth frame, 0 = every frame): the recorder pre-rolls cheaply and films at full rate. */
+    setLite(n) { lite = n; },
     /** Manual mode: render one frame of `dt` seconds, wait for the GPU, and resolve with the PNG (base64) when `capture` is set. */
-    async step(dt, capture = false) {
+    async step(dt, capture = false, render = true) {
       forcedDt = dt;
+      computeOnly = !render;
       inflight = 0;
-      const cap = capture ? this.capture() : null;
+      const cap = capture && render ? this.capture() : null;
       renderFrame(performance.now());
       forcedDt = 0;
+      computeOnly = false;
       await device.queue.onSubmittedWorkDone();
       // let the asynchronous water-height read-back of this frame land before the simulation moves on
       for (let i = 0; i < 200 && probeSlots.some((p) => p.busy); i++) await new Promise((r) => setTimeout(r, 2));

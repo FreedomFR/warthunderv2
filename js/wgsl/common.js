@@ -151,6 +151,14 @@ fn sunBelowHorizon(r: f32, mu: f32) -> bool {
 }
 `;
 
+// Replace NaN / Inf with black and clamp absurdly bright values: one bad HDR pixel is smeared over the screen by the bloom blur.
+export const SANE_WGSL = /* wgsl */ `
+fn sane(c: vec3f) -> vec3f {
+  let e = bitcast<vec3<u32>>(c) & vec3<u32>(0x7f800000u);
+  return select(clamp(c, vec3f(0.0), vec3f(8000.0)), vec3f(0.0), e == vec3<u32>(0x7f800000u));
+}
+`;
+
 // Hashing helpers used by the procedural texture generators.
 export const NOISE_WGSL = /* wgsl */ `
 fn pcgHash(v: u32) -> u32 {

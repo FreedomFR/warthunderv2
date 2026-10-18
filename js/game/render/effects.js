@@ -99,7 +99,7 @@ export class Effects {
       p.add({
         kind: K.SMOKE, x: e.x + e.dx * rr(0, 6) * cs, y: e.y + e.dy * rr(0, 6) * cs, z: e.z + e.dz * rr(0, 6) * cs,
         vx: e.dx * sp + rr(-2, 2), vy: e.dy * sp + rr(0, 3), vz: e.dz * sp + rr(-2, 2),
-        s0: 2.5 * cs, s1: rr(14, 26) * cs, life: rr(3, 6.5), r: 0.62, g: 0.57, b: 0.52, a0: 0.55, a1: 0, drag: 1.1, wind: 1, grav: -0.35,
+        s0: 2.5 * cs, s1: rr(9, 18) * Math.pow(cs, 0.85), life: rr(2.5, 5), r: 0.66, g: 0.61, b: 0.56, a0: 0.42, a1: 0, drag: 1.1, wind: 1, grav: -0.35,
       });
     }
     if (e.cal >= 150) this.addShake(0.045 * cs, e.x, e.z);
@@ -413,11 +413,13 @@ export class Effects {
       if (s.fires.length && d < 22000) {
         for (const f of s.fires) {
           f.acc = (f.acc || 0) + dt * (7 + 6 * f.power) * this.emitScale;
+          let smokeN = 0;
           while (f.acc >= 1) {
             f.acc -= 1;
             const w = s.toWorld(f.x + rr(-1, 1), f.y + rr(0, 1), f.z + rr(-1, 1), this._v);
             if (rnd() < 0.5) this.p.add({ kind: K.FIRE, x: w[0], y: w[1], z: w[2], vx: s.vx * 0.5, vy: rr(3, 8), vz: s.vz * 0.5, s0: 2.2 + f.power, s1: 5 + 3 * f.power, life: rr(0.4, 0.9), r: 1, g: 0.62, b: 0.2, a0: 3, a1: 0, drag: 0.8 });
-            this.p.add({ kind: K.SMOKE, x: w[0], y: w[1] + 2, z: w[2], vx: s.vx * 0.5, vy: rr(4, 9), vz: s.vz * 0.5, s0: 3.5, s1: rr(20, 34) * (0.7 + f.power * 0.4), life: rr(9, 16), r: 0.05, g: 0.048, b: 0.045, a0: 0.78, a1: 0, drag: 0.25, wind: 1, grav: -0.2 });
+            // the smoke is hot: it rises in a column (low drag, buoyancy) and leans with the wind, instead of piling up on the ship
+            if ((smokeN++ & 1) === 0) this.p.add({ kind: K.SMOKE, x: w[0], y: w[1] + 2, z: w[2], vx: s.vx * 0.5, vy: rr(7, 14), vz: s.vz * 0.5, s0: 3.2, s1: rr(34, 58) * (0.7 + f.power * 0.4), life: rr(14, 24), r: 0.05, g: 0.048, b: 0.045, a0: 0.6, a1: 0, drag: 0.07, wind: 1, grav: -0.9 });
           }
         }
       }
@@ -429,7 +431,7 @@ export class Effects {
           fxs.steam -= 1;
           const lx = rr(-st.L * 0.4, st.L * 0.4), lz = rr(-st.B * 0.3, st.B * 0.3);
           const w = s.toWorld(lx, Math.max(2, s.model.hull.deckY(lx) - s.sinkDepth * 0.4), lz, this._v);
-          this.p.add({ kind: K.SMOKE, x: w[0], y: w[1], z: w[2], vy: rr(4, 10), s0: 5, s1: rr(25, 45), life: rr(8, 15), r: 0.09, g: 0.09, b: 0.09, a0: 0.75, a1: 0, wind: 1, drag: 0.3 });
+          this.p.add({ kind: K.SMOKE, x: w[0], y: w[1], z: w[2], vy: rr(6, 12), s0: 5, s1: rr(30, 52), life: rr(11, 19), r: 0.09, g: 0.09, b: 0.09, a0: 0.62, a1: 0, wind: 1, drag: 0.1, grav: -0.6 });
           if (rnd() < 0.4) this.p.add({ kind: K.SPRAY, x: w[0], y: 0.5, z: w[2], vx: rr(-3, 3), vy: rr(5, 15), vz: rr(-3, 3), s0: 2, s1: 6, life: rr(1, 2.2), r: 0.95, g: 0.97, b: 1, a0: 0.8, a1: 0, grav: 12 });
         }
       }
@@ -507,7 +509,7 @@ export class Effects {
         const a = rnd() * 6.283, rad = Math.sqrt(rnd()) * f.r;
         const x = f.x + Math.cos(a) * rad, z = f.z + Math.sin(a) * rad;
         this.p.add({ kind: K.FIRE, x, y: 0.6, z, vy: rr(1.5, 5), s0: 2.2 + f.r * 0.12, s1: rr(4, 8) + f.r * 0.2, life: rr(0.5, 1.1), r: 1, g: 0.6, b: 0.2, a0: 3.2, a1: 0, drag: 1 });
-        if (rnd() < 0.45) this.p.add({ kind: K.SMOKE, x, y: 2, z, vx: 0, vy: rr(5, 11), vz: 0, s0: 3 + f.r * 0.2, s1: rr(16, 28) + f.r * 0.6, life: rr(8, 15), r: 0.05, g: 0.048, b: 0.045, a0: 0.8 * f.power, a1: 0, drag: 0.25, wind: 1, grav: -0.15 });
+        if (rnd() < 0.45) this.p.add({ kind: K.SMOKE, x, y: 2, z, vx: 0, vy: rr(6, 12), vz: 0, s0: 3 + f.r * 0.2, s1: rr(24, 40) + f.r * 0.7, life: rr(12, 20), r: 0.05, g: 0.048, b: 0.045, a0: 0.62 * f.power, a1: 0, drag: 0.08, wind: 1, grav: -0.55 });
       }
     }
   }
