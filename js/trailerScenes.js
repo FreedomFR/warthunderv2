@@ -297,7 +297,7 @@ export const SCENES = {
     // the lead battleship against the low sun: silhouette and rim light on the plating
     await T.shot('end_a', 4.2, (t, T) => {
       const u = mv.ease(t / T.dur), c = P3(ships[1], 0), b = 11 * D2R, r = lerp(760, 700, u);
-      return { p: [c[0] - Math.sin(b) * r, lerp(3.0, 4.5, u), c[2] + Math.cos(b) * r], l: [c[0] + lerp(12, -12, u), 21, c[2]], fov: lerp(27, 30, u) };
+      return { p: [c[0] - Math.sin(b) * r, lerp(3.0, 4.5, u), c[2] + Math.cos(b) * r], l: [c[0] + lerp(12, -12, u), 21, c[2]], fov: lerp(23, 26, u) };
     });
   },
 };
