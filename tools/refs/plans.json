@@ -458,5 +458,50 @@
         ]
       ]
     }
+  },
+  "kgv": {
+    "loa": 227.1,
+    "side": {
+      "file": "refs/kgv/gonzalez_kgv1941_doy1945.jpg",
+      "source": "\u00a9 Manuel P. Gonz\u00e1lez L\u00f3pez, 'King George V 1941 / Duke of York 1945' (all rights reserved; consulted for measurements only, never redistributed: refs/ is git-ignored); scale ruler in metres at the foot of the profile: 11.77 px/m; the first (1941) profile",
+      "crop": [
+        0,
+        170,
+        3250,
+        860
+      ],
+      "stern": 281,
+      "bow": 2953,
+      "wl": 755,
+      "close": 5,
+      "open": 5,
+      "threshold": 240,
+      "tol": 1.5,
+      "under": true
+    },
+    "top": {
+      "file": "refs/kgv/gonzalez_kgv1941_doy1945.jpg",
+      "source": "\u00a9 Manuel P. Gonz\u00e1lez L\u00f3pez, 'King George V 1941 / Duke of York 1945' (all rights reserved; consulted for measurements only, never redistributed: refs/ is git-ignored); scale ruler in metres at the foot of the profile: 11.77 px/m; the first (1941) plan view",
+      "crop": [
+        0,
+        1890,
+        3250,
+        2330
+      ],
+      "stern": 281,
+      "bow": 2963,
+      "cl": 2109,
+      "close": 3,
+      "tol": 1.0,
+      "threshold": 235,
+      "erase": [
+        [
+          0,
+          1890,
+          260,
+          2330
+        ]
+      ]
+    }
   }
 }

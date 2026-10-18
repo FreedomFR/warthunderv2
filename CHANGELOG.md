@@ -15,8 +15,11 @@ compared with the drawing in metres (`check.mjs` + `silhouette.py`), hull tables
   Profile 4.8 -> 0.6 m.
 - **Illustrious**: the ONI 201 sheet (flight deck 40 ft, stack 91.5 ft printed on it): the island's blocks, funnel and mast, the flight deck outline
   with its narrow stern and bow ends, two lifts, four pairs of 4.5 in sponsons, the octuple pom-poms. Profile 6.3 -> 0.8 m.
-- **King George V**: no plan of the class was found; funnels, bridge, foremast (abaft the tower, not on it) and mainmast read on the 1945 photograph
-  (about +-3 m, said so in the sheet); turrets, secondary mounts and hull are still the spec estimates.
+- **King George V**: measured on Manuel P. Gonzalez Lopez's profile and plan "King George V 1941 / Duke of York 1945" (copyright, consulted for
+  measurements only and credited; shared by the project owner), with the metre ruler of the sheet. The spec had the turrets 25-40 m out (A / B / Y
+  were at 0.13 / 0.195 / 0.835, they are at 0.287 / 0.352 / 0.760); long forecastle, hull outline from the plan (pointed stern), keel, funnels,
+  bridge, tripod fore- and mainmasts, two cranes, athwartships catapult, boat deck, props and rudder. Profile 4.2 -> 1.9 m, plan 1.9 -> 0.2 m.
+  Fixed: the deckhouse followed the foremast instead of the tower, so the bridge overhung it and floated; the crane was an oblique strut.
 - New gun-house families: 381/50 and 152/55 (Italy), 380 quadruple and 152 Mle 1936 (France), built from one parametric flat-roofed house.
 - Builder: carriers can take a measured flight deck outline (`fdPlan`), island blocks (`island.blocks`), lift sizes, mast / radar / director
   positions; measured hull tables; `aa` / `boats` for every nation (octuple pom-pom added).

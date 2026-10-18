@@ -170,22 +170,47 @@ export const TWEAKS = {
     directors: [{ f: 0.62, y: 21.2, w: 2.6, l: 2.6, h: 1.8, label: 'Directeur de 152 mm du mack' }, { f: 0.676, y: 8.6, w: 3.0, l: 3.0, h: 2.2, label: 'Directeur de 380 mm arrière' }],
     cat: { f: 0.95, z: 5.5, yaw: 0.15, len: 21, y: 3.3, craneF: 0.985, craneH: 5, craneLen: 13, craneDir: 1, craneAng: 0.5, craneSide: 0, craneW: 0.6 },
   },
-  // King George V class (HMS KGV, 16 Aug 1945, USN 80-G-455703, public domain): no plan found, so everything here is read on that
-  // photograph (a nearly broadside view, about +-3 m): the two funnels at 0.503 and 0.611 (tops 24.7 m above the waterline), the bridge
-  // block 0.380-0.458 (top 24 m) with the director tower on its after edge (30 m), the tripod foremast ABAFT the tower at 0.47 (top
-  // 43.8 m) and the mainmast at 0.70 (38 m); the hull, the turrets and the secondary mounts keep the spec positions.
+  // King George V (1941): measured on Manuel P. Gonzalez Lopez's profile and plan "King George V 1941 / Duke of York 1945" (all rights
+  // reserved: consulted for measurements only, credited in the README, never redistributed) with the metre ruler of the sheet (11.77 px/m):
+  // the spec had the turrets 25-40 m out. Deck edge 6.9 m at the stem, 5.2 m amidships, 5.3 m aft; the deckhouse (boat deck) 4.4 m above the
+  // deck; turrets A / B / Y at 0.287 / 0.352 / 0.760; the funnels at 0.503 and 0.603 (tops 24.3 m); the bridge block 0.378-0.450 (20.5 m,
+  // the director tower to 31 m); the tripod foremast at 0.464 (platform 31.8 m, top 48.2 m); the mainmast at 0.690 (platform 27.4 m, top
+  // 42.8 m); two cranes with their jibs pointing inboard and the athwartships catapult at 0.553; four pairs of 133 mm twins; props and
+  // rudder as drawn (athwartship offsets of the shafts estimated). The light AA is still the random layout (not measured).
   kgv: {
-    houseH: 3.4, towerF: 0.419, towerY0: 3.4, mastY0: { 1: 2.0 },
-    tiers: [
-      { len: 17.7, w: 17, h: 5.6, windows: true, wings: 1.4 },
-      { len: 15.5, w: 14, h: 6.6, windows: true, wings: 1.0 },
-      { len: 4.2, w: 5.0, h: 6.0, round: true, dx: -6.7 },
+    houseH: 4.4, towerF: 0.414, towerY0: 4.4, bulwarkF: [0, 0],
+    fb: [[0, 7.5], [0.02, 7.0], [0.05, 6.5], [0.1, 6.3], [0.2, 6.0], [0.3, 5.6], [0.4, 5.3], [0.5, 5.2], [0.7, 5.3], [0.8, 5.4], [0.9, 5.4], [1, 5.4]],
+    planDeck: [[0, 0.022], [0.05, 0.281], [0.1, 0.469], [0.15, 0.610], [0.2, 0.718], [0.25, 0.798], [0.3, 0.863], [0.35, 0.917], [0.4, 0.960], [0.45, 0.982], [0.5, 0.987], [0.55, 0.987], [0.6, 0.976], [0.65, 0.960], [0.7, 0.933], [0.75, 0.896], [0.8, 0.836], [0.85, 0.755], [0.9, 0.610], [0.95, 0.388], [1, 0.070]],
+    planWL: [[0, 0], [0.03, 0.14], [0.06, 0.26], [0.1, 0.38], [0.15, 0.52], [0.2, 0.63], [0.25, 0.72], [0.3, 0.8], [0.35, 0.88], [0.4, 0.94], [0.45, 0.975], [0.5, 0.987], [0.6, 0.976], [0.7, 0.93], [0.8, 0.82], [0.9, 0.58], [0.95, 0.36], [1, 0.06]],
+    keel: [[0, 0.1], [0.015, 0.8], [0.03, 0.893], [0.93, 0.893], [0.965, 0.8], [0.975, 0.35], [1, 0.2]],
+    bow: { rake: 1.4, pr: 1.5, forefoot: 3.5 }, stern: { overhang: 0.6, rise: 6 },
+    props: [{ f: 0.934, z: 3.6, depth: 5.7, d: 4.2, blades: 3, toF: 0.85, skeg: true }, { f: 0.8835, z: 8.8, depth: 5.7, d: 4.2, blades: 3, toF: 0.82, strutF: 0.872 }],
+    rudders: [{ f: 0.965, top: 3.0, bottom: 9.5, chord: 4.8 }],
+    house: { plan: [[0.378, 7.5], [0.40, 8.8], [0.45, 9.5], [0.46, 12], [0.60, 12.3], [0.65, 10.5], [0.69, 7], [0.726, 0.5]] },
+    decks: [
+      { f: [0.378, 0.450], hw: 8.8, y: [4.4, 10.0], windows: true },                                      // the lower bridge block
+      { f: [0.388, 0.447], hw: 7.2, y: [10.0, 15.3], windows: true, wings: 1.2, rail: true },
+      { f: [0.385, 0.404], hw: 3.4, y: [15.3, 19.3], windows: true },                                     // compass platform
+      { f: [0.4355, 0.4505], round: true, hw: 2.5, y: [15.3, 25.4], taper: 0.88 },                      // the director control tower
+      { f: [0.618, 0.69], hw: 9.5, y: [4.4, 7.9] },                                                      // the boat deck and its houses abaft the after funnel
+      { f: [0.69, 0.726], hw: 4.5, y: [4.4, 6.0] },
     ],
-    dir0: { dx: -6.7, w: 4.2, l: 4.2, h: 2.2 },
-    foremast: { dx: -11.6, y0: 6.0 },
-    funnels: [{ lx: 9.2, lz: 7.4, y0: 3.4, h: 12.9, rake: 0.8, top: 0.92, pipes: false }, { lx: 9.0, lz: 7.2, y0: 3.4, h: 12.9, rake: 0.8, top: 0.92, pipes: false }],
-    // the lattice crane lies along the hangar roof between the funnels: its jib nearly horizontal at 14 m, from f 0.575 forward to 0.52
-    cat: { f: 0.557, y: 0.4, yaw: Math.PI / 2, len: 22, craneF: 0.575, craneH: 7.2, craneLen: 12.5, craneDir: 1, craneAng: 0.05, craneSide: 0, craneW: 0.9 },
+    tiers: [
+      { len: 16.4, w: 17.6, h: 5.6, windows: true },
+      { len: 13.6, w: 14.4, h: 5.3, windows: true, wings: 1.0 },
+      { len: 3.2, w: 5.0, h: 2.5, dx: 0, windows: false },
+    ],
+    dir0: { dx: -4.2, w: 4.6, l: 4.0, h: 2.0 },
+    foremast: { dx: -11.4, y0: 8.0, base: 4.4, apex: 0.57, platform: 0.6, spread: 3.0, back: 4.5, front: 1.0 },
+    mastY0: { 1: 4.4 },
+    funnels: [{ lx: 6.8, lz: 6.2, y0: 4.4, h: 14.5, rake: 0.4, top: 0.9, pipes: false, capSlope: 0.4 }, { lx: 6.8, lz: 6.2, y0: 4.4, h: 14.5, rake: 0.4, top: 0.9, pipes: false, capSlope: 0.4 }],
+    // 133 mm twins in pairs on the platform deck (the spec pairs moved to the plan): abreast the bridge, the forward funnel, the after funnel
+    // and the after superstructure
+    directors: [{ f: 0.4425, y: 25.4, w: 3.4, l: 3.4, h: 1.8, kind: 'dome', label: 'Directeur de tir principal (DCT)' }],
+    // two cranes on the boat deck with their jibs pointing forward and inboard; the athwartships catapult between the funnels
+    cat: { f: 0.553, y: 0.9, yaw: Math.PI / 2, len: 31, craneF: 0.588, craneZ: 9.8, craneBoth: true, craneInboard: true, craneY: 4.4, craneH: 3.0, craneLen: 8.5, craneDir: 1, craneAng: 0.28, craneSide: 0.82, craneW: 0.45 },
+    // ship's boats on skid beams across the boat deck aft of the after funnel
+    boats: [{ f0: 0.595, f1: 0.633, z: -9.2, y: 4.9, cabin: true, one: true }, { f0: 0.603, f1: 0.646, z: -6.0, y: 4.9, one: true }, { f0: 0.61, f1: 0.648, z: -2.8, y: 4.9, one: true }, { f0: 0.61, f1: 0.648, z: 2.2, y: 4.9, one: true }, { f0: 0.603, f1: 0.646, z: 5.4, y: 4.9, one: true }, { f0: 0.595, f1: 0.633, z: 8.6, y: 4.9, cabin: true, one: true }],
   },
   fletcher: { mainVariant: 'mk30' },
   cleveland: { secVariant: ['mk28'] },

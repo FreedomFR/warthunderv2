@@ -277,7 +277,8 @@ export function buildShipModel(spec, tw = {}) {
     y += t === 'DD' ? 2.0 : 3.0;
     if (tw.foremast?.y0 != null) y = Y(x) + tw.foremast.y0;
     const mx = x + (tw.foremast?.dx ?? -0.8);
-    const mastBase = r.tops[Math.max(0, tiers.length - 3)];
+    // tw.foremast.base: where the legs of a tripod stand (m above the deck), apex: the height of its apex as a fraction of the mast
+    const mastBase = tw.foremast?.base != null ? Y(x) + tw.foremast.base : r.tops[Math.max(0, tiers.length - 3)];
     // rigging of the foremast: forestay to the bow, stays to the funnels, a flag hoist on the yardarms
     const foreFine = () => {
       const top = [mx - 0.1, mastTopY - 0.8, 0], sc = rgb(pal.dark);
@@ -291,7 +292,7 @@ export function buildShipModel(spec, tw = {}) {
     const mastRuin = (mx, my, mh) => () => b.cylinder(mx, my, 0, 0.5, 0.3, my + Math.max(2.5, mh * 0.18), rgb(charred(pal)), MAT.DARK, { seg: 6 });
     if (kindOf(mastDesc, 'tripod')) {
       part('mast0', 'mast', 'Mât avant', () => {
-        PT.tripod(b, { x: mx - 0.2, y0: mastBase, h: mastTopY - mastBase, legSpread: topW * 0.6, legBack: 4, legFront: 2, platforms: [0.55], yards: [[0.8, 8]] }, pal);
+        PT.tripod(b, { x: mx - 0.2, y0: mastBase, h: mastTopY - mastBase, legSpread: tw.foremast?.spread ?? topW * 0.6, legBack: tw.foremast?.back ?? 4, legFront: tw.foremast?.front ?? 2, apexFrac: tw.foremast?.apex, platforms: [tw.foremast?.platform ?? 0.55], yards: [[0.8, 8]] }, pal);
         PT.pennant(b, mx, mastTopY + 0.2, 0.3, 4.5, 0, '#ffffff');
         if (ensOnFore) PT.ensign(b, { x: mx - 0.3, y: mastTopY - 7, z: 0, len: ensLen });
       }, mastRuin(mx - 0.2, mastBase, mastTopY - mastBase), { fine: foreFine });
@@ -462,7 +463,7 @@ export function buildShipModel(spec, tw = {}) {
     }
     const cf = tc.craneF ?? f0 + 0.07;
     part('crane', 'crane', 'Grue', () => {
-      for (const sg of tc.craneBoth ? [1, -1] : [1]) PT.crane(b, { x: X(cf), y0: Y(X(cf)) + (tc.craneY ?? 0), z: sg * (tc.craneZ ?? 0), h: tc.craneH ?? 7, len: tc.craneLen ?? 14, side: tc.craneSide ?? 1, dir: tc.craneDir, angle: tc.craneAng, w: tc.craneW }, pal);
+      for (const sg of tc.craneBoth ? [1, -1] : [1]) PT.crane(b, { x: X(cf), y0: Y(X(cf)) + (tc.craneY ?? 0), z: sg * (tc.craneZ ?? 0), h: tc.craneH ?? 7, len: tc.craneLen ?? 14, side: (tc.craneSide ?? 1) * (tc.craneBoth && tc.craneInboard ? -sg : 1), dir: tc.craneDir, angle: tc.craneAng, w: tc.craneW }, pal);
     });
   }
 

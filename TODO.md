@@ -43,9 +43,9 @@ Lot 2 (cuirassés et porte-avions des autres nations) : **fait, avec des réserv
 | Richelieu | coupe longitudinale de la classe, CC BY-SA 4.0 | 1,3 m (0,3 m sous l'eau) |
 | Shōkaku | profil + plan avec barre d'échelle de 50 m, CC BY-SA 3.0 | 0,6 m (plan : 2,9 m, tubs de DCA et mâts rabattus) |
 | Illustrious | feuille ONI 201 (pont d'envol 40 ft, cheminée 91,5 ft) | 0,8 m |
-| King George V | **photographie seulement** (aucun plan libre trouvé), ±3 m | non mesuré |
+| King George V | profil + plan de Manuel P. González López (© : mesures seulement, non redistribué) | 1,9 m (plan : 0,2 m) |
 
-- [ ] **King George V** : trouver un plan (profil + vue de dessus) ; tourelles, pièces secondaires et coque sont encore les estimations de la fiche.
+- [ ] **King George V** : DCA légère non mesurée (placement aléatoire), décalage transversal des arbres estimé ; le plan est protégé (© de l'auteur) : ne pas le redistribuer, ne pas le mettre dans le dépôt ; demander l'accord de l'auteur si le jeu devient public.
 - [ ] **Richelieu, Littorio** : pas de vue de dessus du Richelieu (coupe centrale) ; largeurs de coque estimées ; pièces hors de l'axe estimées.
 - [ ] **Shōkaku, Illustrious** : vue de dessus du Shōkaku à comparer en retirant les tubs de DCA ; pas de plan de l'Illustrious à l'échelle (la vue de dessus de la feuille est trop petite).
 - [ ] **Autres porte-avions et classes** : voir le tableau ci-dessous ; les croiseurs lourds, croiseurs légers et destroyers restent à faire.
@@ -54,7 +54,7 @@ Lot 2 (cuirassés et porte-avions des autres nations) : **fait, avec des réserv
 |---|---|---|---|---|---|
 | États-Unis | Fletcher (5"/38 Mk 30 déjà) | Cleveland | Baltimore | **Iowa ✔** | **Essex ✔** |
 | Japon | Kagerō | Agano | Takao | **Yamato ✔** | **Shōkaku ✔** |
-| Royaume-Uni | Tribal | Belfast | Norfolk | King George V (photo) | **Illustrious ✔** |
+| Royaume-Uni | Tribal | Belfast | Norfolk | **King George V ✔** | **Illustrious ✔** |
 | Allemagne | Type 1936A (Mob) | Königsberg | Admiral Hipper | **Bismarck ✔** | Graf Zeppelin |
 | France | Le Fantasque | La Galissonnière | Algérie | **Richelieu ✔** | Béarn |
 | Italie | Soldati | Montecuccoli | Zara | **Littorio ✔** | Aquila |
