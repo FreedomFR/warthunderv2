@@ -9,3 +9,6 @@ Thumbs.db
 .vscode/
 .idea/
 *.log
+
+# reference photographs (downloaded by tools/refs/fetch.py, never committed)
+/refs/

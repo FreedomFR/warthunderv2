@@ -9,13 +9,14 @@
 // Frames land in <outDir>/<scene>/<shot>/00000.png. Chromium must support WebGPU (--enable-unsafe-webgpu); on machines without a
 // GPU the software adapter is used: expect several seconds per frame.
 import { chromium } from 'playwright-core';
+import { launchOptions } from '../browser.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 
 const argv = process.argv.slice(2);
 const scene = argv[0], outDir = argv[1];
 if (!scene || !outDir) { console.error('usage: node tools/trailer/record.mjs <scene> <outDir> [--w N --h N --stride N]'); process.exit(1); }
-const opt = { w: 1280, h: 720, stride: 1, url: 'http://localhost:8080', grid: 8, fft: 128, chrome: process.env.CHROME || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome', q: [] };
+const opt = { w: 1280, h: 720, stride: 1, url: 'http://localhost:8080', grid: 8, fft: 128, chrome: '', q: [] };
 for (let i = 2; i < argv.length; i++) {
   const k = argv[i].replace(/^--/, '');
   if (k === 'q') opt.q.push(argv[++i]); else opt[k] = isNaN(Number(argv[i + 1])) ? argv[++i] : Number(argv[++i]);
@@ -23,8 +24,7 @@ for (let i = 2; i < argv.length; i++) {
 const query = new URLSearchParams({ offscreen: 1, manual: 1, trailer: 1, w: opt.w, h: opt.h, grid: opt.grid, fft: opt.fft, stride: opt.stride, seed: 7, audio: opt.audio ? 1 : 0 });
 for (const kv of opt.q) { const [k, v] = kv.split('='); query.set(k, v); }
 
-const args = ['--enable-unsafe-webgpu', '--use-webgpu-adapter=swiftshader', '--use-angle=swiftshader', '--enable-features=Vulkan', '--ignore-gpu-blocklist', '--no-sandbox', '--enable-webgpu-developer-features'];
-const browser = await chromium.launch({ executablePath: opt.chrome, args, headless: true });
+const browser = await chromium.launch(launchOptions(opt.chrome ? { executablePath: opt.chrome } : {}));
 const page = await browser.newPage({ viewport: { width: opt.w, height: opt.h } });
 let frames = 0, audioInfo = null;
 const t0 = Date.now();

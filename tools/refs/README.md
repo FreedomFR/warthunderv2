@@ -1,0 +1,40 @@
+# Reference photographs and model comparison
+
+Tools used for the "fidelity" batches (batch 1: Iowa, Yamato, Bismarck, Essex): fetch free photographs of a ship, measure what can be
+measured on them, then compare the procedural model with the photographs from the same angles.
+
+The photographs themselves are **not** in the repository (`refs/` is git-ignored): only measurements and observations taken from them go
+into the code, and each source is listed in `sources.jsonl` (title, URL, licence, author) and credited in `README.md`.
+
+| File | Use |
+|---|---|
+| `list_images.py` | lists the images used by Wikipedia articles: `python3 tools/refs/list_images.py "USS Iowa (BB-61)"` |
+| `fetch.py` | downloads photographs from Wikimedia Commons with licence and author: `python3 tools/refs/fetch.py iowa "File title.jpg" ...` → `refs/iowa/` |
+| `views.mjs` | writes a standard set of cameras (profile, bow / stern three-quarter, forecastle) scaled to each ship's length |
+| `shots.mjs` | takes the screenshots of the preview scene for such a list of cameras |
+| `sheet.py` | contact sheet of a folder of screenshots (needs Pillow): `python3 tools/refs/sheet.py sheet.jpg folder 2` |
+| `sources.jsonl` | the 14 photographs consulted for batch 1 (Iowa, Yamato, Bismarck, Essex) |
+
+## Workflow for a ship
+
+```bash
+node server.mjs 8080 &                                   # the game must be served
+python3 tools/refs/list_images.py "German battleship Bismarck"
+python3 tools/refs/fetch.py bismarck "Some photo.jpg"     # check the licence line it prints; public domain or CC BY(-SA) only
+node tools/refs/views.mjs bismarck > views.json
+node tools/refs/shots.mjs "http://localhost:8080/index.html?preview=bismarck&offscreen=1&w=1280&h=720&parked=6&fov=38&ocean=0" out views.json 1280 720 900
+```
+
+Preview scene: `?preview=id1,id2` lines the ships up, `ocean=0` skips the ocean (about 10 s per shot in software rendering instead of
+minutes), `window.__preview.set({ target, heading, dist, az, el, lookY, lookX })` moves the camera (heading 90 = bow towards +x,
+az 180 = starboard profile with the bow to the right). Add custom entries to the JSON for turrets and superstructure close-ups.
+
+To check the muzzle blast of a ship: `node tools/trailer/record.mjs firetest out --w 800 --h 450 --stride 5 --q ship=<id>`
+(the frames land in `out/firetest/fire_air` and `out/firetest/fire_deck`; a few minutes in software rendering).
+
+## Notes
+
+- Wikimedia Commons rate-limits (HTTP 429): the scripts wait and retry. `navsource.org` and `history.navy.mil` were not reachable from the
+  cloud environment used for batch 1; from a normal PC they may be, and they have many more photographs and plans of US ships.
+- The browser tools read `CHROME=/path/to/chrome` and `GPU=hardware` (see `tools/browser.mjs`); without `GPU=hardware` they render with
+  the software WebGPU adapter, which works everywhere and is slow.
