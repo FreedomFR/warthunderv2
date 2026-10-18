@@ -2,13 +2,13 @@
 //   node test/manual.mjs
 import { World } from '../js/game/sim/world.js';
 import { ManualController } from '../js/game/sim/controllers/manual.js';
-import { AIController } from '../js/game/sim/controllers/ai.js';
 
 const w = new World(5);
 w.addTeam(0); w.addTeam(1);
 const me = w.addShip('iowa', 0, -4000, 0, Math.PI / 2);
 const foe = w.addShip('yamato', 1, 4000, 0, -Math.PI / 2);
-foe.controller = new AIController();
+// the target steams on and holds its fire: this test is about the controls, not about who wins the duel
+foe.controller = { update(ship) { ship.cmd.throttle = 0.5; ship.cmd.main.fire = false; ship.cmd.sec.fire = false; ship.cmd.torpedo.fire = false; } };
 const input = { up: true, down: false, left: false, right: false, aim: null, lockedTarget: null, fireMain: false, fireSec: false, fireTorpedo: false, launchAir: false };
 me.controller = new ManualController(input);
 w.start();

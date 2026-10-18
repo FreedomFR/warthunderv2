@@ -180,9 +180,9 @@ export class Ship {
     let sp = 0, ss = 0, nP = 0, nS = 0;
     for (const m of shafts) {
       const a = m.state === 2 ? 0 : 1;
-      if (m.side < 0) { sp += a; nP++; } else { ss += a; nS++; }
+      if (m.side < 0) { sp += a; nP++; } else if (m.side > 0) { ss += a; nS++; }   // a centre shaft pushes straight ahead
     }
-    const shaftShare = shafts.length ? (sp + ss) / shafts.length : 1;
+    const shaftShare = shafts.length ? shafts.filter((m) => m.state !== 2).length / shafts.length : 1;
     this.thrustBias = shafts.length ? ((nS ? ss / nS : 0) - (nP ? sp / nP : 0)) : 0;
     const funnels = this.modules.filter((m) => m.kind === 'funnel');
     const fd = funnels.length ? funnels.filter((m) => m.state === 2).length / funnels.length : 0;

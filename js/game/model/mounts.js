@@ -21,13 +21,14 @@ const FAMILY = {
   // 3.4 m high, the gun axis 1.6 m above its base, barrels 12.4 m clear of the face, turret 2 three metres above turret 1
   mk7: { kind: 'turret', cal: 406, n: 3, spacing: 3.05, trunX: 3.4, trunY: 1.6, face: 6.4, port: 5.6, fwd: 15.4, back: 2.8, rB: 0.62, rP: 0.52, rM: 0.31, bagR: 0.95, bagLen: 1.2, recoil: 1.2, lift: 3.0, h: 3.4, barbR: 6.0, barb: 0.35 },
   // Yamato 1945 profile and plan (Commons, Alexpl, after the Kure museum photographs; heights scaled to the builders' freeboards):
-  // 18.5 m long, 14.4 m wide without the rangefinder arms, 4.3 m high, barrels 13.3 m clear of the ports, turret 2 3.5 m above turret 1
-  type94: { kind: 'turret', cal: 460, n: 3, spacing: 3.52, trunX: 3.6, trunY: 1.9, face: 7.6, port: 6.4, fwd: 16.1, back: 2.9, rB: 0.70, rP: 0.60, rM: 0.35, bagR: 1.05, bagLen: 1.3, recoil: 1.3, lift: 3.5, h: 4.3, barbR: 6.6, barb: 0.3, whiteMuzzle: true },
-  // Yamato's 15.5 cm/60 triple (ex-Mogami): 8.6 m long, 3.1 m high, barrels 5.9 m clear of the face, on a 6.6-7.1 m barbette
-  type3_155: { kind: 'turret', cal: 155, n: 3, spacing: 1.7, trunX: 1.2, trunY: 1.3, face: 3.6, port: 3.2, fwd: 8.3, back: 1.2, rB: 0.26, rP: 0.2, rM: 0.11, bagR: 0.33, bagLen: 0.5, recoil: 0.6, lift: 2.6, h: 3.1, barbR: 3.0 },
+  // 18.5 m long, 14.4 m wide without the rangefinder arms, 3.9 m high (the profile is drawn 10 % flat: heights read at its own vertical
+  // scale; roofs 11.7 and 15.1 m above the waterline), barrels 13.3 m clear of the ports, turret 2 2.7 m above turret 1
+  type94: { kind: 'turret', cal: 460, n: 3, spacing: 3.52, trunX: 3.6, trunY: 2.4, face: 7.6, port: 6.4, fwd: 16.1, back: 2.9, rB: 0.70, rP: 0.60, rM: 0.35, bagR: 1.05, bagLen: 1.3, recoil: 1.3, lift: 2.7, h: 3.9, barbR: 6.6, barb: 0.1, whiteMuzzle: true },
+  // Yamato's 15.5 cm/60 triple (ex-Mogami): 8.6 m long, 3.4 m high, barrels 5.9 m clear of the face, on a 7.3-7.9 m barbette
+  type3_155: { kind: 'turret', cal: 155, n: 3, spacing: 1.7, trunX: 1.2, trunY: 1.44, face: 3.6, port: 3.2, fwd: 8.3, back: 1.2, rB: 0.26, rP: 0.2, rM: 0.11, bagR: 0.33, bagLen: 0.5, recoil: 0.6, lift: 2.6, h: 3.44, barbR: 3.0 },
   // Bismarck profile (Commons, CC0) and Bundesarchiv photographs: 13.3 m long, 3.5 m high, barrels 13.5 m clear of the face, on a
-  // 1.2 m barbette; the superfiring turrets 3.7 m higher
-  drh34: { kind: 'turret', cal: 380, n: 2, spacing: 4.6, trunX: 2.6, trunY: 1.6, face: 5.8, port: 5.2, fwd: 16.1, back: 2.6, rB: 0.58, rP: 0.49, rM: 0.29, bagR: 0.85, bagLen: 1.1, recoil: 1.15, lift: 3.7, h: 3.5, barbR: 5.3, barb: 1.2 },
+  // 1.2 m barbette; the superfiring turrets 3.4 m higher
+  drh34: { kind: 'turret', cal: 380, n: 2, spacing: 4.6, trunX: 2.6, trunY: 1.6, face: 5.8, port: 5.2, fwd: 16.1, back: 2.6, rB: 0.58, rP: 0.49, rM: 0.29, bagR: 0.85, bagLen: 1.1, recoil: 1.15, lift: 3.4, h: 3.5, barbR: 5.3, barb: 1.2 },
   // Bismarck's 15 cm SK C/28 twin turrets (Drh LC/34): 7.2 m long, 2.8 m high, on a low barbette on the upper deck
   drh28_150: { kind: 'turret', cal: 150, n: 2, spacing: 1.9, trunX: 1.3, trunY: 1.25, face: 3.6, port: 3.1, fwd: 7.2, back: 1.2, rB: 0.24, rP: 0.19, rM: 0.1, bagR: 0.3, bagLen: 0.45, recoil: 0.55, lift: 2.4, h: 2.8, barbR: 2.7 },
   mk28: { kind: 'dp', cal: 127, n: 2, spacing: 0.78, trunX: 0.55, trunY: 1.35, face: 1.9, fwd: 3.6, back: 0.9, rB: 0.19, rP: 0.15, rM: 0.085, bagR: 0.3, bagLen: 0.3, recoil: 0.5, lift: 3.0, h: 2.9 },

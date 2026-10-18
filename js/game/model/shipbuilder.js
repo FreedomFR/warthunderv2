@@ -51,7 +51,7 @@ function hullParams(spec, tw) {
     bow: { ...preset.bow, ...(tw.bow || {}) }, stern: { ...preset.stern, ...(tw.stern || {}) },
     mid: { ...preset.mid, flare: t === 'CV' ? preset.mid.flare : Math.max(preset.mid.flare, flareMid), ...(tw.mid || {}) },
     camber: dd ? 0.18 : 0.3, bulwark: dd ? 0.85 : 0.95,
-    planWL: tw.planWL, planDeck: tw.planDeck, bulwarkF: tw.bulwarkF,
+    planWL: tw.planWL, planDeck: tw.planDeck, bulwarkF: tw.bulwarkF, draftProfile: tw.keel,
   };
 }
 
@@ -100,6 +100,20 @@ function planPoly(plan, X, zc = 0) {
   return [...plan.map(([f, w]) => [X(f), zc + w]), ...plan.slice().reverse().map(([f, w]) => [X(f), zc - w])];
 }
 
+/** Light AA mount types by key, for the measured layouts (tweaks.aa). */
+const AA_TYPES = {
+  q40: { v: 'bofors', n: 4, cal: 40, bore: 56, tub: 2.3, label: 'Bofors 40 mm quadruple' },
+  t40: { v: 'bofors', n: 2, cal: 40, bore: 56, tub: 1.8, label: 'Bofors 40 mm double' },
+  o20: { v: 'oerlikon', n: 1, cal: 20, bore: 70, label: 'Oerlikon 20 mm' },
+  t25: { v: 'iijn25', n: 3, cal: 25, bore: 60, tub: 1.6, label: 'Type 96 de 25 mm triple' },
+  d25: { v: 'iijn25', n: 2, cal: 25, bore: 60, label: 'Type 96 de 25 mm double' },
+  s25: { v: 'oerlikon', n: 1, cal: 25, bore: 60, label: 'Type 96 de 25 mm simple' },
+  m13: { v: 'iijn25', n: 2, cal: 13, bore: 76, label: 'Type 93 de 13,2 mm double' },
+  t37: { v: 'bofors', n: 2, cal: 37, bore: 83, tub: 1.7, label: 'Flak 37 mm double' },
+  q20: { v: 'iijn25', n: 4, cal: 20, bore: 65, tub: 1.6, label: 'Flakvierling 20 mm' },
+  f20: { v: 'oerlikon', n: 1, cal: 20, bore: 65, label: 'Flak 20 mm' },
+};
+
 function kindOf(desc, ...words) { return words.some((w) => new RegExp(w, 'i').test(desc || '')); }
 
 export function buildShipModel(spec, tw = {}) {
@@ -136,6 +150,34 @@ export function buildShipModel(spec, tw = {}) {
     return p;
   };
   const charred = (pal0) => shade(rgb(pal0.dark), 1.1);
+
+  // -------- propulsion under water (tweaks.props / tweaks.rudders, measured on the plans where they show the underwater body) --------
+  //   props: [{ f, z (a prop off the centreline has its twin on the other side), depth (shaft axis below the waterline), d, blades,
+  //             toF (where the shaft enters the hull or its bossing), strutF (shaft bracket), skeg: true (the shaft runs in a skeg) }]
+  //   rudders: [{ f, z, top, bottom (depths below the waterline), chord }]
+  model.shafts = []; model.rudders = [];
+  // tw.bulb: a bulbous forefoot { f0, f1 (its extent from the bow), y (centre below the waterline), h, w }
+  if (tw.bulb) { const q = tw.bulb; b.sphere((X(q.f0) + X(q.f1)) / 2, -q.y, 0, (X(q.f0) - X(q.f1)) / 2, q.h / 2, q.w / 2, rgb(pal.boot), MAT.SKIN, { seg: 16, rings: 10 }); }
+  for (const pr of tw.props || []) {
+    for (const sg of pr.z ? [1, -1] : [0]) {
+      const x = X(pr.f), z = sg * Math.abs(pr.z || 0), y = -pr.depth, xe = X(pr.toF ?? pr.f - 0.08);
+      PT.propeller(b, { x, y, z, d: pr.d, blades: pr.blades, hand: sg || 1, phase: sg * 0.4 });
+      b.rod(x + pr.d * 0.1, xe, y, z, pr.d * 0.06, pr.d * 0.07, rgb('#77706a'), MAT.HULL, { seg: 10 });
+      if (pr.skeg) b.block({ x0: X(pr.f - 0.004) , x1: xe, hw: 0.6, zc: z, y0: y - pr.d * 0.1, y1: y + pr.d * 0.45, tx0: X(pr.f - 0.004) }, rgb(pal.boot), MAT.SKIN);
+      else if (pr.strutF) {
+        const xs = X(pr.strutF), top = [xs, y + pr.d * 0.55, z * 0.55];
+        b.beam([xs, y, z], top, 0.35, 0.9, rgb(pal.boot), MAT.HULL);
+        b.beam([xs, y, z], [xs, y + pr.d * 0.5, z * 1.15], 0.35, 0.9, rgb(pal.boot), MAT.HULL);
+      }
+      model.shafts.push({ x: (x + xe) / 2, z, y, hx: Math.abs(xe - x) / 2, side: Math.sign(z) });
+    }
+  }
+  for (const r of tw.rudders || []) {
+    for (const sg of r.z ? [1, -1] : [0]) {
+      PT.rudder(b, { x: X(r.f), z: sg * Math.abs(r.z || 0), y0: -r.bottom, y1: -r.top, chord: r.chord }, pal);
+      model.rudders.push({ x: X(r.f), z: sg * Math.abs(r.z || 0) });
+    }
+  }
   let topY = Y(0) + 4;
   const note = (y) => { if (y > topY) topY = y; };
   const houseH = tw.houseH ?? { DD: 2.2, CL: 3.0, CA: 3.2, BB: 3.6, CV: 0 }[t];
@@ -198,7 +240,7 @@ export function buildShipModel(spec, tw = {}) {
     const fh = (fw.h ?? tw.funnelH ?? fun.heightAboveDeckM ?? (t === 'DD' ? 11 : 18)) * small;
     const flx = fw.lx ?? funLx * (tw.funnelX?.[i] ?? 1), flz = fw.lz ?? funLz * (tw.funnelZ?.[i] ?? 1);
     const top = fw.top ?? tw.funnelTop ?? 0.88, rake = fw.rake ?? tw.funnelRake ?? fh * 0.14;
-    const fo = { x, y0, h: fh, lx: flx, lz: flz, topLx: flx * top, topLz: flz * top, rake, band: tw.funnelBand };
+    const fo = { x, y0, h: fh, lx: flx, lz: flz, topLx: flx * top, topLz: flz * top, rake, band: tw.funnelBand, capSlope: fw.capSlope, pipes: fw.pipes };
     part('funnel' + i, 'funnel', 'Cheminée ' + (i + 1), () => PT.funnel(b, fo, pal), () => PT.funnelRuin(b, fo, pal), { fine: () => PT.funnelDetail(b, fo, pal) });
     model.smoke.push([x - rake * 0.9, y0 + fh, 0]);
     funnelTops.push([x - rake * 0.9, y0 + fh, 0]);
@@ -283,7 +325,12 @@ export function buildShipModel(spec, tw = {}) {
       if (tw.mastY0?.[i] != null) y0 = Y(x) + tw.mastY0[i];
       const h = Math.max((m.heightAboveWaterM || 30) - y0, 8);
       part('mast' + i, 'mast', 'Mât ' + (i === 1 ? 'arrière' : 'secondaire'), () => {
-        if (kindOf(m.kind, 'tripod')) PT.tripod(b, { x, y0, h, legSpread: 3.5, legBack: 4, legFront: 1.5, platforms: [0.6], yards: [[0.78, 7]] }, pal);
+        if (tw.mastRake?.[i]) {
+          // a raked mast (tw.mastRake: how far its head stands forward (+) or aft (-) of its foot, m)
+          const top = [x + tw.mastRake[i], y0 + h, 0], col = rgb(pal.mast);
+          b.beam([x, y0, 0], top, 1.2, 1.2, col, MAT.HULL);
+          b.rodZ(x + tw.mastRake[i] * 0.75, y0 + h * 0.75, -4, 4, 0.08, 0.06, col, MAT.HULL, { seg: 5 });
+        } else if (kindOf(m.kind, 'tripod')) PT.tripod(b, { x, y0, h, legSpread: 3.5, legBack: 4, legFront: 1.5, platforms: [0.6], yards: [[0.78, 7]] }, pal);
         else PT.poleMast(b, { x, y0, h, r: 0.36, yards: [[0.6, 8]] }, pal);
         if (i === masts.length - 1) PT.ensign(b, { x: x - 0.7, y: y0 + h * 0.8, z: 0, len: clamp(L * 0.021, 2.2, 6.2) });
       }, () => b.cylinder(x, y0, 0, 0.45, 0.3, y0 + Math.max(2.2, h * 0.16), rgb(charred(pal)), MAT.DARK, { seg: 6 }), {
@@ -327,7 +374,7 @@ export function buildShipModel(spec, tw = {}) {
       const sideZ = m.z ?? 0;
       const variant = tw.mainVariant;
       const dm = mountDims({ kind: mainKind, cal: mainCal, n: m.guns, bore: spec.main.boreCalibers, variant });
-      const bh = dm.barb ?? barbH;
+      const bh = m.barbM ?? dm.barb ?? barbH;   // m.barbM: this mount's barbette height above the deck, measured on the plan
       let pivot = deckY + bh;
       if (lvl >= 1) pivot = deckY + bh + dm.lift * lvl;
       if (mainKind === 'dp' && lvl >= 1) pivot = deckY + 1.0 + 2.6 * lvl;
@@ -408,7 +455,9 @@ export function buildShipModel(spec, tw = {}) {
       }, () => PT.catapult(b, { x, y, z, len, yaw: cy }, { ...pal, sup: charred(pal) }));
     }
     const cf = tc.craneF ?? f0 + 0.07;
-    part('crane', 'crane', 'Grue', () => PT.crane(b, { x: X(cf), y0: Y(X(cf)) + (tc.craneY ?? 0), z: tc.craneZ ?? 0, h: 7, len: 14, side: 1 }, pal));
+    part('crane', 'crane', 'Grue', () => {
+      for (const sg of tc.craneBoth ? [1, -1] : [1]) PT.crane(b, { x: X(cf), y0: Y(X(cf)) + (tc.craneY ?? 0), z: sg * (tc.craneZ ?? 0), h: tc.craneH ?? 7, len: tc.craneLen ?? 14, side: tc.craneSide ?? 1, dir: tc.craneDir, angle: tc.craneAng, w: tc.craneW }, pal);
+    });
   }
 
   // -------- measured fire-control directors (tweaks.directors): { f, z, y (above the deck, or the flight deck of a carrier),
@@ -430,7 +479,19 @@ export function buildShipModel(spec, tw = {}) {
   if (carrier) buildCarrier(b, model, spec, hull, pal, tw, X, Y, fdY, rnd, note, part);
 
   // -------- AA guns, boats, rails, clutter --------
-  const aaTotal = tw.aaCount ?? clamp(Math.round(L / (carrier ? 8 : 9)), 6, 40);
+  // tw.aa: the measured layout [{ k (AA_TYPES key), f, z (m off the centreline; a mount off the centreline has its twin on the other
+  // side), y (m above the deck, or the flight deck of a carrier), one: true for a single mount on one side }]; otherwise spread at random
+  for (const a of tw.aa || []) {
+    const ty = AA_TYPES[a.k], x = X(a.f);
+    for (const sg of a.z && !a.one ? [1, -1] : [a.z < 0 ? -1 : 1]) {
+      const z = a.one ? a.z : sg * Math.abs(a.z || 0), y = (carrier ? fdY : Y(x)) + (a.y || 0);
+      if (ty.tub && !a.noTub) PT.tub(b, x, y - 0.05, z, ty.tub, 0.95, pal);
+      model.aaMounts.push({ variant: ty.v, cal: ty.cal, n: ty.n, bore: ty.bore, x, y, z, yaw0: z ? Math.sign(z) * Math.PI / 2 : (a.f < 0.5 ? 0 : Math.PI), label: ty.label });
+      model.aa.push([x, y + 1.2, z]);
+      note(y + 3);
+    }
+  }
+  const aaTotal = tw.aa ? 0 : tw.aaCount ?? clamp(Math.round(L / (carrier ? 8 : 9)), 6, 40);
   const zoneA = Math.max(0.06, towerF - 0.05), zoneB = Math.min(0.9, (fF.length ? Math.max(...fF) : 0.55) + 0.08);
   for (let i = 0; i < aaTotal; i++) {
     // most light AA clusters around the superstructure and funnels, the rest on the open decks
@@ -446,6 +507,14 @@ export function buildShipModel(spec, tw = {}) {
     model.aaMounts.push({ variant: kd.v, cal: kd.cal, n: kd.n, bore: kd.bore, x, y, z, yaw0: sg * Math.PI / 2 + (rnd() - 0.5) * 0.4, label: kd.label });
     model.aa.push([x, y + 1.2, z]);
   }
+  // measured boats (tw.boats: [{ f0, f1, z (a boat off the centreline has its twin on the other side), y (above the deck), cabin, davits }])
+  for (const bt of tw.boats || []) {
+    for (const sg of bt.z && !bt.one ? [1, -1] : [1]) {
+      const x0 = X(bt.f0), x1 = X(bt.f1), xm = (x0 + x1) / 2;
+      DT.launch(b, { x: xm, y: (carrier ? fdY : Y(xm)) + bt.y, z: sg * Math.abs(bt.z || 0), yaw: 0, len: Math.abs(x0 - x1), cabin: bt.cabin, davits: bt.davits }, pal);
+      note(Y(xm) + bt.y + 2);
+    }
+  }
   if (!carrier) {
     PT.forecastle(b, hull, X(0.04), pal);
     PT.deckClutter(b, hull, X(0.05), X(0.30), Math.round(L / 20), rnd, pal);
@@ -459,7 +528,7 @@ export function buildShipModel(spec, tw = {}) {
       DT.mooring(b, hull, X(0.07), X(0.17), pal, 3);
       DT.mooring(b, hull, X(0.85), X(0.96), pal, 3);
       if (t === 'DD') DT.depthCharges(b, hull, X(0.93), pal);
-      const nb = L > 150 ? 2 : 1;
+      const nb = tw.boats ? 0 : L > 150 ? 2 : 1;
       for (let i = 0; i < nb; i++) for (const sg of [-1, 1]) {
         const x = X(0.46 + i * 0.075), onH = model.house && x < model.house.x1 && x > model.house.x0;
         const hy = Y(x) + (onH ? houseH : 0);
@@ -504,6 +573,8 @@ export function buildShipModel(spec, tw = {}) {
     engine: [Math.min(...(fF.length ? fF : [0.45])) - 0.07, Math.max(...(fF.length ? fF : [0.55])) + 0.07],
     bridge: towerF,
   };
+  // machinery spaces (spec.machinery.rooms: [kind 'boiler' | 'engine', f0, f1, z, width], from the published arrangements)
+  if (spec.machinery?.rooms) model.machinery = spec.machinery.rooms.map(([k, f0, f1, z = 0, w = 0]) => ({ k, x: (X(f0) + X(f1)) / 2, hx: Math.abs(X(f0) - X(f1)) / 2, z, hz: w ? w / 2 : 0 }));
   model.topY = topY;
   model.radius = Math.hypot(L / 2, topY);
   const built = b.build();

@@ -438,8 +438,9 @@ export async function createEngine(canvas, options = {}) {
   const skipFoam = qs.get('skipfoam') === '1';
   let W = 0, H = 0;
   let colorMS, depthMS, hdrTex, bloomTex, offTex = null;
+  const matte = qs.get('matte') === '1';
   const mainPass = {
-    colorAttachments: [{ view: null, resolveTarget: null, clearValue: { r: 0, g: 0, b: 0, a: 1 }, loadOp: 'clear', storeOp: 'discard' }],
+    colorAttachments: [{ view: null, resolveTarget: null, clearValue: matte ? { r: 0, g: 0.5, b: 0, a: 1 } : { r: 0, g: 0, b: 0, a: 1 }, loadOp: 'clear', storeOp: 'discard' }],
     depthStencilAttachment: { view: null, depthClearValue: 0, depthLoadOp: 'clear', depthStoreOp: 'discard' },
   };
   const compPass = {
@@ -865,9 +866,12 @@ export async function createEngine(canvas, options = {}) {
         rp.setIndexBuffer(idxBuf, 'uint16');
         rp.drawIndexed(GRID * GRID * 6, nodeCount);
       }
-      rp.setPipeline(skyPipe);
-      rp.setBindGroup(0, bgSky);
-      rp.draw(3);
+      // ?matte=1: no sky, a flat green background (the model silhouette can then be cut out exactly: tools/refs/silhouette.py)
+      if (!matte) {
+        rp.setPipeline(skyPipe);
+        rp.setBindGroup(0, bgSky);
+        rp.draw(3);
+      }
       if (hooks.drawOverlay) hooks.drawOverlay(rp);
       rp.end();
 

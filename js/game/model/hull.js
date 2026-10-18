@@ -73,10 +73,12 @@ export function buildHull(b, h) {
     return w;
   };
   // section: width ratio at level k (k<0: under water)
+  // under water the sections are full amidships and get finer towards the ends (a V-shaped run where the screws turn)
+  const pbAt = (t) => mid.pb + ((mid.pbRun ?? 1.6) - mid.pb) * smooth(0.72, 0.96, t) + ((mid.pbEntry ?? 2.2) - mid.pb) * smooth(0.3, 0.04, t);
   const sec = (k, t) => {
     if (k <= 0) {
-      const u = -k;
-      return Math.max(Math.pow(Math.max(1 - Math.pow(u, mid.pb), 0), 1 / mid.pb), 0.02);
+      const u = -k, pb = pbAt(t);
+      return Math.max(Math.pow(Math.max(1 - Math.pow(u, pb), 0), 1 / pb), 0.02);
     }
     if (dkF) { const wl = Math.max(wlF ? wlF(t) : shape(t), 0.02); return 1 + (dkF(t) / wl - 1) * Math.pow(k, 1.4) - mid.tumble * k * k; }
     const bf = t < bow.flareLen ? Math.pow(1 - t / bow.flareLen, 2) : 0;

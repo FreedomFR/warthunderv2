@@ -13,8 +13,10 @@ import { PLANES } from './game/model/planes.js';
 import { mat4Ship, D2R, makeRng } from './game/math.js';
 import { addWakeStamps } from './game/render/effects.js';
 import { makeStats } from './game/sim/shipdata.js';
+import { OPT } from './game/model/parts.js';
 
 export async function runPreview(engine, ids, qs) {
+  OPT.flags = qs.get('flags') !== '0';    // ?flags=0: no ensigns or pennants (tools/refs/check.mjs)
   const renderer = new ShipRenderer(engine);
   await renderer.ready;
   const sv = new ShipVisuals(renderer), pv = new PlaneVisuals(renderer);
