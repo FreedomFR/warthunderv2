@@ -167,7 +167,12 @@ export const SCENES = {
     lead.ordnance = false;
     const aim = [aimX, victim.y + 10, aimZ];
     const camB = [aimX - hd[2] * 150, 15, aimZ + hd[0] * 150];
-    await T.shot('dive_b', 3.4, () => ({ p: camB, l: [aim[0], 62, aim[2]], fov: 58 }));
+    const staged = T.w.bombs[T.w.bombs.length - 1];
+    let nlog = 0;
+    await T.shot('dive_b', 3.4, (t) => {
+      if (nlog++ % 12 === 0) T.log('dbg bomb', t.toFixed(2), T.w.bombs.includes(staged) ? [staged.x - victim.x, staged.y, staged.z - victim.z].map((v) => v.toFixed(0)).join(',') : 'gone', 'impacts', T.count('impact'), victim.name, victim.hpFrac.toFixed(2), 'v', victim.speed.toFixed(1));
+      return { p: camB, l: [aim[0], 62, aim[2]], fov: 58 };
+    });
   },
 
   // ---- torpedo: low level torpedo attack, then the hit seen from the water ----------------------------------------------
