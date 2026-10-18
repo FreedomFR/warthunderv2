@@ -7,22 +7,25 @@
 //   funnelW / funnelLen / funnelRake / funnelScale     funnel proportions
 //   extra(ctx): free-hand additions with the MeshBuilder (ctx.b) and the parts library (ctx.PT)
 
-/** Shokaku class: two funnels trunked out to the starboard side and turned downwards. */
+/**
+ * Shokaku class: two funnels trunked out to the starboard side and turned downwards. Measured on the 1942 profile and plan (Commons,
+ * CC BY-SA 3.0): flattened ducts 9.3 m long and 5 m wide outboard of the flight deck edge, at 0.474 and 0.523 of the length, 3.6 m
+ * deep (top level with the flight deck edge at 13.2 m, exhaust opening downwards at the aft end).
+ */
 function shokakuFunnels({ b, X, spec, pal, model, MAT, rgb, shade, part }) {
-  const hw = (spec.flightDeckWidth || spec.beam) / 2;
   const col = rgb(pal.funnel), dark = rgb(pal.cap), char = shade(rgb(pal.dark), 1.1);
-  const fdY = 17.2;
-  [0.475, 0.535].forEach((f, i) => {
-    const x = X(f), y = fdY - 5.5, z0 = hw * 0.55, z1 = hw * 0.55 + 6.2;
+  const fdY = 14.0, yc = 11.4, zc = 16.9;
+  [0.474, 0.523].forEach((f, i) => {
+    const x = X(f), poly = [];
+    for (let k = 0; k < 18; k++) { const a = k / 18 * Math.PI * 2; poly.push([x + Math.cos(a) * 4.65, zc + Math.sin(a) * 2.5]); }
     part('funnel' + i, 'funnel', 'Cheminée ' + (i + 1), () => {
-      b.rodZ(x, y, z0, z1, 1.9, 1.9, col, MAT.HULL, { seg: 12 });
-      b.cylinder(x, y - 7.5, z1, 1.9, 1.9, y + 1.9, col, MAT.HULL, { seg: 12, capTop: false });
-      b.cylinder(x, y - 8.0, z1, 1.95, 1.95, y - 7.2, dark, MAT.DARK, { seg: 12 });
+      b.prism(poly, yc - 1.8, yc + 1.8, col, MAT.HULL, { topScale: 0.92 });                         // the duct
+      b.rodZ(x, yc, 12.5, zc - 1, 1.5, 1.6, col, MAT.HULL, { seg: 10 });                             // trunk from the deck edge
+      b.cylinder(x - 3.4, yc - 2.2, zc, 1.5, 1.5, yc - 1.5, dark, MAT.DARK, { seg: 12 });           // exhaust opening, downwards at the aft end
     }, () => {
-      b.rodZ(x, y, z0, z0 + 2.2, 1.9, 1.9, char, MAT.DARK, { seg: 12 });
-      b.cylinder(x, y - 1.5, z0 + 2.2, 1.8, 1.4, y + 1.0, char, MAT.DARK, { seg: 10 });
+      b.prism(poly.map(([px, pz]) => [x + (px - x) * 0.6, zc + (pz - zc) * 0.6]), yc - 1.8, yc - 0.2, char, MAT.DARK, { topScale: 0.8 });
     });
-    model.smoke.push([x, y - 8.0, z1]);
+    model.smoke.push([x - 3.4, yc - 2.6, zc]);
   });
 }
 
@@ -167,6 +170,22 @@ export const TWEAKS = {
     directors: [{ f: 0.62, y: 21.2, w: 2.6, l: 2.6, h: 1.8, label: 'Directeur de 152 mm du mack' }, { f: 0.676, y: 8.6, w: 3.0, l: 3.0, h: 2.2, label: 'Directeur de 380 mm arrière' }],
     cat: { f: 0.95, z: 5.5, yaw: 0.15, len: 21, y: 3.3, craneF: 0.985, craneH: 5, craneLen: 13, craneDir: 1, craneAng: 0.5, craneSide: 0, craneW: 0.6 },
   },
+  // King George V class (HMS KGV, 16 Aug 1945, USN 80-G-455703, public domain): no plan found, so everything here is read on that
+  // photograph (a nearly broadside view, about +-3 m): the two funnels at 0.503 and 0.611 (tops 24.7 m above the waterline), the bridge
+  // block 0.380-0.458 (top 24 m) with the director tower on its after edge (30 m), the tripod foremast ABAFT the tower at 0.47 (top
+  // 43.8 m) and the mainmast at 0.70 (38 m); the hull, the turrets and the secondary mounts keep the spec positions.
+  kgv: {
+    houseH: 3.4, towerF: 0.419, towerY0: 3.4, mastY0: { 1: 2.0 },
+    tiers: [
+      { len: 17.7, w: 17, h: 5.6, windows: true, wings: 1.4 },
+      { len: 15.5, w: 14, h: 6.6, windows: true, wings: 1.0 },
+      { len: 4.2, w: 5.0, h: 6.0, round: true, dx: -6.7 },
+    ],
+    dir0: { dx: -6.7, w: 4.2, l: 4.2, h: 2.2 },
+    foremast: { dx: -11.6, y0: 6.0 },
+    funnels: [{ lx: 9.2, lz: 7.4, y0: 3.4, h: 12.9, rake: 0.8, top: 0.92, pipes: false }, { lx: 9.0, lz: 7.2, y0: 3.4, h: 12.9, rake: 0.8, top: 0.92, pipes: false }],
+    cat: { f: 0.557, y: 0.4, yaw: Math.PI / 2, len: 22, craneF: 0.59, craneH: 8, craneLen: 22, craneDir: 1, craneAng: 0.45, craneSide: 0, craneW: 0.7 },
+  },
   fletcher: { mainVariant: 'mk30' },
   cleveland: { secVariant: ['mk28'] },
   baltimore: { secVariant: ['mk28'] },
@@ -298,7 +317,34 @@ export const TWEAKS = {
     // the athwartships catapult on the aircraft deck; a crane each side of the funnel, its jib raised forward
     cat: { f: 0.538, y: 5.8, yaw: Math.PI / 2, len: 30, craneF: 0.527, craneY: 3.5, craneZ: 9, craneBoth: true, craneH: 3, craneLen: 27.9, craneDir: 1, craneAng: 0.87, craneSide: 0, craneW: 0.8 },
   },
-  shokaku: { noFunnels: true, elevators: [0.22, 0.56, 0.80], extra: shokakuFunnels },
+  // Shokaku (1942): measured on the profile and plan of Commons' "Fig of japanese aircraft carrier Shokaku in 1942" (CC BY-SA 3.0; the 50 m
+  // scale bar gives 4.0 px/m, 257.8 m overall): flight deck 14.0 m above the waterline, from 0.047 to 0.985 of the length, 29.3 m wide at
+  // most and narrowing both ways; hull sides rise straight to the deck; the island 19 m long on a sponson at 11.6-19.7 m to starboard (top
+  // 20.1 m, bridge 21.2 m, radar 26.6 m, mast 31.7 m); two funnels outboard; lifts at 0.341 / 0.581 / 0.831. The underwater body and the
+  // hull widths below the deck edge are estimated.
+  shokaku: {
+    noFunnels: true, flightDeckY: 14.0, noGallery: true, elevators: [0.341, 0.581, 0.831], elevSize: [6.5, 7.2], elevZ: -0.5, extra: shokakuFunnels, sponsonOut: 2.6,
+    fb: [[0, 10.7], [0.03, 10.3], [0.06, 10.2], [0.075, 12.9], [0.97, 12.9], [0.99, 9.6], [1, 9.5]],
+    fdPlan: [[0.047, 6.6], [0.09, 9.5], [0.125, 10.7], [0.2, 12.2], [0.3, 13.7], [0.4, 14.6], [0.5, 14.65], [0.65, 14.65], [0.7, 14.1], [0.8, 13.0], [0.9, 12.4], [0.985, 12.2]],
+    planDeck: [[0, 0.05], [0.02, 0.24], [0.047, 0.48], [0.09, 0.68], [0.125, 0.78], [0.2, 0.9], [0.3, 1.02], [0.4, 1.07], [0.5, 1.07], [0.65, 1.07], [0.7, 1.03], [0.8, 0.95], [0.9, 0.9], [0.98, 0.88], [1, 0.84]],
+    planWL: [[0, 0], [0.02, 0.12], [0.05, 0.26], [0.1, 0.42], [0.2, 0.62], [0.3, 0.78], [0.4, 0.9], [0.5, 0.96], [0.6, 1], [0.7, 1], [0.8, 0.97], [0.9, 0.9], [0.97, 0.78], [1, 0.6]],
+    keel: [[0, 0.8], [0.04, 0.94], [0.88, 0.94], [0.92, 0.8], [0.95, 0.5], [1, 0.35]],
+    bow: { rake: 5.8, pr: 1.4, forefoot: 4 }, stern: { overhang: 2, rise: 4 },
+    island: {
+      z: 15.6, hw: 4.1, mastF: 0.401, mastY0: 1.0, mastTop: 17.7, radarF: 0.349, radarY: 11.5, radarKind: 'box', dirF: 0.352, dirY: 7.2,
+      blocks: [
+        { f: [0.314, 0.387], z: 15.6, hw: 4.2, y: [-3.0, 1.5] },
+        { f: [0.326, 0.375], z: 15.2, hw: 3.4, y: [1.5, 4.2], windows: true },
+        { f: [0.330, 0.372], z: 15.0, hw: 3.0, y: [4.2, 6.1], windows: true },
+        { f: [0.337, 0.366], z: 15.0, hw: 2.4, y: [6.1, 7.2] },
+      ],
+    },
+    // 127 mm twins in the sponsons at the sides (the spec positions moved to the plan); 25 mm triples round them: positions estimated
+    aa: [
+      ...[0.43, 0.50, 0.57, 0.63, 0.68, 0.74].map((f) => ({ k: 't25', f, z: -16.2, y: -3.2, one: true })),
+      ...[0.60, 0.66, 0.71, 0.86, 0.90, 0.93].map((f) => ({ k: 't25', f, z: 16.2, y: -3.2, one: true })),
+    ],
+  },
   // Essex class (long hull): measured on the starboard broadside of Ticonderoga, 5 November 1944: flight deck 18.5 m above the water,
   // a narrow island well forward of midships (body 11 m, bridges 14.5 m, funnel top 18.7 m, mast 35.8 m above the flight deck), the
   // forward Mk 37 director on the island front, the after one by the funnel
@@ -326,7 +372,31 @@ export const TWEAKS = {
       { f: 0.44, z: 12.6, y: 11.0, ped: 1.2, w: 3.4, l: 3.4, h: 2.4, label: 'Directeur Mk 37 arrière' },
     ],
   },
-  illustrious: { elevators: [0.30, 0.75] },
+  // Illustrious (ONI 201 sheet, public domain: flight deck 40 ft and stack top 91.5 ft above the waterline printed on it, 4.17 px/m in the
+  // profile, 2.26 px/m in the plan): flight deck 12.2 m above the waterline, from stem to stern, 28.6 m wide with a narrower stern box
+  // and bow end; two lifts 13.3 x 7 m at 0.18 / 0.87; the island 0.316-0.523 at starboard (the bridge to 22.6 m forward, the funnel
+  // 0.423-0.46 to 27.2 m, the mast to 32.5 m); the 4.5 in twins in sponsons in two pairs at each end, the pom-poms along the sides.
+  illustrious: {
+    flightDeckY: 12.2, noGallery: true, elevators: [0.18, 0.87], elevSize: [6.7, 3.4], sponsonOut: 2.0,
+    fdPlan: [[0.0, 10.3], [0.05, 10.8], [0.1, 12.0], [0.17, 14.0], [0.2, 14.3], [0.85, 14.3], [0.9, 12.5], [0.915, 9.9], [0.995, 9.9]],
+    fb: [[0, 9.6], [0.03, 9.7], [0.1, 10.9], [0.95, 10.9], [1, 9.8]],
+    planDeck: [[0, 0.66], [0.05, 0.69], [0.1, 0.77], [0.17, 0.91], [0.2, 0.93], [0.85, 0.93], [0.9, 0.81], [0.915, 0.63], [0.995, 0.63], [1, 0.6]],
+    planWL: [[0, 0], [0.03, 0.2], [0.08, 0.4], [0.15, 0.62], [0.25, 0.82], [0.35, 0.95], [0.5, 1], [0.7, 1], [0.8, 0.97], [0.9, 0.88], [0.97, 0.7], [1, 0.55]],
+    bow: { rake: 4.0, pr: 1.4 }, stern: { overhang: 2, rise: 4 },
+    island: {
+      z: 11.0, hw: 3.4, funnelTop: 15.0, funnelLx: 8.5, funnelLz: 5.5, mastF: 0.399, mastY0: 10.4, mastTop: 20.3, radarF: 0.40, radarY: 17.0, dirF: 0.38, dirY: 10.4,
+      blocks: [
+        { f: [0.316, 0.351], z: 11.0, hw: 3.0, y: [-1.0, 2.5] },
+        { f: [0.351, 0.41], z: 11.0, hw: 3.4, y: [-1.0, 10.4], windows: true },
+        { f: [0.41, 0.425], z: 11.0, hw: 3.0, y: [-1.0, 7.0] },
+        { f: [0.46, 0.523], z: 11.0, hw: 3.2, y: [-1.0, 7.3] },
+      ],
+    },
+    aa: [
+      ...[0.50, 0.395, 0.345].map((f) => ({ k: 'p40', f, z: -13.5, y: -2.8, one: true })),
+      ...[0.545, 0.495, 0.305].map((f) => ({ k: 'p40', f, z: 13.5, y: -2.8, one: true })),
+    ],
+  },
   graf_zeppelin: { elevators: [0.27, 0.52, 0.80] },
   bearn: { elevators: [0.30, 0.47, 0.72] },
   aquila: { elevators: [0.27, 0.77] },

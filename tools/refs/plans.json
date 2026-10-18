@@ -359,5 +359,104 @@
         ]
       ]
     }
+  },
+  "shokaku": {
+    "loa": 257.5,
+    "side": {
+      "file": "refs/shokaku/Fig_of_japanese_aircraft_carrier_Shokaku_in_1942.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Fig_of_japanese_aircraft_carrier_Shokaku_in_1942.gif (CC BY-SA 3.0, Snow Cloud in Summer); the 50 m scale bar of the drawing gives 4.0 px/m: 257.8 m from the stern overhang to the bow tip",
+      "crop": [
+        0,
+        56,
+        1100,
+        172
+      ],
+      "stern": 33,
+      "bow": 1064,
+      "wl": 131,
+      "close": 3,
+      "open": 3,
+      "threshold": 250,
+      "tol": 1.5,
+      "under": true,
+      "erase": [
+        [
+          0,
+          0,
+          200,
+          60
+        ],
+        [
+          630,
+          0,
+          668,
+          46
+        ]
+      ]
+    },
+    "top": {
+      "file": "refs/shokaku/Fig_of_japanese_aircraft_carrier_Shokaku_in_1942.jpg",
+      "source": "same drawing, plan view",
+      "crop": [
+        0,
+        205,
+        1100,
+        440
+      ],
+      "stern": 33,
+      "bow": 1064,
+      "cl": 327.5,
+      "close": 3,
+      "tol": 1.5,
+      "threshold": 250,
+      "erase": [
+        [
+          0,
+          395,
+          300,
+          500
+        ],
+        [
+          980,
+          455,
+          1100,
+          500
+        ]
+      ]
+    }
+  },
+  "illustrious": {
+    "loa": 229.6,
+    "side": {
+      "file": "refs/illustrious/IllustriousRecognitionDrawing.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:IllustriousRecognitionDrawing.jpg (ONI 201, public domain): flight deck 40 ft and stack top 91.5 ft above the waterline are printed on the sheet (4.17 px/m: the flight deck reads 12.1 m); above the waterline only; the plan view of the sheet is drawn at another scale and is too small to measure",
+      "crop": [
+        0,
+        54,
+        999,
+        256
+      ],
+      "stern": 24,
+      "bow": 982,
+      "wl": 252.5,
+      "close": 3,
+      "open": 3,
+      "threshold": 215,
+      "tol": 1.5,
+      "erase": [
+        [
+          840,
+          50,
+          999,
+          140
+        ],
+        [
+          0,
+          0,
+          999,
+          45
+        ]
+      ]
+    }
   }
 }

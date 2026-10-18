@@ -46,6 +46,11 @@ Results after the second pass (October 2026), mean difference of the silhouette 
 (plan), Yamato 2.0 m (profile, 0.55 m under water) and 1.0 m (plan), Bismarck 1.3 m (profile, 0.3 m under water). Most of what is left
 is thin rigging, wireless aerials and booms that the model does not try to have.
 
+`grid.py` zooms on a stretch of a drawing with a grid in fractions of the length and in metres (to read positions and heights),
+`hull.py` prints `planDeck` / `fb` / `keel` tables off a drawing, `outline.py` the profile as plateaus (decks, houses, funnels), after
+`silhouette.py` has run. Lot 2: Littorio, Richelieu, Shōkaku and Illustrious have drawings in `plans.json` (the cameras are computed from
+the length when the entry has none); the King George V has none.
+
 ### Comparing with a plan
 
 A profile drawing is the best reference: positions along the length and heights can be read to a fraction of a metre. Take a far,

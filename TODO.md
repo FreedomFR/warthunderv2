@@ -33,22 +33,34 @@ plan (`tools/refs/overlay.py`) et tout a été repositionné.
   Wikimedia Commons suffit pour l'instant (plans et profils listés dans `tools/refs/sources.jsonl`).
 - [ ] *Bismarck* : pas de vue de dessus libre trouvée, les largeurs de coque restent celles du constructeur générique.
 
-## 2. Lot 2 et suivants — les 26 autres navires
+## 2. Lot 2 et suivants
 
-Seuls les 4 navires du lot 1 ont des familles de tourelles et des superstructures relevées sur photos. Les autres sont construits
-d'après leur fiche technique, avec des réglages à la main pour certains (`js/game/model/tweaks.js`).
+Lot 2 (cuirassés et porte-avions des autres nations) : **fait, avec des réserves** ; même méthode (plans libres, vérification chiffrée). Résultats :
+
+| Navire | Source des mesures | Écart moyen du profil |
+|---|---|---|
+| Littorio | feuille ONI 202 (profil + plan, échelle en pieds) | 2,5 m (plan : 0,2 m) |
+| Richelieu | coupe longitudinale de la classe, CC BY-SA 4.0 | 1,3 m (0,3 m sous l'eau) |
+| Shōkaku | profil + plan avec barre d'échelle de 50 m, CC BY-SA 3.0 | 0,6 m (plan : 2,9 m, tubs de DCA et mâts rabattus) |
+| Illustrious | feuille ONI 201 (pont d'envol 40 ft, cheminée 91,5 ft) | 0,8 m |
+| King George V | **photographie seulement** (aucun plan libre trouvé), ±3 m | non mesuré |
+
+- [ ] **King George V** : trouver un plan (profil + vue de dessus) ; tourelles, pièces secondaires et coque sont encore les estimations de la fiche.
+- [ ] **Richelieu, Littorio** : pas de vue de dessus du Richelieu (coupe centrale) ; largeurs de coque estimées ; pièces hors de l'axe estimées.
+- [ ] **Shōkaku, Illustrious** : vue de dessus du Shōkaku à comparer en retirant les tubs de DCA ; pas de plan de l'Illustrious à l'échelle (la vue de dessus de la feuille est trop petite).
+- [ ] **Autres porte-avions et classes** : voir le tableau ci-dessous ; les croiseurs lourds, croiseurs légers et destroyers restent à faire.
 
 | Nation | Destroyer | Croiseur léger | Croiseur lourd | Cuirassé | Porte-avions |
 |---|---|---|---|---|---|
 | États-Unis | Fletcher (5"/38 Mk 30 déjà) | Cleveland | Baltimore | **Iowa ✔** | **Essex ✔** |
-| Japon | Kagerō | Agano | Takao | **Yamato ✔** | Shōkaku |
-| Royaume-Uni | Tribal | Belfast | Norfolk | King George V | Illustrious |
+| Japon | Kagerō | Agano | Takao | **Yamato ✔** | **Shōkaku ✔** |
+| Royaume-Uni | Tribal | Belfast | Norfolk | King George V (photo) | **Illustrious ✔** |
 | Allemagne | Type 1936A (Mob) | Königsberg | Admiral Hipper | **Bismarck ✔** | Graf Zeppelin |
-| France | Le Fantasque | La Galissonnière | Algérie | Richelieu | Béarn |
-| Italie | Soldati | Montecuccoli | Zara | Littorio | Aquila |
+| France | Le Fantasque | La Galissonnière | Algérie | **Richelieu ✔** | Béarn |
+| Italie | Soldati | Montecuccoli | Zara | **Littorio ✔** | Aquila |
 
-- [ ] **Priorité proposée** : cuirassés et porte-avions des autres nations (King George V, Richelieu, Littorio, Shōkaku, Illustrious), puis croiseurs lourds, croiseurs légers, destroyers.
-- [ ] Pour chaque classe : chercher les photos libres, relever les proportions de tourelle, créer les familles de tourelles manquantes (quadruples et doubles du KGV, quadruples du Richelieu, triples du Littorio, doubles de 20 cm des croiseurs lourds, triples de 6" et 8" américains, etc.), refaire les superstructures, la livrée d'époque.
+- [ ] **Priorité proposée** : les 3 porte-avions restants (Graf Zeppelin, Béarn, Aquila), puis croiseurs lourds, croiseurs légers, destroyers.
+- [ ] Pour chaque classe : chercher les plans libres (`tools/refs/search.py`, feuilles ONI sur Commons), créer les familles de tourelles manquantes, refaire les superstructures, la livrée d'époque.
 - [ ] Contrôler chaque tir en plein jeu (scène `firetest` : `node tools/trailer/record.mjs firetest <dossier> --q ship=<id>`).
 - [ ] *Graf Zeppelin* et *Aquila* n'ont jamais été achevés : décider quelle configuration de projet représenter.
 
