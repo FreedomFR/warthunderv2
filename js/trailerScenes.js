@@ -223,8 +223,8 @@ export const SCENES = {
     T.w.spawnTorpedo({ owner: essex, x: src[0], z: src[1], vx: dir[0] * 21.5, vz: dir[2] * 21.5, speed: 21.5, range: 800, warhead: 300, team: 0 });
     T.w.torpedoes[T.w.torpedoes.length - 1].travel = 100;       // already armed
     T.log('torp staged', off.toFixed(0), tHit.toFixed(1), victim.stats.id);
-    const cam = [src[0] - dir[0] * 16, 2.6, src[1] - dir[2] * 16];
-    await T.shot('torp_b', 5, (t, T) => ({ p: cam, l: [victim.x + fwd[0] * (victim.stats.L * 0.06), 8, victim.z + fwd[1] * (victim.stats.L * 0.06)], fov: 44 }));
+    const cam = [src[0] - dir[0] * 46, 3.2, src[1] - dir[2] * 46];
+    await T.shot('torp_b', 5, (t, T) => ({ p: cam, l: [victim.x + fwd[0] * (victim.stats.L * 0.06), 11, victim.z + fwd[1] * (victim.stats.L * 0.06)], fov: 38 }));
   },
 
   // ---- duel: broadsides ------------------------------------------------------------------------------------------------------
