@@ -4,7 +4,8 @@
 //   node tools/smoke.mjs [url] [seconds]
 import { chromium } from 'playwright-core';
 
-const url = process.argv[2] || 'http://localhost:8080/index.html?scenario=carriers&start=1&seed=3&speed=4&scale=0.4&shadows=1';
+// offscreen=1: headless Chromium has no on-screen WebGPU canvas (the swap chain fails there), so the frames go to an offscreen texture
+const url = process.argv[2] || 'http://localhost:8080/index.html?offscreen=1&w=640&h=360&scenario=carriers&start=1&seed=3&speed=4';
 const seconds = Number(process.argv[3] || 60);
 const chrome = process.env.CHROME || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
 const browser = await chromium.launch({
