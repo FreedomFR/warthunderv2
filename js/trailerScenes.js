@@ -109,7 +109,7 @@ export const SCENES = {
     ];
     for (const [id, dur, az, h, look] of spec) {
       const s = ships[ids.indexOf(id)], L = s.stats.L;
-      await T.shot('roster_' + id, dur, mv.orbit(() => P3(s), az[0], az[1], L * 0.95, L * 0.85, h[0], h[1], look, 46));
+      await T.shot('roster_' + id, dur, mv.orbit(() => P3(s), az[0], az[1], L * 0.82, L * 0.7, h[0], h[1], look, 46));
     }
   },
 
