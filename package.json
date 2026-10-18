@@ -11,7 +11,8 @@
     "test": "node test/models.mjs && node test/damage.mjs && node test/audio.mjs && node test/manual.mjs && node test/air.mjs 600 && node test/fuzz.mjs 8 && node test/battle.mjs 600",
     "check:shaders": "node tools/wgslcheck.mjs",
     "trailer:record": "node tools/trailer/record.mjs",
-    "trailer:assemble": "node tools/trailer/assemble.mjs tools/trailer/edit.json"
+    "trailer:assemble": "node tools/trailer/assemble.mjs tools/trailer/edit.json",
+    "smoke": "node tools/smoke.mjs"
   },
   "devDependencies": {
     "esbuild": "^0.25.0",
