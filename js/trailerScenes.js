@@ -150,9 +150,13 @@ export const SCENES = {
     quiet(us); quiet(jp);
     T.go();
     const essex = us.find((s) => s.stats.id === 'essex');
-    // the strike, high above the sea, a few kilometres from its target
+    // the strike, high above the sea, a few kilometres from its target (the real climb takes minutes: the film skips it,
+    // out of the camera's sight, by putting the dive bombers at their attack altitude as soon as they have left the carrier)
     const incoming = (p) => p.owner === essex && p.kind === 'dive' && p.phase === 'cruise' && !p.dying && p.target && p.y > 900 && dist2(p, p.target) < 2600;
-    await T.until(() => T.w.planes.some(incoming), { max: 500, dt: 1 / 8 });
+    await T.until(() => {
+      for (const p of T.w.planes) if (p.owner === essex && p.kind === 'dive' && p.phase === 'cruise' && p.y < p.cruiseAlt - 30 && dist2(p, essex) > 1200) p.y = p.cruiseAlt;
+      return T.w.planes.some(incoming);
+    }, { max: 500, dt: 1 / 8 });
     const lead = findPlane(T, incoming), victim = lead && lead.target;
     T.log('dive approach', !!lead, T.now.toFixed(0), lead && lead.y.toFixed(0));
     if (!lead || !victim) return;
