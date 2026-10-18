@@ -197,7 +197,8 @@ export const SCENES = {
     T.w.torpedoes[T.w.torpedoes.length - 1].travel = 100;       // already armed
     T.log('torp staged', off.toFixed(0), tHit.toFixed(1), victim.stats.id);
     const cam = [src[0] - dir[0] * 46, 3.2, src[1] - dir[2] * 46];
-    await T.shot('torp_b', 4.6, (t, T) => ({ p: cam, l: [victim.x + fwd[0] * (victim.stats.L * 0.06), 11, victim.z + fwd[1] * (victim.stats.L * 0.06)], fov: 38 }));
+    await T.wait(1.1);        // the first moments of the run are not filmed
+    await T.shot('torp_b', 3.6, (t, T) => ({ p: cam, l: [victim.x + fwd[0] * (victim.stats.L * 0.06), 11, victim.z + fwd[1] * (victim.stats.L * 0.06)], fov: 38 }));
   },
 
   // ---- duel: broadsides ------------------------------------------------------------------------------------------------------
