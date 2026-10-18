@@ -21,6 +21,14 @@ plan (`tools/refs/overlay.py`) et tout a été repositionné.
 - [x] **Pièces secondaires en plein tir** (5"/38, 15 cm) : boule de feu et nuage de poudre réduits pour les calibres moyens.
 - [x] **Champs `estimated`** : positions des quatre navires mesurées (le champ `measured` de chaque fiche dit d'où) ; restent estimés les
   10,5 cm et 3,7 cm du Bismarck, les affûts simples de 5" de l'Essex et quelques valeurs hors positions.
+- [x] **Vérification chiffrée** contre les plans (`tools/refs/check.mjs` + `silhouette.py`) : écart moyen du profil Iowa 1,5 m, Yamato 2,0 m
+  (0,55 m sous l'eau), Bismarck 1,3 m (0,3 m sous l'eau) ; vue de dessus Iowa 0,7 m, Yamato 1,0 m. Le reste est surtout du gréement,
+  des antennes et des mâts de charge que le modèle ne cherche pas à avoir.
+- [x] **DCA, embarcations, passerelles, hélices et safrans** relevés sur les plans (Essex : d'après photos, estimé).
+- [ ] **Machines** (chaufferies, turbines) : placées d'après les descriptions publiées, faute de plan de coupe libre ; à reprendre si
+  un plan d'aménagement intérieur est trouvé.
+- [ ] **Essex** : pas de plan libre trouvé (seul un avant-projet de 1939) ; profil d'après la photo du Ticonderoga, DCA estimée.
+- [ ] **Iowa** : œuvres vives estimées (pas de plan de la carène), tirant d'eau du dessin inconnu.
 - [ ] **Sources** : navsource.org ne répond pas (nom de domaine introuvable depuis ce poste) et history.navy.mil refuse le certificat ;
   Wikimedia Commons suffit pour l'instant (plans et profils listés dans `tools/refs/sources.jsonl`).
 - [ ] *Bismarck* : pas de vue de dessus libre trouvée, les largeurs de coque restent celles du constructeur générique.

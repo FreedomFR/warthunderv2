@@ -52,9 +52,16 @@ Useful URLs: `?scenario=duel&start=1&seed=3`, `?preview=iowa,yamato&offscreen=1&
    `planDeck` / `planWL`, `house.plan`, `decks`, tower `tiers` with `towerF` / `towerY0`, `dir0`, `foremast`, `funnels`, `directors`, `cat`).
 3. Gun turrets: add or adjust a family in `mounts.js` (house height and length, trunnion height, barrel spacing, muzzle distance, port,
    barbette height `barb` and superfiring `lift`), then set `mainVariant` / `secVariant`. Real gun houses are low (3-4.5 m).
-4. Compare with the photographs from the same angles (`views.mjs` + `shots.mjs`), then film the salvo with the `firetest` scene
+4. **Check it in metres, not by eye**: `node tools/refs/check.mjs <ship>` renders matte silhouettes (side and plan view) with the cameras
+   of `tools/refs/plans.json`, then `python3 tools/refs/silhouette.py <ship> side out/check/<ship>_side_render.png` (and `top`) prints
+   the mean / worst difference with the drawing station by station, above and under water, and writes a picture (red: only on the
+   plan, blue: only on the model). Check each drawing's scale against known depths first (the Yamato profile is drawn 10 % flat:
+   `vscale` in plans.json). `stack_top.py` puts the plan view above a top view of the model (AA, boats, turrets).
+   Light AA (`aa`), boats (`boats`), screws / rudders / keel / bulb, conning tower, bridge wings and rails come from the plan too; only
+   the machinery rooms (spec `machinery`) are from published descriptions.
+5. Compare with the photographs from the same angles (`views.mjs` + `shots.mjs`), then film the salvo with the `firetest` scene
    (`--q mount=A`, `--q group=sec`). Add a livery in `livery.js` if needed.
-5. Run `npm test` and `npm run check:shaders`, rebuild `naval.html`, update CHANGELOG / README credits, commit.
+6. Run `npm test` and `npm run check:shaders`, rebuild `naval.html`, update CHANGELOG / README credits, commit.
 
 ## Conventions
 

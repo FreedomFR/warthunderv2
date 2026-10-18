@@ -2,6 +2,19 @@
 
 ## Unreleased — fidelity batch 1 (Iowa, Yamato, Bismarck, Essex)
 
+### Checked in metres against the plans (batch 1, third pass)
+- `tools/refs/check.mjs` + `silhouette.py`: matte renders (`?matte=1`, `?flags=0`) compared with the profile and plan drawings station by
+  station, above and under water; `plans.json` holds each drawing's calibration. The Yamato profile is drawn 10 % flat (checked on the
+  builders' depth and bow height): its heights are now read at its own vertical scale. Bismarck freeboards for its full-load draft.
+- Iowa, Yamato and Bismarck corrected from the check: bridges, towers, funnel caps (hooded, sloped), after control towers, turret
+  heights (Type 94 3.9 m), per-turret barbettes, the Yamato bulb and keel line, the Bismarck Atlantic forefoot, cranes, catapults.
+- From the plans instead of at random: light AA (Iowa 20 quadruple Bofors and ~40 Oerlikons, Yamato 50 triple 25 mm, Bismarck twin
+  3.7 cm, quadruple and single 2 cm; Essex estimated from photographs), boats, the Bismarck SL-8 AA directors, the Iowa conning tower,
+  bridge wings and rails; Yamato's 12.7 cm mounts re-measured.
+- Propulsion: screws, shafts, brackets, skegs and rudders under water (Yamato and Bismarck as drawn, Iowa from dry-dock photographs,
+  Essex estimated); finer underwater sections towards the ends. Damage model: each ship's own boiler and turbine rooms (published
+  arrangements) and shaft lines (Bismarck's three, a centre shaft pushes straight ahead), steering gear at the rudders.
+
 ### Measured on plans (batch 1, second pass)
 - The four ships are now laid out from profile and plan drawings instead of the estimated spec positions, and checked by drawing
   the plan over a far, narrow-angle side view of the model (`tools/refs/overlay.py`). Turrets, funnels, masts, towers, secondary

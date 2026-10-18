@@ -214,6 +214,7 @@ export function buildShipModel(spec, tw = {}) {
 
   // -------- measured superstructure blocks (tweaks.decks); heights are above the local deck --------
   const deckBox = { x0: Infinity, x1: -Infinity, hw: 0, y1: -Infinity };
+  const fineRails = [];
   for (const d of (!carrier && tw.decks) || []) {
     const fs = d.plan ? d.plan.map((q) => q[0]) : d.f;
     const xf = X(Math.min(...fs)), xa = X(Math.max(...fs)), xm = (xf + xa) / 2;
@@ -224,6 +225,9 @@ export function buildShipModel(spec, tw = {}) {
     else if (d.round) b.cyl(xm, y0, zc, (xf - xa) / 2, hw, (xf - xa) / 2 * tp, hw * tp, y1, col, MAT.HULL, { seg: 18 });
     else b.block({ x0: xa, x1: xf, hw, zc, y0, y1, tx1: xf - (d.rake || 0), tx0: xa + (d.rakeA || 0), thw: hw * tp }, col, MAT.HULL);
     if (d.windows && !d.round && !d.plan) PT.windowBand(b, xa, xf - (d.rake || 0) * 0.4, hw * tp, y0 + (y1 - y0) * 0.45, Math.min((y1 - y0) * 0.3, 1.0), pal, true, true);
+    // d.wings: open bridge wings (m beyond the sides) at the top of the level; d.rail: guard rails round its roof (fine detail)
+    if (d.wings) b.block({ x0: xf - (xf - xa) * 0.35, x1: xf - (d.rake || 0) - 0.2, hw: hw * tp + d.wings, zc, y0: y1 - 0.25, y1: y1 + 0.08 }, shade(col, 0.9), MAT.HULL);
+    if (d.rail && !d.round) fineRails.push([(xa + xf) / 2, y1, zc, (xf - xa) / 2 - 0.2, hw * tp - 0.15]);
     deckBox.x0 = Math.min(deckBox.x0, xa); deckBox.x1 = Math.max(deckBox.x1, xf); deckBox.hw = Math.max(deckBox.hw, hw + Math.abs(zc)); deckBox.y1 = Math.max(deckBox.y1, y1);
     note(y1);
   }
@@ -460,6 +464,18 @@ export function buildShipModel(spec, tw = {}) {
     });
   }
 
+  // -------- armoured conning tower (tw.conning: { f, y (base above the deck), h, rx, rz }): an oval drum with vision slits --------
+  if (tw.conning) {
+    const c = tw.conning, x = X(c.f), y0 = Y(x) + c.y, col = rgb(pal.sup);
+    b.cyl(x, y0, 0, c.rx, c.rz, c.rx * 0.97, c.rz * 0.97, y0 + c.h, col, MAT.HULL, { seg: 20 });
+    b.cyl(x, y0 + c.h, 0, c.rx * 0.97, c.rz * 0.97, c.rx * 0.8, c.rz * 0.8, y0 + c.h + 0.45, shade(col, 0.9), MAT.HULL, { seg: 20 });
+    for (let i = -3; i <= 3; i++) {
+      const a = i * 0.32;
+      b.box(x + Math.cos(a) * c.rx * 0.985, y0 + c.h * 0.78, Math.sin(a) * c.rz * 0.985, 0.1, 0.22, 0.9, rgb(pal.glass), MAT.GLASS);
+    }
+    note(y0 + c.h + 0.5);
+  }
+
   // -------- measured fire-control directors (tweaks.directors): { f, z, y (above the deck, or the flight deck of a carrier),
   //          ped (pedestal height), w, l, h, kind } --------
   for (const [i, d] of (tw.directors || []).entries()) {
@@ -522,6 +538,7 @@ export function buildShipModel(spec, tw = {}) {
     // fine detail, drawn only when the ship is close
     const rf = makeRng(hashStr(spec.id + ':fine'));
     b.group('fine', () => {
+      for (const [x, y, z, hx, hz] of fineRails) DT.roofRail(b, x, y, z, hx, hz, shade(rgb(pal.sup), 0.8));
       DT.lifelines(b, hull, X(0.975), X(0.025), pal);
       DT.rubbingStrake(b, hull, X(0.9), X(0.08), 1.7, pal);
       DT.anchorAndHawse(b, hull, X(0.05), Math.max(Y(X(0.05)) * 0.58, 2.4), pal);

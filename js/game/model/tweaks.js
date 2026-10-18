@@ -49,8 +49,8 @@ export const TWEAKS = {
     decks: [
       { plan: [[0.412, 3], [0.44, 11.5], [0.63, 11.5], [0.675, 3]], y: [2.3, 4.8] },                // 02 level
       { f: [0.399, 0.48], hw: 9, y: [4.8, 8.6], windows: true },                                    // forward superstructure: a plumb front at 0.399
-      { f: [0.399, 0.457], hw: 7.5, y: [8.6, 13.7], windows: true },                                // bridges
-      { f: [0.405, 0.416], hw: 3.2, y: [13.7, 16.3], windows: true },                               // pilot house
+      { f: [0.399, 0.457], hw: 7.5, y: [8.6, 13.7], windows: true, wings: 1.6, rail: true },          // bridges
+      { f: [0.405, 0.416], hw: 3.2, y: [13.7, 16.3], windows: true, rail: true },                   // pilot house
       { f: [0.416, 0.432], hw: 6, y: [13.7, 15.0] },
       { f: [0.535, 0.598], hw: 8.5, y: [4.8, 9.0] },                                                  // between the funnels
       { f: [0.632, 0.712], hw: 8, y: [4.8, 8.7], windows: true },                                    // after superstructure
@@ -59,6 +59,8 @@ export const TWEAKS = {
       { f: [0.672, 0.683], hw: 3.5, y: [8.7, 14.0] },                                                // searchlight platform
       { f: [0.693, 0.703], hw: 2.5, y: [8.7, 13.5] },                                                // after Mk 51 director tower
     ],
+    // the armoured conning tower (17.3 in) at the front of the bridge structure: an oval drum with vision slits
+    conning: { f: 0.408, y: 8.6, h: 3.4, rx: 3.4, rz: 4.2 },
     towerF: 0.484, towerY0: 4.8,
     tiers: [
       { y0: 0, len: 21.6, w: 9, h: 14.6, dx: -3.0, windows: true },                                   // block around the forward funnel (0.455-0.535)
@@ -93,6 +95,8 @@ export const TWEAKS = {
       { k: 'o20', f: 0.735, z: 14.5, y: 0 }, { k: 'o20', f: 0.745, z: 14.5, y: 0 },
       { k: 'o20', f: 0.85, z: 5, y: 0 }, { k: 'o20', f: 0.85, z: 1.5, y: 0 }, { k: 'o20', f: 0.835, z: 6, y: 0 }, { k: 'o20', f: 0.82, z: 6.5, y: 0 },
     ],
+    // the ship's boats on chocks on the main deck abreast the after superstructure (as drawn on the profile)
+    boats: [{ f0: 0.672, f1: 0.692, z: 11, y: 0.2, cabin: true }],
     // catapults on the fantail, along the deck edges, their bow ends turned outboard; crane on the stern
     cat: { f: 0.928, z: 9.5, yaw: 0.24, len: 20, craneF: 0.992, craneH: 8.7, craneLen: 10.4, craneDir: 1, craneAng: 0.155, craneSide: 0, craneW: 1.0 },
   },
@@ -143,7 +147,19 @@ export const TWEAKS = {
     mastY0: { 1: 12.76 }, mastRake: { 1: -6.8 },   // the 1945 mainmast leans well aft
     directors: [{ f: 0.65, y: 18.3, kind: 'drum', w: 5.5, l: 3.5, h: 2.44, label: 'Télémètre arrière' }],
     // catapults on pedestals at the quarterdeck edges, the big crane at the stern with its jib lying forward along the deck
-    cat: { f: 0.935, z: 9, yaw: 0.25, len: 19, y: 2.0, craneF: 0.99, craneH: 6, craneLen: 20, craneDir: 1, craneAng: 0.05, craneSide: 0, craneW: 1.0 },
+    // light AA as drawn on the 1945 plan view: 50 triple 25 mm (shielded mounts on the deck edge and round the superstructure, open
+    // ones in their crescent tubs on the decks, two on each of turrets 2 and 3, the quarterdeck and the stern)
+    aa: [
+      ...[0.52, 0.543, 0.565, 0.588, 0.614].map((f) => ({ k: 't25', f, z: 19.0, y: 0.6 })),
+      ...[[0.362, 11], [0.432, 9.5], [0.476, 9.5], [0.672, 11], [0.693, 10], [0.778, 10.3]].map(([f, z]) => ({ k: 't25', f, z, y: 0 })),
+      { k: 't25', f: 0.415, z: 4.4, y: 6.7 }, { k: 't25', f: 0.732, z: 4.4, y: 4.0 },
+      ...[[0.512, 8.8, 4.33], [0.498, 5.5, 8.5], [0.514, 14.6, 4.33], [0.505, 12, 4.33], [0.633, 16.6, 4.33], [0.645, 12.6, 4.33], [0.654, 8.5, 6.88], [0.638, 5.0, 12.76], [0.666, 3, 4.33]].map(([f, z, y]) => ({ k: 't25', f, z, y })),
+      { k: 't25', f: 0.876, z: 15.5, y: 0 }, { k: 't25', f: 0.901, z: 15, y: 0 }, { k: 't25', f: 0.985, z: 2.8, y: 0 },
+    ],
+    // ship's boats stowed in the recesses of the hull sides aft
+    boats: [{ f0: 0.80, f1: 0.83, z: 15.5, y: -4.2, cabin: true }, { f0: 0.835, f1: 0.865, z: 15.5, y: -4.2 }],
+    // the catapults lie fore and aft at the quarterdeck edges, with their turntables
+    cat: { f: 0.95, z: 10.4, yaw: 0, len: 18.4, y: 0.8, craneF: 0.99, craneH: 6, craneLen: 20, craneDir: 1, craneAng: 0.05, craneSide: 0, craneW: 1.0 },
   },
   takao: { pagoda: [13, 11, 9, 34], dirKind: 'drum', funnelRake: 3.0 },
   kagero: { dirKind: 'drum', tiers: [{ len: 6.5, w: 5.4, h: 2.4, rake: 1.2 }, { len: 5.2, w: 4.4, h: 2.2, rake: 1, wings: 0.8 }, { len: 4, w: 3.4, h: 2.0, rake: 0.8 }] },
@@ -164,7 +180,7 @@ export const TWEAKS = {
     house: { plan: [[0.331, 5], [0.36, 8.5], [0.70, 8.5], [0.761, 5]] },   // narrow: the 15 cm turrets stand on the deck outboard of it
     decks: [
       { f: [0.331, 0.455], hw: 7.5, y: [3.5, 8.9], rake: 1.5, windows: true },                         // forward superstructure
-      { f: [0.36, 0.405], hw: 7, y: [8.9, 13.2], rake: 0.8, windows: true },                           // forward bridge
+      { f: [0.36, 0.405], hw: 7, y: [8.9, 13.2], rake: 0.8, windows: true, wings: 1.8, rail: true },   // forward bridge
       { f: [0.47, 0.484], hw: 3, y: [8.9, 15.8] },                                                      // searchlight tower abaft the tower
       { f: [0.466, 0.488], hw: 4.5, y: [15.8, 16.6] },
       { f: [0.475, 0.53], hw: 7, y: [3.5, 8.9] },                                                       // funnel casing
@@ -197,9 +213,21 @@ export const TWEAKS = {
       { f: 0.394, y: 13.2, kind: 'drum', w: 5.8, l: 3, h: 2.6, label: 'Télémètre avant' },
       { f: 0.646, y: 17.7, kind: 'drum', w: 5.8, l: 3.5, h: 2.6, label: 'Télémètre arrière' },
       { f: 0.606, y: 12.0, kind: 'drum', w: 3.6, l: 2.6, h: 1.8, label: 'Poste de tir arrière' },
+      // the four stabilised AA directors (SL-8) under their domes: abreast the tower and abreast the front of the funnel
+      { f: 0.43, z: 6.5, y: 9.7, kind: 'dome', w: 4.5, h: 4.5, label: 'Directeur antiaérien SL-8 tribord avant' },
+      { f: 0.43, z: -6.5, y: 9.7, kind: 'dome', w: 4.5, h: 4.5, label: 'Directeur antiaérien SL-8 bâbord avant' },
+      { f: 0.495, z: 5, y: 14.7, kind: 'dome', w: 4, h: 3.6, label: 'Directeur antiaérien SL-8 tribord arrière' },
+      { f: 0.495, z: -5, y: 14.7, kind: 'dome', w: 4, h: 3.6, label: 'Directeur antiaérien SL-8 bâbord arrière' },
     ],
-    // two big motor launches on the hangar roof, one each side
-    boats: [{ f0: 0.553, f1: 0.604, z: 4.5, y: 8.7, cabin: true }],
+    // boats as drawn: the two big motor launches on the hangar roof, a launch on the searchlight deck abaft the tower, a cutter on
+    // the deck beside the forward superstructure (athwartship positions estimated: no plan view)
+    boats: [{ f0: 0.553, f1: 0.604, z: 4.5, y: 8.7, cabin: true }, { f0: 0.455, f1: 0.48, z: 4, y: 10.2 }, { f0: 0.418, f1: 0.446, z: 10, y: 1.5 }],
+    // light AA as drawn on the profile (May 1941): eight twin 3.7 cm, the two quadruple 2 cm on the foretop platform, single 2 cm
+    aa: [
+      { k: 't37', f: 0.44, z: 7, y: 14.5 }, { k: 't37', f: 0.345, z: 6.5, y: 5.5 }, { k: 't37', f: 0.62, z: 6, y: 7.7 }, { k: 't37', f: 0.695, z: 6, y: 3.5 },
+      { k: 'q20', f: 0.42, z: 4.5, y: 20.2 },
+      { k: 'f20', f: 0.315, z: 7, y: 3.5 }, { k: 'f20', f: 0.38, z: 6, y: 12.0 }, { k: 'f20', f: 0.50, z: 7.5, y: 8.9 }, { k: 'f20', f: 0.773, z: 8, y: 0 },
+    ],
     // the athwartships catapult on the aircraft deck; a crane each side of the funnel, its jib raised forward
     cat: { f: 0.538, y: 5.8, yaw: Math.PI / 2, len: 30, craneF: 0.527, craneY: 3.5, craneZ: 9, craneBoth: true, craneH: 3, craneLen: 27.9, craneDir: 1, craneAng: 0.87, craneSide: 0, craneW: 0.8 },
   },
@@ -216,6 +244,16 @@ export const TWEAKS = {
     rudders: [{ f: 0.935, top: 2.2, bottom: 7.6, chord: 6.0 }],
     keel: [[0, 0.8], [0.05, 1], [0.84, 1], [0.89, 0.6], [0.94, 0.35], [1, 0.25]],   // estimated
     island: { z: 12.6, hw: 3.0, funnelTop: 18.7, funnelLx: 9.5, funnelLz: 4.6, mastF: 0.393, mastTop: 35.8 },
+    // light AA (long hull, 1945): 17 quadruple Bofors in the usual arrangement (two on the bow, on the island fore and aft, in the deck
+    // edge sponsons of both sides, two on the stern) and Oerlikons along the galleries; positions estimated from photographs, no plan
+    aa: [
+      { k: 'q40', f: 0.02, z: 2.2, y: -6.0 }, { k: 'q40', f: 0.355, z: 12.6, y: 9.5, one: true }, { k: 'q40', f: 0.365, z: 12.6, y: 6.0, one: true },
+      { k: 'q40', f: 0.445, z: 12.6, y: 8.0, one: true }, { k: 'q40', f: 0.41, z: 12.6, y: 14.5, one: true }, { k: 'q40', f: 0.25, z: 17.8, y: -2.0, one: true }, { k: 'q40', f: 0.58, z: 17.8, y: -2.0, one: true },
+      { k: 'q40', f: 0.64, z: 17.8, y: -2.0, one: true }, { k: 'q40', f: 0.69, z: 17.8, y: -2.0, one: true },
+      ...[0.15, 0.26, 0.45, 0.55, 0.66].map((f) => ({ k: 'q40', f, z: -17.8, y: -2.0, one: true })),
+      { k: 'q40', f: 0.975, z: 4, y: -6.0 },
+      ...[0.1, 0.13, 0.18, 0.22, 0.29, 0.33, 0.48, 0.52, 0.6, 0.75, 0.8, 0.85, 0.9].map((f) => ({ k: 'o20', f, z: 17.6, y: -1.6 })),
+    ],
     directors: [
       { f: 0.374, z: 12.6, y: 14.5, w: 3.4, l: 3.4, h: 2.4, label: 'Directeur Mk 37 avant' },
       { f: 0.44, z: 12.6, y: 11.0, ped: 1.2, w: 3.4, l: 3.4, h: 2.4, label: 'Directeur Mk 37 arrière' },
