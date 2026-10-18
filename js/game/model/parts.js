@@ -63,7 +63,7 @@ export function funnelRuin(b, o, pal) {
 }
 
 /** Window strip along a face: thin dark boxes slightly proud of the surface. */
-function windowBand(b, x0, x1, hw, y, h, pal, front = true, sides = true) {
+export function windowBand(b, x0, x1, hw, y, h, pal, front = true, sides = true) {
   const gl = rgb(pal.glass || '#101820');
   if (front) b.block({ x0: x1 - 0.02, x1: x1 + 0.07, hw: hw - 0.35, y0: y, y1: y + h }, gl, MAT.GLASS);
   if (sides) {
@@ -72,13 +72,15 @@ function windowBand(b, x0, x1, hw, y, h, pal, front = true, sides = true) {
 }
 
 /**
- * Multi-tier bridge structure. tiers: [{ len, w, h, dx, dz, rake, col, round, windows }]; each tier stands on the previous one.
+ * Multi-tier bridge structure. tiers: [{ len, w, h, dx, dz, y0, rake, col, round, windows }]; each tier stands on the previous one
+ * (or at y0 above the base when given).
  * o: { x, z, y0 } returns { topY, tops: [y per tier] }.
  */
 export function tower(b, o, pal) {
   let y = o.y0;
   const tops = [];
   for (const t of o.tiers) {
+    if (t.y0 != null) y = o.y0 + t.y0;   // a tier can start at a given height instead of on top of the previous one
     const x = o.x + (t.dx || 0), z = (o.z || 0) + (t.dz || 0);
     const col = rgb(t.col || pal.sup);
     const rake = t.rake ?? 0;

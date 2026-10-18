@@ -15,8 +15,11 @@ const cache = new Map();
 //   fwd          : trunnion -> muzzle       back : how far the breech reaches behind the trunnion (hidden in the house)
 //   rB / rP / rM : barrel radius at the breech / at the gun port / at the muzzle      bagR, bagLen: canvas blast bag
 //   lift         : height of a superfiring mount's training axis above the one in front of it
+//   barb         : height of the barbette above the deck under a mount on the lowest level     port: x of the gun ports when the face is sloped
 const FAMILY = {
-  mk7: { kind: 'turret', cal: 406, n: 3, spacing: 3.05, trunX: 3.3, trunY: 2.7, face: 6.7, fwd: 13.8, back: 2.8, rB: 0.62, rP: 0.52, rM: 0.31, bagR: 1.0, bagLen: 1.4, recoil: 1.2, lift: 4.7, h: 6.0, barbR: 5.6 },
+  // Iowa class plans (profile and plan view) and NH 44538 (crew at the rails for scale): a long, low gun house, 15.4 x 12.4 m and
+  // 3.4 m high, the gun axis 1.6 m above its base, barrels 12.4 m clear of the face, turret 2 three metres above turret 1
+  mk7: { kind: 'turret', cal: 406, n: 3, spacing: 3.05, trunX: 3.4, trunY: 1.6, face: 6.4, port: 5.6, fwd: 15.4, back: 2.8, rB: 0.62, rP: 0.52, rM: 0.31, bagR: 0.95, bagLen: 1.2, recoil: 1.2, lift: 3.0, h: 3.4, barbR: 6.0, barb: 0.35 },
   type94: { kind: 'turret', cal: 460, n: 3, spacing: 3.52, trunX: 3.6, trunY: 2.9, face: 7.4, fwd: 14.4, back: 2.9, rB: 0.70, rP: 0.60, rM: 0.35, bagR: 1.1, bagLen: 1.5, recoil: 1.3, lift: 5.2, h: 6.7, barbR: 6.2, whiteMuzzle: true },
   drh34: { kind: 'turret', cal: 380, n: 2, spacing: 4.6, trunX: 2.8, trunY: 2.3, face: 6.1, fwd: 13.3, back: 2.6, rB: 0.58, rP: 0.49, rM: 0.29, bagR: 0.9, bagLen: 1.2, recoil: 1.15, lift: 4.2, h: 4.9, barbR: 5.3 },
   mk28: { kind: 'dp', cal: 127, n: 2, spacing: 0.78, trunX: 0.55, trunY: 1.35, face: 1.9, fwd: 3.6, back: 0.9, rB: 0.19, rP: 0.15, rM: 0.085, bagR: 0.3, bagLen: 0.3, recoil: 0.5, lift: 3.0, h: 2.9 },
@@ -26,7 +29,7 @@ const FAMILY = {
 /** Numbers of a mount without building it: { trunnion, muzzle (trunnion -> muzzle), spacing, recoil, lift, height } */
 export function mountDims(s) {
   const f = s.variant && FAMILY[s.variant];
-  if (f) return { trunnion: [f.trunX, f.trunY], muzzle: f.fwd, spacing: f.spacing, recoil: f.recoil, lift: f.lift, height: f.h, barbR: f.barbR || 0 };
+  if (f) return { trunnion: [f.trunX, f.trunY], muzzle: f.fwd, spacing: f.spacing, recoil: f.recoil, lift: f.lift, height: f.h, barbR: f.barbR || 0, barb: f.barb };
   const calM = s.cal / 1000, n = s.n;
   const barrelLen = (s.bore || 45) * calM;
   if (s.kind === 'aa') return { trunnion: [0, 1.2], muzzle: aaLen(s), spacing: 0.3, recoil: 0.05, lift: 0, height: 2, barbR: 0 };
@@ -60,30 +63,31 @@ export function getMountModel(spec) {
 function tube(gb, z, f, col, dark, muzCol) {
   const canvas = rgb('#46483f');
   gb.rod(-f.back, 0, 0, z, f.rB * 1.08, f.rB, shade(col, 0.8), MAT.HULL, { seg: 12 });
-  gb.rod(0, f.face - f.trunX, 0, z, f.rB, f.rP * 1.12, dark, MAT.DARK, { seg: 12 });
-  if (f.bagLen > 0) gb.rod(f.face - f.trunX - 0.25, f.face - f.trunX + f.bagLen, 0, z, f.bagR, f.rP * 1.2, canvas, MAT.CANVAS, { seg: 12 });
-  const x0 = f.face - f.trunX;
+  const port = (f.port ?? f.face) - f.trunX;
+  gb.rod(0, port, 0, z, f.rB, f.rP * 1.12, dark, MAT.DARK, { seg: 12 });
+  if (f.bagLen > 0) gb.rod(port - 0.25, port + f.bagLen, 0, z, f.bagR, f.rP * 1.2, canvas, MAT.CANVAS, { seg: 12 });
+  const x0 = port;
   gb.rod(x0, x0 + (f.fwd - x0) * 0.5, 0, z, f.rP, f.rM * 1.3, dark, MAT.DARK, { seg: 12 });
   gb.rod(x0 + (f.fwd - x0) * 0.5, f.fwd * 0.955, 0, z, f.rM * 1.3, f.rM, dark, MAT.DARK, { seg: 12 });
   gb.rod(f.fwd * 0.955, f.fwd, 0, z, f.rM * 1.17, f.rM * 1.17, muzCol || dark, MAT.DARK, { seg: 12 });
 }
 
 // ---- gun houses of the named families -------------------------------------------------------------------------------
-/** US Mk 7 16"/50 triple turret (Iowa class): vertical walls, a steeply sloped front plate, flat roof, rangefinder hoods aft. */
+/** US Mk 7 16"/50 triple turret (Iowa class): long and low, vertical side walls, a face plate sloped back over its whole height, flat
+ *  roof, the rangefinder ears at the rear corners and a short overhang at the back. */
 function houseMk7(hb, col, dark, f) {
-  const mid = shade(col, 0.96), light = shade(col, 1.1), shadow = shade(col, 0.82);
-  hb.cylinder(0, -0.15, 0, 5.9, 6.0, 0.7, shadow, MAT.HULL, { seg: 28 });                                      // rotating skirt over the barbette ring
-  hb.block({ x0: -8.6, x1: f.face, hw: 5.35, y0: 0.5, y1: 3.8, tx0: -8.4, tx1: f.face - 0.5, thw: 5.25 }, col, MAT.HULL);   // walls
-  hb.block({ x0: -8.4, x1: f.face - 0.5, hw: 5.25, y0: 3.8, y1: f.h, tx0: -7.4, tx1: 3.95, thw: 4.5 }, mid, MAT.HULL);       // sloped front plate, tapering sides
-  hb.block({ x0: -9.9, x1: -8.2, hw: 4.0, y0: 1.1, y1: 5.0, tx0: -9.4, tx1: -8.2, thw: 3.7 }, shade(col, 0.9), MAT.HULL);     // rear overhang (counterweight, shell handling)
+  const light = shade(col, 1.1), shadow = shade(col, 0.82);
+  hb.cylinder(0, -0.1, 0, 6.15, 6.2, 0.2, shadow, MAT.HULL, { seg: 28 });                                     // rotating skirt over the barbette ring
+  hb.block({ x0: -9.0, x1: f.face, hw: 6.2, y0: 0.15, y1: f.h, tx0: -8.8, tx1: 4.6, thw: 6.0 }, col, MAT.HULL);   // walls, sloped face, roof
+  hb.block({ x0: -10.1, x1: -8.8, hw: 4.4, y0: 0.6, y1: 2.9, tx0: -9.8, thw: 4.2 }, shade(col, 0.9), MAT.HULL);   // rear overhang
   for (const sg of [-1, 1]) {
-    hb.cylinder(-4.6, f.h * 0.9, sg * 3.3, 0.55, 0.5, f.h + 0.8, shadow, MAT.HULL, { seg: 8 });               // periscope hoods
-    hb.block({ x0: -7.0, x1: -4.8, hw: 0.5, zc: sg * 4.6, y0: 4.2, y1: 5.5, tx0: -6.8, tx1: -5.1, thw: 0.4 }, light, MAT.HULL);   // rangefinder ears
+    hb.block({ x0: -7.6, x1: -5.2, hw: 0.55, zc: sg * 6.45, y0: 1.7, y1: 3.0, tx0: -7.4, tx1: -5.5, thw: 0.45 }, light, MAT.HULL);   // rangefinder ears
+    hb.cylinder(-4.4, f.h - 0.1, sg * 3.4, 0.5, 0.45, f.h + 0.55, shadow, MAT.HULL, { seg: 8 });               // periscope hoods
   }
-  hb.box(-1.6, f.h + 0.05, 0, 3.0, 0.14, 2.2, light, MAT.HULL);                                              // hatch / sighting plate
-  for (let i = 0; i < f.n; i++) {                                                                              // gun ports in the front plate
+  hb.box(-2.4, f.h + 0.04, 0, 3.0, 0.1, 2.2, light, MAT.HULL);                                               // hatch / sighting plate
+  for (let i = 0; i < f.n; i++) {                                                                              // gun ports in the face plate
     const z = (i - (f.n - 1) / 2) * f.spacing;
-    hb.block({ x0: f.face - 0.9, x1: f.face - 0.3, hw: 0.95, zc: z, y0: f.trunY - 0.8, y1: f.trunY + 0.8 }, dark, MAT.DARK);
+    hb.block({ x0: f.port - 0.5, x1: f.port + 0.45, hw: 0.9, zc: z, y0: f.trunY - 0.65, y1: f.trunY + 0.65 }, dark, MAT.DARK);
   }
 }
 

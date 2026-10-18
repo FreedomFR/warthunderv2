@@ -9,6 +9,8 @@ const ids = (process.argv[2] || '').split(',').filter(Boolean);
 if (!ids.length) { console.error('usage: node tools/refs/views.mjs id[,id...] > views.json'); process.exit(1); }
 const r1 = (x) => Math.round(x * 10) / 10;
 const out = [];
+// first shot: a high sun behind the camera on the starboard side, so the hull and the superstructure are lit as on the photographs
+const LIGHT = "Object.assign(__engine.P,{sunElev:35,sunAzim:180,exposure:1.0,haze:2.2,veil:0.2,warmth:-0.05,contrast:1.1,bloom:0.04,clouds:0});__engine.markDirty('lut')";
 ids.forEach((id, target) => {
   const s = BY_ID[id];
   if (!s) { console.error('unknown ship id: ' + id); process.exit(1); }
@@ -19,5 +21,9 @@ ids.forEach((id, target) => {
   view('bow34', 1.05, 125, 10, 0.06, 0.05);
   view('aft34', 1.05, 232, 10, 0.06, -0.05);
   view('fore', 0.42, 150, 24, 0.05, 0.22);
+  view('mid', 0.40, 140, 14, 0.06, -0.02);
+  view('top', 0.75, 160, 55, 0.0, 0);
 });
+out[0].eval = LIGHT;
+out[0].wait = 1200;
 console.log(JSON.stringify(out));

@@ -51,6 +51,7 @@ function hullParams(spec, tw) {
     bow: { ...preset.bow, ...(tw.bow || {}) }, stern: { ...preset.stern, ...(tw.stern || {}) },
     mid: { ...preset.mid, flare: t === 'CV' ? preset.mid.flare : Math.max(preset.mid.flare, flareMid), ...(tw.mid || {}) },
     camber: dd ? 0.18 : 0.3, bulwark: dd ? 0.85 : 0.95,
+    planWL: tw.planWL, planDeck: tw.planDeck,
   };
 }
 
@@ -94,6 +95,11 @@ const AA_KINDS = {
   Italy: [{ v: 'bofors', n: 2, cal: 37, bore: 54, w: 0.4, label: 'Breda 37 mm double' }, { v: 'iijn25', n: 2, cal: 20, bore: 65, w: 0.3, label: 'Breda 20 mm double' }, { v: 'oerlikon', n: 1, cal: 20, bore: 65, w: 0.3, label: 'Breda 20 mm' }],
 };
 
+/** Plan outline [[fraction from bow, half-width], ...] (forward to aft, starboard side) -> closed [x, z] polygon, mirrored to port. */
+function planPoly(plan, X, zc = 0) {
+  return [...plan.map(([f, w]) => [X(f), zc + w]), ...plan.slice().reverse().map(([f, w]) => [X(f), zc - w])];
+}
+
 function kindOf(desc, ...words) { return words.some((w) => new RegExp(w, 'i').test(desc || '')); }
 
 export function buildShipModel(spec, tw = {}) {
@@ -133,6 +139,7 @@ export function buildShipModel(spec, tw = {}) {
   let topY = Y(0) + 4;
   const note = (y) => { if (y > topY) topY = y; };
   const houseH = tw.houseH ?? { DD: 2.2, CL: 3.0, CA: 3.2, BB: 3.6, CV: 0 }[t];
+  const dirKind = spec.nation === 'Japan' ? 'drum' : 'box';
 
   // -------- funnels first (they decide where the central deckhouse ends) --------
   const fun = sil.funnels || { count: 1, fractionFromBow: [0.5], heightAboveDeckM: 12 };
@@ -143,7 +150,15 @@ export function buildShipModel(spec, tw = {}) {
 
   // -------- central deckhouse --------
   const towerF = (sil.masts && sil.masts[0] && sil.masts[0].fractionFromBow) || 0.33;
-  if (!carrier) {
+  if (!carrier && tw.house?.plan) {
+    // measured outline of the deckhouse: [[fraction from bow, half-width (m)], ...] from forward to aft, mirrored to port
+    const pl = tw.house.plan, fs = pl.map((q) => q[0]);
+    const hx0 = X(Math.min(...fs)), hx1 = X(Math.max(...fs));
+    const hw = Math.max(...pl.map((q) => q[1]));
+    const hy = Y((hx0 + hx1) / 2);
+    b.prism(planPoly(pl, X), hy - 0.6, hy + houseH, rgb(pal.sup), MAT.HULL);
+    model.house = { x0: hx1, x1: hx0, hw, y: hy + houseH };
+  } else if (!carrier) {
     const fLast = fF.length ? Math.max(...fF) : 0.55;
     const hx0 = X(towerF - 0.035), hx1 = X(Math.max(fLast + 0.035, towerF + 0.05));
     const hw = (tw.houseW ?? (t === 'BB' ? 0.36 : t === 'DD' ? 0.34 : 0.32)) * B;
@@ -155,26 +170,45 @@ export function buildShipModel(spec, tw = {}) {
     model.house = { x0: hx1, x1: hx0, hw, y: hy + houseH };
   }
 
+  // -------- measured superstructure blocks (tweaks.decks); heights are above the local deck --------
+  const deckBox = { x0: Infinity, x1: -Infinity, hw: 0, y1: -Infinity };
+  for (const d of (!carrier && tw.decks) || []) {
+    const fs = d.plan ? d.plan.map((q) => q[0]) : d.f;
+    const xf = X(Math.min(...fs)), xa = X(Math.max(...fs)), xm = (xf + xa) / 2;
+    const y0 = Y(xm) + d.y[0], y1 = Y(xm) + d.y[1], zc = d.z || 0;
+    const col = d.col ? rgb(pal[d.col] || d.col) : rgb(pal.sup);
+    const hw = d.hw ?? Math.max(...d.plan.map((q) => q[1])), tp = d.taper ?? 1;
+    if (d.plan) b.prism(planPoly(d.plan, X, zc), y0, y1, col, MAT.HULL, { topScale: tp });
+    else if (d.round) b.cyl(xm, y0, zc, (xf - xa) / 2, hw, (xf - xa) / 2 * tp, hw * tp, y1, col, MAT.HULL, { seg: 18 });
+    else b.block({ x0: xa, x1: xf, hw, zc, y0, y1, tx1: xf - (d.rake || 0), tx0: xa + (d.rakeA || 0), thw: hw * tp }, col, MAT.HULL);
+    if (d.windows && !d.round && !d.plan) PT.windowBand(b, xa, xf - (d.rake || 0) * 0.4, hw * tp, y0 + (y1 - y0) * 0.45, Math.min((y1 - y0) * 0.3, 1.0), pal, true, true);
+    deckBox.x0 = Math.min(deckBox.x0, xa); deckBox.x1 = Math.max(deckBox.x1, xf); deckBox.hw = Math.max(deckBox.hw, hw + Math.abs(zc)); deckBox.y1 = Math.max(deckBox.y1, y1);
+    note(y1);
+  }
+
   const funnelTops = [];
   // -------- funnels --------
   for (let i = 0; i < Math.min(fCount, fF.length); i++) {
     const x = X(fF[i]);
-    const y0 = (carrier ? 0 : Y(x) + houseH);
-    const fh = tw.funnelH ?? fun.heightAboveDeckM ?? (t === 'DD' ? 11 : 18);
     if (carrier) continue;
+    // tw.funnels[i]: measured { lx, lz (m), y0 (base above the deck), h, rake, top (top / base size) }
+    const fw = tw.funnels?.[i] || {};
+    const y0 = Y(x) + (fw.y0 ?? houseH);
     const small = tw.funnelScale ? tw.funnelScale[i] ?? 1 : 1;
-    const flx = funLx * (tw.funnelX?.[i] ?? 1), flz = funLz * (tw.funnelZ?.[i] ?? 1);
-    const fo = { x, y0, h: fh * small, lx: flx, lz: flz, topLx: flx * (tw.funnelTop ?? 0.88), topLz: flz * (tw.funnelTop ?? 0.88), rake: tw.funnelRake ?? fh * 0.14, band: tw.funnelBand };
+    const fh = (fw.h ?? tw.funnelH ?? fun.heightAboveDeckM ?? (t === 'DD' ? 11 : 18)) * small;
+    const flx = fw.lx ?? funLx * (tw.funnelX?.[i] ?? 1), flz = fw.lz ?? funLz * (tw.funnelZ?.[i] ?? 1);
+    const top = fw.top ?? tw.funnelTop ?? 0.88, rake = fw.rake ?? tw.funnelRake ?? fh * 0.14;
+    const fo = { x, y0, h: fh, lx: flx, lz: flz, topLx: flx * top, topLz: flz * top, rake, band: tw.funnelBand };
     part('funnel' + i, 'funnel', 'Cheminée ' + (i + 1), () => PT.funnel(b, fo, pal), () => PT.funnelRuin(b, fo, pal), { fine: () => PT.funnelDetail(b, fo, pal) });
-    model.smoke.push([x - (tw.funnelRake ?? fh * 0.14) * 0.9, y0 + fh * small, 0]);
-    funnelTops.push([x - (tw.funnelRake ?? fh * 0.14) * 0.9, y0 + fh * small, 0]);
+    model.smoke.push([x - rake * 0.9, y0 + fh, 0]);
+    funnelTops.push([x - rake * 0.9, y0 + fh, 0]);
     note(y0 + fh);
   }
 
   // -------- bridge tower / island --------
   if (!carrier) {
-    const x = X(towerF);
-    const y0 = Y(x) + (towerF > 0.2 ? 0 : 0);
+    const x = X(tw.towerF ?? towerF);
+    const y0 = Y(x) + (tw.towerY0 ?? 0);
     const tiers = tw.tiers || (tw.pagoda ? pagodaTiers(...tw.pagoda) : towerTiers(spec));
     let r = null;
     part('tower', 'bridge', 'Passerelle', () => { r = PT.tower(b, { x, y0, tiers }, pal); },
@@ -188,14 +222,17 @@ export function buildShipModel(spec, tw = {}) {
     const ensLen = clamp(L * 0.021, 2.2, 6.2);
     const ensOnFore = !(sil.masts && sil.masts.length > 1);
     const mastTopY = Math.max(mastH, y + 4);
-    const dirKind = spec.nation === 'Japan' ? 'drum' : 'box';
-    const dirO = { x: x + 0.3, y, z: 0, w: topW * 0.7, l: topW * 0.75, h: t === 'DD' ? 1.6 : 2.4, kind: tw.dirKind || dirKind };
+    // tw.dir0: measured main director { dx, w, l, h }; tw.foremast: { dx, y0 (base above the deck) }
+    const d0 = tw.dir0 || {};
+    const dirO = { x: x + (d0.dx ?? 0.3), y, z: 0, w: d0.w ?? topW * 0.7, l: d0.l ?? topW * 0.75, h: d0.h ?? (t === 'DD' ? 1.6 : 2.4), kind: tw.dirKind || dirKind };
     part('director0', 'director', 'Directeur de tir avant', () => PT.director(b, dirO, pal), () => b.cylinder(dirO.x, dirO.y, 0, 0.5, 0.4, dirO.y + 0.7, rgb(charred(pal)), MAT.DARK, { seg: 6 }));
     y += t === 'DD' ? 2.0 : 3.0;
+    if (tw.foremast?.y0 != null) y = Y(x) + tw.foremast.y0;
+    const mx = x + (tw.foremast?.dx ?? -0.8);
     const mastBase = r.tops[Math.max(0, tiers.length - 3)];
     // rigging of the foremast: forestay to the bow, stays to the funnels, a flag hoist on the yardarms
     const foreFine = () => {
-      const top = [x - 0.9, mastTopY - 0.8, 0], sc = rgb(pal.dark);
+      const top = [mx - 0.1, mastTopY - 0.8, 0], sc = rgb(pal.dark);
       DT.stay(b, top, [X(0.012), Y(X(0.012)) + 1.4, 0], sc, 0.05);
       DT.stay(b, [x - 0.9, mastTopY * 0.82, 0], [X(0.03), Y(X(0.03)) + 1.0, 0.3], sc, 0.04);
       for (const ft of funnelTops.slice(0, 2)) DT.stay(b, [x - 0.9, mastTopY * 0.74, 0], [ft[0], ft[1] - 0.6, 0], sc, 0.04);
@@ -218,20 +255,20 @@ export function buildShipModel(spec, tw = {}) {
       }, mastRuin(x - 1, mastBase, mastTopY - mastBase), { fine: foreFine });
     } else {
       part('mast0', 'mast', 'Mât avant', () => {
-        PT.poleMast(b, { x: x - 0.8, y0: y, h: Math.max(mastTopY - y, 6), r: 0.38, yards: [[0.55, 9], [0.8, 6]] }, pal);
-        PT.pennant(b, x - 0.8, mastTopY + 0.2, 0.3, 4.5, 0, '#ffffff');
-        if (ensOnFore) PT.ensign(b, { x: x - 1.1, y: mastTopY - 7, z: 0, len: ensLen });
-      }, mastRuin(x - 0.8, y, Math.max(mastTopY - y, 6)), { fine: foreFine });
+        PT.poleMast(b, { x: mx, y0: y, h: Math.max(mastTopY - y, 6), r: 0.38, yards: [[0.55, 9], [0.8, 6]] }, pal);
+        PT.pennant(b, mx, mastTopY + 0.2, 0.3, 4.5, 0, '#ffffff');
+        if (ensOnFore) PT.ensign(b, { x: mx - 0.3, y: mastTopY - 7, z: 0, len: ensLen });
+      }, mastRuin(mx, y, Math.max(mastTopY - y, 6)), { fine: foreFine });
     }
     // radar
     const rkind = ['USA', 'UK'].includes(spec.nation) ? 'bedspring' : 'box';
-    part('radar0', 'radar', 'Radar de veille', () => PT.radar(b, { x: x - 0.8, y: Math.max(mastTopY - 3.5, y), z: 0, kind: rkind, w: Math.min(7, 0.2 * B + 2) }, pal));
+    part('radar0', 'radar', 'Radar de veille', () => PT.radar(b, { x: mx, y: Math.max(mastTopY - 3.5, y), z: 0, kind: rkind, w: Math.min(7, 0.2 * B + 2) }, pal));
     part('radar1', 'radar', 'Radar de surface', () => PT.radar(b, { x: x + 2, y: r.tops[Math.max(0, tiers.length - 2)], z: topW * 0.2, kind: 'dish' }, pal));
     note(mastTopY + 2);
     model.bridge = { x, y: r.topY };
     {
       const hx0 = model.house ? model.house.x1 : x - 8, hx1 = model.house ? model.house.x0 : x + 8;
-      model.superBox = { x0: Math.min(hx0, x - tiers[0].len / 2), x1: Math.max(hx1, x + tiers[0].len / 2), hw: Math.max(model.house ? model.house.hw : 0, tiers[0].w / 2), y1: r.topY };
+      model.superBox = { x0: Math.min(hx0, x - tiers[0].len / 2, deckBox.x0), x1: Math.max(hx1, x + tiers[0].len / 2, deckBox.x1), hw: Math.max(model.house ? model.house.hw : 0, tiers[0].w / 2, deckBox.hw), y1: Math.max(r.topY, deckBox.y1) };
     }
   }
 
@@ -243,6 +280,7 @@ export function buildShipModel(spec, tw = {}) {
       const x = X(m.fractionFromBow);
       let y0 = Y(x) + (model.house && x < model.house.x1 + 0.1 && x > model.house.x0 - 0.1 ? 0 : 0);
       if (model.house && x <= model.house.x1 && x >= model.house.x0 - 1e-9 + 0) y0 = model.house.y - 0.0;
+      if (tw.mastY0?.[i] != null) y0 = Y(x) + tw.mastY0[i];
       const h = Math.max((m.heightAboveWaterM || 30) - y0, 8);
       part('mast' + i, 'mast', 'Mât ' + (i === 1 ? 'arrière' : 'secondaire'), () => {
         if (kindOf(m.kind, 'tripod')) PT.tripod(b, { x, y0, h, legSpread: 3.5, legBack: 4, legFront: 1.5, platforms: [0.6], yards: [[0.78, 7]] }, pal);
@@ -289,8 +327,9 @@ export function buildShipModel(spec, tw = {}) {
       const sideZ = m.z ?? 0;
       const variant = tw.mainVariant;
       const dm = mountDims({ kind: mainKind, cal: mainCal, n: m.guns, bore: spec.main.boreCalibers, variant });
-      let pivot = deckY + barbH;
-      if (lvl >= 1) pivot = deckY + barbH + dm.lift * lvl;
+      const bh = dm.barb ?? barbH;
+      let pivot = deckY + bh;
+      if (lvl >= 1) pivot = deckY + bh + dm.lift * lvl;
       if (mainKind === 'dp' && lvl >= 1) pivot = deckY + 1.0 + 2.6 * lvl;
       const r = dm.barbR || Math.max(calM * 6, 1.1);
       PT.barbette(b, x, sideZ, mainKind === 'turret' ? r : 0.9, deckY - 0.2, pivot, pal.hull);
@@ -319,9 +358,9 @@ export function buildShipModel(spec, tw = {}) {
       const sg = p.side === 'port' ? -1 : p.side === 'starboard' ? 1 : 0;
       const hbd = hull.halfBeamDeck(x);
       const onHouse = model.house && x <= model.house.x1 + 0.1 && x >= model.house.x0 - 0.1 && !carrier;
-      const zz = sg * (onHouse ? Math.min(model.house.hw * 0.92, hbd * 0.85) : hbd * (kind === 'turret' ? 0.55 : 0.78));
+      const zz = p.offsetM != null ? sg * p.offsetM : sg * (onHouse ? Math.min(model.house.hw * 0.92, hbd * 0.85) : hbd * (kind === 'turret' ? 0.55 : 0.78));
       const lvl = (tw.secLevel ?? 0);
-      const deckY = Y(x) + (onHouse ? houseH : 0) + lvl;
+      const deckY = p.heightM != null ? Y(x) + p.heightM : Y(x) + (onHouse ? houseH : 0) + lvl;
       const sc = kind === 'turret' ? Math.max(calS * 4, 1.0) : 0.9;
       if (kind === 'turret') PT.barbette(b, x, zz, sc, deckY - 0.2, deckY + 0.5 + calS * 3, pal.hull);
       const pivot = kind === 'turret' ? deckY + 0.5 + calS * 3 : deckY + 0.55;
@@ -350,19 +389,34 @@ export function buildShipModel(spec, tw = {}) {
   // -------- aircraft facilities (cruisers / battleships) --------
   if (!carrier && spec.aircraft && spec.aircraft.catapults > 0) {
     const mid = kindOf(spec.aircraft.hangar + ' ' + spec.aircraft.notes, 'amidships|between the funnels|athwart');
-    const f0 = mid ? 0.575 : 0.84;
+    // tw.cat: measured { f, z (m off the centreline), yaw (rad, bow end turned outboard), len, y (above the deck), craneF }
+    const tc = tw.cat || {};
+    const f0 = tc.f ?? (mid ? 0.575 : 0.84);
     const nCat = spec.aircraft.catapults;
     for (let i = 0; i < nCat; i++) {
       const sg = nCat === 1 ? 0 : (i === 0 ? -1 : 1);
-      const x = X(f0), y = Y(x) + 0.2;
-      const z = sg * (mid ? B * 0.12 : B * 0.2);
-      const cy = sg * 0.5 * (mid ? 1 : 0);
+      const x = X(f0), y = Y(x) + (tc.y ?? 0.2);
+      const z = sg * (tc.z ?? (mid ? B * 0.12 : B * 0.2));
+      const cy = sg * (tc.yaw ?? 0.5 * (mid ? 1 : 0));
+      const len = tc.len ?? 18;
       part('cat' + i, 'catapult', 'Catapulte et hydravion', () => {
-        PT.catapult(b, { x, y, z, len: 18, yaw: cy }, pal);
-        PT.floatplane(b, { x: x + 3, y: y + 0.4, z, yaw: cy, nation: spec.nation, scale: 1.0 }, pal);
-      }, () => PT.catapult(b, { x, y, z, len: 18, yaw: cy }, { ...pal, sup: charred(pal) }));
+        PT.catapult(b, { x, y, z, len, yaw: cy }, pal);
+        PT.floatplane(b, { x: x + 3 * Math.cos(cy), y: y + 0.4, z: z + 3 * Math.sin(cy), yaw: cy, nation: spec.nation, scale: 1.0 }, pal);
+      }, () => PT.catapult(b, { x, y, z, len, yaw: cy }, { ...pal, sup: charred(pal) }));
     }
-    part('crane', 'crane', 'Grue', () => PT.crane(b, { x: X(f0 + 0.07), y0: Y(X(f0 + 0.07)), z: 0, h: 7, len: 14, side: 1 }, pal));
+    const cf = tc.craneF ?? f0 + 0.07;
+    part('crane', 'crane', 'Grue', () => PT.crane(b, { x: X(cf), y0: Y(X(cf)), z: 0, h: 7, len: 14, side: 1 }, pal));
+  }
+
+  // -------- measured fire-control directors (tweaks.directors): { f, z, y (above the deck), ped (pedestal height), w, l, h, kind } --------
+  for (const [i, d] of ((!carrier && tw.directors) || []).entries()) {
+    const x = X(d.f), y = Y(x) + d.y, z = d.z || 0, ped = d.ped || 0, pr = d.pedR ?? 1.1;
+    const o = { x, y: y + ped, z, w: d.w ?? 3, l: d.l ?? 3, h: d.h ?? 2.2, kind: d.kind || dirKind };
+    part('director' + (i + 1), 'director', d.label || 'Directeur de tir', () => {
+      if (ped > 0) b.cylinder(x, y, z, pr, pr * 0.9, y + ped, rgb(pal.sup), MAT.HULL, { seg: 12 });
+      PT.director(b, o, pal);
+    }, () => b.cylinder(x, y, z, 0.6, 0.45, y + Math.max(0.8, ped * 0.5), rgb(charred(pal)), MAT.DARK, { seg: 6 }));
+    note(o.y + o.h + 1);
   }
 
   // -------- ship-specific extras (see tweaks.js) --------

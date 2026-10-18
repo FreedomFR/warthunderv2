@@ -12,3 +12,6 @@ Thumbs.db
 
 # reference photographs (downloaded by tools/refs/fetch.py, never committed)
 /refs/
+
+# local renders (reference views, firing tests)
+/out/

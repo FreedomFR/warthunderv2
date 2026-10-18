@@ -41,18 +41,45 @@ function bismarckTower({ b, model, pal, MAT, rgb, shade }) {
 }
 
 export const TWEAKS = {
-  // Iowa (photographs: 1944 dry dock, 1952 firing): a massive stepped tower on a long deckhouse, big oval funnels
+  // Iowa: measured on the class profile and plan drawing (Commons, public domain), checked on photographs 80-G-K-15631 (port profile in
+  // silhouette) and NH 44538. Heights are above the local deck: 01 level 2.3 m, 02 level 4.8 m, forward bridge 13.2 m, the block around
+  // the forward funnel 19.4 m, Mk 38 director 29.3-32.5 m; funnel tops 23.8 / 22.9 m; after director tower 18 m.
   iowa: {
-    mainVariant: 'mk7', secVariant: ['mk28'], houseW: 0.37, houseH: 4.4, funnelW: 0.31, funnelLen: 1.45, funnelH: 19, funnelRake: 2.4, funnelTop: 0.94,
-    tiers: [
-      { len: 27, w: 22, h: 3.8, rake: 1.5 },
-      { len: 21, w: 18, h: 4.2, rake: 1.2, wings: 1.6 },
-      { len: 15, w: 14.5, h: 4.2, round: true, taper: 0.92 },
-      { len: 13.5, w: 13, h: 3.8, rake: 0.8, wings: 1.8 },
-      { len: 10.5, w: 10.5, h: 3.8, rake: 0.6 },
-      { len: 8.2, w: 8.2, h: 4.0, round: true, taper: 0.9 },
-      { len: 6.4, w: 6.4, h: 3.4 },
+    mainVariant: 'mk7', secVariant: ['mk28'], houseH: 2.3,
+    // hull lines: the deck edge from the plan view (a long, narrow bow, full beam only from turret 2 aft); the waterline a little finer
+    // than the deck forward of turret 2, where the bow flares, and plumb sides amidships
+    planDeck: [[0, 0.08], [0.02, 0.17], [0.04, 0.22], [0.06, 0.25], [0.1, 0.31], [0.13, 0.36], [0.16, 0.41], [0.2, 0.49], [0.25, 0.63], [0.3, 0.77], [0.35, 0.87], [0.4, 0.94], [0.45, 0.985], [0.5, 1], [0.7, 1], [0.8, 0.965], [0.85, 0.9], [0.9, 0.77], [0.95, 0.58], [0.98, 0.41], [1, 0.3]],
+    planWL: [[0, 0], [0.03, 0.1], [0.06, 0.17], [0.1, 0.25], [0.15, 0.34], [0.2, 0.44], [0.25, 0.57], [0.3, 0.72], [0.35, 0.85], [0.4, 0.94], [0.45, 0.985], [0.5, 1], [0.72, 1], [0.8, 0.965], [0.85, 0.895], [0.9, 0.76], [0.95, 0.56], [1, 0.3]],
+    house: { plan: [[0.40, 3], [0.43, 15], [0.64, 15], [0.71, 2]] },
+    decks: [
+      { plan: [[0.412, 3], [0.44, 11.5], [0.63, 11.5], [0.675, 3]], y: [2.3, 4.8] },                // 02 level
+      { f: [0.403, 0.48], hw: 9, y: [4.8, 8.6], rake: 0.6, windows: true },                         // forward bridge
+      { f: [0.405, 0.474], hw: 7.5, y: [8.6, 13.2], rake: 1.0, taper: 0.95, windows: true },
+      { f: [0.535, 0.598], hw: 8.5, y: [4.8, 9.0] },                                                  // between the funnels
+      { f: [0.632, 0.70], hw: 8, y: [4.8, 8.7], rakeA: 1.5, windows: true },                         // after superstructure
+      { f: [0.661, 0.681], round: true, hw: 2.6, y: [8.7, 13.6], taper: 0.85 },                      // after director tower
+      { f: [0.657, 0.687], hw: 4, y: [13.6, 14.6] },
     ],
+    towerF: 0.484, towerY0: 4.8,
+    tiers: [
+      { y0: 0, len: 17, w: 9, h: 14.6, dx: -5.3, windows: true },                                     // block around the forward funnel
+      { len: 19.5, w: 15, h: 1.2, dx: -3.5, windows: false },                                         // wide platform
+      { len: 7, w: 7.5, h: 5.3, dx: -0.6, round: true, taper: 0.95 },                                // tower
+      { len: 8.6, w: 9.5, h: 3.4, dx: 0.8, rake: 0.5 },                                               // top house under the Mk 38
+    ],
+    dir0: { dx: 1.4, w: 4.2, l: 4.6, h: 3.0 },
+    foremast: { dx: -4.8, y0: 23.9 },
+    funnels: [{ lx: 7.8, lz: 6.4, y0: 4.8, h: 19.0, rake: 0.8, top: 0.95 }, { lx: 9.0, lz: 6.6, y0: 4.8, h: 18.1, rake: 0.8, top: 0.95 }],
+    mastY0: { 1: 8.7 },
+    directors: [
+      { f: 0.44, y: 13.2, ped: 1.8, w: 3.6, l: 3.6, h: 2.4, label: 'Directeur Mk 37 avant' },
+      { f: 0.515, z: 6.2, y: 12.6, ped: 0.8, w: 3.4, l: 3.4, h: 2.3, label: 'Directeur Mk 37 tribord' },
+      { f: 0.515, z: -6.2, y: 12.6, ped: 0.8, w: 3.4, l: 3.4, h: 2.3, label: 'Directeur Mk 37 bâbord' },
+      { f: 0.572, y: 9.0, ped: 3.2, w: 3.4, l: 3.4, h: 2.3, label: 'Directeur Mk 37 arrière' },
+      { f: 0.671, y: 14.6, w: 4.0, l: 4.4, h: 3.0, label: 'Directeur Mk 38 arrière' },
+    ],
+    // catapults on the fantail, along the deck edges, their bow ends turned outboard; crane on the stern
+    cat: { f: 0.921, z: 9.1, yaw: 0.24, len: 21, craneF: 0.983 },
   },
   fletcher: { mainVariant: 'mk30' },
   cleveland: { secVariant: ['mk28'] },
