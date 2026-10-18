@@ -202,19 +202,20 @@ export const SCENES = {
     if (!tp) return;
     // A: right behind the torpedo bomber, wave tops rushing past, the drop
     await T.shot('torp_a', 4.6, chaseCam(() => (T.w.planes.includes(tp) ? tp : null), 20, 3.0, 5, 70, 52));
-    // B: a torpedo hits a cruiser: staged a few hundred metres from the hull (the real hit model: flooding, list, water column)
+    // B: a torpedo hits a cruiser: staged a hundred metres from the hull (the real hit model: flooding, list, water column)
     const victim = tp.target.alive ? tp.target : jp.find((s) => s.alive);
     const hdg = victim.heading, side = [Math.cos(hdg), Math.sin(hdg)], fwd = [Math.sin(hdg), -Math.cos(hdg)];
-    const off = victim.stats.B / 2 + 190;
-    const src = [victim.x + side[0] * off - fwd[0] * 10, victim.z + side[1] * off - fwd[1] * 10];
-    const dir = unit(victim.x - src[0], 0, victim.z - src[1]);
+    const off = victim.stats.B / 2 + 92, tHit = off / 21.5;
+    // aimed with the lead the victim's own speed calls for, a little forward of the middle of the ship
+    const lead = victim.speed * tHit + victim.stats.L * 0.08;
+    const src = [victim.x + side[0] * off, victim.z + side[1] * off];
+    const dir = unit(victim.x + fwd[0] * lead - src[0], 0, victim.z + fwd[1] * lead - src[1]);
     T.w.spawnTorpedo({ owner: essex, x: src[0], z: src[1], vx: dir[0] * 21.5, vz: dir[2] * 21.5, speed: 21.5, range: 800, warhead: 300, team: 0 });
     T.w.torpedoes[T.w.torpedoes.length - 1].travel = 100;       // already armed
-    await T.wait(1.6);
-    await T.shot('torp_b', 5, (t, T) => {
-      const e = T.ev.last.impact, hit = e && e.kind === 'torpedo';
-      const cx = victim.x + side[0] * (off - 70) + fwd[0] * 40, cz = victim.z + side[1] * (off - 70) + fwd[1] * 40;
-      return { p: [cx, 8, cz], l: [victim.x + fwd[0] * 5, hit ? 12 : 6, victim.z + fwd[1] * 5], fov: 48 };
+    T.log('torp staged', off.toFixed(0), tHit.toFixed(1), victim.stats.id);
+    await T.shot('torp_b', 5.2, (t, T) => {
+      const cx = victim.x + side[0] * (off + 45) + fwd[0] * (victim.stats.L * 0.22), cz = victim.z + side[1] * (off + 45) + fwd[1] * (victim.stats.L * 0.22);
+      return { p: [cx, 7, cz], l: [victim.x + fwd[0] * (victim.stats.L * 0.05), 9, victim.z + fwd[1] * (victim.stats.L * 0.05)], fov: 46 };
     });
   },
 
