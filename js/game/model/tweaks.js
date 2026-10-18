@@ -100,6 +100,73 @@ export const TWEAKS = {
     // catapults on the fantail, along the deck edges, their bow ends turned outboard; crane on the stern
     cat: { f: 0.928, z: 9.5, yaw: 0.24, len: 20, craneF: 0.992, craneH: 8.7, craneLen: 10.4, craneDir: 1, craneAng: 0.155, craneSide: 0, craneW: 1.0 },
   },
+  // Littorio class (Vittorio Veneto): measured on the ONI 202 identification sheet (Feb 1943, public domain; the height scale in feet
+  // confirms 5.22 px/m both ways). Forecastle deck 8.9 m above the waterline from the stem (9.8 m) to 0.79 of the length, the quarterdeck
+  // 5.7 m; turrets A / B / C pivot at 0.287 / 0.372 / 0.752 (B 4.5 m above A); two oval funnels at 0.512 and 0.573 (tops 25.4 / 24.4 m);
+  // the tower at 0.4435 (top 35 m) with a pole mast behind it to 49.9 m; the pole mainmast on its own tower at 0.628 (34.5 m); a single
+  // catapult and a crane on the stern. Hull widths from the plan; the waterline widths and the underwater body are estimated.
+  littorio: {
+    mainVariant: 'lit381', secVariant: ['lit152'], houseH: 1.3, bulwarkF: [0, 0.06],
+    fb: [[0, 9.8], [0.03, 9.4], [0.06, 9.1], [0.1, 8.9], [0.78, 8.9], [0.795, 5.8], [0.9, 5.7], [1, 5.9]],
+    planDeck: [[0, 0.070], [0.05, 0.362], [0.1, 0.502], [0.15, 0.642], [0.2, 0.747], [0.25, 0.817], [0.3, 0.864], [0.35, 0.945], [0.4, 0.981], [0.45, 1.016], [0.5, 1.016], [0.55, 1.027], [0.6, 1.016], [0.65, 0.993], [0.7, 0.958], [0.75, 0.923], [0.8, 0.829], [0.85, 0.747], [0.9, 0.619], [0.95, 0.420], [1, 0.117]],
+    planWL: [[0, 0], [0.03, 0.2], [0.05, 0.29], [0.1, 0.42], [0.15, 0.55], [0.2, 0.66], [0.25, 0.74], [0.3, 0.81], [0.35, 0.9], [0.4, 0.95], [0.45, 0.99], [0.5, 1], [0.6, 1], [0.65, 0.97], [0.7, 0.94], [0.75, 0.9], [0.8, 0.81], [0.85, 0.72], [0.9, 0.6], [0.95, 0.4], [1, 0.11]],
+    bow: { rake: 3.7, pr: 1.5 }, stern: { overhang: 1.5, rise: 8 },
+    house: { plan: [[0.395, 6], [0.42, 10.5], [0.662, 10.5], [0.70, 6]] },
+    decks: [
+      { f: [0.645, 0.682], hw: 8, y: [1.3, 2.7] },                                                     // aft house
+      { f: [0.612, 0.644], round: true, hw: 3.2, y: [1.3, 12.1], taper: 0.85 },                        // mainmast tower
+      { f: [0.499, 0.589], hw: 7.5, y: [1.3, 3.2] },                                                   // base of the funnels
+    ],
+    towerF: 0.4435, towerY0: 1.3,
+    tiers: [
+      { len: 9.5, w: 11, h: 7.0, windows: true },
+      { len: 8.5, w: 8.4, h: 4.5, windows: true },
+      { len: 7.5, w: 7.0, h: 4.5, windows: true },
+      { len: 5.6, w: 5.6, h: 5.0, windows: true },
+      { len: 5.0, w: 4.4, h: 4.0 },
+    ],
+    dir0: { dx: 0, w: 3.4, l: 3.2, h: 2.0 },
+    foremast: { dx: -7.4, y0: 8.0 },
+    mastY0: { 1: 13.4 },
+    funnels: [{ lx: 8.6, lz: 7.4, y0: 1.3, h: 15.6, rake: 0.8, top: 0.92, capSlope: 2.0, pipes: false }, { lx: 8.6, lz: 7.4, y0: 1.3, h: 14.8, rake: 0.8, top: 0.92, capSlope: 2.0, pipes: false }],
+    directors: [{ f: 0.628, y: 12.1, w: 3.2, l: 3.0, h: 2.2, label: 'Directeur arrière' }],
+    cat: { f: 0.935, y: 0.1, yaw: 0, len: 22, craneF: 0.99, craneH: 6.5, craneLen: 14, craneDir: 1, craneAng: 0.5, craneSide: 0, craneW: 0.6 },
+  },
+  // Richelieu (1943): measured on the class inboard profile (Commons, CC BY-SA 4.0; 15.05 px/m both ways, drawn hull depth 9.4 m): a
+  // centre-line section, so only the structures on the centre line are checked; forecastle 9.2 m at the stem sloping to 7 m, flush deck 7 m
+  // amidships, 6.7 m aft; turrets A and B on training axes 0.297 / 0.432, the massive tower at 0.52 (top 35 m) with the conning tower block
+  // in front of it, the funnel merged with the aft mast ("mack") at 0.634, the hangar roof 4.8 m above the deck at 0.746-0.845, the
+  // catapult at 0.907-0.992; hull widths are estimated (no plan view).
+  richelieu: {
+    mainVariant: 'rich380', secVariant: ['fr152'], houseH: 4.8, bulwarkF: [0, 0.05],
+    fb: [[0, 9.2], [0.05, 8.5], [0.1, 8.0], [0.15, 7.5], [0.2, 7.2], [0.3, 7.0], [0.8, 7.0], [0.85, 6.7], [1, 6.7]],
+    keel: [[0, 0.8], [0.05, 0.92], [0.1, 0.97], [0.15, 0.94], [0.85, 0.94], [0.9, 0.82], [0.93, 0.62], [0.96, 0.38], [1, 0.2]],
+    bow: { rake: 3.5, pr: 1.5, forefoot: 6 }, stern: { overhang: 2, rise: 7 },
+    props: [{ f: 0.925, z: 3.8, depth: 5.2, d: 4.9, blades: 3, toF: 0.82, skeg: true }, { f: 0.90, z: 7.8, depth: 6.4, d: 4.9, blades: 3, toF: 0.80, strutF: 0.885 }],
+    rudders: [{ f: 0.961, top: 1.7, bottom: 8.7, chord: 5.5 }],
+    house: { plan: [[0.46, 5], [0.49, 8.5], [0.615, 8.5], [0.65, 6]] },
+    decks: [
+      { f: [0.466, 0.499], hw: 6.0, y: [4.8, 13.7], windows: true },                                   // armoured conning tower block, in front of the tower
+      { f: [0.609, 0.626], round: true, hw: 1.6, y: [4.8, 20.0], taper: 0.9 },                          // the mack's mast column, up to 28.2 m
+      { f: [0.746, 0.845], hw: 8.0, y: [0, 4.8] },                                                       // aircraft hangar (the roof is the deck of the stern)
+      { f: [0.673, 0.679], hw: 2.0, y: [0, 10.6] }, { f: [0.661, 0.667], hw: 2.0, y: [0, 10.6] },        // legs of the aft tower
+      { f: [0.661, 0.679], hw: 3.0, y: [10.6, 11.2] },
+    ],
+    towerF: 0.52, towerY0: 4.8,
+    tiers: [
+      { len: 11.5, w: 11, h: 2.0, windows: true },
+      { len: 9.2, w: 9.2, h: 6.5, windows: true },
+      { len: 8.9, w: 8.2, h: 5.5, windows: true },
+      { len: 8.9, w: 7.2, h: 4.5, windows: true },
+      { len: 4.5, w: 5.0, h: 3.2, dx: -1.2 },
+    ],
+    dir0: { dx: -1.2, w: 3.6, l: 3.6, h: 1.6 },
+    foremast: { dx: -2.0, y0: 24.0 },
+    funnels: [{ lx: 6.4, lz: 7.4, y0: 4.8, h: 13.1, rake: 1.5, top: 0.94, capSlope: 0, pipes: false }],
+    mastY0: { 1: 4.8, 2: 4.8 },
+    directors: [{ f: 0.62, y: 21.2, w: 2.6, l: 2.6, h: 1.8, label: 'Directeur de 152 mm du mack' }, { f: 0.676, y: 8.6, w: 3.0, l: 3.0, h: 2.2, label: 'Directeur de 380 mm arrière' }],
+    cat: { f: 0.95, z: 5.5, yaw: 0.15, len: 21, y: 3.3, craneF: 0.985, craneH: 5, craneLen: 13, craneDir: 1, craneAng: 0.5, craneSide: 0, craneW: 0.6 },
+  },
   fletcher: { mainVariant: 'mk30' },
   cleveland: { secVariant: ['mk28'] },
   baltimore: { secVariant: ['mk28'] },

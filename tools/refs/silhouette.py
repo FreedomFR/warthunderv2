@@ -19,7 +19,7 @@ ap.add_argument('--out', default='out/check'); ap.add_argument('--tol', type=flo
 a = ap.parse_args()
 cfg = json.load(open(os.path.join(HERE, 'plans.json')))[a.ship]
 L = cfg['loa']
-cam = cfg['camera'][a.view]
+cam = (cfg.get('camera') or {}).get(a.view) or {'dist': round(L * 6.63), 'fov': 4, 'lookY': 15, 'el': 0 if a.view == 'side' else 89.5}
 ref = cfg[a.view]
 tol = a.tol if a.tol is not None else ref.get('tol', 1.0)
 
@@ -46,7 +46,8 @@ d = d.crop((x0, y0, x1, y1))
 ink = d.point(lambda v: 255 if v < ref.get('threshold', 200) else 0)
 k = ref.get('close', 5)
 ink = ink.filter(ImageFilter.MaxFilter(k)).filter(ImageFilter.MinFilter(k))
-if ref.get('open', a.view == 'side'): ink = ink.filter(ImageFilter.MinFilter(3)).filter(ImageFilter.MaxFilter(3))
+ko = ref.get('open', 3 if a.view == 'side' else 0)     # opening removes lines thinner than this many pixels (scale lines, rigging)
+if ko: ink = ink.filter(ImageFilter.MinFilter(ko)).filter(ImageFilter.MaxFilter(ko))
 dppm = (ref['bow'] - ref['stern']) / L
 vppm = dppm * ref.get('vscale', 1)        # some drawings are not drawn to the same scale vertically (checked on known depths)
 base = (ref['wl'] if a.view == 'side' else ref['cl']) - y0

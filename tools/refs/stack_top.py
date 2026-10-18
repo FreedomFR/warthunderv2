@@ -8,7 +8,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ship, render, out = sys.argv[1:4]
 f0, f1 = (float(sys.argv[4]), float(sys.argv[5])) if len(sys.argv) > 5 else (0, 1)
 cfg = json.load(open(os.path.join(HERE, 'plans.json')))[ship]
-L, cam, ref = cfg['loa'], cfg['camera']['top'], cfg['top']
+L, ref = cfg['loa'], cfg['top']
+cam = (cfg.get('camera') or {}).get('top') or {'dist': round(L * 6.63), 'fov': 4}
 r = Image.open(render).convert('RGB'); W, H = r.size
 ppm = H / (2 * cam['dist'] * math.tan(math.radians(cam['fov']) / 2))
 d = Image.open(os.path.join(HERE, '..', '..', ref['file'])).convert('RGB')
