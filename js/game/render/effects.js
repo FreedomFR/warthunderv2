@@ -96,7 +96,9 @@ export class Effects {
     const d = this.distToCam(e.x, e.z);
     if (d > 18000) return;
     const n = e.barrels ? e.barrels.length / 3 : 1;
-    const R = clamp(e.cal * 0.046, 1.6, 21);                 // radius of the fireball of one tube: 5" -> 5.8 m, 16" -> 18.7 m, 46 cm -> 21 m
+    // radius of the fireball of one tube: 5" -> 4.1 m, 15 cm -> 6.9 m, 16" -> 18.7 m, 46 cm -> 21 m (the dual-purpose guns burn a much
+    // smaller charge for their bore than the heavy guns: in the photographs their flash is a short tongue and a puff of grey smoke)
+    const R = clamp(e.cal * (e.cal < 140 ? 0.032 : 0.046), 1.6, 21);
     const dir = [e.dx, e.dy, e.dz];
     for (let i = 0; i < n; i++) {
       const b = e.barrels ? [e.barrels[i * 3], e.barrels[i * 3 + 1], e.barrels[i * 3 + 2]] : [e.x, e.y, e.z];
@@ -150,12 +152,14 @@ export class Effects {
       }
     }
     // the cloud: brown-grey powder smoke that expands, hangs over the water and drifts with the wind
-    const ns = Math.max(2, Math.round((heavy ? 12 : mid ? 7 : 4) * es * lod));
+    // (lighter guns: a smaller, greyer cloud that thins out in a few seconds, or a rapid-firing battery would hide its own ship)
+    const ns = Math.max(2, Math.round((heavy ? 12 : mid ? 6 : 3) * es * lod));
+    const grow = heavy ? [2.2, 3.6] : mid ? [1.9, 3.0] : [1.5, 2.3], life = heavy ? [6, 12] : mid ? [3, 6] : [1.8, 3.6];
     for (let i = 0; i < ns; i++) {
-      const q = at(rr(0.4, 1.8) * R, rr(-0.9, 0.9) * R, rr(-0.7, 0.8) * R), sp = rr(3, 11) * Math.sqrt(c), dark = rnd() < 0.25;
+      const q = at(rr(0.4, 1.8) * R, rr(-0.9, 0.9) * R, rr(-0.7, 0.8) * R), sp = rr(3, 11) * Math.sqrt(c), dark = heavy && rnd() < 0.25;
       p.add({
         kind: K.SMOKE, x: q[0], y: q[1], z: q[2], vx: dx * sp + rr(-1.5, 1.5), vy: dy * sp + rr(0.3, 3), vz: dz * sp + rr(-1.5, 1.5),
-        s0: R * 0.6, s1: R * rr(2.2, 3.6), life: rr(heavy ? 6 : 3.5, heavy ? 12 : 7), r: dark ? 0.24 : 0.54, g: dark ? 0.21 : 0.49, b: dark ? 0.18 : 0.43, a0: dark ? 0.5 : 0.42, a1: 0, drag: 1.1, wind: 1, grav: -0.3,
+        s0: R * 0.6, s1: R * rr(grow[0], grow[1]), life: rr(life[0], life[1]), r: dark ? 0.24 : heavy ? 0.54 : 0.6, g: dark ? 0.21 : heavy ? 0.49 : 0.57, b: dark ? 0.18 : heavy ? 0.43 : 0.53, a0: dark ? 0.5 : heavy ? 0.42 : 0.34, a1: 0, drag: 1.1, wind: 1, grav: -0.3,
       });
     }
     // the blast on the sea: a sheet of foam under and ahead of the muzzle, and spray skimming away from it

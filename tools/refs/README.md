@@ -8,12 +8,14 @@ into the code, and each source is listed in `sources.jsonl` (title, URL, licence
 
 | File | Use |
 |---|---|
+| `search.py` | searches Commons (photographs and plans) with size and licence: `python3 tools/refs/search.py "Yamato battleship drawing"` |
+| `overlay.py` | draws a profile drawing over a far, narrow-angle side view of the model at the same scale (red lines, or `--stack`) |
 | `list_images.py` | lists the images used by Wikipedia articles: `python3 tools/refs/list_images.py "USS Iowa (BB-61)"` |
 | `fetch.py` | downloads photographs from Wikimedia Commons with licence and author: `python3 tools/refs/fetch.py iowa "File title.jpg" ...` → `refs/iowa/` |
 | `views.mjs` | writes a standard set of cameras (profile, bow / stern three-quarter, forecastle) scaled to each ship's length |
 | `shots.mjs` | takes the screenshots of the preview scene for such a list of cameras |
 | `sheet.py` | contact sheet of a folder of screenshots (needs Pillow): `python3 tools/refs/sheet.py sheet.jpg folder 2` |
-| `sources.jsonl` | the 14 photographs consulted for batch 1 (Iowa, Yamato, Bismarck, Essex) |
+| `sources.jsonl` | the photographs and drawings consulted for batch 1 (Iowa, Yamato, Bismarck, Essex) |
 
 ## Workflow for a ship
 
@@ -24,6 +26,20 @@ python3 tools/refs/fetch.py bismarck "Some photo.jpg"     # check the licence li
 node tools/refs/views.mjs bismarck > views.json
 node tools/refs/shots.mjs "http://localhost:8080/index.html?preview=bismarck&offscreen=1&w=1280&h=720&parked=6&fov=38&ocean=0" out views.json 1280 720 900
 ```
+
+### Comparing with a plan
+
+A profile drawing is the best reference: positions along the length and heights can be read to a fraction of a metre. Take a far,
+narrow-angle starboard view of the model (heading 90, az 180, el 0, fov 4, w 2400 x h 1000, dist = 1.11 x L / (2.4 x 0.0698)), then
+
+```bash
+python3 tools/refs/overlay.py out/prof/iowa_prof.png refs/iowa/Iowa_classe_battleships_drawing.jpg out/iowa.jpg --loa 270.4 \
+  --dist 1792 --fov 4 --look-y 15 --stern-x 30 --bow-x 1867 --wl-y 346 --crop-y0 0 --crop-y1 352     # add --stack to put them one above the other
+```
+
+(x of the stern and of the stem at deck level and y of the waterline, in drawing pixels). Measured values go in the spec sheet
+(`fractionFromBow`, `offsetM` / `heightM` of the secondary mounts, funnel and mast heights; list them in `measured`) and in `tweaks.js`
+(`fb` freeboards, `planDeck` / `planWL` half-breadths, `house.plan`, `decks`, tower `tiers`, `funnels`, `directors`, `cat`).
 
 Preview scene: `?preview=id1,id2` lines the ships up, `ocean=0` skips the ocean (about 10 s per shot in software rendering instead of
 minutes), `window.__preview.set({ target, heading, dist, az, el, lookY, lookX })` moves the camera (heading 90 = bow towards +x,

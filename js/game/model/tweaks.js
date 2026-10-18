@@ -145,7 +145,19 @@ export const TWEAKS = {
     cat: { f: 0.538, y: 3.6, yaw: Math.PI / 2, len: 30, craneF: 0.565, craneY: 8.0, craneZ: 0 },
   },
   shokaku: { noFunnels: true, elevators: [0.22, 0.56, 0.80], extra: shokakuFunnels },
-  essex: { mainVariant: { 2: 'mk28', 1: 'mk30' }, elevators: [0.27, 0.80, 0.50], deckEdge: true },
+  // Essex class (long hull): measured on the starboard broadside of Ticonderoga, 5 November 1944: flight deck 18.5 m above the water,
+  // a narrow island well forward of midships (body 11 m, bridges 14.5 m, funnel top 18.7 m, mast 35.8 m above the flight deck), the
+  // forward Mk 37 director on the island front, the after one by the funnel
+  essex: {
+    mainVariant: { 2: 'mk28', 1: 'mk30' }, elevators: [0.25, 0.74, 0.43], deckEdge: true, flightDeckY: 18.5,
+    // long hull: the clipper stem 7.5 m ahead of the flight deck, the round stern under its after end (waterline length 250 m)
+    bow: { rake: 9, pr: 1.3 }, stern: { overhang: 12, rise: 8 }, fdBowOver: -4.9,
+    island: { z: 12.6, hw: 3.0, funnelTop: 18.7, funnelLx: 9.5, funnelLz: 4.6, mastF: 0.393, mastTop: 35.8 },
+    directors: [
+      { f: 0.374, z: 12.6, y: 14.5, w: 3.4, l: 3.4, h: 2.4, label: 'Directeur Mk 37 avant' },
+      { f: 0.44, z: 12.6, y: 11.0, ped: 1.2, w: 3.4, l: 3.4, h: 2.4, label: 'Directeur Mk 37 arrière' },
+    ],
+  },
   illustrious: { elevators: [0.30, 0.75] },
   graf_zeppelin: { elevators: [0.27, 0.52, 0.80] },
   bearn: { elevators: [0.30, 0.47, 0.72] },

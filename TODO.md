@@ -1,23 +1,29 @@
 # Reste à faire
 
-État au 18 octobre 2026 : version 0.0.1 + **lot 1 « fidélité »** (Iowa, Yamato, Bismarck, Essex) fusionnés dans `main`.
+État au 18 octobre 2026 : version 0.0.1 + **lot 1 « fidélité »** (Iowa, Yamato, Bismarck, Essex), second passage sur plans terminé.
 Cases cochées = fait et vérifié ; cases vides = à faire. Les points marqués *(limite)* sont des choses que je ne sais pas faire
 (ou pas vérifier) depuis l'environnement de développement actuel.
 
-## 1. Lot 1 — ce qu'il reste sur Iowa, Yamato, Bismarck, Essex
+## 1. Lot 1 — Iowa, Yamato, Bismarck, Essex : terminé
 
-Fait : tourelles à dimensions relevées sur photos (Mk 7, Type 94, Drh LC/34, 5"/38 Mk 28 / Mk 30), recul, bouche de chaque tube,
-effets de bouche (éclair, boules de feu, nuage de poudre, écume), ponts de l'Iowa / pagode du Yamato / tour du Bismarck / îlot de
-l'Essex, livrées dazzle 1944 (Iowa, Essex). Filmé et contrôlé : tir de l'Iowa, du Bismarck et de l'Essex.
+Fait : tourelles à dimensions relevées (Mk 7, Type 94, Drh LC/34, 15,5 cm Type 3, 15 cm du Bismarck, 5"/38 Mk 28 / Mk 30), recul, bouche de
+chaque tube, effets de bouche, livrées dazzle 1944 (Iowa, Essex). Second passage sur plans (octobre 2026) : chaque navire est superposé à un
+plan (`tools/refs/overlay.py`) et tout a été repositionné.
 
-- [ ] **Coques** : évasement (flare) et tonture de l'Iowa et de l'Essex, étrave de l'Essex ; comparer avec les plans, pas seulement les photos.
-- [ ] **Essex** : îlot plus fin et plus haut, cheminée, mâts radar ; sponsons de 5" à comparer aux photos.
-- [ ] **Iowa** : tour arrière et roufle devant la cheminée, à vérifier sur les photos ; directeurs de tir.
-- [ ] **Yamato** : vérifier cheminée inclinée et tourelles secondaires triples de 15,5 cm ; **rendu de tir du 46 cm pas encore filmé** (seul le calcul de taille est fait).
-- [ ] **Bismarck** : hangar et catapultes au milieu du navire, tourelles secondaires de 15 cm ; vérifier la tour après les derniers changements d'étages.
-- [ ] **Pièces secondaires** : les 5"/38 de l'Iowa et les 15 cm du Bismarck n'ont pas été regardées de près en plein tir.
-- [ ] **Champs `estimated`** des fiches (`js/game/data/specs/*.js`, 6 à 7 par nation) : positions de tourelles et hauteurs de mâts à confirmer avec des plans.
-- [ ] **Sources** : refaire un passage avec d'autres photos si possible (*limite* : navsource.org et history.navy.mil sont bloqués ici ; seul Wikimedia Commons répond, avec limitation de débit).
+- [x] **Coques** : largeurs du pont et de la flottaison relevées en plan (Iowa, Yamato), francs-bords (Iowa, Yamato, Bismarck), étrave clipper
+  de l'Essex à coque longue, pavois limité à l'avant.
+- [x] **Essex** : îlot plus fin et bien plus en avant (38,6 % de la longueur), cheminée à 18,7 m au-dessus du pont d'envol, mât et radar à
+  35,8 m, directeurs Mk 37 ; tourelles doubles de 5" par paires sur le pont d'envol, devant et derrière l'îlot, tirant par-dessus le pont.
+- [x] **Iowa** : roufles par niveaux, bloc autour de la cheminée avant, tour arrière et directeur Mk 38, quatre directeurs Mk 37, catapultes de
+  plage arrière.
+- [x] **Yamato** : cheminée inclinée, tourelles de 15,5 cm sur leurs barbettes, affûts de 12,7 cm de 1945 ; **tir du 46 cm filmé**.
+- [x] **Bismarck** : hangars et catapulte transversale au milieu, tourelles de 15 cm hors du roof, tour étagée avec ses télémètres.
+- [x] **Pièces secondaires en plein tir** (5"/38, 15 cm) : boule de feu et nuage de poudre réduits pour les calibres moyens.
+- [x] **Champs `estimated`** : positions des quatre navires mesurées (le champ `measured` de chaque fiche dit d'où) ; restent estimés les
+  10,5 cm et 3,7 cm du Bismarck, les affûts simples de 5" de l'Essex et quelques valeurs hors positions.
+- [ ] **Sources** : navsource.org ne répond pas (nom de domaine introuvable depuis ce poste) et history.navy.mil refuse le certificat ;
+  Wikimedia Commons suffit pour l'instant (plans et profils listés dans `tools/refs/sources.jsonl`).
+- [ ] *Bismarck* : pas de vue de dessus libre trouvée, les largeurs de coque restent celles du constructeur générique.
 
 ## 2. Lot 2 et suivants — les 26 autres navires
 
@@ -43,7 +49,7 @@ d'après leur fiche technique, avec des réglages à la main pour certains (`js/
 - [ ] **Lumière du tir** : le flash n'éclaire pas la coque ni l'eau alentour (pas de lumière dynamique) ; surtout visible la nuit.
 - [ ] **Onde de choc** visible sur l'eau (anneau de souffle) en plus de l'écume.
 - [ ] **Tir de nuit** : flamme plus longue et plus rouge, éclairage des tourelles (le tir de jour est le seul contrôlé).
-- [ ] **Performance réelle** : tout a été mesuré en rendu logiciel (SwiftShader), jamais sur un vrai GPU. Mesurer une bordée de 9 tubes à plusieurs navires, avec les qualités haute / moyenne / basse (*limite* : pas de GPU dans l'environnement).
+- [ ] **Performance réelle** : mesurer une bordée de 9 tubes à plusieurs navires, avec les qualités haute / moyenne / basse (le GPU est maintenant disponible : RTX 3080 ; le test de fumée tourne à environ 60 images/s).
 
 ## 4. Vidéo et version
 

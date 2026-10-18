@@ -45,11 +45,15 @@ Useful URLs: `?scenario=duel&start=1&seed=3`, `?preview=iowa,yamato&offscreen=1&
 
 ## Adding fidelity to a ship (the "lot" workflow)
 
-1. Collect free photographs and plans (`tools/refs/`), note licences, credit them in `README.md`; do not commit the images.
-2. Gun turrets: add or adjust a family in `mounts.js` (trunnion height, barrel spacing, muzzle distance, recoil, barbette radius), then
-   set `mainVariant` / `secVariant` for the ship in `tweaks.js`.
-3. Hull and superstructure: tune with `tiers`, `pagoda`, funnel options, `houseH` / `houseW`; add a livery in `livery.js`.
-4. Compare with the photographs from the same angles (`views.mjs` + `shots.mjs`), then film the salvo with the `firetest` scene.
+1. Collect free photographs and, above all, a profile / plan drawing (`tools/refs/search.py`, `fetch.py`), note licences, credit them in
+   `README.md` and `tools/refs/sources.jsonl`; do not commit the images. The spec positions marked `estimated` were often 10-40 m off.
+2. Measure on the drawing (overlay it on the model with `tools/refs/overlay.py`): positions go in the spec sheet (`fractionFromBow`,
+   secondary `offsetM` / `heightM` / `baseM`, funnel and mast heights, a `measured` note), shapes in `tweaks.js` (`fb` freeboards,
+   `planDeck` / `planWL`, `house.plan`, `decks`, tower `tiers` with `towerF` / `towerY0`, `dir0`, `foremast`, `funnels`, `directors`, `cat`).
+3. Gun turrets: add or adjust a family in `mounts.js` (house height and length, trunnion height, barrel spacing, muzzle distance, port,
+   barbette height `barb` and superfiring `lift`), then set `mainVariant` / `secVariant`. Real gun houses are low (3-4.5 m).
+4. Compare with the photographs from the same angles (`views.mjs` + `shots.mjs`), then film the salvo with the `firetest` scene
+   (`--q mount=A`, `--q group=sec`). Add a livery in `livery.js` if needed.
 5. Run `npm test` and `npm run check:shaders`, rebuild `naval.html`, update CHANGELOG / README credits, commit.
 
 ## Conventions
