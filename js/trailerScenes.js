@@ -254,12 +254,12 @@ export const SCENES = {
       takao.toWorld(mag ? mag.x : 0, mag ? mag.y : -2, mag ? mag.z : 0, where);
       magazineExplosion(T.w, takao, us[0], where, mag);
     };
-    await T.shot('boom_a', 3.2, (t, T) => {
-      if (t > 1.8) trigger();
+    await T.shot('boom_a', 2.6, (t, T) => {
+      if (t > 1.2) trigger();
       const u = t / T.dur;
       return mv.orbit(() => P3(takao, 14), 215, 232, 330, 300, 20, 24, 14, 44, (x) => x)(t, T);
     });
-    await T.shot('boom_b', 4.0, (t, T) => mv.orbit(() => P3(takao, 10), 232, 258, 440, 500, 14, 34, 16, 46)(t, T));
+    await T.shot('boom_b', 3.4, (t, T) => mv.orbit(() => P3(takao, 10), 232, 258, 440, 500, 14, 34, 16, 46)(t, T));
   },
 
   // ---- end plate: the column against the setting sun ------------------------------------------------------------------------
