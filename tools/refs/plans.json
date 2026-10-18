@@ -848,6 +848,68 @@
         "dilate": 5,
         "open": 0
       }
+    },
+    "ju87": {
+      "length": 11.1,
+      "span": 13.8,
+      "top": {
+        "file": "refs/plane_ju87/ju87_b_scale72.jpg",
+        "source": "a Ju 87 B sheet at 1:72 with a 0-5 m scale bar (Krzysztof Zurek, \"Arkusz 4\"), shared by the project owner (copyright: measurements only, not in the repository); the underside plan view, scaled on the 13.8 m span",
+        "crop": [
+          0,
+          170,
+          736,
+          722
+        ],
+        "preErase": [
+          [
+            380,
+            365,
+            736,
+            552
+          ],
+          [
+            0,
+            420,
+            225,
+            552
+          ],
+          [
+            140,
+            268,
+            236,
+            312
+          ]
+        ],
+        "rotate": 90,
+        "flip": true,
+        "threshold": 150,
+        "dilate": 5,
+        "open": 0,
+        "scaleBy": "span"
+      },
+      "side": {
+        "file": "refs/plane_ju87/ju87_b_scale72.jpg",
+        "source": "same sheet, Ju 87 B-1 side view",
+        "crop": [
+          0,
+          0,
+          560,
+          235
+        ],
+        "preErase": [
+          [
+            0,
+            0,
+            125,
+            55
+          ]
+        ],
+        "flip": true,
+        "threshold": 150,
+        "dilate": 5,
+        "open": 0
+      }
     }
   }
 }

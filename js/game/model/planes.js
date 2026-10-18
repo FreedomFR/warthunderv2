@@ -22,7 +22,8 @@ const PAINT = {
 
 // ---- aircraft specification sheets --------------------------------------------------------------------------
 // The tailplane span is the TOTAL span (the three aircraft with a drawing -- SBD 5.4 m, B5N 4.9 m, Skua 4.9 m -- were measured on it; the others
-// are 0.33 of the wing span, estimated: they had been drawn at about half the real size).
+// are 0.33 of the wing span, estimated: they had been drawn at about half the real size). Exception: the Ju 87's tailplane, measured on a 1:72
+// sheet, is only 3.0 m (0.22 of the span).
 // L length, span, fus: {r maximum radius, ar ratio height/width}, engine: {r cowl radius, len, type},
 // wing: {cr root chord, ct tip chord, x mid-chord position, y height, dih dihedral, gull inverted gull, sweep, t thickness}
 export const PLANES = {
@@ -71,8 +72,8 @@ export const PLANES = {
   ju87: {
     name: 'Junkers Ju 87 C Stuka', nation: 'Germany', role: 'dive', kind: 'mono', L: 11.1, span: 13.8, mass: 4.6, hp: 3.6, bombKg: 500, siren: true,
     fus: { r: 0.62, ar: 1.2, x: -0.3 }, engine: { type: 'inline', r: 0.46, len: 1.9 }, prop: { r: 1.7, n: 3, x: 0 },
-    wing: { cr: 3.0, ct: 1.5, x: -0.1, y: -0.45, dih: 0.0, gull: 0.95, sweep: 0.15, t: 0.4 },
-    tail: { x: -4.8, chord: 1.4, span: 4.6, fin: 1.7, finChord: 1.9, y: 0.2 }, canopy: [{ x0: 0.0, x1: 2.9, tx1: 2.2, h: 0.78 }],
+    wing: { cr: 2.9, ct: 1.1, x: -0.1, y: -0.45, dih: 0.0, gull: 0.95, sweep: 0.15, t: 0.4 },
+    tail: { x: -4.8, chord: 1.0, span: 3.0, fin: 1.7, finChord: 1.9, y: 0.2 }, canopy: [{ x0: 0.0, x1: 2.9, tx1: 2.2, h: 0.78 }],
     gear: 'spats', ordnance: 'bomb',
   },
   fi167: {
