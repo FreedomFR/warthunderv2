@@ -19,8 +19,13 @@ npm run build               # js/ + index.html -> naval.html (single file); rebu
 ```
 
 The browser tools (`tools/browser.mjs`) render with software WebGPU (SwiftShader) unless `GPU=hardware`, and use `CHROME=/path/to/chrome`
-(default: the installed Google Chrome). On a PC with a GPU run them with `GPU=hardware` (this path was never tested by the previous
-sessions, which had no GPU). Headless Chromium cannot show an on-screen WebGPU canvas, so every tool loads the game with `?offscreen=1`.
+(default: the installed Google Chrome). On a PC with a GPU run them with `GPU=hardware` (checked on an RTX 3080: about 60 fps, and the
+on-screen canvas works too; in software rendering only `?offscreen=1` works, so the tools load the game with it).
+
+**WSL2** (the owner's PC: Debian 12 under WSL2, RTX 3080): Linux Chrome cannot reach the GPU there (Debian's Mesa has no Vulkan-on-D3D12
+driver) and silently falls back to SwiftShader. Keep `node server.mjs 8080` in WSL and run the browser tools with the Windows Node, which
+drives the Windows Chrome (D3D12) and reaches the WSL server through localhost forwarding:
+`GPU=hardware WSLENV=GPU "/mnt/c/Program Files/nodejs/node.exe" tools/smoke.mjs`. `npm test` and `npm run build` stay on the Linux Node.
 Software rendering is slow: 10–25 s per frame at 800×450 with the ocean on; add `?ocean=0` for model views (about 10 s per shot).
 
 ## Where things are

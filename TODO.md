@@ -59,8 +59,8 @@ d'après leur fiche technique, avec des réglages à la main pour certains (`js/
 ## 6. Outils et tests
 
 - [x] **Outils de références** rangés dans `tools/refs/` (téléchargement Wikimedia, vues standard, captures, planches ; voir son README) et `CLAUDE.md` pour reprendre le travail depuis un autre poste.
-- [ ] **`GPU=hardware`** (rendu avec la vraie carte graphique dans les outils) : écrit mais jamais essayé ici ; à tester sur votre PC.
-- [ ] **Test de fumée en mode à l'écran** : il échoue dans Chromium sans GPU (« swap chain »), seul le mode `?offscreen=1` passe. À essayer sur une machine avec GPU.
+- [x] **`GPU=hardware`** : vérifié sur la RTX 3080 (adaptateur `nvidia` / `ampere`), shaders et test de fumée OK, environ 60 images/s. Sous WSL2 il faut lancer les outils avec le Node Windows (voir `CLAUDE.md`).
+- [x] **Test de fumée en mode à l'écran** : passe avec le GPU (sans `?offscreen=1`).
 - [ ] **Intégration continue** : aucun test ne tourne automatiquement sur GitHub ; ajouter un workflow qui lance `npm test` et `npm run check:shaders`.
 - [ ] Tests visuels automatisés : comparer des captures de chaque navire à des images de référence pour repérer une régression de modèle.
 
