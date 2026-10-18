@@ -42,7 +42,9 @@ export function pchip(points) {
  *   bow: { rake, pr, forefoot, entrance, m, q, flare, flareLen }
  *   stern: { run, transom, overhang, rise, m }
  *   mid: { pb, flare, tumble }    section fullness exponent, deck flare, tumblehome
- *   hullCol, deckCol, camber, bulwark, bulwarkCol
+ *   planWL, planDeck: [[t, ratio], ...]  measured half-breadths (fraction of B/2) at the waterline and at the deck edge along the
+ *                                 length (t = 0 at the stem); they replace the bow / stern formulas and the flare above water
+ *   hullCol, deckCol, camber, bulwark, bulwarkCol, bulwarkF: [f0, f1] (the bulwark only runs between these fractions from the bow)
  * }
  */
 export function buildHull(b, h) {
@@ -53,6 +55,7 @@ export function buildHull(b, h) {
   const camber = h.camber ?? 0.3;
   const hullCol = rgb(h.hullCol || '#555a60'), deckCol = rgb(h.deckCol || '#6a625a');
   const fbF = pchip(h.fb);
+  const wlF = h.planWL ? pchip(h.planWL) : null, dkF = h.planDeck ? pchip(h.planDeck) : null;
   // keel line: full draft along the length, rising a little under the counter
   const dF = h.draftProfile ? pchip(h.draftProfile) : (f) => 1 - 0.4 * smooth(0.9, 1.0, f);
 
@@ -62,6 +65,7 @@ export function buildHull(b, h) {
 
   // plan shape: 0 at the tips, 1 amidships
   const shape = (t) => {
+    if (wlF) return Math.max(wlF(t), 0);
     let w = 1;
     if (t < bow.entrance) { const x = t / bow.entrance; w = Math.pow(1 - Math.pow(1 - x, bow.m), bow.q); }
     const sx = (1 - t) / st.run;
@@ -69,11 +73,14 @@ export function buildHull(b, h) {
     return w;
   };
   // section: width ratio at level k (k<0: under water)
+  // under water the sections are full amidships and get finer towards the ends (a V-shaped run where the screws turn)
+  const pbAt = (t) => mid.pb + ((mid.pbRun ?? 1.6) - mid.pb) * smooth(0.72, 0.96, t) + ((mid.pbEntry ?? 2.2) - mid.pb) * smooth(0.3, 0.04, t);
   const sec = (k, t) => {
     if (k <= 0) {
-      const u = -k;
-      return Math.max(Math.pow(Math.max(1 - Math.pow(u, mid.pb), 0), 1 / mid.pb), 0.02);
+      const u = -k, pb = pbAt(t);
+      return Math.max(Math.pow(Math.max(1 - Math.pow(u, pb), 0), 1 / pb), 0.02);
     }
+    if (dkF) { const wl = Math.max(wlF ? wlF(t) : shape(t), 0.02); return 1 + (dkF(t) / wl - 1) * Math.pow(k, 1.4) - mid.tumble * k * k; }
     const bf = t < bow.flareLen ? Math.pow(1 - t / bow.flareLen, 2) : 0;
     return 1 + mid.flare * k + bow.flare * bf * Math.pow(k, 1.4) - mid.tumble * k * k;
   };
@@ -185,7 +192,8 @@ export function buildHull(b, h) {
       let prev = null;
       for (let i = 0; i <= NS; i++) {
         const p = P[i][top];
-        if (p[2] < 0.3) { prev = null; continue; }
+        const fi = (L / 2 - p[0]) / L;
+        if (p[2] < 0.3 || (h.bulwarkF && (fi < h.bulwarkF[0] || fi > h.bulwarkF[1]))) { prev = null; continue; }
         const inw = Math.max(p[2] - 0.14, 0.05);
         const A = [p[0], p[1], p[2] * sg], Ai = [p[0], p[1], inw * sg];
         const Au = [p[0], p[1] + bw, p[2] * sg], Aiu = [p[0], p[1] + bw, inw * sg];

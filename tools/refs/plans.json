@@ -1,0 +1,144 @@
+{
+  "iowa": {
+    "loa": 270.4,
+    "camera": {
+      "side": {
+        "dist": 1792,
+        "fov": 4,
+        "lookY": 15,
+        "el": 0
+      },
+      "top": {
+        "dist": 1792,
+        "fov": 4,
+        "lookY": 0,
+        "el": 89.5
+      }
+    },
+    "side": {
+      "file": "refs/iowa/Iowa_classe_battleships_drawing.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Iowa_classe_battleships_drawing.jpg",
+      "crop": [
+        0,
+        0,
+        1900,
+        352
+      ],
+      "stern": 30,
+      "bow": 1867,
+      "wl": 346,
+      "close": 5,
+      "tol": 1.5
+    },
+    "top": {
+      "file": "refs/iowa/Iowa_classe_battleships_drawing.jpg",
+      "source": "same drawing, plan view",
+      "crop": [
+        0,
+        410,
+        1900,
+        700
+      ],
+      "stern": 31,
+      "bow": 1872,
+      "cl": 555,
+      "close": 3,
+      "tol": 1.0
+    }
+  },
+  "yamato": {
+    "loa": 263,
+    "camera": {
+      "side": {
+        "dist": 1743,
+        "fov": 4,
+        "lookY": 15,
+        "el": 0
+      },
+      "top": {
+        "dist": 1743,
+        "fov": 4,
+        "lookY": 0,
+        "el": 89.5
+      }
+    },
+    "side": {
+      "file": "refs/yamato/Yamato1945.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Yamato1945.png (Alexpl, CC BY-SA 3.0); drawn 10 % flatter than its length scale (12.74 px/m vertically: depth 18.915 m and bow height 20.4 m of the builders' table), waterline at the trial draft of 10.4 m",
+      "crop": [
+        0,
+        850,
+        3840,
+        1720
+      ],
+      "stern": 15,
+      "bow": 3739,
+      "wl": 1532.5,
+      "close": 3,
+      "tol": 1.5,
+      "under": true,
+      "erase": [
+        [
+          0,
+          760,
+          730,
+          1100
+        ]
+      ],
+      "vscale": 0.901,
+      "threshold": 240
+    },
+    "top": {
+      "file": "refs/yamato/Yamato1945.jpg",
+      "source": "same drawing, plan view",
+      "crop": [
+        0,
+        40,
+        3840,
+        700
+      ],
+      "stern": 12,
+      "bow": 3734,
+      "cl": 360,
+      "close": 3,
+      "tol": 1.0,
+      "threshold": 240
+    }
+  },
+  "bismarck": {
+    "loa": 251,
+    "camera": {
+      "side": {
+        "dist": 1663,
+        "fov": 4,
+        "lookY": 15,
+        "el": 0
+      }
+    },
+    "side": {
+      "file": "refs/bismarck/Battleship_Bismark.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Battleship_Bismark.svg (CC0); drawn at about 8.5 m draft: the waterline is set 1.36 m higher on the hull for the full-load draft of 9.9 m of the spec (then the moulded depth is the real 15.0 m)",
+      "crop": [
+        0,
+        1000,
+        3840,
+        1950
+      ],
+      "stern": 97,
+      "bow": 3770,
+      "wl": 1752,
+      "close": 3,
+      "tol": 1.5,
+      "under": true,
+      "erase": [
+        [
+          1660,
+          1090,
+          2040,
+          1330
+        ]
+      ],
+      "threshold": 245
+    }
+  }
+}

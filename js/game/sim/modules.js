@@ -47,14 +47,23 @@ export function createModules(model, stats) {
   const mods = [];
   const add = (m) => { m.id = mods.length; m.maxHp = m.hp; m.state = 0; m.label = m.label || LABEL[m.kind]; mods.push(m); return m; };
 
-  // ---- machinery: boiler / engine rooms spread over the engine zone ----
+  // ---- machinery: the ship's own boiler and engine rooms (model.machinery), or rooms spread over the engine zone ----
   const z = model.zones;
-  const n = pick(t, [2, 3, 3, 4, 4]);
-  const xa = L / 2 - z.engine[0] * L, xb = L / 2 - z.engine[1] * L;
-  const span = Math.abs(xa - xb) || L * 0.2;
-  for (let i = 0; i < n; i++) {
-    const cx = Math.max(xa, xb) - (i + 0.5) / n * span;
-    add({ kind: 'engine', label: (i % 2 === 0 ? 'Chaufferie ' : 'Salle des machines ') + (Math.floor(i / 2) + 1), x: cx, y: -2.2, z: 0, hx: span / n / 2 * 0.95, hy: 3.6, hz: B * 0.3, hp: HP.engine(t), prot: 'internal' });
+  if (model.machinery?.length) {
+    const nb = { boiler: 0, engine: 0 };
+    const share = 4 / model.machinery.length;      // the whole plant is worth about four generic rooms
+    for (const r of model.machinery) {
+      nb[r.k]++;
+      add({ kind: 'engine', label: (r.k === 'boiler' ? 'Chaufferie ' : 'Salle des turbines ') + nb[r.k], x: r.x, y: -2.2, z: r.z, hx: r.hx * 0.95, hy: 3.6, hz: r.hz || B * 0.3, hp: HP.engine(t) * Math.max(0.5, share), prot: 'internal' });
+    }
+  } else {
+    const n = pick(t, [2, 3, 3, 4, 4]);
+    const xa = L / 2 - z.engine[0] * L, xb = L / 2 - z.engine[1] * L;
+    const span = Math.abs(xa - xb) || L * 0.2;
+    for (let i = 0; i < n; i++) {
+      const cx = Math.max(xa, xb) - (i + 0.5) / n * span;
+      add({ kind: 'engine', label: (i % 2 === 0 ? 'Chaufferie ' : 'Salle des machines ') + (Math.floor(i / 2) + 1), x: cx, y: -2.2, z: 0, hx: span / n / 2 * 0.95, hy: 3.6, hz: B * 0.3, hp: HP.engine(t), prot: 'internal' });
+    }
   }
 
   // ---- magazines under the main turrets ----
@@ -69,8 +78,15 @@ export function createModules(model, stats) {
   });
 
   // ---- steering gear and shafts at the stern ----
-  add({ kind: 'steering', x: -L * 0.44, y: -1.4, z: 0, hx: 3.2, hy: 2.2, hz: B * 0.12, hp: HP.steering(t), prot: 'internal' });
-  const nShafts = t === 'DD' || t === 'CL' ? 2 : 4;
+  const rx = model.rudders?.length ? Math.max(...model.rudders.map((r) => r.x)) : -L * 0.44;
+  add({ kind: 'steering', x: rx + 3, y: -1.4, z: 0, hx: 3.2, hy: 2.2, hz: B * 0.12, hp: HP.steering(t), prot: 'internal' });
+  if (model.shafts?.length) {
+    for (const sh of model.shafts) {
+      const side = sh.side, name = side === 0 ? 'centrale' : (side < 0 ? 'bâbord' : 'tribord') + (model.shafts.filter((q) => q.side === side).length > 1 ? (Math.abs(sh.z) === Math.min(...model.shafts.filter((q) => q.side === side).map((q) => Math.abs(q.z))) ? ' int.' : ' ext.') : '');
+      add({ kind: 'shaft', label: 'Ligne d\'arbre ' + name, x: sh.x, y: sh.y, z: sh.z, hx: Math.max(4, sh.hx), hy: 1.4, hz: 0.9, hp: HP.shaft(t), prot: 'internal', side });
+    }
+  }
+  const nShafts = model.shafts?.length ? 0 : t === 'DD' || t === 'CL' ? 2 : 4;
   for (let i = 0; i < nShafts; i++) {
     const side = i % 2 ? 1 : -1, row = Math.floor(i / 2);
     add({ kind: 'shaft', label: 'Ligne d\'arbre ' + (side < 0 ? 'bâbord' : 'tribord') + (nShafts > 2 ? (row ? ' ext.' : ' int.') : ''), x: -L * 0.4, y: -3.2, z: side * B * (0.14 + 0.15 * row), hx: 6, hy: 1.4, hz: 0.9, hp: HP.shaft(t), prot: 'internal', side });

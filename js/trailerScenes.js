@@ -265,7 +265,9 @@ export const SCENES = {
     const jp = T.fleet(1, [{ id: 'yamato' }], 2500, -7500, 90, { knots: 12 });
     T.go();
     const ship = us[0];
-    const mains = () => ship.mounts.filter((m) => m.group === 'main' && m.alive);
+    // ?mount=A|B|C films that turret only (by default the first one ready to fire); ?group=sec films the secondary battery
+    const qs = new URLSearchParams(location.search), only = qs.get('mount'), grp = qs.get('group') || 'main';
+    const mains = () => ship.mounts.filter((m) => m.group === grp && m.alive && (!only || m.rec.label === only));
     await T.until(() => mains().some((m) => m.aimOk && m.fireT < 0.05), { max: 400, dt: 1 / 60 });
     const m = mains().find((q) => q.fireT < 0.05) || mains()[0];
     const w = [0, 0, 0];
@@ -273,14 +275,22 @@ export const SCENES = {
     const t0 = T.now;
     T.log('firetest salvo', m.rec.label, 'elev', (m.elev * 57.3).toFixed(1), 'train', (m.trainRel * 57.3).toFixed(0), 'at', t0.toFixed(1));
     const side = [0, 0, -1];      // the enemy lies to the north (-z)
-    await T.shot('fire_air', 2.4, () => {
+    if (grp === 'sec') {
+      // a secondary mount: closer, from above and outboard on its own side
+      const sd = m.rec.z < 0 ? -1 : 1;
+      await T.shot('fire_air', 2.4, () => ({ p: mv.at(ship, m.rec.x + 12, m.rec.y + 18, m.rec.z + sd * 26), l: mv.at(ship, m.rec.x - 2, m.rec.y + 1.5, m.rec.z + sd * 5), fov: 50 }));
+    } else await T.shot('fire_air', 2.4, () => {
       const q = [0, 0, 0]; ship.toWorld(m.rec.x, m.rec.y, m.rec.z, q);
       return { p: [q[0] + 18, q[1] + 78, q[2] + 74], l: [q[0] - 8, q[1] + 6, q[2] - 26], fov: 50 };
     });
     // the second salvo from the forecastle, looking back at the turret (as in the photograph of Iowa firing in 1952)
     await T.until(() => mains().some((q) => q.aimOk && q.fireT < 0.05), { max: 400, dt: 1 / 60 });
     const m2 = mains().find((q) => q.fireT < 0.05) || mains()[0];
-    if (ship.spec.type === 'carrier' || m2.rec.x < 20) {
+    if (!m2) return;   // the mount was lost meanwhile
+    if (grp === 'sec') {
+      const side = m2.rec.z < 0 ? -1 : 1;
+      await T.shot('fire_deck', 2.4, () => ({ p: mv.at(ship, m2.rec.x - 14, m2.rec.y + 2.5, m2.rec.z + side * 18), l: mv.at(ship, m2.rec.x + 3, m2.rec.y + 1.5, m2.rec.z + side * 4), fov: 50 }));
+    } else if (ship.spec.type === 'CV' || m2.rec.x < 20) {
       // the flight deck or the superstructure hides the forecastle view: look at the mount from outboard on its own side, abaft its beam
       const side = m2.rec.z < 0 ? -1 : 1;
       await T.shot('fire_deck', 2.4, () => ({ p: mv.at(ship, m2.rec.x - 26, m2.rec.y + 4, m2.rec.z + side * 42), l: mv.at(ship, m2.rec.x + 3, m2.rec.y + 3, m2.rec.z + side * 4), fov: 48 }));

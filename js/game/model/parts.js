@@ -8,6 +8,9 @@ import { roofRail } from './details.js';
 
 const PI = Math.PI;
 
+/** Build options: flags: false leaves out ensigns and pennants (the plan checks compare bare silhouettes). */
+export const OPT = { flags: true };
+
 /** Fixed barbette (the rotating turret sits on top of it). Returns the top y. */
 export function barbette(b, x, z, r, y0, y1, col) {
   b.cylinder(x, y0, z, r, r * 0.98, y1, rgb(col), MAT.HULL, { seg: 20 });
@@ -15,8 +18,9 @@ export function barbette(b, x, z, r, y0, y1, col) {
 }
 
 /**
- * Oval funnel. o: { x, z, y0, h, lx, lz, topLx, topLz, rake, cap, col, capCol, band, seg, trunk }
- * lx/lz are full lengths at the base; rake = how far the top is shifted aft (m).
+ * Oval funnel. o: { x, z, y0, h, lx, lz, topLx, topLz, rake, cap, col, capCol, band, seg, trunk, capSlope, pipes }
+ * lx/lz are full lengths at the base; rake = how far the top is shifted aft (m); capSlope = how much lower the after edge of the top
+ * is than its forward edge (a hooded cap, m); pipes: false leaves out the steam pipes.
  */
 export function funnel(b, o, pal) {
   const col = rgb(o.col || pal.funnel), cap = rgb(o.capCol || pal.cap);
@@ -30,7 +34,8 @@ export function funnel(b, o, pal) {
   // black cap
   const cx = o.x - rake * 0.8;
   const topY = o.y0 + o.h - capH;
-  b.cyl(cx, topY, z, tlx * 0.5, tlz * 0.5, tlx * 0.5 * 0.98, tlz * 0.5 * 0.98, o.y0 + o.h, cap, MAT.DARK, { seg: o.seg || 20, dx: -rake * 0.2, topCol: shade(cap, 0.5) });
+  if (o.capSlope) slopedTop(b, cx - rake * 0.2, z, tlx * 0.5, tlz * 0.5, topY - o.capSlope, o.y0 + o.h, o.capSlope, col, cap, o.seg || 20);
+  else b.cyl(cx, topY, z, tlx * 0.5, tlz * 0.5, tlx * 0.5 * 0.98, tlz * 0.5 * 0.98, o.y0 + o.h, cap, MAT.DARK, { seg: o.seg || 20, dx: -rake * 0.2, topCol: shade(cap, 0.5) });
   // band (e.g. national / fleet marking)
   if (o.band) {
     const [f0, f1, bc] = o.band;
@@ -42,8 +47,26 @@ export function funnel(b, o, pal) {
     b.cyl(o.x - rake * 0.8 * t0, yb0, z, r0x, r0z, r1x, r1z, yb1, rgb(bc), MAT.HULL, { seg: o.seg || 20, capTop: false, dx: -rake * 0.8 * (t1 - t0) });
   }
   // steam pipes / siren platform on the after side
-  if (o.pipes !== false) {
+  if (o.pipes !== false && !o.capSlope) {
     for (const sz of [-1, 1]) b.cylinder(o.x - o.lx * 0.52 - rake * 0.4, o.y0 + o.h * 0.35, z + sz * o.lz * 0.18, 0.28, 0.24, o.y0 + o.h * 0.96, shade(col, 0.8), MAT.HULL, { seg: 6 });
+  }
+}
+
+/** The top of a hooded funnel: an oval casing whose rim slopes down from the forward edge (yTop) to the after edge (yTop - drop),
+ *  a dark band under the rim and the dark opening. */
+function slopedTop(b, cx, z, rx, rz, y0, yTop, drop, col, cap, seg) {
+  const rim = (c) => yTop - drop * (1 - c) / 2;                 // c = cos(angle): +1 forward, -1 aft
+  const ring = [];
+  for (let i = 0; i <= seg; i++) { const a = i / seg * Math.PI * 2; ring.push([Math.cos(a), Math.sin(a)]); }
+  const ref = [cx, (y0 + yTop) / 2, z];
+  for (let i = 0; i < seg; i++) {
+    const [c0, s0] = ring[i], [c1, s1] = ring[i + 1];
+    const p0 = [cx + c0 * rx, y0, z + s0 * rz], p1 = [cx + c1 * rx, y0, z + s1 * rz];
+    const t0 = [cx + c0 * rx, rim(c0) - 0.9, z + s0 * rz], t1 = [cx + c1 * rx, rim(c1) - 0.9, z + s1 * rz];
+    const u0 = [cx + c0 * rx * 1.01, rim(c0), z + s0 * rz * 1.01], u1 = [cx + c1 * rx * 1.01, rim(c1), z + s1 * rz * 1.01];
+    b.quad(p0, p1, t1, t0, col, MAT.HULL, ref);
+    b.quad(t0, t1, u1, u0, cap, MAT.DARK, ref);
+    b.triFlat([cx, (yTop + yTop - drop) / 2 - 0.05, z], u0, u1, shade(cap, 0.5), MAT.DARK, [cx, y0, z]);
   }
 }
 
@@ -63,7 +86,7 @@ export function funnelRuin(b, o, pal) {
 }
 
 /** Window strip along a face: thin dark boxes slightly proud of the surface. */
-function windowBand(b, x0, x1, hw, y, h, pal, front = true, sides = true) {
+export function windowBand(b, x0, x1, hw, y, h, pal, front = true, sides = true) {
   const gl = rgb(pal.glass || '#101820');
   if (front) b.block({ x0: x1 - 0.02, x1: x1 + 0.07, hw: hw - 0.35, y0: y, y1: y + h }, gl, MAT.GLASS);
   if (sides) {
@@ -72,13 +95,15 @@ function windowBand(b, x0, x1, hw, y, h, pal, front = true, sides = true) {
 }
 
 /**
- * Multi-tier bridge structure. tiers: [{ len, w, h, dx, dz, rake, col, round, windows }]; each tier stands on the previous one.
+ * Multi-tier bridge structure. tiers: [{ len, w, h, dx, dz, y0, rake, col, round, windows }]; each tier stands on the previous one
+ * (or at y0 above the base when given).
  * o: { x, z, y0 } returns { topY, tops: [y per tier] }.
  */
 export function tower(b, o, pal) {
   let y = o.y0;
   const tops = [];
   for (const t of o.tiers) {
+    if (t.y0 != null) y = o.y0 + t.y0;   // a tier can start at a given height instead of on top of the previous one
     const x = o.x + (t.dx || 0), z = (o.z || 0) + (t.dz || 0);
     const col = rgb(t.col || pal.sup);
     const rake = t.rake ?? 0;
@@ -228,6 +253,41 @@ export function tub(b, x, y, z, r, h, pal) {
   b.cylinder(x, y + h, z, r * 1.08, r * 1.08, y + h + 0.18, shade(rgb(pal.sup), 0.8), MAT.HULL, { seg: 12 });
 }
 
+/**
+ * Screw propeller on a horizontal shaft. o: { x, y, z, d (diameter), blades, hand (+1 / -1), col }
+ * Hub with a cone aft, blades with a rounded outline, pitched about 30 degrees, drawn on both faces.
+ */
+export function propeller(b, o) {
+  const col = rgb(o.col || '#a8834a'), r = o.d / 2, hub = r * 0.2, n = o.blades || 4, hand = o.hand || 1;
+  b.rod(o.x - r * 0.45, o.x - r * 0.12, o.y, o.z, hub * 0.25, hub, col, MAT.HULL, { seg: 12 });     // cone
+  b.rod(o.x - r * 0.12, o.x + r * 0.22, o.y, o.z, hub, hub * 0.9, col, MAT.HULL, { seg: 12 });      // hub
+  const pitch = 0.55, cp = Math.cos(pitch), sp = Math.sin(pitch) * hand;
+  for (let i = 0; i < n; i++) {
+    const a = (i / n) * Math.PI * 2 + (o.phase || 0);
+    const ux = 0, uy = Math.cos(a), uz = Math.sin(a), vy = -Math.sin(a), vz = Math.cos(a);
+    const secs = [];
+    for (let k = 0; k <= 5; k++) {
+      const t = k / 5, rr = hub * 0.9 + (r - hub * 0.9) * t;
+      const c = r * 0.62 * Math.sin(Math.PI * (0.18 + 0.72 * t)) * (1 - 0.35 * t);   // chord: widest two thirds out, rounded tip
+      const cx = o.x, cy = o.y + uy * rr, cz = o.z + uz * rr;
+      const dx = sp * c / 2, dy = vy * cp * c / 2, dz = vz * cp * c / 2;
+      secs.push([[cx + dx, cy + dy, cz + dz], [cx - dx, cy - dy, cz - dz]]);
+    }
+    for (let k = 0; k < 5; k++) {
+      const [a0, b0] = secs[k], [a1, b1] = secs[k + 1];
+      b.quad(a0, a1, b1, b0, col, MAT.HULL);
+      b.quad(b0, b1, a1, a0, shade(col, 0.85), MAT.HULL);
+    }
+  }
+}
+
+/** Rudder: a thick plate with rounded leading and trailing edges. o: { x (centre), z, y0 (bottom), y1 (top), chord, t } */
+export function rudder(b, o, pal) {
+  const col = rgb(o.col || pal.boot || '#5a2a22'), t = o.t ?? 0.45;
+  b.block({ x0: o.x - o.chord / 2, x1: o.x + o.chord / 2, hw: t, zc: o.z || 0, y0: o.y0, y1: o.y1, tx0: o.x - o.chord / 2 + 0.3, tx1: o.x + o.chord / 2 - 0.2 }, col, MAT.HULL);
+  b.cylinder(o.x + o.chord * 0.25, o.y1, o.z || 0, 0.35, 0.35, o.y1 + 2.5, shade(col, 0.8), MAT.HULL, { seg: 8 });   // stock into the hull
+}
+
 /** Cargo / aircraft crane on the quarterdeck. */
 export function crane(b, o, pal) {
   const col = rgb(pal.mast);
@@ -235,8 +295,8 @@ export function crane(b, o, pal) {
   b.cylinder(x, y0, z, 0.5, 0.4, y0 + (o.h ?? 6), col, MAT.HULL, { seg: 8 });
   const ang = o.angle ?? 0.9;
   const top = [x, y0 + (o.h ?? 6), z];
-  const tip = [x - Math.cos(ang) * (o.len ?? 14), y0 + (o.h ?? 6) + Math.sin(ang) * (o.len ?? 14) * 0.7, z + (o.side || 0) * (o.len ?? 14) * 0.3];
-  b.beam(top, tip, 0.35, 0.35, col, MAT.HULL);
+  const tip = [x + (o.dir ?? -1) * Math.cos(ang) * (o.len ?? 14), y0 + (o.h ?? 6) + Math.sin(ang) * (o.len ?? 14) * 0.7, z + (o.side || 0) * (o.len ?? 14) * 0.3];   // dir: +1 = boom towards the bow
+  b.beam(top, tip, o.w ?? 0.35, o.w ?? 0.35, col, MAT.HULL);
   b.beam([x - 0.3, y0 + 2, z], tip, 0.06, 0.06, rgb('#222'), MAT.DARK);
 }
 
@@ -323,6 +383,7 @@ export function forecastle(b, hull, xBow, pal) {
 
 /** Flag staff with a team pennant at the stern and the masthead */
 export function pennant(b, x, y, z, len, team, flagCol) {
+  if (!OPT.flags) return;
   const col = rgb(flagCol);
   b.push().translate(x, y, z);
   b.cylinder(0, 0, 0, 0.06, 0.04, 2.2, rgb('#777'), MAT.HULL, { seg: 5 });
@@ -339,6 +400,7 @@ export function pennant(b, x, y, z, len, team, flagCol) {
  * nation's flag from the (u, v) stored in the vertex colour and ripples it. staff: draws a flag staff up to the top edge.
  */
 export function ensign(b, o) {
+  if (!OPT.flags) return;
   const len = o.len, h = o.h ?? len * 2 / 3, z = o.z || 0;
   const NU = 8, NV = 2;
   const ids = [];
@@ -443,7 +505,7 @@ export function funnelDetail(b, o, pal) {
     b.beam([lx - rake * (0.35 + 0.4 * f), y, z - 0.2], [lx - rake * (0.35 + 0.4 * f), y, z + 0.2], 0.03, 0.03, col, MAT.HULL, { caps: false });
   }
   // grating across the mouth
-  const cx = o.x - rake * 0.8, ty = o.y0 + o.h - 0.1;
+  const cx = o.x - rake * 0.8, ty = o.y0 + o.h - 0.1 - (o.capSlope || 0) - (o.capSlope ? 0.4 : 0);
   for (let i = -2; i <= 2; i++) b.beam([cx - o.lx * 0.4, ty, z + i * o.lz * 0.17], [cx + o.lx * 0.4, ty, z + i * o.lz * 0.17], 0.05, 0.05, rgb('#0b0c0d'), MAT.DARK, { caps: false });
 }
 

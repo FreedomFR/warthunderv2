@@ -115,9 +115,11 @@ canots sur bossoirs, radeaux, gréement et pavillons de signaux. Les détails fi
 sont pas dessinés et la qualité s'adapte à la machine (*Réglages* → « Qualité » : auto / haute / moyenne / basse).
 
 **Lot 1 « fidélité »** (Iowa, Yamato, Bismarck, Essex), d'après des photographies et plans libres de droits :
-- **Tourelles à dimensions réelles** (`js/game/model/mounts.js`) : triple 16"/50 Mk 7 de l'*Iowa* (entraxe des tubes 3,05 m, tourillons, face avant, coiffe
-  de manchon), triple 46 cm Type 94 du *Yamato* (tubes plus longs, bouche claire), double 38 cm Drh LC/34 du *Bismarck* (toit incliné, télémètre),
-  double 5"/38 Mk 28 et simple Mk 30 de l'*Essex*. Chaque tube a sa vraie bouche, sa tige de piston de recul et sa position de départ du
+- **Navires relevés sur plans** : positions des tourelles, cheminées, mâts, tours, pièces secondaires, directeurs de tir, catapultes et hangars,
+  largeurs du pont et de la flottaison, francs-bords ; chaque plan est superposé au modèle pour vérifier (`tools/refs/overlay.py`).
+- **Tourelles à dimensions réelles** (`js/game/model/mounts.js`) : triple 16"/50 Mk 7 de l'*Iowa* (longue et basse : 3,4 m de haut, entraxe des
+  tubes 3,05 m), triple 46 cm Type 94 du *Yamato* (4,3 m de haut, 18,5 m de long, bouche claire), double 38 cm Drh LC/34 du *Bismarck*, triple
+  15,5 cm du *Yamato* sur ses hautes barbettes, double 15 cm du *Bismarck*, double 5"/38 Mk 28 et simple Mk 30 de l'*Essex*. Chaque tube a sa vraie bouche, sa tige de piston de recul et sa position de départ du
   projectile ; le recul suit une courbe réelle (course rapide, retour hydraulique lent).
 - **Superstructures** : ponts successifs du château de l'*Iowa* (7 niveaux), pagode à 9 étages du *Yamato*, tour du *Bismarck*, îlot de l'*Essex* ;
   livrées « dazzle » de 1944 pour l'*Iowa* et l'*Essex*.
@@ -254,5 +256,10 @@ Le moteur d'océan (vagues FFT, ciel physique, post-traitement, shaders WGSL) vi
 ici pour accueillir le jeu. Les caractéristiques des navires proviennent de Wikipédia, NavWeaps et Navypedia.
 Pour le lot « fidélité » (Iowa, Yamato, Bismarck, Essex), les proportions des tourelles, des superstructures et des effets de tir ont été relevées
 (mesures et observations seulement : aucune image n'est copiée dans le dépôt) sur des photographies de Wikimedia Commons : domaine public pour les
-photographies de l'US Navy (*Iowa*, *Essex*) et du *Yamato*, Bundesarchiv (CC BY-SA 3.0 de) pour le *Bismarck*.
+photographies de l'US Navy (*Iowa*, *Essex*) et du *Yamato*, Bundesarchiv (CC BY-SA 3.0 de) pour le *Bismarck*. Les positions, hauteurs et
+largeurs ont ensuite été relevées sur des plans : profil et vue de dessus de la classe *Iowa* (domaine public), plans du constructeur du
+*Yamato* (NH 111711, domaine public) et profil du *Yamato* en 1945 par Alexpl (CC BY-SA 3.0, d'après les photographies du musée de Kure),
+profil du *Bismarck* « Battleship Bismark.svg » (CC0), photographie de profil de l'*USS Ticonderoga* du 5 novembre 1944 (domaine public).
+Les hélices de l'*Iowa* d'après les photographies de l'*USS Missouri* en cale sèche (domaine public). Chaque modèle est vérifié en mètres
+contre ses plans (`tools/refs/check.mjs`, `silhouette.py`). La liste complète des sources est dans `tools/refs/sources.jsonl`.
 Code sous licence MIT.

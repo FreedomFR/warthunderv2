@@ -15,10 +15,22 @@ const cache = new Map();
 //   fwd          : trunnion -> muzzle       back : how far the breech reaches behind the trunnion (hidden in the house)
 //   rB / rP / rM : barrel radius at the breech / at the gun port / at the muzzle      bagR, bagLen: canvas blast bag
 //   lift         : height of a superfiring mount's training axis above the one in front of it
+//   barb         : height of the barbette above the deck under a mount on the lowest level     port: x of the gun ports when the face is sloped
 const FAMILY = {
-  mk7: { kind: 'turret', cal: 406, n: 3, spacing: 3.05, trunX: 3.3, trunY: 2.7, face: 6.7, fwd: 13.8, back: 2.8, rB: 0.62, rP: 0.52, rM: 0.31, bagR: 1.0, bagLen: 1.4, recoil: 1.2, lift: 4.7, h: 6.0, barbR: 5.6 },
-  type94: { kind: 'turret', cal: 460, n: 3, spacing: 3.52, trunX: 3.6, trunY: 2.9, face: 7.4, fwd: 14.4, back: 2.9, rB: 0.70, rP: 0.60, rM: 0.35, bagR: 1.1, bagLen: 1.5, recoil: 1.3, lift: 5.2, h: 6.7, barbR: 6.2, whiteMuzzle: true },
-  drh34: { kind: 'turret', cal: 380, n: 2, spacing: 4.6, trunX: 2.8, trunY: 2.3, face: 6.1, fwd: 13.3, back: 2.6, rB: 0.58, rP: 0.49, rM: 0.29, bagR: 0.9, bagLen: 1.2, recoil: 1.15, lift: 4.2, h: 4.9, barbR: 5.3 },
+  // Iowa class plans (profile and plan view) and NH 44538 (crew at the rails for scale): a long, low gun house, 15.4 x 12.4 m and
+  // 3.4 m high, the gun axis 1.6 m above its base, barrels 12.4 m clear of the face, turret 2 three metres above turret 1
+  mk7: { kind: 'turret', cal: 406, n: 3, spacing: 3.05, trunX: 3.4, trunY: 1.6, face: 6.4, port: 5.6, fwd: 15.4, back: 2.8, rB: 0.62, rP: 0.52, rM: 0.31, bagR: 0.95, bagLen: 1.2, recoil: 1.2, lift: 3.0, h: 3.4, barbR: 6.0, barb: 0.35 },
+  // Yamato 1945 profile and plan (Commons, Alexpl, after the Kure museum photographs; heights scaled to the builders' freeboards):
+  // 18.5 m long, 14.4 m wide without the rangefinder arms, 3.9 m high (the profile is drawn 10 % flat: heights read at its own vertical
+  // scale; roofs 11.7 and 15.1 m above the waterline), barrels 13.3 m clear of the ports, turret 2 2.7 m above turret 1
+  type94: { kind: 'turret', cal: 460, n: 3, spacing: 3.52, trunX: 3.6, trunY: 2.4, face: 7.6, port: 6.4, fwd: 16.1, back: 2.9, rB: 0.70, rP: 0.60, rM: 0.35, bagR: 1.05, bagLen: 1.3, recoil: 1.3, lift: 2.7, h: 3.9, barbR: 6.6, barb: 0.1, whiteMuzzle: true },
+  // Yamato's 15.5 cm/60 triple (ex-Mogami): 8.6 m long, 3.4 m high, barrels 5.9 m clear of the face, on a 7.3-7.9 m barbette
+  type3_155: { kind: 'turret', cal: 155, n: 3, spacing: 1.7, trunX: 1.2, trunY: 1.44, face: 3.6, port: 3.2, fwd: 8.3, back: 1.2, rB: 0.26, rP: 0.2, rM: 0.11, bagR: 0.33, bagLen: 0.5, recoil: 0.6, lift: 2.6, h: 3.44, barbR: 3.0 },
+  // Bismarck profile (Commons, CC0) and Bundesarchiv photographs: 13.3 m long, 3.5 m high, barrels 13.5 m clear of the face, on a
+  // 1.2 m barbette; the superfiring turrets 3.4 m higher
+  drh34: { kind: 'turret', cal: 380, n: 2, spacing: 4.6, trunX: 2.6, trunY: 1.6, face: 5.8, port: 5.2, fwd: 16.1, back: 2.6, rB: 0.58, rP: 0.49, rM: 0.29, bagR: 0.85, bagLen: 1.1, recoil: 1.15, lift: 3.4, h: 3.5, barbR: 5.3, barb: 1.2 },
+  // Bismarck's 15 cm SK C/28 twin turrets (Drh LC/34): 7.2 m long, 2.8 m high, on a low barbette on the upper deck
+  drh28_150: { kind: 'turret', cal: 150, n: 2, spacing: 1.9, trunX: 1.3, trunY: 1.25, face: 3.6, port: 3.1, fwd: 7.2, back: 1.2, rB: 0.24, rP: 0.19, rM: 0.1, bagR: 0.3, bagLen: 0.45, recoil: 0.55, lift: 2.4, h: 2.8, barbR: 2.7 },
   mk28: { kind: 'dp', cal: 127, n: 2, spacing: 0.78, trunX: 0.55, trunY: 1.35, face: 1.9, fwd: 3.6, back: 0.9, rB: 0.19, rP: 0.15, rM: 0.085, bagR: 0.3, bagLen: 0.3, recoil: 0.5, lift: 3.0, h: 2.9 },
   mk30: { kind: 'shield', cal: 127, n: 1, spacing: 0, trunX: 0.5, trunY: 1.3, face: 1.5, fwd: 3.4, back: 0.9, rB: 0.19, rP: 0.15, rM: 0.085, bagR: 0.0, bagLen: 0, recoil: 0.5, lift: 2.4, h: 2.5 },
 };
@@ -26,7 +38,7 @@ const FAMILY = {
 /** Numbers of a mount without building it: { trunnion, muzzle (trunnion -> muzzle), spacing, recoil, lift, height } */
 export function mountDims(s) {
   const f = s.variant && FAMILY[s.variant];
-  if (f) return { trunnion: [f.trunX, f.trunY], muzzle: f.fwd, spacing: f.spacing, recoil: f.recoil, lift: f.lift, height: f.h, barbR: f.barbR || 0 };
+  if (f) return { trunnion: [f.trunX, f.trunY], muzzle: f.fwd, spacing: f.spacing, recoil: f.recoil, lift: f.lift, height: f.h, barbR: f.barbR || 0, barb: f.barb };
   const calM = s.cal / 1000, n = s.n;
   const barrelLen = (s.bore || 45) * calM;
   if (s.kind === 'aa') return { trunnion: [0, 1.2], muzzle: aaLen(s), spacing: 0.3, recoil: 0.05, lift: 0, height: 2, barbR: 0 };
@@ -60,66 +72,91 @@ export function getMountModel(spec) {
 function tube(gb, z, f, col, dark, muzCol) {
   const canvas = rgb('#46483f');
   gb.rod(-f.back, 0, 0, z, f.rB * 1.08, f.rB, shade(col, 0.8), MAT.HULL, { seg: 12 });
-  gb.rod(0, f.face - f.trunX, 0, z, f.rB, f.rP * 1.12, dark, MAT.DARK, { seg: 12 });
-  if (f.bagLen > 0) gb.rod(f.face - f.trunX - 0.25, f.face - f.trunX + f.bagLen, 0, z, f.bagR, f.rP * 1.2, canvas, MAT.CANVAS, { seg: 12 });
-  const x0 = f.face - f.trunX;
+  const port = (f.port ?? f.face) - f.trunX;
+  gb.rod(0, port, 0, z, f.rB, f.rP * 1.12, dark, MAT.DARK, { seg: 12 });
+  if (f.bagLen > 0) gb.rod(port - 0.25, port + f.bagLen, 0, z, f.bagR, f.rP * 1.2, canvas, MAT.CANVAS, { seg: 12 });
+  const x0 = port;
   gb.rod(x0, x0 + (f.fwd - x0) * 0.5, 0, z, f.rP, f.rM * 1.3, dark, MAT.DARK, { seg: 12 });
   gb.rod(x0 + (f.fwd - x0) * 0.5, f.fwd * 0.955, 0, z, f.rM * 1.3, f.rM, dark, MAT.DARK, { seg: 12 });
   gb.rod(f.fwd * 0.955, f.fwd, 0, z, f.rM * 1.17, f.rM * 1.17, muzCol || dark, MAT.DARK, { seg: 12 });
 }
 
 // ---- gun houses of the named families -------------------------------------------------------------------------------
-/** US Mk 7 16"/50 triple turret (Iowa class): vertical walls, a steeply sloped front plate, flat roof, rangefinder hoods aft. */
+/** US Mk 7 16"/50 triple turret (Iowa class): long and low, vertical side walls, a face plate sloped back over its whole height, flat
+ *  roof, the rangefinder ears at the rear corners and a short overhang at the back. */
 function houseMk7(hb, col, dark, f) {
-  const mid = shade(col, 0.96), light = shade(col, 1.1), shadow = shade(col, 0.82);
-  hb.cylinder(0, -0.15, 0, 5.9, 6.0, 0.7, shadow, MAT.HULL, { seg: 28 });                                      // rotating skirt over the barbette ring
-  hb.block({ x0: -8.6, x1: f.face, hw: 5.35, y0: 0.5, y1: 3.8, tx0: -8.4, tx1: f.face - 0.5, thw: 5.25 }, col, MAT.HULL);   // walls
-  hb.block({ x0: -8.4, x1: f.face - 0.5, hw: 5.25, y0: 3.8, y1: f.h, tx0: -7.4, tx1: 3.95, thw: 4.5 }, mid, MAT.HULL);       // sloped front plate, tapering sides
-  hb.block({ x0: -9.9, x1: -8.2, hw: 4.0, y0: 1.1, y1: 5.0, tx0: -9.4, tx1: -8.2, thw: 3.7 }, shade(col, 0.9), MAT.HULL);     // rear overhang (counterweight, shell handling)
+  const light = shade(col, 1.1), shadow = shade(col, 0.82);
+  hb.cylinder(0, -0.1, 0, 6.15, 6.2, 0.2, shadow, MAT.HULL, { seg: 28 });                                     // rotating skirt over the barbette ring
+  hb.block({ x0: -9.0, x1: f.face, hw: 6.2, y0: 0.15, y1: f.h, tx0: -8.8, tx1: 4.6, thw: 6.0 }, col, MAT.HULL);   // walls, sloped face, roof
+  hb.block({ x0: -10.1, x1: -8.8, hw: 4.4, y0: 0.6, y1: 2.9, tx0: -9.8, thw: 4.2 }, shade(col, 0.9), MAT.HULL);   // rear overhang
   for (const sg of [-1, 1]) {
-    hb.cylinder(-4.6, f.h * 0.9, sg * 3.3, 0.55, 0.5, f.h + 0.8, shadow, MAT.HULL, { seg: 8 });               // periscope hoods
-    hb.block({ x0: -7.0, x1: -4.8, hw: 0.5, zc: sg * 4.6, y0: 4.2, y1: 5.5, tx0: -6.8, tx1: -5.1, thw: 0.4 }, light, MAT.HULL);   // rangefinder ears
+    hb.block({ x0: -7.6, x1: -5.2, hw: 0.55, zc: sg * 6.45, y0: 1.7, y1: 3.0, tx0: -7.4, tx1: -5.5, thw: 0.45 }, light, MAT.HULL);   // rangefinder ears
+    hb.cylinder(-4.4, f.h - 0.1, sg * 3.4, 0.5, 0.45, f.h + 0.55, shadow, MAT.HULL, { seg: 8 });               // periscope hoods
   }
-  hb.box(-1.6, f.h + 0.05, 0, 3.0, 0.14, 2.2, light, MAT.HULL);                                              // hatch / sighting plate
-  for (let i = 0; i < f.n; i++) {                                                                              // gun ports in the front plate
+  hb.box(-2.4, f.h + 0.04, 0, 3.0, 0.1, 2.2, light, MAT.HULL);                                               // hatch / sighting plate
+  for (let i = 0; i < f.n; i++) {                                                                              // gun ports in the face plate
     const z = (i - (f.n - 1) / 2) * f.spacing;
-    hb.block({ x0: f.face - 0.9, x1: f.face - 0.3, hw: 0.95, zc: z, y0: f.trunY - 0.8, y1: f.trunY + 0.8 }, dark, MAT.DARK);
+    hb.block({ x0: f.port - 0.5, x1: f.port + 0.45, hw: 0.9, zc: z, y0: f.trunY - 0.65, y1: f.trunY + 0.65 }, dark, MAT.DARK);
   }
 }
 
-/** Japanese Type 94 46 cm triple turret (Yamato class): slab sides, long sloped front plate, big rangefinder housing aft. */
+/** Japanese Type 94 46 cm triple turret (Yamato class): a huge, squat house with slab sides and a long sloped face, the 15 m
+ *  rangefinder across the rear with its arms out beyond the sides. */
 function houseType94(hb, col, dark, f) {
-  const mid = shade(col, 0.95), light = shade(col, 1.1), shadow = shade(col, 0.8);
-  hb.cylinder(0, -0.2, 0, 6.4, 6.5, 0.8, shadow, MAT.HULL, { seg: 28 });
-  hb.block({ x0: -9.0, x1: f.face, hw: 6.1, y0: 0.6, y1: 4.0, tx0: -8.8, tx1: f.face - 0.5, thw: 6.0 }, col, MAT.HULL);
-  hb.block({ x0: -8.8, x1: f.face - 0.5, hw: 6.0, y0: 4.0, y1: f.h, tx0: -8.0, tx1: 4.6, thw: 5.3 }, mid, MAT.HULL);
-  // rear: stepped back with the long-base rangefinder housing and its hoods
-  hb.block({ x0: -11.4, x1: -8.8, hw: 4.6, y0: 1.2, y1: 5.4, tx0: -10.9, tx1: -8.8, thw: 4.2 }, shade(col, 0.9), MAT.HULL);
-  hb.rodZ(-9.5, 6.4, -6.9, 6.9, 0.55, 0.55, shade(col, 0.88), MAT.HULL, { seg: 10 });
-  for (const sg of [-1, 1]) hb.cyl(-9.5, 5.9, sg * 6.5, 0.9, 0.9, 0.75, 0.75, 7.0, light, MAT.HULL, { seg: 10 });
-  for (const sg of [-1, 1]) hb.cylinder(-4.2, f.h * 0.92, sg * 3.6, 0.6, 0.55, f.h + 0.9, shadow, MAT.HULL, { seg: 8 });
-  hb.box(-1.0, f.h + 0.05, 0, 3.4, 0.14, 2.6, light, MAT.HULL);
+  const light = shade(col, 1.1), shadow = shade(col, 0.8);
+  hb.cylinder(0, -0.1, 0, 6.6, 6.7, 0.2, shadow, MAT.HULL, { seg: 28 });
+  hb.block({ x0: -10.6, x1: f.face, hw: 7.2, y0: 0.15, y1: f.h, tx0: -10.4, tx1: 5.0, thw: 7.0 }, col, MAT.HULL);   // walls, sloped face, roof
+  hb.block({ x0: -11.6, x1: -10.4, hw: 5.0, y0: 0.8, y1: 3.4, tx0: -11.3, thw: 4.8 }, shade(col, 0.9), MAT.HULL);   // rear overhang
+  hb.rodZ(-8.4, f.h - 0.9, -8.6, 8.6, 0.5, 0.5, shade(col, 0.88), MAT.HULL, { seg: 10 });                          // rangefinder arms
+  for (const sg of [-1, 1]) hb.cyl(-8.4, f.h - 1.6, sg * 8.2, 0.8, 0.8, 0.7, 0.7, f.h - 0.2, light, MAT.HULL, { seg: 10 });
+  for (const sg of [-1, 1]) hb.cylinder(-4.0, f.h - 0.1, sg * 3.8, 0.55, 0.5, f.h + 0.6, shadow, MAT.HULL, { seg: 8 });
+  hb.box(-1.5, f.h + 0.04, 0, 3.4, 0.1, 2.6, light, MAT.HULL);
   for (let i = 0; i < f.n; i++) {
     const z = (i - (f.n - 1) / 2) * f.spacing;
-    hb.block({ x0: f.face - 1.0, x1: f.face - 0.3, hw: 1.05, zc: z, y0: f.trunY - 0.9, y1: f.trunY + 0.9 }, dark, MAT.DARK);
+    hb.block({ x0: f.port - 0.55, x1: f.port + 0.45, hw: 1.0, zc: z, y0: f.trunY - 0.75, y1: f.trunY + 0.75 }, dark, MAT.DARK);
   }
 }
 
-/** German Drh LC/34 38 cm twin turret (Bismarck): wide, low, a flat sloped roof, rangefinder housing with end hoods at the rear. */
-function houseDrh34(hb, col, dark, f) {
-  const mid = shade(col, 0.96), light = shade(col, 1.08), shadow = shade(col, 0.82);
-  hb.cylinder(0, -0.15, 0, 5.6, 5.7, 0.6, shadow, MAT.HULL, { seg: 26 });
-  hb.block({ x0: -7.4, x1: f.face, hw: 5.2, y0: 0.45, y1: 3.2, tx0: -7.2, tx1: f.face - 0.5, thw: 5.0 }, col, MAT.HULL);
-  // the roof slopes down towards the front, its front plate is steep
-  hb.block({ x0: -7.2, x1: f.face - 0.5, hw: 5.0, y0: 3.2, y1: f.h, tx0: -6.6, tx1: 3.6, thw: 4.4 }, mid, MAT.HULL);
-  hb.block({ x0: -8.8, x1: -7.2, hw: 4.2, y0: 1.0, y1: 4.3, tx0: -8.4, tx1: -7.2, thw: 3.9 }, shade(col, 0.9), MAT.HULL);
-  hb.rodZ(-6.4, 4.9, -6.2, 6.2, 0.5, 0.5, shade(col, 0.88), MAT.HULL, { seg: 10 });                            // rangefinder
-  for (const sg of [-1, 1]) hb.cyl(-6.4, 4.5, sg * 5.9, 0.85, 0.8, 0.7, 0.68, 5.5, light, MAT.HULL, { seg: 10 });
-  hb.cylinder(-3.8, f.h * 0.92, 2.4, 0.5, 0.45, f.h + 0.7, shadow, MAT.HULL, { seg: 8 });
-  hb.cylinder(-3.8, f.h * 0.92, -2.4, 0.5, 0.45, f.h + 0.7, shadow, MAT.HULL, { seg: 8 });
+/** Japanese 15.5 cm/60 triple turret (Yamato's secondary battery): a small copy of the big turrets, sloped face, rangefinder ears aft. */
+function houseType3(hb, col, dark, f) {
+  const light = shade(col, 1.1), shadow = shade(col, 0.82);
+  hb.cylinder(0, -0.05, 0, 2.9, 2.95, 0.12, shadow, MAT.HULL, { seg: 20 });
+  hb.block({ x0: -5.0, x1: f.face, hw: 3.3, y0: 0.1, y1: f.h, tx0: -4.8, tx1: 2.4, thw: 3.15 }, col, MAT.HULL);
+  for (const sg of [-1, 1]) hb.block({ x0: -3.9, x1: -2.6, hw: 0.35, zc: sg * 3.55, y0: 1.5, y1: 2.5, tx0: -3.8, tx1: -2.8, thw: 0.3 }, light, MAT.HULL);
+  for (const sg of [-1, 1]) hb.cylinder(-1.8, f.h - 0.05, sg * 1.6, 0.3, 0.27, f.h + 0.35, shadow, MAT.HULL, { seg: 6 });
   for (let i = 0; i < f.n; i++) {
     const z = (i - (f.n - 1) / 2) * f.spacing;
-    hb.block({ x0: f.face - 0.9, x1: f.face - 0.3, hw: 0.9, zc: z, y0: f.trunY - 0.8, y1: f.trunY + 0.8 }, dark, MAT.DARK);
+    hb.block({ x0: f.port - 0.3, x1: f.port + 0.25, hw: 0.42, zc: z, y0: f.trunY - 0.4, y1: f.trunY + 0.4 }, dark, MAT.DARK);
+  }
+}
+
+/** German Drh LC/34 38 cm twin turret (Bismarck): wide and low, a face plate sloped back, a flat roof, the rangefinder across the rear
+ *  with its hoods out at the sides. */
+function houseDrh34(hb, col, dark, f) {
+  const light = shade(col, 1.08), shadow = shade(col, 0.82);
+  hb.cylinder(0, -0.1, 0, 5.3, 5.35, 0.2, shadow, MAT.HULL, { seg: 26 });
+  hb.block({ x0: -7.5, x1: f.face, hw: 5.2, y0: 0.15, y1: f.h, tx0: -7.3, tx1: 4.0, thw: 5.0 }, col, MAT.HULL);     // walls, sloped face, roof
+  hb.block({ x0: -8.4, x1: -7.3, hw: 4.0, y0: 0.6, y1: 2.8, tx0: -8.1, thw: 3.8 }, shade(col, 0.9), MAT.HULL);   // rear overhang
+  hb.rodZ(-5.6, f.h - 0.9, -6.0, 6.0, 0.45, 0.45, shade(col, 0.88), MAT.HULL, { seg: 10 });                      // rangefinder
+  for (const sg of [-1, 1]) hb.cyl(-5.6, f.h - 1.5, sg * 5.75, 0.75, 0.7, 0.62, 0.6, f.h - 0.3, light, MAT.HULL, { seg: 10 });
+  for (const sg of [-1, 1]) hb.cylinder(-3.2, f.h - 0.1, sg * 2.4, 0.45, 0.4, f.h + 0.5, shadow, MAT.HULL, { seg: 8 });
+  hb.box(-1.6, f.h + 0.04, 0, 2.6, 0.1, 2.0, light, MAT.HULL);
+  for (let i = 0; i < f.n; i++) {
+    const z = (i - (f.n - 1) / 2) * f.spacing;
+    hb.block({ x0: f.port - 0.5, x1: f.port + 0.45, hw: 0.85, zc: z, y0: f.trunY - 0.65, y1: f.trunY + 0.65 }, dark, MAT.DARK);
+  }
+}
+
+/** German 15 cm twin turret (Bismarck's secondary battery): sloped face and roof edges, rangefinder hoods at the rear corners. */
+function houseDrh28(hb, col, dark, f) {
+  const light = shade(col, 1.08), shadow = shade(col, 0.82);
+  hb.cylinder(0, -0.05, 0, 2.6, 2.65, 0.12, shadow, MAT.HULL, { seg: 20 });
+  hb.block({ x0: -3.6, x1: f.face, hw: 2.5, y0: 0.1, y1: f.h, tx0: -3.3, tx1: 2.3, thw: 2.2 }, col, MAT.HULL);
+  for (const sg of [-1, 1]) hb.block({ x0: -3.0, x1: -1.9, hw: 0.3, zc: sg * 2.6, y0: 1.5, y1: 2.4, tx0: -2.9, tx1: -2.1, thw: 0.25 }, light, MAT.HULL);
+  hb.cylinder(-1.2, f.h - 0.05, 1.1, 0.28, 0.25, f.h + 0.35, shadow, MAT.HULL, { seg: 6 });
+  for (let i = 0; i < f.n; i++) {
+    const z = (i - (f.n - 1) / 2) * f.spacing;
+    hb.block({ x0: f.port - 0.3, x1: f.port + 0.25, hw: 0.4, zc: z, y0: f.trunY - 0.4, y1: f.trunY + 0.4 }, dark, MAT.DARK);
   }
 }
 
@@ -147,7 +184,7 @@ function houseMk30(hb, col, dark, f) {
   hb.block({ x0: f.face - 0.3, x1: f.face, hw: 0.28, y0: f.trunY - 0.3, y1: f.trunY + 0.3 }, dark, MAT.DARK);
 }
 
-const HOUSES = { mk7: houseMk7, type94: houseType94, drh34: houseDrh34, mk28: houseMk28, mk30: houseMk30 };
+const HOUSES = { mk7: houseMk7, type94: houseType94, type3_155: houseType3, drh28_150: houseDrh28, drh34: houseDrh34, mk28: houseMk28, mk30: houseMk30 };
 
 function makeFamily(s, f) {
   const col = rgb(s.col || '#6b7076'), dark = rgb(s.dark || '#1d1f22');
