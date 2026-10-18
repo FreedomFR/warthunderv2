@@ -27,9 +27,14 @@ metres and corrected; new turret families and houses were created from the measu
 - **Baltimore**: the Shipbucket profile (Ian B. Roberts, with a 100 m scale bar and the waterline) and the TZoli plan, shared by the project owner (copyright: measurements only).
   Turrets 0.225 / 0.285 / 0.77 (the spec had 0.12 / 0.185 / 0.8), a 41.5 m foremast carrying the SP radar, two funnels at 0.491 / 0.582 (25 m), the 5 in twins on the centreline
   and wings read on the plan, two catapults 6.9 m off the centre line; new `us203` family. Profile 1.8 m, plan 0.5 m.
-- **Agano**: a stylised profile of the Agano-kai class (CC BY 3.0) with a scale bar: turrets at 0.173 / 0.227 / 0.82, bridge tiers, a big raked funnel at 0.465, the aircraft
-  deck and the crane mast at 0.75; new `type41_152` twin family; +-1.2 m, the hull plan stays the default.
-- **Belfast and Norfolk**: no free drawing found (Commons has none): unchanged (estimated); to do with drawings supplied by the project owner or photographs of the museum ship.
+- **Agano**: a detailed profile and plan with a 50 m scale bar, shared by the project owner (author unknown: measurements only; the stylised Agano-kai profile of CC BY 3.0 was
+  used first). Turrets at 0.192 / 0.243 / 0.813 (the spec had 0.12 / 0.19 / 0.88), the bridge tiers, a big raked funnel at 0.478, the catapult with two floatplane carriages and
+  the crane mast at 0.78; new `type41_152` twin family. The silhouette figures are dominated by the rigging and crane stays drawn on the sheet (not modelled).
+- **Belfast**: James Goulding's profile and plan of 1943 (Profile Publications, scale bar in feet; copyright, measurements only). Turrets at 0.158 / 0.211 / 0.771 / 0.823 (the spec
+  had 0.11 / 0.165 / 0.775 / 0.855), forecastle 8.5 m to f 0.775, bridge block with the director tower (26 m) and a 41.7 m foremast, funnels at 0.489 / 0.631, tripod mainmast, the
+  athwartships catapult with a crane each side; new `brit152` family. Profile 2.2 m, plan 0.5 m.
+- **Norfolk**: the plan and profile of a three-funnel County class cruiser from a Hasegawa 1/700 instruction sheet (copyright, measurements only). Turrets at 0.175 / 0.247 / 0.763 /
+  0.829 (the spec had 0.10 / 0.155 / 0.79 / 0.855), a flush deck 8.5 m, the stepped bridge block, three funnels, tripod masts; new `brit203` family. Profile 2.0 m, plan 0.2 m.
 - Tools: `fit_decks.py` (profile -> `decks:`), `rulers` / `rulerRegion` and an automatic camera in `silhouette.py`, `hull.py --B`.
 
 ## Unreleased — fidelity batch 3 (the remaining carriers, the aircraft)

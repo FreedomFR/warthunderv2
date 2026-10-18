@@ -1464,21 +1464,154 @@
   "agano": {
     "loa": 174.1,
     "side": {
-      "file": "refs/agano/Agano-kai-class.jpg",
-      "source": "https://commons.wikimedia.org/wiki/File:Agano-kai-class.png (SnowCloudInSummer, CC BY 3.0): a stylised profile with a scale bar and the waterline, 2.1 px per metre",
+      "file": "refs/agano/user_blueprint.png",
+      "source": "IJN Agano line drawing, profile and plan with a 50 m scale bar (the-blueprints.com style; shared by the project owner, copyright of the author, consulted for measurements only); 8.72 px per metre",
       "close": 3,
       "open": 3,
-      "threshold": 200,
-      "tol": 2.0,
+      "threshold": 160,
+      "tol": 1.2,
+      "dilate": 3,
       "crop": [
-        0,
-        25,
-        400,
-        102
+        30,
+        20,
+        1590,
+        275
       ],
-      "stern": 13,
-      "bow": 384,
-      "wl": 99.5
+      "stern": 49,
+      "bow": 1567,
+      "wl": 268
+    },
+    "top": {
+      "file": "refs/agano/user_blueprint.png",
+      "source": "same sheet, plan view",
+      "close": 5,
+      "open": 0,
+      "threshold": 160,
+      "tol": 1.0,
+      "dilate": 3,
+      "crop": [
+        30,
+        380,
+        1590,
+        570
+      ],
+      "stern": 49,
+      "bow": 1567,
+      "cl": 474.5
+    }
+  },
+  "belfast": {
+    "loa": 187.0,
+    "side": {
+      "file": "refs/belfast/user_profile_pub.jpg",
+      "source": "HMS Belfast 1943 Admiralty Disruptive Camouflage Type 25, profile and plan by James Goulding (Profile Publications), with a scale bar in feet; shared by the project owner (copyright of the publisher, consulted for measurements only); 4.72 px per metre",
+      "close": 3,
+      "open": 3,
+      "threshold": 240,
+      "tol": 1.5,
+      "crop": [
+        30,
+        60,
+        950,
+        275
+      ],
+      "stern": 46,
+      "bow": 929,
+      "wl": 269,
+      "erase": [
+        [
+          0,
+          40,
+          300,
+          215
+        ],
+        [
+          680,
+          0,
+          960,
+          115
+        ]
+      ]
+    },
+    "top": {
+      "file": "refs/belfast/user_profile_pub.jpg",
+      "source": "same sheet, plan view (bow to the right)",
+      "close": 3,
+      "open": 0,
+      "threshold": 235,
+      "tol": 1.2,
+      "crop": [
+        30,
+        420,
+        950,
+        527
+      ],
+      "stern": 46,
+      "bow": 929,
+      "cl": 476
+    }
+  },
+  "norfolk": {
+    "loa": 192.86,
+    "side": {
+      "file": "refs/norfolk/user_hasegawa_flip.png",
+      "source": "3-funnel County class cruiser, Hasegawa 1/700 kit painting instructions (profile, bow mirrored to the right), shared by the project owner (copyright of the publisher, consulted for measurements only); 4.96 px per metre",
+      "close": 9,
+      "open": 3,
+      "threshold": 215,
+      "tol": 1.5,
+      "crop": [
+        10,
+        190,
+        999,
+        390
+      ],
+      "stern": 24,
+      "bow": 980,
+      "wl": 381,
+      "erase": [
+        [
+          500,
+          200,
+          570,
+          240
+        ],
+        [
+          120,
+          185,
+          175,
+          200
+        ],
+        [
+          770,
+          185,
+          830,
+          200
+        ],
+        [
+          0,
+          185,
+          999,
+          196
+        ]
+      ]
+    },
+    "top": {
+      "file": "refs/norfolk/user_hasegawa_flip.png",
+      "source": "same sheet, plan view (mirrored so that the bow is to the right)",
+      "close": 3,
+      "open": 0,
+      "threshold": 215,
+      "tol": 1.2,
+      "crop": [
+        10,
+        70,
+        999,
+        182
+      ],
+      "stern": 17,
+      "bow": 986,
+      "cl": 126
     }
   }
 }
