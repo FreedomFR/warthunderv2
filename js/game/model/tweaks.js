@@ -423,7 +423,64 @@ export const TWEAKS = {
       ...[0.545, 0.495, 0.305].map((f) => ({ k: 'p40', f, z: 13.5, y: -2.8, one: true })),
     ],
   },
-  graf_zeppelin: { elevators: [0.27, 0.52, 0.80] },
-  bearn: { elevators: [0.30, 0.47, 0.72] },
-  aquila: { elevators: [0.27, 0.77] },
+  // Graf Zeppelin (ONI 204 sheet of September 1942, Commons, public domain: a US intelligence reconstruction "substantially correct for hull
+  // proportion"; scale from the length): flight deck 16.0 m above the waterline from the stern to 0.059 of the length, 31 m wide, narrowing at
+  // both ends; the hull ahead of it at 10.8 m; a long low island on a sponson at 7-17.8 m to starboard (lower block 19 m, the funnel / bridge
+  // block to 30.1 m, the tower to 34.9 m); six groups of 150 mm casemates in the hull side. The underwater body is not on the sheet (estimated).
+  graf_zeppelin: {
+    flightDeckY: 16.0, noGallery: true, elevators: [0.27, 0.52, 0.80], sponsonOut: 1.2,
+    fdPlan: [[0.06, 10.5], [0.083, 13.4], [0.125, 15.2], [0.2, 15.5], [0.9, 15.6], [0.96, 13.6], [1.0, 12.0]],
+    fb: [[0, 10.8], [0.045, 10.8], [0.062, 14.7], [0.1, 14.7], [0.9, 14.7], [1, 14.4]],
+    planDeck: [[0, 0.052], [0.042, 0.381], [0.083, 0.753], [0.125, 0.856], [0.2, 0.9], [0.5, 0.99], [0.9, 0.99], [0.96, 0.85], [1, 0.76]],
+    planWL: [[0, 0], [0.03, 0.2], [0.06, 0.4], [0.1, 0.62], [0.2, 0.84], [0.3, 0.95], [0.5, 1], [0.7, 1], [0.85, 0.96], [0.95, 0.8], [1, 0.6]],
+    bow: { rake: 5, pr: 1.4, forefoot: 5 },
+    secKind: ['dp'],
+    island: {
+      z: 12.4, hw: 5.2, funnelTop: 14.1, funnelLx: 11.5, funnelLz: 7.4, mastF: 0.4795, mastY0: 3.0, mastTop: 18.9, radarF: 0.4795, radarY: 14.0, dirF: 0.4795, dirY: 18.9, radarKind: 'box',
+      blocks: [
+        { f: [0.40, 0.60], z: 12.4, hw: 5.2, y: [-2.5, 3.0] },
+        { f: [0.4705, 0.4894], z: 11.0, hw: 2.4, y: [3.0, 18.9], windows: true },
+        { f: [0.446, 0.457], z: 11.0, hw: 3.4, y: [3.0, 9.2], windows: true },
+        { f: [0.406, 0.43], z: 11.5, hw: 3.4, y: [3.0, 4.8] },
+      ],
+    },
+  },
+  // Bearn (the 1927 photograph of the starboard side "Bearn (1927)", Commons, public domain, nearly broadside: the horizontal scale comes
+  // from the length, heights have the perspective of the near side, about +-1.5 m; no plan was found, so the hull plan is generic): the
+  // flight deck 19.8 m above the waterline over a forecastle at 10 m (open to the sea under the deck forward, the gun deck with the 155 mm
+  // casemates at 12-14 m), the hangar side rising to the flight deck from f 0.37 aft; the island on a sponson to starboard: a big box (0.505-0.556, top
+  // 37.5 m) with the funnel inside, stepped bridge tiers ahead of it (0.445-0.50) and the mast at 0.4635 (top 56 m).
+  bearn: {
+    flightDeckY: 19.8, noGallery: true, elevators: [0.22, 0.42, 0.76], sponsonOut: 1.4,
+    fb: [[0, 10.0], [0.04, 9.8], [0.33, 10.0], [0.37, 18.6], [0.95, 18.6], [1, 18.4]],
+    island: {
+      z: 10.0, hw: 3.6, funnelTop: 18.4, funnelLx: 11.0, funnelLz: 4.6, mastF: 0.4635, mastY0: 11.0, mastTop: 36.2, radarF: 0.4635, radarY: 28.0, dirF: 0.47, dirY: 9.5,
+      blocks: [
+        { f: [0.506, 0.556], z: 10.0, hw: 3.8, y: [-2.0, 17.7], windows: true },
+        { f: [0.445, 0.502], z: 10.4, hw: 3.4, y: [-2.0, 5.2] },
+        { f: [0.447, 0.495], z: 10.4, hw: 3.1, y: [5.2, 9.5] },
+        { f: [0.455, 0.485], z: 10.4, hw: 2.6, y: [9.5, 12.0] },
+      ],
+    },
+  },
+  // Aquila: measured on a colour profile and plan with a 30 m scale bar and the waterline drawn, shared by the project owner (author and licence
+  // UNKNOWN: consulted for measurements only, never redistributed): flight deck 16.0 m above the waterline, from f 0.08 to the stern, 18.6-25 m
+  // wide (narrowest at the stern end); lifts 14 x 15 m at 0.363 and 0.5385 (the spec had 0.43 and 0.55); the funnel 13.4 m long at 0.482-0.539
+  // (top 31.1 m), the bridge block 0.435-0.465 (24.8 m) and the tower 0.418-0.433 (31 m) on a sponson at 11-19 m to starboard.
+  aquila: {
+    flightDeckY: 16.0, noGallery: true, elevators: [0.363, 0.5385], elevSize: [7.1, 7.6], sponsonOut: 1.6,
+    fdPlan: [[0.08, 8.9], [0.095, 9.3], [0.15, 10.4], [0.2, 11.0], [0.3, 12.0], [0.4, 12.4], [0.6, 12.4], [0.8, 12.3], [0.9, 11.6], [0.96, 10.2], [1.0, 9.3]],
+    fb: [[0, 12.4], [0.03, 12.1], [0.062, 12.1], [0.07, 14.8], [0.1, 14.8], [0.9, 14.8], [1, 14.8]],
+    planDeck: [[0, 0.1], [0.04, 0.3], [0.08, 0.48], [0.12, 0.64], [0.2, 0.78], [0.3, 0.9], [0.4, 0.97], [0.5, 1], [0.8, 1], [0.9, 0.9], [0.96, 0.7], [1, 0.55]],
+    planWL: [[0, 0], [0.03, 0.2], [0.07, 0.38], [0.12, 0.55], [0.2, 0.72], [0.3, 0.85], [0.4, 0.94], [0.5, 0.99], [0.7, 1], [0.85, 0.94], [0.93, 0.75], [1, 0.5]],
+    island: {
+      z: 13.2, hw: 4.0, funnelTop: 15.1, funnelLx: 13.4, funnelLz: 5.2, mastF: 0.426, mastY0: 15.1, mastTop: 17.5, radarF: 0.426, radarY: 15.5, dirF: 0.465, dirY: 8.8,
+      blocks: [
+        { f: [0.435, 0.465], z: 14.0, hw: 3.6, y: [-1.0, 8.8], windows: true },
+        { f: [0.418, 0.433], z: 14.0, hw: 2.4, y: [8.8, 15.1], windows: true },
+        { f: [0.469, 0.60], z: 14.8, hw: 3.6, y: [-1.0, 3.8] },
+        { f: [0.40, 0.469], z: 14.8, hw: 3.8, y: [-1.0, 5.4] },
+      ],
+    },
+  },
 };

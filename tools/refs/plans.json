@@ -503,5 +503,160 @@
         ]
       ]
     }
+  },
+  "graf_zeppelin": {
+    "loa": 262.5,
+    "side": {
+      "file": "refs/graf_zeppelin/Graf_Zeppelin_class_drawing.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Graf_Zeppelin_class_drawing.jpg (US ONI 204 sheet of Sept 1942, public domain: an intelligence reconstruction, \"substantially correct for hull proportion\"); above the waterline only (the drawing ends at the waterline); scale from the length, checked on the 15 ft height lines of the sheet",
+      "crop": [
+        0,
+        30,
+        771,
+        128
+      ],
+      "stern": 19,
+      "bow": 726,
+      "wl": 127,
+      "close": 3,
+      "open": 0,
+      "dilate": 3,
+      "threshold": 170,
+      "tol": 1.5
+    },
+    "top": {
+      "file": "refs/graf_zeppelin/Graf_Zeppelin_class_drawing.jpg",
+      "source": "same sheet, plan view",
+      "crop": [
+        0,
+        183,
+        771,
+        288
+      ],
+      "stern": 26,
+      "bow": 741,
+      "cl": 231.5,
+      "close": 3,
+      "open": 0,
+      "dilate": 3,
+      "threshold": 170,
+      "tol": 1.5
+    }
+  },
+  "aquila": {
+    "loa": 235.5,
+    "side": {
+      "file": "refs/aquila/owner_aquila_profile_plan.jpg",
+      "source": "a colour profile and plan of the Aquila with a 30 m scale bar and the waterline drawn, shared by the project owner (author and licence UNKNOWN: consulted for measurements only, never redistributed: refs/ is git-ignored); scale from the hull length (2.985 px/m; the bar gives 3.02); waterline y=148 (flight deck 16.0 m above it)",
+      "crop": [
+        0,
+        55,
+        734,
+        160
+      ],
+      "stern": 18,
+      "bow": 721,
+      "wl": 148,
+      "close": 3,
+      "open": 3,
+      "threshold": 140,
+      "tol": 1.5
+    },
+    "top": {
+      "file": "refs/aquila/owner_aquila_profile_plan.jpg",
+      "source": "a colour profile and plan of the Aquila with a 30 m scale bar and the waterline drawn, shared by the project owner (author and licence UNKNOWN: consulted for measurements only, never redistributed: refs/ is git-ignored); scale from the hull length (2.985 px/m; the bar gives 3.02); plan view",
+      "crop": [
+        0,
+        198,
+        734,
+        325
+      ],
+      "stern": 17,
+      "bow": 720,
+      "cl": 253,
+      "close": 3,
+      "open": 0,
+      "threshold": 200,
+      "tol": 1.5
+    }
+  },
+  "planes": {
+    "sbd": {
+      "length": 9.68,
+      "span": 12.65,
+      "top": {
+        "file": "refs/plane_sbd/Douglas_SBD-3_Dauntless_3-view_line_drawing.jpg",
+        "source": "https://commons.wikimedia.org/wiki/File:Douglas_SBD-3_Dauntless_3-view_line_drawing.svg (CC BY-SA 3.0)",
+        "crop": [
+          40,
+          1180,
+          2700,
+          4480
+        ],
+        "threshold": 140,
+        "dilate": 5,
+        "flip": true
+      },
+      "side": {
+        "file": "refs/plane_sbd/Douglas_SBD-3_Dauntless_3-view_line_drawing.jpg",
+        "source": "same drawing, side view",
+        "crop": [
+          40,
+          80,
+          2650,
+          950
+        ],
+        "threshold": 140,
+        "dilate": 5,
+        "flip": true
+      }
+    },
+    "b5n": {
+      "length": 10.3,
+      "span": 15.52,
+      "top": {
+        "file": "refs/plane_b5n/Nakajima_Kate.jpg",
+        "source": "https://commons.wikimedia.org/wiki/File:Nakajima_Kate.svg (CC BY-SA 3.0)",
+        "crop": [
+          20,
+          1080,
+          2720,
+          5070
+        ],
+        "threshold": 140,
+        "dilate": 5,
+        "flip": true
+      },
+      "side": {
+        "file": "refs/plane_b5n/Nakajima_Kate.jpg",
+        "source": "same drawing, side view",
+        "crop": [
+          20,
+          40,
+          2720,
+          1075
+        ],
+        "threshold": 140,
+        "dilate": 5,
+        "flip": true
+      }
+    },
+    "skua": {
+      "length": 10.85,
+      "span": 14.07,
+      "side": {
+        "file": "refs/plane_skua/Blackburn_Skua_3-view_L_Aerophile_November_1939.jpg",
+        "source": "Blackburn Skua 3-view, L'Aerophile, Nov 1939 (public domain)",
+        "crop": [
+          15,
+          650,
+          470,
+          845
+        ],
+        "threshold": 140,
+        "dilate": 3,
+        "flip": true
+      }
+    }
   }
 }

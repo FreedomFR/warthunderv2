@@ -44,6 +44,7 @@ for e in ref.get('erase', []): d.paste(255, tuple(e))      # parts of the sheet 
 x0, y0, x1, y1 = ref['crop']
 d = d.crop((x0, y0, x1, y1))
 ink = d.point(lambda v: 255 if v < ref.get('threshold', 200) else 0)
+if ref.get('dilate'): ink = ink.filter(ImageFilter.MaxFilter(ref['dilate']))      # line drawings: thicken the 1 px outline so that it counts as a run
 k = ref.get('close', 5)
 ink = ink.filter(ImageFilter.MaxFilter(k)).filter(ImageFilter.MinFilter(k))
 ko = ref.get('open', 3 if a.view == 'side' else 0)     # opening removes lines thinner than this many pixels (scale lines, rigging)

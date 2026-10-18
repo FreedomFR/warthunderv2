@@ -1,5 +1,24 @@
 # Changelog
 
+## Unreleased — fidelity batch 3 (the remaining carriers, the aircraft)
+
+- **Graf Zeppelin**: the ONI 204 sheet of September 1942 (Commons, public domain): flight deck 16.0 m above the waterline with its real outline
+  (narrowing at both ends), a long low island on a sponson, funnel and tower blocks, six groups of 150 mm casemates. Profile 2.4 -> 1.2 m.
+  The sheet is an intelligence reconstruction ("substantially correct for hull proportion").
+- **Aquila**: a colour profile and plan with a 30 m scale bar and the waterline drawn, shared by the project owner (author and licence unknown:
+  measurements only, not in the repository). The flight deck is 16.0 m above the waterline (the spec's 23 m was above the keel), lifts at
+  0.363 / 0.5385 (the spec had 0.43 / 0.55), the funnel 13.4 m long at 0.482-0.539, bridge and tower on a sponson. Profile 3.2 -> 1.0 m.
+- **Bearn**: the 1927 starboard photograph (public domain): flight deck 19.8 m over a forecastle at 10 m, open under the deck forward,
+  hangar side aft, a big island box with the funnel inside, stepped bridge tiers, mast 56 m; +-1.5 m (perspective of the near side), no plan.
+- **Aircraft**: the planforms of the SBD, B5N and Skua compared with their three-view drawings (`tools/refs/planecheck.mjs` + `planecheck.py`).
+  The tailplane span of every aircraft had been drawn at about half the real size (SBD 2.0 m instead of 5.4 m, which the BuAer plan prints
+  as 17 ft 9 in): measured for the three with a drawing, 0.33 of the wing span (estimated) for the others. SBD and B5N wings moved forward
+  by 0.9 / 1.3 m and deepened (3.0 / 3.3 m root chord), the SBD tail aft. Planform mean difference SBD 3.1 -> 1.1 m.
+- Builder: the carrier island can be built from measured blocks with its own mast, radar and director positions (`island.blocks`); lifts
+  take a measured size and position; carriers take a measured flight deck outline (`fdPlan`).
+- Tools: `planecheck.mjs` / `planecheck.py` (aircraft planform and profile against a 3-view), `dilate` for 1 px line drawings, `open`
+  for hairlines.
+
 ## Unreleased — fidelity batch 2 (King George V, Richelieu, Littorio, Shōkaku, Illustrious)
 
 Same method as batch 1: free plans from Commons, positions read on a grid in fractions of the length and metres (`tools/refs/grid.py`), the model

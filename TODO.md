@@ -55,11 +55,14 @@ Lot 2 (cuirassés et porte-avions des autres nations) : **fait, avec des réserv
 | États-Unis | Fletcher (5"/38 Mk 30 déjà) | Cleveland | Baltimore | **Iowa ✔** | **Essex ✔** |
 | Japon | Kagerō | Agano | Takao | **Yamato ✔** | **Shōkaku ✔** |
 | Royaume-Uni | Tribal | Belfast | Norfolk | **King George V ✔** | **Illustrious ✔** |
-| Allemagne | Type 1936A (Mob) | Königsberg | Admiral Hipper | **Bismarck ✔** | Graf Zeppelin |
-| France | Le Fantasque | La Galissonnière | Algérie | **Richelieu ✔** | Béarn |
-| Italie | Soldati | Montecuccoli | Zara | **Littorio ✔** | Aquila |
+| Allemagne | Type 1936A (Mob) | Königsberg | Admiral Hipper | **Bismarck ✔** | **Graf Zeppelin ✔** |
+| France | Le Fantasque | La Galissonnière | Algérie | **Richelieu ✔** | **Béarn ✔** (photo) |
+| Italie | Soldati | Montecuccoli | Zara | **Littorio ✔** | **Aquila ✔** |
 
-- [ ] **Priorité proposée** : les 3 porte-avions restants (Graf Zeppelin, Béarn, Aquila), puis croiseurs lourds, croiseurs légers, destroyers.
+- [x] **Porte-avions restants** : Graf Zeppelin (feuille ONI 204, reconstruction), Aquila (dessin partagé, auteur inconnu : mesures seulement), Béarn (photo de 1927, ±1,5 m, pas de plan).
+- [ ] **Béarn** : trouver un plan ; coque générique, ascenseurs et casemates de 155 mm estimés. **Graf Zeppelin** : le pont est mesuré mais l'îlot reste approximatif (feuille de 1942, pas de plan de construction).
+- [ ] **Avions** : les empennages étaient deux fois trop petits (corrigé) ; SBD, B5N et Skua comparés à leur trois-vues ; D3A, TBF, Swordfish, Stuka, Fi 167, LN.401, PL.10 et Re.2001 restent à comparer (empennage estimé à 0,33 de l'envergure) ; profils (hauteur) non vérifiés (les dessins ont des fils et des roues qui faussent la boîte englobante).
+- [ ] **Priorité proposée** : croiseurs lourds, croiseurs légers, destroyers.
 - [ ] Pour chaque classe : chercher les plans libres (`tools/refs/search.py`, feuilles ONI sur Commons), créer les familles de tourelles manquantes, refaire les superstructures, la livrée d'époque.
 - [ ] Contrôler chaque tir en plein jeu (scène `firetest` : `node tools/trailer/record.mjs firetest <dossier> --q ship=<id>`).
 - [ ] *Graf Zeppelin* et *Aquila* n'ont jamais été achevés : décider quelle configuration de projet représenter.

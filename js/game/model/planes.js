@@ -21,91 +21,93 @@ const PAINT = {
 };
 
 // ---- aircraft specification sheets --------------------------------------------------------------------------
+// The tailplane span is the TOTAL span (the three aircraft with a drawing -- SBD 5.4 m, B5N 4.9 m, Skua 4.9 m -- were measured on it; the others
+// are 0.33 of the wing span, estimated: they had been drawn at about half the real size).
 // L length, span, fus: {r maximum radius, ar ratio height/width}, engine: {r cowl radius, len, type},
 // wing: {cr root chord, ct tip chord, x mid-chord position, y height, dih dihedral, gull inverted gull, sweep, t thickness}
 export const PLANES = {
   sbd: {
     name: 'SBD-3 Dauntless', nation: 'USA', role: 'dive', kind: 'mono', L: 9.7, span: 12.65, mass: 3.2, hp: 3.2, bombKg: 450,
     fus: { r: 0.62, ar: 1.18, x: -0.2 }, engine: { type: 'radial', r: 0.74, len: 1.35 }, prop: { r: 1.7, n: 3, x: 0 },
-    wing: { cr: 2.7, ct: 1.3, x: -0.1, y: -0.32, dih: 0.35, sweep: 0.45, t: 0.34 },
-    tail: { x: -3.9, chord: 1.4, span: 2.0, fin: 1.55, finChord: 1.8, y: 0.15 }, canopy: [{ x0: 0.1, x1: 1.4, tx1: 1.1, h: 0.62 }, { x0: -1.9, x1: -0.7, tx1: -0.9, h: 0.5 }],
+    wing: { cr: 3.0, ct: 1.3, x: 0.80, y: -0.32, dih: 0.35, sweep: 0.45, t: 0.34 },
+    tail: { x: -4.25, chord: 1.6, span: 5.4, fin: 1.55, finChord: 1.8, y: 0.15 }, canopy: [{ x0: 0.1, x1: 1.4, tx1: 1.1, h: 0.62 }, { x0: -1.9, x1: -0.7, tx1: -0.9, h: 0.5 }],
     gear: 'retract', ordnance: 'bomb', stripes: false,
   },
   tbf: {
     name: 'TBF-1 Avenger', nation: 'USA', role: 'torp', kind: 'mono', L: 12.2, span: 16.5, mass: 5.6, hp: 4.5,
     fus: { r: 0.98, ar: 1.12, x: -0.6 }, engine: { type: 'radial', r: 0.95, len: 1.5 }, prop: { r: 2.0, n: 3, x: 0 },
     wing: { cr: 3.3, ct: 1.7, x: -0.3, y: -0.42, dih: 0.55, sweep: 0.6, t: 0.42 },
-    tail: { x: -4.9, chord: 1.8, span: 2.6, fin: 1.9, finChord: 2.2, y: 0.35 }, canopy: [{ x0: 0.4, x1: 1.8, tx1: 1.4, h: 0.62 }, { x0: -2.6, x1: -1.1, tx1: -1.4, h: 0.55 }],
+    tail: { x: -4.9, chord: 1.8, span: 5.4, fin: 1.9, finChord: 2.2, y: 0.35 }, canopy: [{ x0: 0.4, x1: 1.8, tx1: 1.4, h: 0.62 }, { x0: -2.6, x1: -1.1, tx1: -1.4, h: 0.55 }],
     gear: 'retract', ordnance: 'torp', turret: true,
   },
   d3a: {
     name: 'Aichi D3A1 Type 99', nation: 'Japan', role: 'dive', kind: 'mono', L: 10.2, span: 14.4, mass: 3.6, hp: 2.8, bombKg: 250,
     fus: { r: 0.58, ar: 1.15, x: -0.4 }, engine: { type: 'radial', r: 0.64, len: 1.1 }, prop: { r: 1.55, n: 3, x: 0 },
     wing: { cr: 2.5, ct: 1.0, x: -0.2, y: -0.28, dih: 0.3, sweep: 0.3, t: 0.3, elliptic: true },
-    tail: { x: -4.2, chord: 1.3, span: 1.8, fin: 1.45, finChord: 1.6, y: 0.1 }, canopy: [{ x0: 0.0, x1: 1.5, tx1: 1.2, h: 0.62 }, { x0: -2.0, x1: -0.8, tx1: -1.0, h: 0.5 }],
+    tail: { x: -4.2, chord: 1.3, span: 4.8, fin: 1.45, finChord: 1.6, y: 0.1 }, canopy: [{ x0: 0.0, x1: 1.5, tx1: 1.2, h: 0.62 }, { x0: -2.0, x1: -0.8, tx1: -1.0, h: 0.5 }],
     gear: 'spats', ordnance: 'bomb',
   },
   b5n: {
     name: 'Nakajima B5N2 Type 97', nation: 'Japan', role: 'torp', kind: 'mono', L: 10.3, span: 15.5, mass: 3.8, hp: 2.9,
     fus: { r: 0.6, ar: 1.2, x: -0.6 }, engine: { type: 'radial', r: 0.64, len: 1.1 }, prop: { r: 1.6, n: 3, x: 0 },
-    wing: { cr: 2.6, ct: 1.2, x: -0.3, y: -0.2, dih: 0.4, sweep: 0.35, t: 0.3 },
-    tail: { x: -4.2, chord: 1.3, span: 2.1, fin: 1.4, finChord: 1.7, y: 0.25 }, canopy: [{ x0: 0.2, x1: 3.3, tx1: 2.9, h: 0.72 }],
+    wing: { cr: 3.3, ct: 1.2, x: 1.00, y: -0.2, dih: 0.4, sweep: 0.35, t: 0.3 },
+    tail: { x: -4.2, chord: 1.3, span: 4.9, fin: 1.4, finChord: 1.7, y: 0.25 }, canopy: [{ x0: 0.2, x1: 3.3, tx1: 2.9, h: 0.72 }],
     gear: 'retract', ordnance: 'torp',
   },
   swordfish: {
     name: 'Fairey Swordfish', nation: 'UK', role: 'torp', kind: 'bi', L: 10.9, span: 13.9, mass: 3.4, hp: 3.4,
     fus: { r: 0.62, ar: 1.1, x: -0.6 }, engine: { type: 'radial', r: 0.75, len: 1.1 }, prop: { r: 1.75, n: 3, x: 0 },
     wing: { cr: 1.95, ct: 1.95, x: 0.1, y: 0.0, gap: 1.75, dih: 0.0, sweep: 0.5, t: 0.14, stagger: 0.5 },
-    tail: { x: -4.1, chord: 1.5, span: 3.0, fin: 1.4, finChord: 1.6, y: 0.2 }, canopy: [{ x0: -0.2, x1: 0.5, tx1: 0.3, h: 0.2, open: true }, { x0: -2.0, x1: -1.4, tx1: -1.6, h: 0.2, open: true }],
+    tail: { x: -4.1, chord: 1.5, span: 4.6, fin: 1.4, finChord: 1.6, y: 0.2 }, canopy: [{ x0: -0.2, x1: 0.5, tx1: 0.3, h: 0.2, open: true }, { x0: -2.0, x1: -1.4, tx1: -1.6, h: 0.2, open: true }],
     gear: 'fixedbig', ordnance: 'torp',
   },
   skua: {
     name: 'Blackburn Skua', nation: 'UK', role: 'dive', kind: 'mono', L: 10.85, span: 14.1, mass: 3.8, hp: 3.2, bombKg: 230,
     fus: { r: 0.62, ar: 1.15, x: -0.4 }, engine: { type: 'radial', r: 0.72, len: 1.2 }, prop: { r: 1.7, n: 3, x: 0 },
     wing: { cr: 2.8, ct: 1.4, x: -0.2, y: -0.3, dih: 0.4, sweep: 0.4, t: 0.34 },
-    tail: { x: -4.4, chord: 1.4, span: 2.2, fin: 1.4, finChord: 1.7, y: 0.15 }, canopy: [{ x0: 0.0, x1: 1.5, tx1: 1.15, h: 0.6 }, { x0: -2.0, x1: -0.7, tx1: -1.0, h: 0.5 }],
+    tail: { x: -4.4, chord: 1.4, span: 4.9, fin: 1.4, finChord: 1.7, y: 0.15 }, canopy: [{ x0: 0.0, x1: 1.5, tx1: 1.15, h: 0.6 }, { x0: -2.0, x1: -0.7, tx1: -1.0, h: 0.5 }],
     gear: 'retract', ordnance: 'bomb',
   },
   ju87: {
     name: 'Junkers Ju 87 C Stuka', nation: 'Germany', role: 'dive', kind: 'mono', L: 11.1, span: 13.8, mass: 4.6, hp: 3.6, bombKg: 500, siren: true,
     fus: { r: 0.62, ar: 1.2, x: -0.3 }, engine: { type: 'inline', r: 0.46, len: 1.9 }, prop: { r: 1.7, n: 3, x: 0 },
     wing: { cr: 3.0, ct: 1.5, x: -0.1, y: -0.45, dih: 0.0, gull: 0.95, sweep: 0.15, t: 0.4 },
-    tail: { x: -4.8, chord: 1.4, span: 2.4, fin: 1.7, finChord: 1.9, y: 0.2 }, canopy: [{ x0: 0.0, x1: 2.9, tx1: 2.2, h: 0.78 }],
+    tail: { x: -4.8, chord: 1.4, span: 4.6, fin: 1.7, finChord: 1.9, y: 0.2 }, canopy: [{ x0: 0.0, x1: 2.9, tx1: 2.2, h: 0.78 }],
     gear: 'spats', ordnance: 'bomb',
   },
   fi167: {
     name: 'Fieseler Fi 167', nation: 'Germany', role: 'torp', kind: 'bi', L: 11.4, span: 13.5, mass: 4.2, hp: 3.5,
     fus: { r: 0.64, ar: 1.15, x: -0.4 }, engine: { type: 'inline', r: 0.48, len: 1.8 }, prop: { r: 1.7, n: 3, x: 0 },
     wing: { cr: 1.9, ct: 1.5, x: 0.0, y: 0.0, gap: 1.7, dih: 0.0, sweep: 0.3, t: 0.14, stagger: 0.3, lowerShort: 0.78 },
-    tail: { x: -4.4, chord: 1.5, span: 2.8, fin: 1.4, finChord: 1.7, y: 0.25 }, canopy: [{ x0: -0.1, x1: 2.2, tx1: 1.7, h: 0.66 }],
+    tail: { x: -4.4, chord: 1.5, span: 4.5, fin: 1.4, finChord: 1.7, y: 0.25 }, canopy: [{ x0: -0.1, x1: 2.2, tx1: 1.7, h: 0.66 }],
     gear: 'retract', ordnance: 'torp',
   },
   ln401: {
     name: 'Loire-Nieuport LN.401', nation: 'France', role: 'dive', kind: 'mono', L: 9.7, span: 14.0, mass: 2.9, hp: 2.7, bombKg: 225,
     fus: { r: 0.5, ar: 1.15, x: -0.2 }, engine: { type: 'inline', r: 0.42, len: 1.8 }, prop: { r: 1.5, n: 3, x: 0 },
     wing: { cr: 2.4, ct: 1.2, x: -0.1, y: -0.35, dih: 0.0, gull: 0.85, sweep: 0.2, t: 0.3 },
-    tail: { x: -4.0, chord: 1.2, span: 2.0, fin: 1.4, finChord: 1.6, y: 0.15 }, canopy: [{ x0: 0.0, x1: 1.9, tx1: 1.5, h: 0.6 }],
+    tail: { x: -4.0, chord: 1.2, span: 4.6, fin: 1.4, finChord: 1.6, y: 0.15 }, canopy: [{ x0: 0.0, x1: 1.9, tx1: 1.5, h: 0.6 }],
     gear: 'spats', ordnance: 'bomb',
   },
   pl10: {
     name: 'Levasseur PL.10', nation: 'France', role: 'torp', kind: 'bi', L: 12.0, span: 15.5, mass: 4.0, hp: 3.6,
     fus: { r: 0.66, ar: 1.1, x: -0.6 }, engine: { type: 'inline', r: 0.5, len: 1.7 }, prop: { r: 1.9, n: 3, x: 0 },
     wing: { cr: 2.1, ct: 2.1, x: 0.1, y: 0.0, gap: 1.9, dih: 0.0, sweep: 0.2, t: 0.15, stagger: 0.5 },
-    tail: { x: -4.5, chord: 1.6, span: 3.2, fin: 1.5, finChord: 1.7, y: 0.25 }, canopy: [{ x0: -0.2, x1: 0.6, tx1: 0.4, h: 0.2, open: true }, { x0: -2.1, x1: -1.5, tx1: -1.7, h: 0.2, open: true }],
+    tail: { x: -4.5, chord: 1.6, span: 5.1, fin: 1.5, finChord: 1.7, y: 0.25 }, canopy: [{ x0: -0.2, x1: 0.6, tx1: 0.4, h: 0.2, open: true }, { x0: -2.1, x1: -1.5, tx1: -1.7, h: 0.2, open: true }],
     gear: 'fixedbig', ordnance: 'torp',
   },
   re2001: {
     name: 'Reggiane Re.2001', nation: 'Italy', role: 'dive', kind: 'mono', L: 8.2, span: 11.0, mass: 2.6, hp: 2.6, bombKg: 250,
     fus: { r: 0.46, ar: 1.15, x: -0.2 }, engine: { type: 'inline', r: 0.4, len: 1.7 }, prop: { r: 1.45, n: 3, x: 0 },
     wing: { cr: 2.2, ct: 1.0, x: -0.1, y: -0.28, dih: 0.3, sweep: 0.25, t: 0.26, elliptic: true },
-    tail: { x: -3.2, chord: 1.1, span: 1.7, fin: 1.1, finChord: 1.4, y: 0.1 }, canopy: [{ x0: -0.1, x1: 1.5, tx1: 1.15, h: 0.52 }],
+    tail: { x: -3.2, chord: 1.1, span: 3.6, fin: 1.1, finChord: 1.4, y: 0.1 }, canopy: [{ x0: -0.1, x1: 1.5, tx1: 1.15, h: 0.52 }],
     gear: 'retract', ordnance: 'bomb',
   },
   re2001t: {
     name: 'Reggiane Re.2001 G', nation: 'Italy', role: 'torp', kind: 'mono', L: 8.2, span: 11.0, mass: 2.8, hp: 2.6,
     fus: { r: 0.46, ar: 1.15, x: -0.2 }, engine: { type: 'inline', r: 0.4, len: 1.7 }, prop: { r: 1.45, n: 3, x: 0 },
     wing: { cr: 2.2, ct: 1.0, x: -0.1, y: -0.28, dih: 0.3, sweep: 0.25, t: 0.26, elliptic: true },
-    tail: { x: -3.2, chord: 1.1, span: 1.7, fin: 1.1, finChord: 1.4, y: 0.1 }, canopy: [{ x0: -0.1, x1: 1.5, tx1: 1.15, h: 0.52 }],
+    tail: { x: -3.2, chord: 1.1, span: 3.6, fin: 1.1, finChord: 1.4, y: 0.1 }, canopy: [{ x0: -0.1, x1: 1.5, tx1: 1.15, h: 0.52 }],
     gear: 'retract', ordnance: 'torp',
   },
 };
