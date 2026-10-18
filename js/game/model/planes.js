@@ -85,9 +85,9 @@ export const PLANES = {
   },
   ln401: {
     name: 'Loire-Nieuport LN.401', nation: 'France', role: 'dive', kind: 'mono', L: 9.7, span: 14.0, mass: 2.9, hp: 2.7, bombKg: 225,
-    fus: { r: 0.5, ar: 1.15, x: -0.2 }, engine: { type: 'inline', r: 0.42, len: 1.8 }, prop: { r: 1.5, n: 3, x: 0 },
-    wing: { cr: 2.4, ct: 1.2, x: -0.1, y: -0.35, dih: 0.0, gull: 0.85, sweep: 0.2, t: 0.3 },
-    tail: { x: -4.0, chord: 1.2, span: 4.6, fin: 1.4, finChord: 1.6, y: 0.15 }, canopy: [{ x0: 0.0, x1: 1.9, tx1: 1.5, h: 0.6 }],
+    fus: { r: 0.5, ar: 1.3, x: -0.2 }, engine: { type: 'inline', r: 0.42, len: 1.8 }, prop: { r: 1.5, n: 3, x: 0 },
+    wing: { cr: 2.4, ct: 1.2, x: -0.1, y: -0.35, dih: 0.0, gull: 0.85, kneeFrac: 0.23, tipRise: 0.95, sweep: 0.2, t: 0.3 },
+    tail: { x: -4.3, chord: 1.6, span: 3.9, plates: { h: 1.7, chord: 1.5 }, fin: 1.4, finChord: 1.6, y: 0.15 }, canopy: [{ x0: 0.0, x1: 1.9, tx1: 1.5, h: 0.6 }],
     gear: 'spats', ordnance: 'bomb',
   },
   pl10: {
@@ -100,15 +100,15 @@ export const PLANES = {
   re2001: {
     name: 'Reggiane Re.2001', nation: 'Italy', role: 'dive', kind: 'mono', L: 8.2, span: 11.0, mass: 2.6, hp: 2.6, bombKg: 250,
     fus: { r: 0.46, ar: 1.15, x: -0.2 }, engine: { type: 'inline', r: 0.4, len: 1.7 }, prop: { r: 1.45, n: 3, x: 0 },
-    wing: { cr: 2.2, ct: 1.0, x: -0.1, y: -0.28, dih: 0.3, sweep: 0.25, t: 0.26, elliptic: true },
-    tail: { x: -3.2, chord: 1.1, span: 3.6, fin: 1.1, finChord: 1.4, y: 0.1 }, canopy: [{ x0: -0.1, x1: 1.5, tx1: 1.15, h: 0.52 }],
+    wing: { cr: 2.2, ct: 1.0, x: 0.40, y: -0.28, dih: 0.3, sweep: 0.25, t: 0.26, elliptic: true },
+    tail: { x: -4.0, chord: 1.4, span: 3.6, fin: 1.5, finChord: 2.0, y: 0.1 }, canopy: [{ x0: -0.1, x1: 1.5, tx1: 1.15, h: 0.52 }],
     gear: 'retract', ordnance: 'bomb',
   },
   re2001t: {
     name: 'Reggiane Re.2001 G', nation: 'Italy', role: 'torp', kind: 'mono', L: 8.2, span: 11.0, mass: 2.8, hp: 2.6,
     fus: { r: 0.46, ar: 1.15, x: -0.2 }, engine: { type: 'inline', r: 0.4, len: 1.7 }, prop: { r: 1.45, n: 3, x: 0 },
-    wing: { cr: 2.2, ct: 1.0, x: -0.1, y: -0.28, dih: 0.3, sweep: 0.25, t: 0.26, elliptic: true },
-    tail: { x: -3.2, chord: 1.1, span: 3.6, fin: 1.1, finChord: 1.4, y: 0.1 }, canopy: [{ x0: -0.1, x1: 1.5, tx1: 1.15, h: 0.52 }],
+    wing: { cr: 2.2, ct: 1.0, x: 0.40, y: -0.28, dih: 0.3, sweep: 0.25, t: 0.26, elliptic: true },
+    tail: { x: -4.0, chord: 1.4, span: 3.6, fin: 1.5, finChord: 2.0, y: 0.1 }, canopy: [{ x0: -0.1, x1: 1.5, tx1: 1.15, h: 0.52 }],
     gear: 'retract', ordnance: 'torp',
   },
 };
@@ -325,14 +325,22 @@ export function drawPlane(b, s, { part = 'whole' } = {}) {
     for (const sg of [-1, 1]) {
       panel(b, [tx + t.chord * 0.6, ty, sg * 0.15], [tx + t.chord * 0.55 - 0.25, ty, sg * t.span / 2], [tx - t.chord * 0.1, ty, sg * t.span / 2], [tx - t.chord * 0.4, ty, sg * 0.15], 0.1, 0.06, top, bot);
     }
-    // fin and rudder
+    // fin and rudder (t.plates: twin end-plate fins at the tailplane tips instead of a central one: LN.401)
     const fy = ry0 * 0.15;
+    if (t.plates) {
+      const ph = t.plates.h, pc = t.plates.chord;
+      for (const sg of [-1, 1]) {
+        const z0 = sg * t.span / 2, y0 = ty - ph * 0.5, y1 = ty + ph * 0.5;
+        for (const fz of [0.05, -0.05]) b.quad([tx + pc * 0.5, y0, z0 + fz], [tx + pc * 0.5 - 0.2, y1, z0 + fz], [tx - pc * 0.5, y1 - 0.1, z0 + fz], [tx - pc * 0.5, y0, z0 + fz], top, MAT.AIRCRAFT, [tx, ty, z0 + fz * 40], 1);
+      }
+    } else {
     b.quad([tx + t.finChord * 0.4, fy, 0.05], [tx + t.finChord * 0.4 - 0.4, fy + t.fin, 0.05], [tx - t.finChord * 0.3, fy + t.fin * 0.95, 0.05], [tx - t.finChord * 0.45, fy, 0.05], top, MAT.AIRCRAFT, [tx, fy, -1], 1);
     b.quad([tx + t.finChord * 0.4, fy, -0.05], [tx - t.finChord * 0.45, fy, -0.05], [tx - t.finChord * 0.3, fy + t.fin * 0.95, -0.05], [tx + t.finChord * 0.4 - 0.4, fy + t.fin, -0.05], top, MAT.AIRCRAFT, [tx, fy, 1], 1);
     b.quad([tx + t.finChord * 0.4, fy, 0.05], [tx - t.finChord * 0.45, fy, 0.05], [tx - t.finChord * 0.45, fy, -0.05], [tx + t.finChord * 0.4, fy, -0.05], top, MAT.AIRCRAFT, [tx, fy + 1, 0], 1);
     // team identification band on the fin (tinted with the team colour by the renderer)
     b.quad([tx - t.finChord * 0.05, fy + t.fin * 0.5, 0.062], [tx - t.finChord * 0.05 - 0.35, fy + t.fin * 0.5, 0.062], [tx - t.finChord * 0.2 - 0.33, fy + t.fin * 0.82, 0.062], [tx - t.finChord * 0.2, fy + t.fin * 0.82, 0.062], acc, MAT.FLAG, [tx, fy, -1], 1);
     b.quad([tx - t.finChord * 0.05, fy + t.fin * 0.5, -0.062], [tx - t.finChord * 0.2, fy + t.fin * 0.82, -0.062], [tx - t.finChord * 0.2 - 0.33, fy + t.fin * 0.82, -0.062], [tx - t.finChord * 0.05 - 0.35, fy + t.fin * 0.5, -0.062], acc, MAT.FLAG, [tx, fy, 1], 1);
+    }   // end of the central fin
     // tail wheel
     if (s.gear !== 'float' && s.gear !== 'retract') b.cylinder(tx + 0.3, -ry0 * 0.1, 0, 0.05, 0.05, ry0 * 0.15, dark, MAT.DARK, { seg: 5 });
     if (s.gear === 'float') b.beam([tx + 0.3, ry0 * 0.05, 0], [tx + 0.4, -ry0 * 0.5, 0], 0.07, 0.07, dark, MAT.DARK);
@@ -346,14 +354,14 @@ export function drawPlane(b, s, { part = 'whole' } = {}) {
     const yr = w.y, x0 = w.x;
     if (w.gull) {
       // inverted gull: the inner panel drops from the fuselage, the outer panel rises
-      const kneeZ = hs * 0.3, drop = w.gull;
+      const kneeZ = hs * (w.kneeFrac ?? 0.3), drop = w.gull, rise = w.tipRise ?? 0.6;   // kneeFrac: where the wing bends (fraction of the half span), tipRise: how far the tip stands above the knee line
       const root = [[x0 + cr / 2, yr + 0.1, 0.0], [x0 - cr / 2, yr + 0.1, 0.0]];
       const knee = [[x0 + cr * 0.34 + 0.1, yr - drop * 0.5, sg * kneeZ], [x0 - cr * 0.34, yr - drop * 0.5, sg * kneeZ]];
-      const tip = [[x0 + ct / 2 + w.sweep * 0.5, yr - drop * 0.1 + 0.6, sg * hs], [x0 - ct / 2 + w.sweep * 0.5, yr - drop * 0.1 + 0.6, sg * hs]];
+      const tip = [[x0 + ct / 2 + w.sweep * 0.5, yr - drop * 0.1 + rise, sg * hs], [x0 - ct / 2 + w.sweep * 0.5, yr - drop * 0.1 + rise, sg * hs]];
       panel(b, root[0], knee[0], knee[1], root[1], w.t * 1.05, w.t * 0.9, top, bot);
       panel(b, knee[0], tip[0], tip[1], knee[1], w.t * 0.9, w.t * 0.5, top, bot);
-      insignia(b, s.nation, x0 - 0.1, yr - drop * 0.1 + 0.62 + w.t * 0.3, sg * hs * 0.72, 0.55, 'y', 1);
-      insignia(b, s.nation, x0 - 0.1, yr - drop * 0.1 + 0.62 - w.t * 0.3, sg * hs * 0.72, 0.55, 'y', -1);
+      insignia(b, s.nation, x0 - 0.1, yr - drop * 0.1 + rise + 0.02 + w.t * 0.3, sg * hs * 0.72, 0.55, 'y', 1);
+      insignia(b, s.nation, x0 - 0.1, yr - drop * 0.1 + rise + 0.02 - w.t * 0.3, sg * hs * 0.72, 0.55, 'y', -1);
       // wing leading-edge stripe (team colour)
       return;
     }

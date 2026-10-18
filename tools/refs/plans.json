@@ -952,6 +952,82 @@
         "dilate": 5,
         "open": 0
       }
+    },
+    "ln401": {
+      "length": 9.75,
+      "span": 14.0,
+      "side": {
+        "file": "refs/plane_ln401/ln401_ln411_plans72.jpg",
+        "source": "\"LN-401 / LN-411, plans au 1/72e\" (a French modelling magazine, p. 42), shared by the project owner (copyright: measurements only, not in the repository): the LN-401 side view; the front view gives the span (1120 px = 14.0 m: 80 px/m)",
+        "crop": [
+          205,
+          150,
+          1030,
+          372
+        ],
+        "preErase": [
+          [
+            445,
+            0,
+            475,
+            80
+          ]
+        ],
+        "flip": true,
+        "threshold": 150,
+        "dilate": 3,
+        "open": 0
+      }
+    },
+    "re2001": {
+      "length": 8.2,
+      "span": 11.0,
+      "top": {
+        "file": "refs/plane_re2001/re2001_falco2_3view.gif",
+        "source": "a Reggiane Re.2001 Falco II 3-view (913 px wide), shared by the project owner (author unknown: measurements only, not in the repository); scaled on the 11.0 m span",
+        "crop": [
+          0,
+          600,
+          915,
+          1280
+        ],
+        "preErase": [
+          [
+            660,
+            640,
+            915,
+            685
+          ]
+        ],
+        "rotate": 90,
+        "flip": true,
+        "threshold": 150,
+        "dilate": 5,
+        "open": 0,
+        "scaleBy": "span"
+      },
+      "side": {
+        "file": "refs/plane_re2001/re2001_falco2_3view.gif",
+        "source": "same 3-view, side view",
+        "crop": [
+          120,
+          8,
+          805,
+          312
+        ],
+        "preErase": [
+          [
+            310,
+            0,
+            410,
+            66
+          ]
+        ],
+        "flip": true,
+        "threshold": 150,
+        "dilate": 5,
+        "open": 0
+      }
     }
   }
 }

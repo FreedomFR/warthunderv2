@@ -17,6 +17,11 @@
 - **TBF Avenger and D3A Val**: compared with drawings shared by the project owner (a blueprint poster with the dimensions printed; Printscale and Artscale
   decal art; copyright, measurements only). Wings 0.9 / 1.2 m too far aft and tails 0.9 / 1.2 m too far forward with too short a chord:
   corrected (TBF tail chord 1.8 -> 2.4 m, D3A 1.3 -> 2.0 m). Planform mean difference TBF 5.3 -> 1.7 m, D3A 3.3 -> 1.6 m.
+- **LN.401**: the 1/72 plans of the LN-401 / LN-411 (a magazine, copyright; measurements only): the tail is a tailplane with twin end-plate fins (the model had a
+  single central fin): new `tail.plates` option; tailplane span 3.9 m (0.28 of the span), the wing bends at 0.23 of the half span (was 0.30) and its tips
+  stand 0.95 m above the knee (was 0.6 m; the knee and the rise are now `kneeFrac` and `tipRise`, shared with the Ju 87's gull wing), deeper fuselage.
+- **Re.2001**: a 3-view of the Falco II: the wing 0.5 m too far aft, the tail 0.8 m too far forward and too small, the fin too low: corrected; planform
+  mean difference 5.6 -> 4.0 m after the first pass (the figure is dominated by the sheet's lettering); the picture overlays well.
 - **Fi 167**: a clean 3-view shared by the project owner (measurements only): the wing planform already matched (13.5 m span); the tail was 1.2 m too far
   forward (-4.4 -> -5.6 m), the wing 0.4 m too far aft. Planform mean difference 1.6 -> 1.0 m.
 - **Ju 87 Stuka**: a 1:72 sheet with a scale bar (Zurek) and D-5 plans, shared by the project owner (copyright; measurements only). The tailplane is only 3.0 m

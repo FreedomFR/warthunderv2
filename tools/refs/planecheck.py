@@ -55,6 +55,7 @@ for view in ('top', 'side'):
         for x in range(W):
             c = rp[x, y]
             if not (c[1] > c[0] + 60 and c[1] > c[2] + 60): mp[x, y] = 255
+    mm = mm.filter(ImageFilter.MinFilter(3)).filter(ImageFilter.MaxFilter(3))      # the propeller blades are thin: leave them out, drawings show the spinner only
     mprof, (ml, mh) = profile(mm, 0, 0, ppm)
     im = Image.open(os.path.join(HERE, '..', '..', d['file'])).convert('RGBA'); bg = Image.new('RGBA', im.size, (255, 255, 255, 255)); bg.alpha_composite(im); im = bg.convert('RGB')
     x0, y0, x1, y1 = d['crop']; im = im.crop((x0, y0, x1, y1))
