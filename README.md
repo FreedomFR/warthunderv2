@@ -35,6 +35,24 @@ npm test           # vérifie les modèles, les dégâts localisés, l'aviation 
 Si la machine est lente : *Réglages* (touche `H`) → « Résolution de rendu ». Sur un portable, forcer Chrome
 sur la carte graphique dédiée.
 
+### Continuer le développement depuis un autre poste
+
+```
+git clone https://github.com/FreedomFR/warthunderv2 && cd warthunderv2
+git checkout main && git pull          # ou la branche de travail
+npm install                            # seulement pour les outils (playwright-core, esbuild)
+npm start                              # http://localhost:8080/
+npm test                               # sans carte graphique
+```
+
+- **Outils dans le navigateur** (`npm run check:shaders`, `npm run smoke`, `tools/trailer`, `tools/refs`) : ils pilotent Chrome en mode
+  sans fenêtre. Par défaut ils utilisent le rendu logiciel (SwiftShader : marche partout mais lent) ; avec une carte graphique, lancer
+  avec `GPU=hardware` (par exemple `GPU=hardware npm run smoke`, sous Windows `set GPU=hardware` avant la commande). `CHROME=chemin`
+  choisit un autre navigateur. Le mode matériel n'a pas pu être testé dans l'environnement où le lot 1 a été fait (pas de carte graphique).
+- La bande-annonce (`tools/trailer`) demande aussi `ffmpeg` ; les planches de comparaison (`tools/refs/sheet.py`) demandent Python et Pillow.
+- Pour reprendre avec Claude Code : le fichier `CLAUDE.md` décrit le projet, les commandes, l'organisation du code et la méthode des lots
+  « fidélité » ; `TODO.md` liste ce qu'il reste à faire.
+
 ## Utilisation
 
 1. **Écran de composition** : choisissez un scénario ou composez vos équipes (nation, classe, nombre de navires,

@@ -2,12 +2,11 @@
 //   node server.mjs 8080 &        node tools/wgslcheck.mjs
 // Needs playwright-core and a Chromium with WebGPU (software SwiftShader is fine).
 import { chromium } from 'playwright-core';
+import { launchOptions } from './browser.mjs';
 
 const url = process.argv[2] || 'http://localhost:8080';
-const chrome = process.env.CHROME || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
 const LIST = [['/js/wgsl/ship.js', ['SHIP', 'SHIP_SHADOW']], ['/js/wgsl/ocean.js', ['OCEAN', 'SKY_BG']], ['/js/wgsl/particles.js', ['PARTICLES']], ['/js/wgsl/post.js', ['BLOOM_DOWN', 'BLOOM_UP', 'COMPOSITE']]];
-const args = ['--enable-unsafe-webgpu', '--use-webgpu-adapter=swiftshader', '--use-angle=swiftshader', '--enable-features=Vulkan', '--ignore-gpu-blocklist', '--no-sandbox', '--enable-webgpu-developer-features'];
-const browser = await chromium.launch({ executablePath: chrome, args, headless: true });
+const browser = await chromium.launch(launchOptions());
 const page = await browser.newPage();
 await page.goto(`${url}/__none__.html`).catch(() => {});
 const res = await page.evaluate(async (list) => {
