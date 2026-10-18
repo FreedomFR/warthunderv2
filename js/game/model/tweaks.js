@@ -184,7 +184,8 @@ export const TWEAKS = {
     dir0: { dx: -6.7, w: 4.2, l: 4.2, h: 2.2 },
     foremast: { dx: -11.6, y0: 6.0 },
     funnels: [{ lx: 9.2, lz: 7.4, y0: 3.4, h: 12.9, rake: 0.8, top: 0.92, pipes: false }, { lx: 9.0, lz: 7.2, y0: 3.4, h: 12.9, rake: 0.8, top: 0.92, pipes: false }],
-    cat: { f: 0.557, y: 0.4, yaw: Math.PI / 2, len: 22, craneF: 0.59, craneH: 8, craneLen: 22, craneDir: 1, craneAng: 0.45, craneSide: 0, craneW: 0.7 },
+    // the lattice crane lies along the hangar roof between the funnels: its jib nearly horizontal at 14 m, from f 0.575 forward to 0.52
+    cat: { f: 0.557, y: 0.4, yaw: Math.PI / 2, len: 22, craneF: 0.575, craneH: 7.2, craneLen: 12.5, craneDir: 1, craneAng: 0.05, craneSide: 0, craneW: 0.9 },
   },
   fletcher: { mainVariant: 'mk30' },
   cleveland: { secVariant: ['mk28'] },

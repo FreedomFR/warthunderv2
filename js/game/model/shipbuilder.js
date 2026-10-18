@@ -192,7 +192,8 @@ export function buildShipModel(spec, tw = {}) {
   const funLx = funLz * (tw.funnelLen ?? (t === 'BB' ? 1.55 : 1.45));
 
   // -------- central deckhouse --------
-  const towerF = (sil.masts && sil.masts[0] && sil.masts[0].fractionFromBow) || 0.33;
+  // the tower stands where tw.towerF says (the foremast can be abaft it): the deckhouse has to reach the front of the bridge
+  const towerF = tw.towerF ?? ((sil.masts && sil.masts[0] && sil.masts[0].fractionFromBow) || 0.33);
   if (!carrier && tw.house?.plan) {
     // measured outline of the deckhouse: [[fraction from bow, half-width (m)], ...] from forward to aft, mirrored to port
     const pl = tw.house.plan, fs = pl.map((q) => q[0]);
@@ -254,7 +255,7 @@ export function buildShipModel(spec, tw = {}) {
 
   // -------- bridge tower / island --------
   if (!carrier) {
-    const x = X(tw.towerF ?? towerF);
+    const x = X(towerF);
     const y0 = Y(x) + (tw.towerY0 ?? 0);
     const tiers = tw.tiers || (tw.pagoda ? pagodaTiers(...tw.pagoda) : towerTiers(spec));
     let r = null;
