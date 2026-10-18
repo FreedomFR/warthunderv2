@@ -428,7 +428,37 @@ export const TWEAKS = {
     mastY0: { 1: 6.0 },
     cat: { f: 0.64, z: 0, yaw: Math.PI / 2, len: 13, y: 2.0, craneF: 0.70, craneY: 6.8, craneH: 2.0, craneLen: 10, craneDir: -1, craneAng: 0.5, craneSide: 0, craneW: 0.6 },
   },
-  fletcher: { mainVariant: 'mk30' },
+  // Fletcher class (a profile / plan / lines sheet with a 20 m scale bar, shared by the project owner: a monograph, copyright of the author, measured only; 15.25 px per metre, about
+  // +-0.2 m): a flush deck sweeping from 6.8 m at the stem to 3.0 m aft of f 0.6; the 5 in mounts at 0.177 / 0.238 (forecastle, the second 1.2 m higher) and 0.679 / 0.754 (on the
+  // after deckhouse) / 0.831 (fantail); the bridge block 0.27-0.35 (director 16.8 m), a pole mast at 0.375 (top 28.7 m), funnels at 0.419 and 0.534 (tops 13.8 / 13.4 m), the quintuple
+  // tubes at 0.465 and 0.585, the after structure 0.69-0.74 with a Bofors platform (10.9 m) and a signal pole at 0.69 (16.6 m).
+  fletcher: {
+    mainVariant: 'mk30', dirKind: 'drum', houseH: 2.2, bulwarkF: [0, 0.02],
+    fb: [[0, 6.8], [0.04, 6.1], [0.1, 5.5], [0.2, 4.9], [0.3, 4.5], [0.4, 4.0], [0.5, 3.4], [0.6, 3.0], [1, 3.0]],
+    planDeck: [[0, 0.02], [0.05, 0.41], [0.1, 0.575], [0.15, 0.685], [0.2, 0.775], [0.25, 0.85], [0.3, 0.915], [0.35, 0.9], [0.4, 0.915], [0.45, 0.93], [0.5, 0.94], [0.55, 0.95], [0.6, 0.955], [0.65, 0.945], [0.7, 0.94], [0.75, 0.925], [0.8, 0.9], [0.85, 0.86], [0.9, 0.81], [0.95, 0.74], [1, 0.55]],
+    planWL: [[0, 0], [0.04, 0.3], [0.1, 0.55], [0.2, 0.78], [0.3, 0.92], [0.4, 0.99], [0.5, 1], [0.6, 1], [0.7, 0.97], [0.8, 0.9], [0.9, 0.74], [0.95, 0.6], [1, 0.5]],
+    decks: [
+      { f: [0.272, 0.352], hw: 3.4, y: [0, 5.0], windows: true },           // bridge block, 9.6 m
+      { f: [0.30, 0.345], hw: 2.8, y: [5.0, 7.4], windows: true },          // 12 m
+      { f: [0.31, 0.34], hw: 2.0, y: [7.4, 10.8], windows: true },          // the tower, 15.4 m
+      { f: [0.40, 0.445], hw: 3.0, y: [0, 2.2] },                           // deckhouse round the forward funnel, 6.2 m
+      { f: [0.50, 0.605], hw: 3.2, y: [0, 2.6] },                           // deckhouse round the after funnel
+      { f: [0.689, 0.74], hw: 2.6, y: [0, 7.0], windows: true },            // the after structure, 10 m
+    ],
+    towerF: 0.325, towerY0: 10.8,
+    tiers: [{ len: 2.5, w: 2.5, h: 0.1 }],
+    dir0: { dx: 0, w: 2.0, l: 2.2, h: 1.5 },
+    foremast: { dx: -5.7, y0: 4.5 },
+    funnels: [{ lx: 3.0, lz: 2.4, y0: 1.8, h: 8.1, rake: 0.3, top: 0.92, pipes: false }, { lx: 3.0, lz: 2.4, y0: 2.2, h: 7.9, rake: 0.3, top: 0.92, pipes: false }],
+    mastY0: { 1: 7.0 },
+    props: [{ f: 0.936, z: 2.9, depth: 3.0, d: 3.6, blades: 4, toF: 0.84, strutF: 0.866 }],
+    rudders: [{ f: 0.96, z: 0, top: 0.6, bottom: 4.4, chord: 3.3 }],
+    boats: [{ f0: 0.347, f1: 0.41, z: 3.6, y: 2.2, cabin: false, davits: true }],
+    aa: [
+      { k: 't40', f: 0.61, z: 4.1, y: 0 }, { k: 't40', f: 0.717, z: 0, y: 7.4 }, { k: 't40', f: 0.953, z: 0, y: 0.5 },
+      { k: 'o20', f: 0.29, z: 4.7, y: 4.5 }, { k: 'o20', f: 0.345, z: 3.9, y: 4.5 }, { k: 'o20', f: 0.5, z: 4.8, y: 0 },
+    ],
+  },
   // Cleveland class (Colosseum drawing of USS Cleveland, Measure 12 modified, 1942, with a scale bar and the waterline; plan from the Pit-Road 1/700 sheet; shared by
   // the project owner, measured only: 3.9 px per metre, about +-0.5 m): freeboard 8.8 m at the stem, 7.3 m at f 0.2, 6.8-7.0 m amidships and aft, a 9.6 m hangar roof at
   // the stern (f 0.84-0.97); turrets A / B at 0.193 / 0.26 (B 2.6 m higher), X / Y at 0.729 / 0.79; the bridge block 0.347-0.445 (platform 17.6 m, director top
@@ -584,7 +614,32 @@ export const TWEAKS = {
     mastY0: { 1: 4.0 },
     cat: { f: 0.638, z: 8.7, yaw: 0, len: 20.4, y: 4.0, craneF: 0.693, craneY: 4.0, craneH: 4.5, craneLen: 19.5, craneDir: 1, craneAng: 0.4, craneSide: 0, craneW: 0.7 },
   },
-  kagero: { dirKind: 'drum', tiers: [{ len: 6.5, w: 5.4, h: 2.4, rake: 1.2 }, { len: 5.2, w: 4.4, h: 2.2, rake: 1, wings: 0.8 }, { len: 4, w: 3.4, h: 2.0, rake: 0.8 }] },
+  // Kagero class (Commons outline drawing of the class, MacMoreno, CC BY-SA 4.0; profile and plan, scaled to the 118.5 m length, 15 px per metre, about +-0.3 m): a forecastle at 5.3 m
+  // (6.2 m at the stem) stepping down to the 2.9 m main deck at f 0.31-0.33; turrets A at 0.152 and X / Y at 0.730 / 0.800 (X on the deckhouse, 2.3 m higher); the bridge block 0.246-0.293
+  // (compass bridge 10.7 m, director 12.5 m), a pole foremast at 0.325 (top 23.7 m), funnels at 0.373 and 0.517 (tops 12.3 / 10.9 m), the quadruple tubes at 0.45 and 0.60, a
+  // long deckhouse to f 0.755 (5.2 m) and a signal mast at 0.68 (15 m).
+  kagero: {
+    mainVariant: 'type3_127', dirKind: 'drum', houseH: 2.2, bulwarkF: [0, 0.02],
+    fb: [[0, 6.2], [0.05, 5.7], [0.1, 5.4], [0.2, 5.2], [0.3, 5.0], [0.31, 4.0], [0.33, 2.9], [1, 2.9]],
+    planDeck: [[0, 0.128], [0.042, 0.444], [0.083, 0.603], [0.125, 0.725], [0.167, 0.81], [0.208, 0.883], [0.25, 0.932], [0.292, 0.98], [0.333, 1.0], [0.375, 1.02], [0.417, 1.03], [0.5, 1.04], [0.583, 1.04], [0.625, 1.03], [0.667, 1.02], [0.708, 1.01], [0.75, 0.99], [0.792, 0.968], [0.833, 0.919], [0.875, 0.871], [0.917, 0.798], [0.958, 0.652], [1, 0.213]],
+    planWL: [[0, 0], [0.04, 0.3], [0.1, 0.56], [0.2, 0.8], [0.3, 0.93], [0.4, 0.99], [0.5, 1], [0.6, 1], [0.7, 0.97], [0.8, 0.88], [0.9, 0.68], [0.95, 0.5], [1, 0.25]],
+    decks: [
+      { f: [0.246, 0.293], hw: 2.6, y: [0, 4.2], windows: true },           // bridge block, 9.2 m
+      { f: [0.25, 0.292], hw: 2.3, y: [4.2, 5.7], windows: true },          // compass bridge, 10.7 m
+      { f: [0.255, 0.285], hw: 1.8, y: [5.7, 7.3], windows: true },         // 12.3 m
+      { f: [0.36, 0.755], hw: 3.2, y: [0, 2.2] },                           // the long deckhouse, 5.1 m
+    ],
+    towerF: 0.27, towerY0: 12.0,
+    tiers: [{ len: 2.5, w: 2.5, h: 0.1 }],
+    dir0: { dx: 0, w: 1.8, l: 2.0, h: 1.0 },
+    foremast: { dx: -6.5, y0: 0.2 },
+    funnels: [{ lx: 3.1, lz: 2.0, y0: 2.1, h: 7.3, rake: 0.8, top: 0.9, pipes: false }, { lx: 2.9, lz: 1.9, y0: 0.7, h: 7.3, rake: 0.6, top: 0.9, pipes: false }],
+    mastY0: { 1: 2.3 },
+    props: [{ f: 0.928, z: 2.0, depth: 2.5, d: 2.5, blades: 3, toF: 0.84, strutF: 0.91 }],
+    rudders: [{ f: 0.96, z: 0, top: 0.5, bottom: 3.5, chord: 3.7 }],
+    boats: [{ f0: 0.246, f1: 0.285, z: 4.6, y: 0.4, cabin: false, davits: true }, { f0: 0.50, f1: 0.545, z: 4.6, y: 2.2, cabin: false, davits: true }],
+    aa: [{ k: 'd25', f: 0.945, z: 3.0, y: 0 }, { k: 't25', f: 0.505, z: 4.8, y: 0 }, { k: 's25', f: 0.85, z: 2.4, y: 0 }],
+  },
   // Agano (a detailed line drawing of the class with a 50 m scale bar and the waterline, profile and plan, shared by the project owner; measured only, 8.7 px per metre, about +-0.3 m on
   // the hull and +-0.6 m on the superstructure; the rigging of the sheet pollutes the silhouette check): a forecastle rising from 4.8 m amidships to 6.8 m at the stem (10 m at the
   // stem head) and a quarterdeck at 3.9 m abaft f 0.85; turrets A / B at 0.192 / 0.243 (B on a barbette 4.4 m higher) and C at 0.813; the bridge block 0.346-0.41 (tiers 10 / 15.5 / 19 m,
