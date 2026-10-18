@@ -230,4 +230,7 @@ Paramètres d'URL utiles : `?scenario=duel&start=1` (démarrage direct), `seed=1
 Le moteur d'océan (vagues FFT, ciel physique, post-traitement, shaders WGSL) vient de
 [Noniv/web-ocean](https://github.com/Noniv/web-ocean) (licence MIT, voir `LICENSE` et `NOTICE.md`) ; il a été adapté
 ici pour accueillir le jeu. Les caractéristiques des navires proviennent de Wikipédia, NavWeaps et Navypedia.
+Pour le lot « fidélité » (Iowa, Yamato, Bismarck, Essex), les proportions des tourelles, des superstructures et des effets de tir ont été relevées
+(mesures et observations seulement : aucune image n'est copiée dans le dépôt) sur des photographies de Wikimedia Commons : domaine public pour les
+photographies de l'US Navy (*Iowa*, *Essex*) et du *Yamato*, Bundesarchiv (CC BY-SA 3.0 de) pour le *Bismarck*.
 Code sous licence MIT.
