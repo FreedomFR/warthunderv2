@@ -84,7 +84,39 @@ export const TWEAKS = {
   fletcher: { mainVariant: 'mk30' },
   cleveland: { secVariant: ['mk28'] },
   baltimore: { secVariant: ['mk28'] },
-  yamato: { mainVariant: 'type94', pagoda: [21, 16, 9, 34], dirKind: 'drum', houseW: 0.34, funnelW: 0.27, funnelLen: 1.5, funnelH: 21, funnelRake: 5, funnelTop: 0.96 },
+  // Yamato (1945): measured on the profile and plan by Alexpl (Commons, CC BY-SA 3.0) with the builders' freeboards (NH 111711): a hull
+  // that is widest at the deck (38.9 m over 36.9 m at the waterline), a deck that dips from the bow to the forward turrets and steps
+  // down to the quarterdeck; the 01 level 3.9 m, the block around the funnel 11.5 m, the tower to 30.5 m with the 15 m rangefinder on top
+  yamato: {
+    mainVariant: 'type94', secVariant: ['type3_155'], dirKind: 'drum', houseH: 3.9,
+    fb: [[0, 10.0], [0.03, 9.2], [0.09, 8.4], [0.18, 7.7], [0.27, 7.5], [0.4, 8.2], [0.5, 8.667], [0.7, 8.7], [0.76, 8.5], [0.86, 6.7], [1, 6.4]],
+    stern: { overhang: 1.5, rise: 7 },
+    planDeck: [[0, 0.1], [0.01, 0.28], [0.02, 0.33], [0.04, 0.36], [0.06, 0.39], [0.08, 0.42], [0.1, 0.46], [0.13, 0.53], [0.16, 0.59], [0.2, 0.71], [0.25, 0.82], [0.3, 0.92], [0.35, 0.98], [0.4, 1.04], [0.45, 1.054], [0.72, 1.054], [0.75, 1.02], [0.8, 0.93], [0.85, 0.89], [0.9, 0.78], [0.95, 0.55], [0.98, 0.3], [1, 0.08]],
+    planWL: [[0, 0], [0.03, 0.12], [0.06, 0.2], [0.1, 0.3], [0.15, 0.42], [0.2, 0.56], [0.25, 0.7], [0.3, 0.82], [0.35, 0.91], [0.4, 0.97], [0.45, 1], [0.7, 1], [0.75, 0.97], [0.8, 0.9], [0.85, 0.8], [0.9, 0.65], [0.95, 0.42], [1, 0.12]],
+    house: { plan: [[0.452, 5], [0.47, 12], [0.5, 16.2], [0.62, 16.2], [0.655, 13], [0.675, 6], [0.685, 3]] },
+    decks: [
+      { plan: [[0.478, 5], [0.49, 8.5], [0.65, 8.5], [0.667, 5]], y: [3.9, 11.5], taper: 0.94 },       // block around the tower and the funnel
+      { f: [0.643, 0.657], round: true, hw: 2.5, y: [11.5, 16.5], taper: 0.9 },                     // after rangefinder tower
+    ],
+    // the tower: eight stacked tiers stepping back towards the top, bridge windows on two of them only (the rest is armour and platforms)
+    towerF: 0.505, towerY0: 11.5,
+    tiers: [
+      { len: 13.5, w: 12.0, h: 3.00, dx: 0, rake: 0.6, wings: 0.7, windows: false },
+      { len: 12.4, w: 11.1, h: 2.85, dx: -0.55, rake: 0.8, wings: 1.4, windows: false },
+      { len: 11.4, w: 10.3, h: 2.67, dx: -1.10, rake: 1.0, wings: 0.7, windows: false },
+      { len: 10.5, w: 9.6, h: 2.48, dx: -1.65, rake: 0.6, wings: 1.4, windows: true },
+      { len: 9.7, w: 8.9, h: 2.27, dx: -2.20, rake: 0.8, wings: 0.7, windows: false },
+      { len: 8.9, w: 8.2, h: 2.08, dx: -2.75, rake: 1.0, wings: 1.4, windows: false },
+      { len: 8.2, w: 7.6, h: 1.90, dx: -3.30, rake: 0.6, wings: 0.7, windows: true },
+      { len: 7.5, w: 7.1, h: 1.72, dx: -3.85, rake: 0.8, wings: 1.4, windows: false },
+    ],
+    dir0: { dx: 0, w: 8.5, l: 5, h: 2.5 },
+    foremast: { dx: -2.0, y0: 30.5 },
+    funnels: [{ lx: 10, lz: 7.5, y0: 11.5, h: 11.6, rake: 4.5, top: 0.95 }],
+    mastY0: { 1: 11.5 },
+    directors: [{ f: 0.65, y: 16.5, kind: 'drum', w: 5.5, l: 3.5, h: 2.2, label: 'Télémètre arrière' }],
+    cat: { f: 0.935, z: 12, yaw: 0.25, len: 19, craneF: 0.985 },
+  },
   takao: { pagoda: [13, 11, 9, 34], dirKind: 'drum', funnelRake: 3.0 },
   kagero: { dirKind: 'drum', tiers: [{ len: 6.5, w: 5.4, h: 2.4, rake: 1.2 }, { len: 5.2, w: 4.4, h: 2.2, rake: 1, wings: 0.8 }, { len: 4, w: 3.4, h: 2.0, rake: 0.8 }] },
   agano: { dirKind: 'drum' },

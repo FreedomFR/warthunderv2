@@ -362,9 +362,11 @@ export function buildShipModel(spec, tw = {}) {
       const lvl = (tw.secLevel ?? 0);
       const deckY = p.heightM != null ? Y(x) + p.heightM : Y(x) + (onHouse ? houseH : 0) + lvl;
       const sc = kind === 'turret' ? Math.max(calS * 4, 1.0) : 0.9;
-      if (kind === 'turret') PT.barbette(b, x, zz, sc, deckY - 0.2, deckY + 0.5 + calS * 3, pal.hull);
-      const pivot = kind === 'turret' ? deckY + 0.5 + calS * 3 : deckY + 0.55;
-      if (kind !== 'turret') PT.tub(b, x, deckY - 0.1, zz, 1.2 + calS * 3, 0.6, pal);
+      // a measured mount (heightM) stands on its own barbette from baseM (the deck, or the deckhouse roof it is on)
+      const pivot = p.heightM != null ? deckY : kind === 'turret' ? deckY + 0.5 + calS * 3 : deckY + 0.55;
+      const sv = tw.secVariant?.[si], sdm = sv ? mountDims({ kind, cal, n: per, variant: sv }) : null;
+      if (kind === 'turret') PT.barbette(b, x, zz, sdm?.barbR || sc, p.baseM != null ? Y(x) + p.baseM - 0.2 : deckY - 0.2, pivot, pal.hull);
+      if (kind !== 'turret' && p.heightM == null) PT.tub(b, x, deckY - 0.1, zz, 1.2 + calS * 3, 0.6, pal);
       const [ac, ah] = arcFor(x, zz);
       mountRec('sec', kind, cal, per, s.boreCalibers || 40, x, zz, pivot, sg === 0 ? ac : ac, ah, { bore: s.boreCalibers || 40, si, variant: tw.secVariant?.[si] });
       note(pivot + 2);

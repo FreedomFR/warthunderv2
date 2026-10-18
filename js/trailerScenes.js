@@ -265,7 +265,9 @@ export const SCENES = {
     const jp = T.fleet(1, [{ id: 'yamato' }], 2500, -7500, 90, { knots: 12 });
     T.go();
     const ship = us[0];
-    const mains = () => ship.mounts.filter((m) => m.group === 'main' && m.alive);
+    // ?mount=A|B|C films that turret only (by default the first one ready to fire)
+    const only = new URLSearchParams(location.search).get('mount');
+    const mains = () => ship.mounts.filter((m) => m.group === 'main' && m.alive && (!only || m.rec.label === only));
     await T.until(() => mains().some((m) => m.aimOk && m.fireT < 0.05), { max: 400, dt: 1 / 60 });
     const m = mains().find((q) => q.fireT < 0.05) || mains()[0];
     const w = [0, 0, 0];

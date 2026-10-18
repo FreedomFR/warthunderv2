@@ -20,7 +20,11 @@ const FAMILY = {
   // Iowa class plans (profile and plan view) and NH 44538 (crew at the rails for scale): a long, low gun house, 15.4 x 12.4 m and
   // 3.4 m high, the gun axis 1.6 m above its base, barrels 12.4 m clear of the face, turret 2 three metres above turret 1
   mk7: { kind: 'turret', cal: 406, n: 3, spacing: 3.05, trunX: 3.4, trunY: 1.6, face: 6.4, port: 5.6, fwd: 15.4, back: 2.8, rB: 0.62, rP: 0.52, rM: 0.31, bagR: 0.95, bagLen: 1.2, recoil: 1.2, lift: 3.0, h: 3.4, barbR: 6.0, barb: 0.35 },
-  type94: { kind: 'turret', cal: 460, n: 3, spacing: 3.52, trunX: 3.6, trunY: 2.9, face: 7.4, fwd: 14.4, back: 2.9, rB: 0.70, rP: 0.60, rM: 0.35, bagR: 1.1, bagLen: 1.5, recoil: 1.3, lift: 5.2, h: 6.7, barbR: 6.2, whiteMuzzle: true },
+  // Yamato 1945 profile and plan (Commons, Alexpl, after the Kure museum photographs; heights scaled to the builders' freeboards):
+  // 18.5 m long, 14.4 m wide without the rangefinder arms, 4.3 m high, barrels 13.3 m clear of the ports, turret 2 3.5 m above turret 1
+  type94: { kind: 'turret', cal: 460, n: 3, spacing: 3.52, trunX: 3.6, trunY: 1.9, face: 7.6, port: 6.4, fwd: 16.1, back: 2.9, rB: 0.70, rP: 0.60, rM: 0.35, bagR: 1.05, bagLen: 1.3, recoil: 1.3, lift: 3.5, h: 4.3, barbR: 6.6, barb: 0.3, whiteMuzzle: true },
+  // Yamato's 15.5 cm/60 triple (ex-Mogami): 8.6 m long, 3.1 m high, barrels 5.9 m clear of the face, on a 6.6-7.1 m barbette
+  type3_155: { kind: 'turret', cal: 155, n: 3, spacing: 1.7, trunX: 1.2, trunY: 1.3, face: 3.6, port: 3.2, fwd: 8.3, back: 1.2, rB: 0.26, rP: 0.2, rM: 0.11, bagR: 0.33, bagLen: 0.5, recoil: 0.6, lift: 2.6, h: 3.1, barbR: 3.0 },
   drh34: { kind: 'turret', cal: 380, n: 2, spacing: 4.6, trunX: 2.8, trunY: 2.3, face: 6.1, fwd: 13.3, back: 2.6, rB: 0.58, rP: 0.49, rM: 0.29, bagR: 0.9, bagLen: 1.2, recoil: 1.15, lift: 4.2, h: 4.9, barbR: 5.3 },
   mk28: { kind: 'dp', cal: 127, n: 2, spacing: 0.78, trunX: 0.55, trunY: 1.35, face: 1.9, fwd: 3.6, back: 0.9, rB: 0.19, rP: 0.15, rM: 0.085, bagR: 0.3, bagLen: 0.3, recoil: 0.5, lift: 3.0, h: 2.9 },
   mk30: { kind: 'shield', cal: 127, n: 1, spacing: 0, trunX: 0.5, trunY: 1.3, face: 1.5, fwd: 3.4, back: 0.9, rB: 0.19, rP: 0.15, rM: 0.085, bagR: 0.0, bagLen: 0, recoil: 0.5, lift: 2.4, h: 2.5 },
@@ -91,21 +95,33 @@ function houseMk7(hb, col, dark, f) {
   }
 }
 
-/** Japanese Type 94 46 cm triple turret (Yamato class): slab sides, long sloped front plate, big rangefinder housing aft. */
+/** Japanese Type 94 46 cm triple turret (Yamato class): a huge, squat house with slab sides and a long sloped face, the 15 m
+ *  rangefinder across the rear with its arms out beyond the sides. */
 function houseType94(hb, col, dark, f) {
-  const mid = shade(col, 0.95), light = shade(col, 1.1), shadow = shade(col, 0.8);
-  hb.cylinder(0, -0.2, 0, 6.4, 6.5, 0.8, shadow, MAT.HULL, { seg: 28 });
-  hb.block({ x0: -9.0, x1: f.face, hw: 6.1, y0: 0.6, y1: 4.0, tx0: -8.8, tx1: f.face - 0.5, thw: 6.0 }, col, MAT.HULL);
-  hb.block({ x0: -8.8, x1: f.face - 0.5, hw: 6.0, y0: 4.0, y1: f.h, tx0: -8.0, tx1: 4.6, thw: 5.3 }, mid, MAT.HULL);
-  // rear: stepped back with the long-base rangefinder housing and its hoods
-  hb.block({ x0: -11.4, x1: -8.8, hw: 4.6, y0: 1.2, y1: 5.4, tx0: -10.9, tx1: -8.8, thw: 4.2 }, shade(col, 0.9), MAT.HULL);
-  hb.rodZ(-9.5, 6.4, -6.9, 6.9, 0.55, 0.55, shade(col, 0.88), MAT.HULL, { seg: 10 });
-  for (const sg of [-1, 1]) hb.cyl(-9.5, 5.9, sg * 6.5, 0.9, 0.9, 0.75, 0.75, 7.0, light, MAT.HULL, { seg: 10 });
-  for (const sg of [-1, 1]) hb.cylinder(-4.2, f.h * 0.92, sg * 3.6, 0.6, 0.55, f.h + 0.9, shadow, MAT.HULL, { seg: 8 });
-  hb.box(-1.0, f.h + 0.05, 0, 3.4, 0.14, 2.6, light, MAT.HULL);
+  const light = shade(col, 1.1), shadow = shade(col, 0.8);
+  hb.cylinder(0, -0.1, 0, 6.6, 6.7, 0.2, shadow, MAT.HULL, { seg: 28 });
+  hb.block({ x0: -10.6, x1: f.face, hw: 7.2, y0: 0.15, y1: f.h, tx0: -10.4, tx1: 5.0, thw: 7.0 }, col, MAT.HULL);   // walls, sloped face, roof
+  hb.block({ x0: -11.6, x1: -10.4, hw: 5.0, y0: 0.8, y1: 3.4, tx0: -11.3, thw: 4.8 }, shade(col, 0.9), MAT.HULL);   // rear overhang
+  hb.rodZ(-8.4, f.h - 0.9, -8.6, 8.6, 0.5, 0.5, shade(col, 0.88), MAT.HULL, { seg: 10 });                          // rangefinder arms
+  for (const sg of [-1, 1]) hb.cyl(-8.4, f.h - 1.6, sg * 8.2, 0.8, 0.8, 0.7, 0.7, f.h - 0.2, light, MAT.HULL, { seg: 10 });
+  for (const sg of [-1, 1]) hb.cylinder(-4.0, f.h - 0.1, sg * 3.8, 0.55, 0.5, f.h + 0.6, shadow, MAT.HULL, { seg: 8 });
+  hb.box(-1.5, f.h + 0.04, 0, 3.4, 0.1, 2.6, light, MAT.HULL);
   for (let i = 0; i < f.n; i++) {
     const z = (i - (f.n - 1) / 2) * f.spacing;
-    hb.block({ x0: f.face - 1.0, x1: f.face - 0.3, hw: 1.05, zc: z, y0: f.trunY - 0.9, y1: f.trunY + 0.9 }, dark, MAT.DARK);
+    hb.block({ x0: f.port - 0.55, x1: f.port + 0.45, hw: 1.0, zc: z, y0: f.trunY - 0.75, y1: f.trunY + 0.75 }, dark, MAT.DARK);
+  }
+}
+
+/** Japanese 15.5 cm/60 triple turret (Yamato's secondary battery): a small copy of the big turrets, sloped face, rangefinder ears aft. */
+function houseType3(hb, col, dark, f) {
+  const light = shade(col, 1.1), shadow = shade(col, 0.82);
+  hb.cylinder(0, -0.05, 0, 2.9, 2.95, 0.12, shadow, MAT.HULL, { seg: 20 });
+  hb.block({ x0: -5.0, x1: f.face, hw: 3.3, y0: 0.1, y1: f.h, tx0: -4.8, tx1: 2.4, thw: 3.15 }, col, MAT.HULL);
+  for (const sg of [-1, 1]) hb.block({ x0: -3.9, x1: -2.6, hw: 0.35, zc: sg * 3.55, y0: 1.5, y1: 2.5, tx0: -3.8, tx1: -2.8, thw: 0.3 }, light, MAT.HULL);
+  for (const sg of [-1, 1]) hb.cylinder(-1.8, f.h - 0.05, sg * 1.6, 0.3, 0.27, f.h + 0.35, shadow, MAT.HULL, { seg: 6 });
+  for (let i = 0; i < f.n; i++) {
+    const z = (i - (f.n - 1) / 2) * f.spacing;
+    hb.block({ x0: f.port - 0.3, x1: f.port + 0.25, hw: 0.42, zc: z, y0: f.trunY - 0.4, y1: f.trunY + 0.4 }, dark, MAT.DARK);
   }
 }
 
@@ -151,7 +167,7 @@ function houseMk30(hb, col, dark, f) {
   hb.block({ x0: f.face - 0.3, x1: f.face, hw: 0.28, y0: f.trunY - 0.3, y1: f.trunY + 0.3 }, dark, MAT.DARK);
 }
 
-const HOUSES = { mk7: houseMk7, type94: houseType94, drh34: houseDrh34, mk28: houseMk28, mk30: houseMk30 };
+const HOUSES = { mk7: houseMk7, type94: houseType94, type3_155: houseType3, drh34: houseDrh34, mk28: houseMk28, mk30: houseMk30 };
 
 function makeFamily(s, f) {
   const col = rgb(s.col || '#6b7076'), dark = rgb(s.dark || '#1d1f22');
