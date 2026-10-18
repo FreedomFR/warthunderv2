@@ -159,6 +159,12 @@ function fireMount(world, ship, m, target, s) {
   ship.shotsFired += m.n;
   m.reload = gun.reload * (0.92 + world.rng() * 0.16) * (1 + (1 - m.hp / m.maxHp) * 0.7);
   m.recoil = 0; m.fireT = 0; m.flash = 1;
+  // the recoil of the salvo heels the ship away from the side it fires to (a few tenths of a degree for destroyers, about a degree for a full battleship broadside)
+  if (ship.sr) {
+    const lateral = fwdx * Math.cos(ship.heading) + fwdz * Math.sin(ship.heading);      // > 0: firing to starboard
+    const disp = ship.spec.displacementFull || 30000;
+    ship.sr.v -= lateral * m.n * 0.0007 * (gun.shellKg * gun.v0) / (1225 * 762) * (58000 / disp);
+  }
   world.events.push({ type: 'muzzle', ship, mount: m, x: mx0, y: my0, z: mz0, dx: fwdx, dy: fwdy, dz: fwdz, cal: gun.cal, n: m.n, group: m.group, barrels });
 }
 

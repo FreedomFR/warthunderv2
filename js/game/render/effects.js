@@ -152,10 +152,10 @@ export class Effects {
     // the cloud: brown-grey powder smoke that expands, hangs over the water and drifts with the wind
     const ns = Math.max(2, Math.round((heavy ? 12 : mid ? 7 : 4) * es * lod));
     for (let i = 0; i < ns; i++) {
-      const q = at(rr(0.4, 1.8) * R, rr(-0.9, 0.9) * R, rr(-0.7, 0.8) * R), sp = rr(3, 11) * Math.sqrt(c), dark = rnd() < 0.35;
+      const q = at(rr(0.4, 1.8) * R, rr(-0.9, 0.9) * R, rr(-0.7, 0.8) * R), sp = rr(3, 11) * Math.sqrt(c), dark = rnd() < 0.25;
       p.add({
         kind: K.SMOKE, x: q[0], y: q[1], z: q[2], vx: dx * sp + rr(-1.5, 1.5), vy: dy * sp + rr(0.3, 3), vz: dz * sp + rr(-1.5, 1.5),
-        s0: R * 0.6, s1: R * rr(2.2, 3.6), life: rr(heavy ? 6 : 3.5, heavy ? 12 : 7), r: dark ? 0.15 : 0.36, g: dark ? 0.13 : 0.32, b: dark ? 0.11 : 0.27, a0: dark ? 0.55 : 0.46, a1: 0, drag: 1.1, wind: 1, grav: -0.3,
+        s0: R * 0.6, s1: R * rr(2.2, 3.6), life: rr(heavy ? 6 : 3.5, heavy ? 12 : 7), r: dark ? 0.24 : 0.54, g: dark ? 0.21 : 0.49, b: dark ? 0.18 : 0.43, a0: dark ? 0.5 : 0.42, a1: 0, drag: 1.1, wind: 1, grav: -0.3,
       });
     }
     // the blast on the sea: a sheet of foam under and ahead of the muzzle, and spray skimming away from it
