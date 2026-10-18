@@ -96,15 +96,16 @@ export const SCENES = {
 
   // ---- roster: one ship of each flavour, slow orbits ----------------------------------------------------------------------
   async roster(T) {
-    T.reset(9, 'afternoon');
+    // a higher sun than the other scenes, and cameras three-quarter to it: the hull paint and the relief of the plating show
+    T.reset(9, 'afternoon', { sunElev: 25, sunAzim: -35, exposure: 1.12, haze: 2.5, veil: 0.22, contrast: 1.12, warmth: -0.05, bloom: 0.08 });
     const ids = ['yamato', 'bismarck', 'littorio', 'richelieu', 'shokaku', 'zara', 'cleveland', 'tribal'];
     const ships = T.column(ids, 0, 0, 0, 90, 900, 9);
     sail(ships, 9);
     T.go();
     await T.wait(20);
     const spec = [
-      ['yamato', 2.0, [215, 150], [16, 14], 11], ['bismarck', 2.0, [20, 70], [10, 12], 9], ['littorio', 2.0, [150, 120], [8, 7], 7],
-      ['shokaku', 2.0, [330, 285], [9, 9], 10],
+      ['yamato', 1.7, [-100, -62], [14, 12], 11], ['bismarck', 1.7, [18, 58], [9, 11], 9], ['littorio', 1.7, [-92, -52], [8, 7], 7],
+      ['shokaku', 1.7, [22, 62], [30, 36], 8],
     ];
     for (const [id, dur, az, h, look] of spec) {
       const s = ships[ids.indexOf(id)], L = s.stats.L;
