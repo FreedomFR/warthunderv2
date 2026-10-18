@@ -229,7 +229,7 @@ export const SCENES = {
     await T.until(() => T.count('impact') > 1, { max: 60, dt: 1 / 12 });
     await T.shot('duel_b', 2.0, (t) => {
       const e = unit(yamato.x - iowa.x, 0, yamato.z - iowa.z), n = [-e[2], 0, e[0]];
-      return { p: [yamato.x - e[0] * 780 + n[0] * 90, 9, yamato.z - e[2] * 780 + n[2] * 90], l: [yamato.x, yamato.y + 16, yamato.z], fov: lerp(30, 24, t / 2) };
+      return { p: [yamato.x - e[0] * 520 + n[0] * 70, 7, yamato.z - e[2] * 520 + n[2] * 70], l: [yamato.x, yamato.y + 18, yamato.z], fov: lerp(27, 21, t / 2) };
     });
     // C: Yamato answers
     await T.until(() => yamato.mounts.some((m) => m.group === 'main' && m.alive && m.flash > 0.4), { max: 120, dt: 1 / 10 });
