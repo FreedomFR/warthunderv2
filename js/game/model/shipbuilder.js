@@ -132,7 +132,7 @@ export function buildShipModel(spec, tw = {}) {
   const charred = (pal0) => shade(rgb(pal0.dark), 1.1);
   let topY = Y(0) + 4;
   const note = (y) => { if (y > topY) topY = y; };
-  const houseH = { DD: 2.2, CL: 3.0, CA: 3.2, BB: 3.6, CV: 0 }[t];
+  const houseH = tw.houseH ?? { DD: 2.2, CL: 3.0, CA: 3.2, BB: 3.6, CV: 0 }[t];
 
   // -------- funnels first (they decide where the central deckhouse ends) --------
   const fun = sil.funnels || { count: 1, fractionFromBow: [0.5], heightAboveDeckM: 12 };
@@ -160,10 +160,11 @@ export function buildShipModel(spec, tw = {}) {
   for (let i = 0; i < Math.min(fCount, fF.length); i++) {
     const x = X(fF[i]);
     const y0 = (carrier ? 0 : Y(x) + houseH);
-    const fh = fun.heightAboveDeckM || (t === 'DD' ? 11 : 18);
+    const fh = tw.funnelH ?? fun.heightAboveDeckM ?? (t === 'DD' ? 11 : 18);
     if (carrier) continue;
     const small = tw.funnelScale ? tw.funnelScale[i] ?? 1 : 1;
-    const fo = { x, y0, h: fh * small, lx: funLx * (tw.funnelX?.[i] ?? 1), lz: funLz * (tw.funnelZ?.[i] ?? 1), rake: tw.funnelRake ?? fh * 0.14, band: tw.funnelBand };
+    const flx = funLx * (tw.funnelX?.[i] ?? 1), flz = funLz * (tw.funnelZ?.[i] ?? 1);
+    const fo = { x, y0, h: fh * small, lx: flx, lz: flz, topLx: flx * (tw.funnelTop ?? 0.88), topLz: flz * (tw.funnelTop ?? 0.88), rake: tw.funnelRake ?? fh * 0.14, band: tw.funnelBand };
     part('funnel' + i, 'funnel', 'Cheminée ' + (i + 1), () => PT.funnel(b, fo, pal), () => PT.funnelRuin(b, fo, pal), { fine: () => PT.funnelDetail(b, fo, pal) });
     model.smoke.push([x - (tw.funnelRake ?? fh * 0.14) * 0.9, y0 + fh * small, 0]);
     funnelTops.push([x - (tw.funnelRake ?? fh * 0.14) * 0.9, y0 + fh * small, 0]);

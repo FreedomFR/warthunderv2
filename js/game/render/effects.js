@@ -96,7 +96,7 @@ export class Effects {
     const d = this.distToCam(e.x, e.z);
     if (d > 18000) return;
     const n = e.barrels ? e.barrels.length / 3 : 1;
-    const R = clamp(e.cal * 0.034, 1.2, 16);                 // radius of the fireball of one tube: 5" -> 4.3 m, 16" -> 13.8 m, 46 cm -> 15.6 m
+    const R = clamp(e.cal * 0.046, 1.6, 21);                 // radius of the fireball of one tube: 5" -> 5.8 m, 16" -> 18.7 m, 46 cm -> 21 m
     const dir = [e.dx, e.dy, e.dz];
     for (let i = 0; i < n; i++) {
       const b = e.barrels ? [e.barrels[i * 3], e.barrels[i * 3 + 1], e.barrels[i * 3 + 2]] : [e.x, e.y, e.z];
@@ -110,7 +110,7 @@ export class Effects {
     const p = this.p, es = this.emitScale;
     const heavy = cal >= 280, mid = cal >= 140;
     const lod = d > 5000 ? 0.4 : d > 2200 ? 0.7 : 1;      // a distant salvo is a few pixels wide: fewer, cheaper particles
-    const c = R / 13.8;
+    const c = R / 18.7;
     const [dx, dy, dz] = dir;
     // two axes perpendicular to the bore
     let ux = -dz, uy = 0, uz = dx;

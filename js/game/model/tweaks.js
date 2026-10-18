@@ -41,11 +41,23 @@ function bismarckTower({ b, model, pal, MAT, rgb, shade }) {
 }
 
 export const TWEAKS = {
-  iowa: { mainVariant: 'mk7', secVariant: ['mk28'] },
+  // Iowa (photographs: 1944 dry dock, 1952 firing): a massive stepped tower on a long deckhouse, big oval funnels
+  iowa: {
+    mainVariant: 'mk7', secVariant: ['mk28'], houseW: 0.37, houseH: 4.4, funnelW: 0.31, funnelLen: 1.45, funnelH: 19, funnelRake: 2.4, funnelTop: 0.94,
+    tiers: [
+      { len: 27, w: 22, h: 3.4, rake: 1.5 },
+      { len: 21, w: 18, h: 3.6, rake: 1.2, wings: 1.6 },
+      { len: 15, w: 14.5, h: 3.4, round: true, taper: 0.92 },
+      { len: 13.5, w: 13, h: 3.2, rake: 0.8, wings: 1.8 },
+      { len: 10.5, w: 10.5, h: 3.2, rake: 0.6 },
+      { len: 8.2, w: 8.2, h: 3.4, round: true, taper: 0.9 },
+      { len: 6.4, w: 6.4, h: 3.0 },
+    ],
+  },
   fletcher: { mainVariant: 'mk30' },
   cleveland: { secVariant: ['mk28'] },
   baltimore: { secVariant: ['mk28'] },
-  yamato: { mainVariant: 'type94', pagoda: [17, 14, 8, 28], dirKind: 'drum', funnelW: 0.24, funnelLen: 1.35, funnelRake: 2.2 },
+  yamato: { mainVariant: 'type94', pagoda: [21, 16, 9, 34], dirKind: 'drum', houseW: 0.34, funnelW: 0.27, funnelLen: 1.5, funnelH: 21, funnelRake: 5, funnelTop: 0.96 },
   takao: { pagoda: [13, 11, 9, 34], dirKind: 'drum', funnelRake: 3.0 },
   kagero: { dirKind: 'drum', tiers: [{ len: 6.5, w: 5.4, h: 2.4, rake: 1.2 }, { len: 5.2, w: 4.4, h: 2.2, rake: 1, wings: 0.8 }, { len: 4, w: 3.4, h: 2.0, rake: 0.8 }] },
   agano: { dirKind: 'drum' },

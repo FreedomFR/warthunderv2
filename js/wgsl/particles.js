@@ -143,6 +143,14 @@ fn vnoise(p: vec2f) -> f32 {
       add = pow(smoothstep(1.0, 0.0, d), 2.4) * in.col.a;
     }
   }
+  // soft contact with the sea: a billboard that dips under the surface would be cut along a straight line by the depth test,
+  // so its alpha fades out over the last stretch above the water (tracer streaks excepted)
+  if (kind != 3u) {
+    let hy = F.camPos.y + in.rel.y + normalize(F.camUp.xyz).y * in.uv.y * in.size;
+    let soft = smoothstep(0.0, max(1.2, in.size * 0.45), hy + 0.5);
+    alpha = alpha * soft;
+    add = add * soft;
+  }
   // aerial perspective
   let T = exp(-max(F.fogExt.rgb, vec3f(F.fogExt.w)) * dist * hazeAltFactor(F.camPos.y));
   var out = vec3f(0.0);

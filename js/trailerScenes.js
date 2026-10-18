@@ -277,6 +277,10 @@ export const SCENES = {
       const q = [0, 0, 0]; ship.toWorld(m.rec.x, m.rec.y, m.rec.z, q);
       return { p: [q[0] + 18, q[1] + 78, q[2] + 74], l: [q[0] - 8, q[1] + 6, q[2] - 26], fov: 50 };
     });
+    // the second salvo from the forecastle, looking back at the turret (as in the photograph of Iowa firing in 1952)
+    await T.until(() => mains().some((q) => q.aimOk && q.fireT < 0.05), { max: 400, dt: 1 / 60 });
+    const m2 = mains().find((q) => q.fireT < 0.05) || mains()[0];
+    await T.shot('fire_deck', 2.4, () => ({ p: mv.at(ship, m2.rec.x + 46, m2.rec.y + 2.5, 3), l: mv.at(ship, m2.rec.x + 10, m2.rec.y + 3.5, -22), fov: 58 }));
   },
 
   // ---- end plate: the column against the setting sun ------------------------------------------------------------------------
