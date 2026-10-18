@@ -57,8 +57,8 @@ export const PLANES = {
   swordfish: {
     name: 'Fairey Swordfish', nation: 'UK', role: 'torp', kind: 'bi', L: 11.0, span: 13.9, mass: 3.4, hp: 3.4,
     fus: { r: 0.62, ar: 1.1, x: -0.6 }, engine: { type: 'radial', r: 0.75, len: 1.1 }, prop: { r: 1.75, n: 3, x: 0 },
-    wing: { cr: 1.95, ct: 1.95, x: 1.10, y: 0.0, gap: 1.75, dih: 0.0, sweep: 0.5, t: 0.14, stagger: 0.3 },
-    tail: { x: -4.9, chord: 2.0, span: 4.6, fin: 1.4, finChord: 1.6, y: 0.2 }, canopy: [{ x0: -0.2, x1: 0.5, tx1: 0.3, h: 0.2, open: true }, { x0: -2.0, x1: -1.4, tx1: -1.6, h: 0.2, open: true }],
+    wing: { cr: 1.95, ct: 1.95, x: 0.95, y: 0.0, gap: 1.75, dih: 0.0, sweep: 0.5, t: 0.14, stagger: 0.1 },
+    tail: { x: -5.3, chord: 2.0, span: 4.6, fin: 1.4, finChord: 1.6, y: 0.2 }, canopy: [{ x0: -0.2, x1: 0.5, tx1: 0.3, h: 0.2, open: true }, { x0: -2.0, x1: -1.4, tx1: -1.6, h: 0.2, open: true }],
     gear: 'fixedbig', ordnance: 'torp',
   },
   skua: {

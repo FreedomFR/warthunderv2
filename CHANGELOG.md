@@ -17,6 +17,10 @@
 - **TBF Avenger and D3A Val**: compared with drawings shared by the project owner (a blueprint poster with the dimensions printed; Printscale and Artscale
   decal art; copyright, measurements only). Wings 0.9 / 1.2 m too far aft and tails 0.9 / 1.2 m too far forward with too short a chord:
   corrected (TBF tail chord 1.8 -> 2.4 m, D3A 1.3 -> 2.0 m). Planform mean difference TBF 5.3 -> 1.7 m, D3A 3.3 -> 1.6 m.
+- **Swordfish (second pass, a detailed 1:50 plan with a scale bar in feet)**: calibrated on its length (11.0 m, 90.9 px/m: the plan measures 13.86 m across
+  the upper wing, which confirms the scale). The wings sit 0.95 m forward of the first guess's origin (the low-resolution 3-views had put them
+  1.0 m further forward and the tail wrong), the stagger is 0.1 m, the tail 5.3 m aft of the origin. Planform mean difference 3.0 -> 2.3 m (the rest is the
+  sheet's other views leaking into the crop: the side view of this plan is not reliable).
 - **Swordfish**: a cutaway with the specification table (length 36 ft 1 in = 11.0 m, upper span 45 ft 6 in = 13.87 m) and two 3-views, shared by the project
   owner (measurements only). Length 10.9 -> 11.0 m, upper wing 1.0 m forward, tail 0.8 m aft and deeper (chord 1.5 -> 2.0 m), stagger 0.5 -> 0.3 m.
   The 3-views are low resolution with dashed lines, so the silhouette comparison is unreliable here: positions were read by eye on the overlay.
