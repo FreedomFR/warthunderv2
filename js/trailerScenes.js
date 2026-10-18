@@ -104,8 +104,8 @@ export const SCENES = {
     T.go();
     await T.wait(20);
     const spec = [
-      ['yamato', 1.7, [-100, -62], [14, 12], 11], ['bismarck', 1.7, [18, 58], [9, 11], 9], ['littorio', 1.7, [-92, -52], [8, 7], 7],
-      ['shokaku', 1.7, [22, 62], [30, 36], 8],
+      ['yamato', 1.7, [28, 66], [13, 11], 11], ['bismarck', 1.7, [-8, 34], [9, 11], 9], ['littorio', 1.7, [82, 44], [8, 7], 7],
+      ['shokaku', 1.7, [-24, 20], [32, 38], 8],
     ];
     for (const [id, dur, az, h, look] of spec) {
       const s = ships[ids.indexOf(id)], L = s.stats.L;
