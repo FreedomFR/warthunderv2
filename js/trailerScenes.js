@@ -151,41 +151,54 @@ export const SCENES = {
     quiet(us); quiet(jp);
     T.go();
     const essex = us.find((s) => s.stats.id === 'essex');
-    // the strike, high above the sea, a few kilometres from its target (the real climb takes minutes: the film skips it,
-    // out of the camera's sight, by putting the dive bombers at their attack altitude as soon as they have left the carrier)
-    const incoming = (p) => p.owner === essex && p.kind === 'dive' && p.phase === 'cruise' && !p.dying && p.target && p.y > 900 && dist2(p, p.target) < 2600;
+    // The real strikes attacked from 1500-2000 m after a climb of several minutes. Seen from the sea that is a speck in the sky:
+    // the film lets the dive bombers fly their approach at 880 m, and skips the climb out of the camera's sight.
+    const ALT = 880;
+    const incoming = (p) => p.owner === essex && p.kind === 'dive' && p.phase === 'cruise' && !p.dying && p.target && dist2(p, p.target) < 1080;
     await T.until(() => {
-      for (const p of T.w.planes) if (p.owner === essex && p.kind === 'dive' && p.phase === 'cruise' && p.y < p.cruiseAlt - 30 && dist2(p, essex) > 1200) p.y = p.cruiseAlt;
+      for (const p of T.w.planes) {
+        if (p.owner !== essex || p.kind !== 'dive' || p.phase !== 'cruise') continue;
+        p.cruiseAlt = ALT;
+        if (!p.skipped && dist2(p, essex) > 900) { p.skipped = true; p.y = ALT; }
+      }
       return T.w.planes.some(incoming);
     }, { max: 500, dt: 1 / 8 });
     const lead = findPlane(T, incoming), victim = lead && lead.target;
     T.log('dive approach', !!lead, T.now.toFixed(0), lead && lead.y.toFixed(0));
     if (!lead || !victim) return;
-    // A: alongside the formation, high above the clouds and the sea
-    await T.shot('dive_a', 2.6, (t) => {
-      const v = unit(lead.vx, 0, lead.vz), r = [-v[2], 0, v[0]];
-      return { p: [lead.x + r[0] * 105 - v[0] * 55, lead.y - 14, lead.z + r[2] * 105 - v[2] * 55], l: [lead.x + v[0] * 20, lead.y, lead.z + v[2] * 20], fov: 40 };
+    const hdir = unit(lead.vx, 0, lead.vz), rdir = [-hdir[2], 0, hdir[0]];
+    // A: from the sea, abeam of the dive line: the aircraft rolls over and falls (long lens, the flak all around)
+    const camA = [lead.x + hdir[0] * 330 + rdir[0] * 330, 38, lead.z + hdir[2] * 330 + rdir[2] * 330];
+    let lookA = null;
+    await T.shot('dive_a', 2.4, (t) => {
+      const w = T.w.planes.includes(lead) ? [lead.x, lead.y, lead.z] : lookA;
+      lookA = damp(lookA, w, 0.45);
+      return { p: camA, l: lookA, fov: 34 };
     });
-    // B: behind the aircraft as it falls onto the ship (the last seconds of the dive, up to the release)
-    await T.until(() => !T.w.planes.includes(lead) || (lead.phase === 'dive' && lead.y < 950), { max: 90, dt: 1 / 12 });
-    const chase = followCam(() => (T.w.planes.includes(lead) ? lead : null), () => [victim.x, victim.y + 8, victim.z], 40, 11, 8, 46, 16);
-    await T.shot('dive_b', 3.4, chase);
-    // C: with the bomb: down the dive line to the hull, then the camera lets go as the bomb bursts
-    let lastB = null, hitAt = null;
-    await T.shot('dive_c', 3.6, (t) => {
-      const b = T.w.bombs.find((q) => q.plane === lead) || null;
-      if (b) {
-        lastB = { x: b.x, y: b.y, z: b.z, vx: b.vx, vy: b.vy, vz: b.vz };
-        const v = unit(b.vx, b.vy, b.vz), r = unit(-v[2], 0, v[0]);
-        return { p: [b.x - v[0] * 48 + r[0] * 7, Math.max(4, b.y - v[1] * 48 + 6), b.z - v[2] * 48 + r[2] * 7], l: [b.x + v[0] * 60, Math.max(2, b.y + v[1] * 60), b.z + v[2] * 60], fov: 50 };
-      }
-      if (!lastB) return { p: H(victim, 20, 150, victim.y + 40), l: P3(victim, 10), fov: 40 };
-      if (hitAt == null) hitAt = t;
-      const v = unit(lastB.vx, lastB.vy, lastB.vz), r = unit(-v[2], 0, v[0]), k = t - hitAt;
-      return { p: [lastB.x - v[0] * (70 + 22 * k) + r[0] * (20 + 10 * k), Math.max(4, lastB.y + 26 + 6 * k), lastB.z - v[2] * (70 + 22 * k) + r[2] * (20 + 10 * k)], l: [lastB.x, lastB.y + 6, lastB.z], fov: 46 };
+    // B: the other side of the target, low, looking up the dive line: the aircraft arrives, releases and pulls out over the ship
+    const camB = [victim.x + hdir[0] * 130 + rdir[0] * -120, 24, victim.z + hdir[2] * 130 + rdir[2] * -120];
+    let lookB = null;
+    await T.shot('dive_b', 2.0, (t) => {
+      const w = T.w.planes.includes(lead) ? [lead.x, lead.y, lead.z] : lookB;
+      lookB = damp(lookB, w, 0.4);
+      return { p: camB, l: lookB, fov: 48 };
     });
-    // D: the victim afterwards
-    await T.shot('dive_d', 2.5, mv.orbit(() => P3(victim, 10), 220, 245, 260, 230, 22, 30, 12, 46));
+    // (the bomb falls for another second or two: cut)
+    await T.wait(1.3);
+    // C: the bomb on the hull: wide enough for the burst or the splash, wherever it lands
+    const bomb = T.w.bombs.find((q) => q.plane === lead) || null;
+    let camC = null, aim = null;
+    if (bomb) {
+      const g = 9.81, ty = victim.y + 12, disc = bomb.vy * bomb.vy + 2 * g * (bomb.y - ty), tt = (bomb.vy + Math.sqrt(Math.max(0, disc))) / g;
+      aim = [bomb.x + bomb.vx * tt, victim.y + 10, bomb.z + bomb.vz * tt];
+      const bh = unit(bomb.vx, 0, bomb.vz);
+      camC = [aim[0] + -bh[2] * 170, 15, aim[2] + bh[0] * 170];
+      T.log('dive bomb', 'tt', tt.toFixed(1), 'miss', dist2({ x: aim[0], z: aim[2] }, victim).toFixed(0));
+    }
+    await T.shot('dive_c', 3.2, (t) => {
+      if (!camC) return { p: H(victim, 20, 150, 30), l: P3(victim, 10), fov: 42 };
+      return { p: camC, l: aim, fov: 40 };
+    });
   },
 
   // ---- torpedo: low level torpedo attack, then the hit seen from the water ----------------------------------------------

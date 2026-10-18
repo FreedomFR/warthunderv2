@@ -287,7 +287,10 @@ export class Game {
       const near = clamp(d / 400, 0.18, 1);
       const len = Math.min((cal >= 300 ? 60 : cal >= 150 ? 40 : 18) * near, 0.6 + d * 0.06);
       const wid = (cal >= 300 ? 1.1 : cal >= 150 ? 0.8 : 0.5) * (1 + d / 5000) * clamp(d / 250, 0.3, 1);
-      this.particles.streak(s.x, s.y, s.z, s.vx / sp, s.vy / sp, s.vz / sp, len * (1 + d / 8000), wid, 1, 0.68, 0.28, 6 * clamp(d / 150, 0.35, 1));
+      // a shell passing a few metres from the lens is a smear across the screen: fade it out
+      const d3 = Math.hypot(d, s.y - cam.y), f = clamp((d3 - 10) / 35, 0, 1);
+      if (f <= 0) continue;
+      this.particles.streak(s.x, s.y, s.z, s.vx / sp, s.vy / sp, s.vz / sp, len * (1 + d / 8000), wid, 1, 0.68, 0.28, 6 * clamp(d / 150, 0.35, 1) * f * f * (3 - 2 * f));
     }
     this.particles.upload();
   }
