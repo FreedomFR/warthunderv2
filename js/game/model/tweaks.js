@@ -41,13 +41,17 @@ function bismarckTower({ b, model, pal, MAT, rgb, shade }) {
 }
 
 export const TWEAKS = {
-  yamato: { pagoda: [17, 14, 8, 28], dirKind: 'drum', funnelW: 0.24, funnelLen: 1.35, funnelRake: 2.2 },
+  iowa: { mainVariant: 'mk7', secVariant: ['mk28'] },
+  fletcher: { mainVariant: 'mk30' },
+  cleveland: { secVariant: ['mk28'] },
+  baltimore: { secVariant: ['mk28'] },
+  yamato: { mainVariant: 'type94', pagoda: [17, 14, 8, 28], dirKind: 'drum', funnelW: 0.24, funnelLen: 1.35, funnelRake: 2.2 },
   takao: { pagoda: [13, 11, 9, 34], dirKind: 'drum', funnelRake: 3.0 },
   kagero: { dirKind: 'drum', tiers: [{ len: 6.5, w: 5.4, h: 2.4, rake: 1.2 }, { len: 5.2, w: 4.4, h: 2.2, rake: 1, wings: 0.8 }, { len: 4, w: 3.4, h: 2.0, rake: 0.8 }] },
   agano: { dirKind: 'drum' },
-  bismarck: { funnelRake: 2.6, extra: bismarckTower },
+  bismarck: { mainVariant: 'drh34', funnelRake: 2.6, extra: bismarckTower },
   shokaku: { noFunnels: true, elevators: [0.22, 0.56, 0.80], extra: shokakuFunnels },
-  essex: { elevators: [0.27, 0.80, 0.50], deckEdge: true },
+  essex: { mainVariant: { 2: 'mk28', 1: 'mk30' }, elevators: [0.27, 0.80, 0.50], deckEdge: true },
   illustrious: { elevators: [0.30, 0.75] },
   graf_zeppelin: { elevators: [0.27, 0.52, 0.80] },
   bearn: { elevators: [0.30, 0.47, 0.72] },

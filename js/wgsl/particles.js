@@ -84,6 +84,7 @@ fn vnoise(p: vec2f) -> f32 {
   var rgb = in.col.rgb;
   var alpha = 0.0;
   var add = 0.0;
+  var occl = 1.0;
   // never let a huge billboard pop in front of the lens
   let near = smoothstep(in.size * 0.15, in.size * 0.9 + 2.0, dist);
   switch (kind) {
@@ -119,6 +120,25 @@ fn vnoise(p: vec2f) -> f32 {
       let across = 1.0 - abs(in.uv.y);
       add = pow(max(across, 0.0), 2.2) * pow(along, 2.5) * in.col.a;
     }
+    case 5u: {   // fireball lobe: opaque billowing gas, white-hot core, orange body, dark red-brown rim; cools with age (misc.w)
+      let age = clamp(in.misc.w, 0.0, 1.0);
+      let p = in.uv * 1.8 + vec2f(seed * 31.0, seed * 11.0);
+      let wv = vec2f(vnoise(p * 1.6 + vec2f(1.3, 4.1)), vnoise(p * 1.6 + vec2f(6.2, 2.9))) - vec2f(0.5);
+      let q = p + wv * 1.5;
+      let n = vnoise(q) * 0.5 + vnoise(q * 2.2 + vec2f(4.0, 8.0)) * 0.3 + vnoise(q * 4.7 + vec2f(2.0, 5.0)) * 0.2;
+      let r = d / (0.7 + 0.36 * n);
+      let body = smoothstep(1.0, 0.72, r);
+      let heat = clamp((1.0 - r * 0.75) * (0.55 + 0.95 * n) * (1.0 - 0.65 * age) + 0.14, 0.0, 1.4);
+      var c = vec3f(0.2, 0.075, 0.035);
+      c = mix(c, vec3f(0.62, 0.17, 0.04), smoothstep(0.12, 0.34, heat));
+      c = mix(c, vec3f(1.0, 0.36, 0.06), smoothstep(0.30, 0.55, heat));
+      c = mix(c, vec3f(1.0, 0.70, 0.2), smoothstep(0.52, 0.82, heat));
+      c = mix(c, vec3f(1.0, 0.95, 0.72), smoothstep(0.80, 1.15, heat));
+      let glow = 0.35 + 7.5 * smoothstep(0.45, 1.2, heat);
+      rgb = c * glow * in.col.rgb;
+      alpha = body * mix(0.5, 0.98, smoothstep(0.1, 0.45, heat)) * clamp(in.col.a, 0.0, 1.0);
+      occl = mix(1.0, 0.42, smoothstep(0.3, 0.85, heat));      // the hot gas adds its light instead of hiding the lobes behind it
+    }
     default: {   // flash (additive)
       add = pow(smoothstep(1.0, 0.0, d), 2.4) * in.col.a;
     }
@@ -134,6 +154,6 @@ fn vnoise(p: vec2f) -> f32 {
   let fogCol = skyAtmo(hz);
   let a = alpha * near;
   out = (rgb * T + fogCol * (1.0 - T) * 0.0) * a;
-  return vec4f(out, a);
+  return vec4f(out, a * occl);
 }
 `;

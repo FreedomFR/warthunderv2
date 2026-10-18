@@ -10,7 +10,7 @@ const F = 24;              // floats per particle in the pool
 const X = 0, Y = 1, Z = 2, VX = 3, VY = 4, VZ = 5, AGE = 6, LIFE = 7, S0 = 8, S1 = 9, R = 10, G = 11, B = 12, A0 = 13, A1 = 14,
   ROT = 15, ROTV = 16, GRAV = 17, DRAG = 18, KIND = 19, SEED = 20, STRETCH = 21, WIND = 22;
 
-export const K = { SMOKE: 0, FIRE: 1, SPRAY: 2, TRACER: 3, FLASH: 4 };
+export const K = { SMOKE: 0, FIRE: 1, SPRAY: 2, TRACER: 3, FLASH: 4, FIREBALL: 5 };
 
 export class Particles {
   constructor(engine) {
@@ -119,7 +119,7 @@ export class Particles {
       const size = p[o + S0] + (p[o + S1] - p[o + S0]) * Math.sqrt(t);
       const k = p[o + KIND];
       let a;
-      if (k === K.SMOKE || k === K.SPRAY) a = p[o + A0] + (p[o + A1] - p[o + A0]) * t * t;
+      if (k === K.SMOKE || k === K.SPRAY || k === K.FIREBALL) a = p[o + A0] + (p[o + A1] - p[o + A0]) * t * t;
       else a = p[o + A0] * Math.pow(1 - t, 1.5) + p[o + A1] * t;
       d[q] = p[o + X] - cam.x; d[q + 1] = p[o + Y] - cam.y; d[q + 2] = p[o + Z] - cam.z; d[q + 3] = size;
       // fire cools from yellow to dark red as it ages
@@ -131,7 +131,7 @@ export class Particles {
       if (p[o + STRETCH] > 0 && sp > 0.5) {
         d[q + 8] = p[o + VX] / sp; d[q + 9] = p[o + VY] / sp; d[q + 10] = p[o + VZ] / sp; d[q + 11] = p[o + STRETCH];
       } else { d[q + 8] = 0; d[q + 9] = 1; d[q + 10] = 0; d[q + 11] = 0; }
-      d[q + 12] = p[o + ROT]; d[q + 13] = k; d[q + 14] = p[o + SEED]; d[q + 15] = 0;
+      d[q + 12] = p[o + ROT]; d[q + 13] = k; d[q + 14] = p[o + SEED]; d[q + 15] = t;
     }
     if (this.nT) d.set(this.tr.subarray(0, this.nT * INST), this.n * INST);
     this.count = this.n + this.nT;

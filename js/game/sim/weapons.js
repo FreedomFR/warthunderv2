@@ -1,9 +1,19 @@
 // Gunnery (fire control, turret slewing, salvos) and torpedo launching.
 import { clamp, wrapPi, approach, D2R, KN } from '../math.js';
 import { gunBallistics, solve } from './ballistics.js';
+import { mountDims } from '../model/mounts.js';
 
 const _p = [0, 0, 0];
 const _q = [0, 0, 0];
+
+/** Barrel recoil (0..1): the tube is thrown back in a few hundredths of a second and creeps forward again on the recuperators. */
+export function recoilCurve(t) {
+  if (t < 0.06) return Math.sin(t / 0.06 * Math.PI / 2);
+  const x = 1 - (t - 0.06) / 1.6;
+  return x <= 0 ? 0 : x * x * (3 - 2 * x);
+}
+
+function dimsOf(rec) { return rec._dims || (rec._dims = mountDims(rec)); }
 
 function ball(m) {
   if (!m.ball) m.ball = gunBallistics({ cal: m.gun.cal, v0: m.gun.v0, shellKg: m.gun.shellKg, maxRange: m.gun.maxRange, maxElevDeg: Math.min(m.gun.maxElevDeg, 50) });
@@ -68,7 +78,8 @@ export function updateGunnery(ship, world, dt) {
   const cmd = ship.cmd;
   let anyMainTarget = false;
   for (const m of ship.mounts) {
-    m.recoil = Math.max(0, m.recoil - dt * 1.6);
+    m.fireT = (m.fireT ?? 99) + dt;
+    m.recoil = recoilCurve(m.fireT);
     m.flash = Math.max(0, m.flash - dt * 5);
     if (m.jam > 0) m.jam = Math.max(0, m.jam - dt);
     if (!m.alive || !ship.alive) continue;
@@ -117,17 +128,20 @@ function fireMount(world, ship, m, target, s) {
   const sigR = 0.0085 * s.range * acc * maneuver * (gun.cal < 150 ? 1.25 : 1);
   const sigA = 0.0030 * acc * maneuver;
   const type = chooseShell(ship, target, gun);
-  // barrel offsets across the mount (lateral spacing)
-  const spacing = m.n >= 2 ? Math.max(0.5, m.rec.cal / 1000 * (m.n >= 3 ? 6.6 : 5.6)) : 0;
+  // barrel muzzles: the trunnion sits on the gun house, each tube runs from there along the elevation; spacing as drawn
+  const dm = dimsOf(m.rec);
+  const spacing = m.n >= 2 ? dm.spacing : 0;
   const cy = Math.cos(yaw), sy = Math.sin(yaw);
   const ce = Math.cos(m.elev), se = Math.sin(m.elev);
   const fwdx = sy * ce, fwdy = se, fwdz = -cy * ce;
   const rightx = cy, rightz = sy;
+  const reach = dm.trunnion[0] + dm.muzzle * ce;
+  const mx0 = s.px + sy * reach, my0 = s.py + dm.trunnion[1] + dm.muzzle * se, mz0 = s.pz - cy * reach;
+  const barrels = [];
   for (let i = 0; i < m.n; i++) {
     const off = (i - (m.n - 1) / 2) * spacing;
-    const bx = s.px + fwdx * (gun.bore * gun.cal / 1000 * 0.75) + rightx * off;
-    const by = s.py + fwdy * (gun.bore * gun.cal / 1000 * 0.75);
-    const bz = s.pz + fwdz * (gun.bore * gun.cal / 1000 * 0.75) + rightz * off;
+    const bx = mx0 + rightx * off, by = my0, bz = mz0 + rightz * off;
+    barrels.push(bx, by, bz);
     // dispersion: perturb the range solution and the bearing
     const r2 = clamp(s.range + randn(world) * sigR, 300, b.maxRange * 0.995);
     const so = solve(b, r2, 0), nominal = solve(b, s.range, 0);
@@ -144,8 +158,8 @@ function fireMount(world, ship, m, target, s) {
   }
   ship.shotsFired += m.n;
   m.reload = gun.reload * (0.92 + world.rng() * 0.16) * (1 + (1 - m.hp / m.maxHp) * 0.7);
-  m.recoil = 1; m.flash = 1;
-  world.events.push({ type: 'muzzle', ship, mount: m, x: s.px + fwdx * 4, y: s.py + fwdy * 4, z: s.pz + fwdz * 4, dx: fwdx, dy: fwdy, dz: fwdz, cal: gun.cal, n: m.n, group: m.group });
+  m.recoil = 0; m.fireT = 0; m.flash = 1;
+  world.events.push({ type: 'muzzle', ship, mount: m, x: mx0, y: my0, z: mz0, dx: fwdx, dy: fwdy, dz: fwdz, cal: gun.cal, n: m.n, group: m.group, barrels });
 }
 
 function chooseShell(ship, target, gun) {
