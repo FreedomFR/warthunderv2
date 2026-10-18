@@ -25,6 +25,8 @@ export const PALETTES = [
  */
 export const LIVERY = {
   cleveland: { scheme: CAMO.DAZZLE, pal: 0, seed: 0.21 },
+  iowa: { scheme: CAMO.DAZZLE, pal: 0, seed: 0.52 },          // Measure 32 design 1B, 1944 (photograph in dry dock)
+  essex: { scheme: CAMO.DAZZLE, pal: 0, seed: 0.83 },         // Measure 32/33 dazzle of 1944 (photograph leaving San Francisco)
   tribal: { scheme: CAMO.ADMIRALTY, pal: 1, seed: 0.62 },
   belfast: { scheme: CAMO.ADMIRALTY, pal: 1, seed: 0.13 },
   kgv: { scheme: CAMO.ADMIRALTY, pal: 1, seed: 0.77 },

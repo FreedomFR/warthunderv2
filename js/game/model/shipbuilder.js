@@ -8,6 +8,7 @@ import * as PT from './parts.js';
 import { makeRng } from '../math.js';
 import { paintOf, hullNumber, LIVERY, PALETTES } from './livery.js';
 import * as DT from './details.js';
+import { mountDims } from './mounts.js';
 
 const clamp = (v, a, c) => (v < a ? a : v > c ? c : v);
 const D2R = Math.PI / 180;
@@ -131,7 +132,7 @@ export function buildShipModel(spec, tw = {}) {
   const charred = (pal0) => shade(rgb(pal0.dark), 1.1);
   let topY = Y(0) + 4;
   const note = (y) => { if (y > topY) topY = y; };
-  const houseH = { DD: 2.2, CL: 3.0, CA: 3.2, BB: 3.6, CV: 0 }[t];
+  const houseH = tw.houseH ?? { DD: 2.2, CL: 3.0, CA: 3.2, BB: 3.6, CV: 0 }[t];
 
   // -------- funnels first (they decide where the central deckhouse ends) --------
   const fun = sil.funnels || { count: 1, fractionFromBow: [0.5], heightAboveDeckM: 12 };
@@ -159,10 +160,11 @@ export function buildShipModel(spec, tw = {}) {
   for (let i = 0; i < Math.min(fCount, fF.length); i++) {
     const x = X(fF[i]);
     const y0 = (carrier ? 0 : Y(x) + houseH);
-    const fh = fun.heightAboveDeckM || (t === 'DD' ? 11 : 18);
+    const fh = tw.funnelH ?? fun.heightAboveDeckM ?? (t === 'DD' ? 11 : 18);
     if (carrier) continue;
     const small = tw.funnelScale ? tw.funnelScale[i] ?? 1 : 1;
-    const fo = { x, y0, h: fh * small, lx: funLx * (tw.funnelX?.[i] ?? 1), lz: funLz * (tw.funnelZ?.[i] ?? 1), rake: tw.funnelRake ?? fh * 0.14, band: tw.funnelBand };
+    const flx = funLx * (tw.funnelX?.[i] ?? 1), flz = funLz * (tw.funnelZ?.[i] ?? 1);
+    const fo = { x, y0, h: fh * small, lx: flx, lz: flz, topLx: flx * (tw.funnelTop ?? 0.88), topLz: flz * (tw.funnelTop ?? 0.88), rake: tw.funnelRake ?? fh * 0.14, band: tw.funnelBand };
     part('funnel' + i, 'funnel', 'Cheminée ' + (i + 1), () => PT.funnel(b, fo, pal), () => PT.funnelRuin(b, fo, pal), { fine: () => PT.funnelDetail(b, fo, pal) });
     model.smoke.push([x - (tw.funnelRake ?? fh * 0.14) * 0.9, y0 + fh * small, 0]);
     funnelTops.push([x - (tw.funnelRake ?? fh * 0.14) * 0.9, y0 + fh * small, 0]);
@@ -277,7 +279,6 @@ export function buildShipModel(spec, tw = {}) {
   const mainKind = tw.mainKind || (mainCal >= 150 ? 'turret' : 'dp');
   const calM = mainCal / 1000;
   const barbH = 0.55 + calM * 4.2;
-  const houseTopOf = (n) => 1.5 + calM * 5.0;
 
   // -------- main battery --------
   if (!carrier || tw.carrierMainOnDeck) {
@@ -286,14 +287,16 @@ export function buildShipModel(spec, tw = {}) {
       const x = X(m.fractionFromBow), deckY = Y(x);
       const lvl = m.level || 0;
       const sideZ = m.z ?? 0;
+      const variant = tw.mainVariant;
+      const dm = mountDims({ kind: mainKind, cal: mainCal, n: m.guns, bore: spec.main.boreCalibers, variant });
       let pivot = deckY + barbH;
-      if (lvl >= 1) pivot = deckY + barbH + (houseTopOf() * 0.9 + 0.4) * lvl;
+      if (lvl >= 1) pivot = deckY + barbH + dm.lift * lvl;
       if (mainKind === 'dp' && lvl >= 1) pivot = deckY + 1.0 + 2.6 * lvl;
-      const r = Math.max(calM * 6, 1.1);
+      const r = dm.barbR || Math.max(calM * 6, 1.1);
       PT.barbette(b, x, sideZ, mainKind === 'turret' ? r : 0.9, deckY - 0.2, pivot, pal.hull);
       const [ac, ah] = arcFor(x, sideZ);
-      mountRec('main', mainKind, mainCal, m.guns, spec.main.boreCalibers, x, sideZ, pivot, ac, ah, { label: m.label, bore: spec.main.boreCalibers });
-      note(pivot + 3.5);
+      mountRec('main', mainKind, mainCal, m.guns, spec.main.boreCalibers, x, sideZ, pivot, ac, ah, { label: m.label, bore: spec.main.boreCalibers, variant });
+      note(pivot + dm.height + 0.8);
     }
   }
 
@@ -324,7 +327,7 @@ export function buildShipModel(spec, tw = {}) {
       const pivot = kind === 'turret' ? deckY + 0.5 + calS * 3 : deckY + 0.55;
       if (kind !== 'turret') PT.tub(b, x, deckY - 0.1, zz, 1.2 + calS * 3, 0.6, pal);
       const [ac, ah] = arcFor(x, zz);
-      mountRec('sec', kind, cal, per, s.boreCalibers || 40, x, zz, pivot, sg === 0 ? ac : ac, ah, { bore: s.boreCalibers || 40, si });
+      mountRec('sec', kind, cal, per, s.boreCalibers || 40, x, zz, pivot, sg === 0 ? ac : ac, ah, { bore: s.boreCalibers || 40, si, variant: tw.secVariant?.[si] });
       note(pivot + 2);
     }
   });
@@ -521,7 +524,8 @@ function buildCarrier(b, model, spec, hull, pal, tw, X, Y, fdY, rnd, note, part)
     const z = sgm * (hull.halfBeamDeck(x) + (tw.sponsonOut ?? 1.5));
     const y = fdY - 3.2;
     b.block({ x0: x - 2.6, x1: x + 2.6, hw: 2.2, zc: z, y0: y - 1.2, y1: y, tx0: x - 2.0, tx1: x + 2.0, thw: 1.8 }, shade(rgb(pal.hull), 1.1), MAT.HULL);
-    model.mounts.push({ group: 'main', kind: 'dp', cal: mc.caliberMm, n: m.guns, bore: mc.boreCalibers, x, z, y: y + 0.1, arcC: sgm * 90 * D2R, arcH: 110 * D2R, label: m.label || ('S' + i) });
+    const variant = tw.mainVariant && typeof tw.mainVariant === 'object' ? tw.mainVariant[m.guns] : tw.mainVariant;
+    model.mounts.push({ group: 'main', kind: m.guns === 1 && variant === 'mk30' ? 'shield' : 'dp', cal: mc.caliberMm, n: m.guns, bore: mc.boreCalibers, x, z, y: y + 0.1, arcC: sgm * 90 * D2R, arcH: 110 * D2R, label: m.label || ('S' + i), variant });
   });
   // parked aircraft on the aft part of the deck: drawn as separate instances (fewer as the air group takes off)
   const nPlanes = Math.min(16, (spec.aircraft && spec.aircraft.capacity ? Math.round(spec.aircraft.capacity * 0.17) : 8));

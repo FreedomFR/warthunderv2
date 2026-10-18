@@ -41,13 +41,39 @@ function bismarckTower({ b, model, pal, MAT, rgb, shade }) {
 }
 
 export const TWEAKS = {
-  yamato: { pagoda: [17, 14, 8, 28], dirKind: 'drum', funnelW: 0.24, funnelLen: 1.35, funnelRake: 2.2 },
+  // Iowa (photographs: 1944 dry dock, 1952 firing): a massive stepped tower on a long deckhouse, big oval funnels
+  iowa: {
+    mainVariant: 'mk7', secVariant: ['mk28'], houseW: 0.37, houseH: 4.4, funnelW: 0.31, funnelLen: 1.45, funnelH: 19, funnelRake: 2.4, funnelTop: 0.94,
+    tiers: [
+      { len: 27, w: 22, h: 3.8, rake: 1.5 },
+      { len: 21, w: 18, h: 4.2, rake: 1.2, wings: 1.6 },
+      { len: 15, w: 14.5, h: 4.2, round: true, taper: 0.92 },
+      { len: 13.5, w: 13, h: 3.8, rake: 0.8, wings: 1.8 },
+      { len: 10.5, w: 10.5, h: 3.8, rake: 0.6 },
+      { len: 8.2, w: 8.2, h: 4.0, round: true, taper: 0.9 },
+      { len: 6.4, w: 6.4, h: 3.4 },
+    ],
+  },
+  fletcher: { mainVariant: 'mk30' },
+  cleveland: { secVariant: ['mk28'] },
+  baltimore: { secVariant: ['mk28'] },
+  yamato: { mainVariant: 'type94', pagoda: [21, 16, 9, 34], dirKind: 'drum', houseW: 0.34, funnelW: 0.27, funnelLen: 1.5, funnelH: 21, funnelRake: 5, funnelTop: 0.96 },
   takao: { pagoda: [13, 11, 9, 34], dirKind: 'drum', funnelRake: 3.0 },
   kagero: { dirKind: 'drum', tiers: [{ len: 6.5, w: 5.4, h: 2.4, rake: 1.2 }, { len: 5.2, w: 4.4, h: 2.2, rake: 1, wings: 0.8 }, { len: 4, w: 3.4, h: 2.0, rake: 0.8 }] },
   agano: { dirKind: 'drum' },
-  bismarck: { funnelRake: 2.6, extra: bismarckTower },
+  // Bismarck (photographs Bundesarchiv 193-04-1-23 / -26, 193-06-7-16): massive block bridge tower with rangefinder drums, one tall oval funnel
+  bismarck: {
+    mainVariant: 'drh34', funnelW: 0.27, funnelLen: 1.45, funnelH: 15, funnelRake: 2.6, funnelTop: 0.92, houseH: 3.8, extra: bismarckTower,
+    tiers: [
+      { len: 20, w: 15, h: 4.0, rake: 1.0, wings: 1.5 },
+      { len: 15.5, w: 13, h: 4.2, rake: 0.8, wings: 1.2 },
+      { len: 11, w: 10, h: 4.4, rake: 0.6 },
+      { len: 8.5, w: 8, h: 4.0, round: true, taper: 0.9 },
+      { len: 6.2, w: 6, h: 3.0 },
+    ],
+  },
   shokaku: { noFunnels: true, elevators: [0.22, 0.56, 0.80], extra: shokakuFunnels },
-  essex: { elevators: [0.27, 0.80, 0.50], deckEdge: true },
+  essex: { mainVariant: { 2: 'mk28', 1: 'mk30' }, elevators: [0.27, 0.80, 0.50], deckEdge: true },
   illustrious: { elevators: [0.30, 0.75] },
   graf_zeppelin: { elevators: [0.27, 0.52, 0.80] },
   bearn: { elevators: [0.30, 0.47, 0.72] },

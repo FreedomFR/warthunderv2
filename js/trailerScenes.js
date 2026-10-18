@@ -258,6 +258,37 @@ export const SCENES = {
     await T.shot('boom_b', 3.4, (t, T) => mv.orbit(() => P3(takao, 10), 232, 258, 440, 500, 14, 34, 16, 46)(t, T));
   },
 
+  // ---- gunfire: a development scene for the muzzle blast (compared with photographs of broadsides) ---------------------------------
+  async firetest(T) {
+    T.reset(77, 'noon', { clouds: 0.2, veil: 0.2 });
+    const us = T.fleet(0, [{ id: new URLSearchParams(location.search).get('ship') || 'iowa' }], 0, 0, 90, { knots: 12 });
+    const jp = T.fleet(1, [{ id: 'yamato' }], 2500, -7500, 90, { knots: 12 });
+    T.go();
+    const ship = us[0];
+    const mains = () => ship.mounts.filter((m) => m.group === 'main' && m.alive);
+    await T.until(() => mains().some((m) => m.aimOk && m.fireT < 0.05), { max: 400, dt: 1 / 60 });
+    const m = mains().find((q) => q.fireT < 0.05) || mains()[0];
+    const w = [0, 0, 0];
+    ship.toWorld(m.rec.x, m.rec.y, m.rec.z, w);
+    const t0 = T.now;
+    T.log('firetest salvo', m.rec.label, 'elev', (m.elev * 57.3).toFixed(1), 'train', (m.trainRel * 57.3).toFixed(0), 'at', t0.toFixed(1));
+    const side = [0, 0, -1];      // the enemy lies to the north (-z)
+    await T.shot('fire_air', 2.4, () => {
+      const q = [0, 0, 0]; ship.toWorld(m.rec.x, m.rec.y, m.rec.z, q);
+      return { p: [q[0] + 18, q[1] + 78, q[2] + 74], l: [q[0] - 8, q[1] + 6, q[2] - 26], fov: 50 };
+    });
+    // the second salvo from the forecastle, looking back at the turret (as in the photograph of Iowa firing in 1952)
+    await T.until(() => mains().some((q) => q.aimOk && q.fireT < 0.05), { max: 400, dt: 1 / 60 });
+    const m2 = mains().find((q) => q.fireT < 0.05) || mains()[0];
+    if (ship.spec.type === 'carrier' || m2.rec.x < 20) {
+      // the flight deck or the superstructure hides the forecastle view: look at the mount from outboard on its own side, abaft its beam
+      const side = m2.rec.z < 0 ? -1 : 1;
+      await T.shot('fire_deck', 2.4, () => ({ p: mv.at(ship, m2.rec.x - 26, m2.rec.y + 4, m2.rec.z + side * 42), l: mv.at(ship, m2.rec.x + 3, m2.rec.y + 3, m2.rec.z + side * 4), fov: 48 }));
+    } else {
+      await T.shot('fire_deck', 2.4, () => ({ p: mv.at(ship, m2.rec.x + 46, m2.rec.y + 2.5, 3), l: mv.at(ship, m2.rec.x + 10, m2.rec.y + 3.5, -22), fov: 58 }));
+    }
+  },
+
   // ---- end plate: the column against the setting sun ------------------------------------------------------------------------
   async end(T) {
     T.reset(72, 'dusk');

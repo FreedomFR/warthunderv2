@@ -858,7 +858,7 @@ export async function createEngine(canvas, options = {}) {
       if (hooks.preMain) hooks.preMain(enc);
       const rp = enc.beginRenderPass(mainPass);
       if (hooks.drawOpaque) hooks.drawOpaque(rp);
-      if (nodeCount) {
+      if (nodeCount && qs.get('ocean') !== '0') {      // ?ocean=0: model previews without the sea (much faster on a software rasteriser)
         rp.setPipeline(oceanPipe);
         rp.setBindGroup(0, bgOcean[foamCur]);
         rp.setVertexBuffer(0, instBuf);
