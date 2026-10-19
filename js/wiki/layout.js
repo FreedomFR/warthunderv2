@@ -4,7 +4,7 @@
 import { TYPES, nationShips } from './data.js';
 import { TIERS } from './tiers.js';
 
-export const G = { rootW: 150, cellW: 204, cellH: 128, nodeW: 180, nodeH: 110, headH: 68, pad: 8 };
+export const G = { rootW: 170, cellW: 204, cellH: 128, nodeW: 180, nodeH: 110, headH: 68, pad: 8 };
 
 /**
  * layoutNation(nationId, { compact }) -> { cols, lanes, nodes, edges, width, height }

@@ -24,6 +24,10 @@ export function createCard({ onClose, onOpenShip, onStep }) {
     const q = new URLSearchParams(location.search);
     q.set('embed', '1'); q.set('m', key);
     const url = `viewer.html?${q}`;
+    if (!navigator.gpu) {
+      return [h('div', { class: 'viewer' }, h('div', { class: 'ph' }, 'Le modèle 3D demande WebGPU (un Chrome ou un Edge récent).')),
+        h('div', { class: 'vhint' }, h('a', { href: `viewer.html?m=${encodeURIComponent(key)}`, target: '_blank', rel: 'noopener' }, 'Essayer dans le visualiseur ↗'))];
+    }
     const box = h('div', { class: 'viewer' }, h('div', { class: 'ph' }, 'Chargement du modèle 3D…'));
     const frame = h('iframe', { title: 'Modèle 3D', src: url, allow: 'fullscreen; clipboard-write', loading: 'eager' });
     box.append(frame);

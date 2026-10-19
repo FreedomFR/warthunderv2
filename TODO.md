@@ -99,6 +99,16 @@ Lot 2 (cuirassés et porte-avions des autres nations) : **fait, avec des réserv
 - [ ] **Intégration continue** : aucun test ne tourne automatiquement sur GitHub ; ajouter un workflow qui lance `npm test` et `npm run check:shaders`.
 - [ ] Tests visuels automatisés : comparer des captures de chaque navire à des images de référence pour repérer une régression de modèle.
 
+## 6 bis. Wiki et visualiseur 3D
+
+- [x] **Visualiseur** (`viewer.html`) : orbite, déplacement, zoom (souris, tactile, clavier), lumière, océan, ombres, état des dégâts, lien de débogage, capture PNG ; vérifié en rendu logiciel (`?offscreen=1`).
+- [x] **Wiki** (`wiki.html`) : arbres technologiques par nation, comparatif, aviation, fiches avec modèle 3D intégré.
+- [ ] **À essayer sur la RTX 3080** : le visualiseur et la fiche du wiki à l'écran (le canvas à l'écran n'existe pas en rendu logiciel), la rotation automatique, la capture PNG et le plein écran.
+- [ ] **Mode fil de fer** : WebGPU n'a pas de mode « fil de fer » ; il faudrait un second pipeline en lignes (arêtes des triangles) dans `ShipRenderer`.
+- [ ] **Plusieurs navires par nation et par type** : l'arbre est prêt (les navires d'un même type sont reliés de l'ancien au récent, par `js/wiki/layout.js`) mais chaque nation n'a aujourd'hui qu'une classe par type.
+- [ ] `wiki.html` et `viewer.html` demandent le serveur (modules ES) : ils ne sont pas dans `naval.html`.
+- [ ] Les textes en anglais des fiches techniques (traits distinctifs, DCA, blindage) sont affichés tels quels dans la fiche du wiki.
+
 ## 7. Limites connues
 
 - Les modèles sont **construits par le programme** (formes simples, pas de sculpture à la main) : ils suivront de près les proportions, mais ne seront jamais aussi détaillés qu'un modèle fait sous Blender.

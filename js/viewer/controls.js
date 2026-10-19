@@ -6,7 +6,7 @@ export function attachControls(canvas, scene, { onUserInput } = {}) {
   const ptrs = new Map();
   let vAz = 0, vEl = 0;                    // inertia of the orbit (deg per second)
   let last = 0, lastPinch = 0, lastMid = null, mode = null;
-  const touched = () => { st.auto = st.auto && 0; onUserInput && onUserInput(); };
+  const touched = () => { st.auto = 0; onUserInput && onUserInput(); };
   const clampDist = (d) => Math.max(2, Math.min(3000 + 4 * (scene.subject?.radius || 100), d));
 
   canvas.style.touchAction = 'none';

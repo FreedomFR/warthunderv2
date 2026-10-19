@@ -52,7 +52,7 @@ h1 { font-size: 26px; margin: 6px 0 2px; letter-spacing: .2px; }
 .tree .col .th span { display: block; font-size: 11.5px; color: var(--dim); }
 .tree .col .th em { display: block; font-style: normal; font-size: 11px; color: var(--acc); opacity: .85; }
 .tree .rootcard { position: absolute; display: flex; align-items: center; gap: 9px; padding: 0 10px; border-radius: 10px; background: linear-gradient(135deg, color-mix(in srgb, var(--acc) 30%, #0c1218), #0c1218); border: 1px solid color-mix(in srgb, var(--acc) 60%, transparent); font-weight: 700; z-index: 2; }
-.tree .rootcard { font-size: 14px; line-height: 1.15; overflow: hidden; }
+.tree .rootcard { font-size: 14px; line-height: 1.15; overflow: hidden; white-space: nowrap; }
 .tree .rootcard small { display: block; font-weight: 500; color: var(--dim); font-size: 10.5px; white-space: nowrap; }
 .tree .lane-label { position: absolute; left: 10px; width: 110px; color: var(--dim); font-size: 11.5px; letter-spacing: .8px; text-transform: uppercase; font-weight: 600; line-height: 1.2; text-align: right; }
 .tree .lane-band { position: absolute; left: 0; right: 0; border-top: 1px solid #ffffff0b; }

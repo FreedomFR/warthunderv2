@@ -63,6 +63,7 @@ export function createUI(game) {
   const presetSel = h('select', { onchange: () => {} }, h('option', { value: '' }, '— Choisir un scénario —'), PRESETS.map((p) => h('option', { value: p.id }, p.name)));
   const setup = h('div', { id: 'setup', class: 'panel' },
     h('div', { class: 'title' }, h('span', { class: 'big' }, 'Combat naval'), h('span', { class: 'sub' }, 'Simulation de la Seconde Guerre mondiale')),
+    h('div', { class: 'row' }, h('a', { class: 'btn small', href: 'wiki.html', target: '_blank', title: 'Fiches techniques et arbres par nation' }, 'Wiki des navires'), h('a', { class: 'btn small', href: 'viewer.html', target: '_blank', title: 'Voir chaque navire et avion en 3D' }, 'Visualiseur 3D')),
     h('div', { class: 'row' }, presetSel, h('button', { class: 'btn', onclick: () => loadPreset(presetSel.value) }, 'Charger')),
     teamsBox,
     h('div', { class: 'row' }, h('button', { class: 'btn small', onclick: () => addTeam() }, '+ Équipe'), h('button', { class: 'btn small', onclick: () => randomize() }, 'Flottes aléatoires'), h('button', { class: 'btn small', onclick: () => { game.config.seed = (Math.random() * 1e6) | 0; seedInput.value = game.config.seed; changed(); } }, 'Nouvelle graine')),
@@ -71,7 +72,6 @@ export function createUI(game) {
     infoCard,
     h('div', { class: 'row' }, btnSpawn, btnStart),
     h('div', { class: 'hint' }, 'Faites apparaître les flottes pour les voir sur l\'eau, changez de caméra (1-7), puis lancez le combat : l\'IA pilote tous les navires.'),
-    h('div', { class: 'row' }, h('a', { class: 'btn small', href: 'wiki.html', target: '_blank', title: 'Fiches techniques et arbres par nation' }, 'Wiki des navires'), h('a', { class: 'btn small', href: 'viewer.html', target: '_blank', title: 'Voir chaque navire et avion en 3D' }, 'Visualiseur 3D')),
   );
 
   function ensureTeams() {

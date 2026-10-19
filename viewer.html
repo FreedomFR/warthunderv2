@@ -65,11 +65,13 @@
   body.embed #toast { bottom: 52px; }
 
   @media (max-width: 760px) {
-    #side { left: 12px; right: 12px; top: auto; bottom: 64px; width: auto; max-height: 52vh; }
+    #side { left: 8px; right: 8px; top: auto; bottom: 100px; width: auto; max-height: 48vh; }
+    #bar { left: 8px; right: 8px; bottom: 8px; transform: none; max-width: none; gap: 5px; }
+    #bar .btn { flex: 1 1 auto; padding: 8px 6px; font-size: 12.5px; text-align: center; }
+    #toast { bottom: 104px; }
     #info { top: 56px; }
     #info b { font-size: 16px; }
     .helpgrid { grid-template-columns: 1fr; }
-    #bar .btn { padding: 8px 9px; }
   }
 </style>
 </head>
