@@ -71,6 +71,7 @@ export class Effects {
       switch (e.type) {
         case 'muzzle': this.muzzle(e); break;
         case 'splash': this.splash(e); break;
+        case 'landImpact': this.landImpact(e); break;
         case 'impact': this.impact(e); break;
         case 'explosion': this.explosion(e); break;
         case 'torpedoLaunch': this.torpedoLaunch(e); break;
@@ -587,6 +588,46 @@ export class Effects {
     this.addShake(0.8 * s, e.x, e.z);
   }
 
+  /** The surf along the coasts near the camera: the foam map only keeps what is stamped on it, so the segments of the coast within reach are stamped again every few frames. */
+  updateShores(T, cam, foam) {
+    this._shoreF = (this._shoreF || 0) + 1;
+    for (const is of T.islands) {
+      if (Math.hypot(cam.x - is.x, cam.z - is.z) > is.R + 700) continue;
+      const c = is.coast(), n = c.length / 4;
+      for (let k = this._shoreF % 4; k < n; k += 4) {
+        const o = k * 4, x0 = c[o], z0 = c[o + 1], x1 = c[o + 2], z1 = c[o + 3];
+        if (Math.hypot((x0 + x1) / 2 - cam.x, (z0 + z1) / 2 - cam.z) > 640) continue;
+        const v = ((k * 2654435761) >>> 0) / 4294967296;
+        foam.add(x0, z0, x1, z1, 17 + 9 * v, 0.55, 0.2, 0.18);       // the wide, thin band of broken water
+        foam.add(x0, z0, x1, z1, 5 + 2 * v, 0.8, 0.55, 0.6);          // the line of surf on the sand
+      }
+    }
+  }
+
+  /** A shell (or a torpedo) bursts on the ground of an island: a flash, a cloud of dust and smoke, earth and stones thrown up. */
+  landImpact(e) {
+    const d = this.distToCam(e.x, e.z);
+    if (d > 14000) return;
+    const p = this.p;
+    const s = clamp(e.cal / 170, 0.3, 2.6) * (e.torpedo ? 1.3 : 1);
+    const he = e.shell !== 'AP' || e.torpedo;
+    if (he) p.add({ kind: K.FLASH, x: e.x, y: e.y + 2 * s, z: e.z, s0: 5 * s, s1: 17 * s, life: 0.28, r: 1, g: 0.72, b: 0.34, a0: 6, a1: 0 });
+    const nd = Math.round((7 + 6 * s) * this.emitScale + 2);
+    for (let i = 0; i < nd; i++) {
+      const a = rnd() * 6.283, sv = rr(1, 9) * s;
+      p.add({ kind: K.SMOKE, x: e.x + Math.cos(a) * rr(0, 3) * s, y: e.y + rr(0.5, 3), z: e.z + Math.sin(a) * rr(0, 3) * s, vx: Math.cos(a) * sv, vy: rr(3, 11) * Math.sqrt(s), vz: Math.sin(a) * sv, s0: 2.4 * s, s1: rr(11, 22) * s, life: rr(4, 9), r: 0.46, g: 0.4, b: 0.33, a0: 0.62, a1: 0, wind: 1, drag: 0.6 });
+    }
+    // earth and stones
+    const ng = Math.round((8 + 10 * s) * this.emitScale + 3);
+    for (let i = 0; i < ng; i++) {
+      const a = rnd() * 6.283, sv = rr(4, 26) * Math.sqrt(s);
+      p.add({ kind: K.TRACER, x: e.x, y: e.y + 1, z: e.z, vx: Math.cos(a) * sv, vy: rr(8, 40) * Math.sqrt(s), vz: Math.sin(a) * sv, s0: 0.35 * s, life: rr(0.7, 1.8), r: 0.5, g: 0.42, b: 0.34, a0: 1.2, a1: 0, grav: 22, stretch: 1.4 });
+    }
+    // black smoke of the burst itself for the heavy shells
+    if (s > 0.8 && he) p.add({ kind: K.SMOKE, x: e.x, y: e.y + 2, z: e.z, vy: 7, s0: 5 * s, s1: 26 * s, life: 12, r: 0.1, g: 0.09, b: 0.085, a0: 0.55, a1: 0, wind: 1, drag: 0.3 });
+    this.addShake(0.5 * s, e.x, e.z);
+  }
+
   collision(e) {
     if (this.distToCam(e.x, e.z) > 4000) return;
     for (let i = 0; i < 10; i++) this.p.add({ kind: K.TRACER, x: e.x, y: 5, z: e.z, vx: rr(-30, 30), vy: rr(5, 35), vz: rr(-30, 30), s0: 0.3, life: rr(0.4, 0.9), r: 1, g: 0.7, b: 0.3, a0: 3, a1: 0, grav: 20, stretch: 3 });
@@ -611,6 +652,8 @@ export class Effects {
     this.p.wind[0] = Math.cos(wa) * ws; this.p.wind[1] = Math.sin(wa) * ws;
     const foam = this.engine.foam;
     const t = world.time;
+
+    if (world.terrain) this.updateShores(world.terrain, cam, foam);
 
     for (const s of world.ships) {
       if (s.state === 'sunk') continue;

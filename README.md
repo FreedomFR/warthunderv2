@@ -236,6 +236,7 @@ moteurs d'avions avec effet Doppler, sirène du Stuka en piqué, avion qui tombe
   le même sens, à la distance que tient le navire de la ligne qui tire le moins loin, et pas plus vite que le plus lent d'entre eux ; la ligne se
   partage une **cible commune** (celle que le plus grand nombre de canons atteint, la plus précieuse et déjà touchée). Un navire gravement touché ou privé de
   machines quitte la formation et se débrouille seul ; il ne règle plus l'allure de la flotte. Les flottes sont posées sur l'eau dans cet ordre.
+- **Îles** (`sim/terrain.js`) : des rochers, de petites îles vallonnées et de grandes îles montagneuses (jusqu'à 560 m, certaines avec un cratère) sont tirées de la graine ; la case « Îles » du menu (ou `?islands=0|1|2`) choisit aucune, quelques-unes ou un archipel. Les flottes de départ et l'axe qui les joint restent dégagés. Les navires s'**échouent** là où l'eau est moins profonde que leur tirant d'eau, les obus éclatent sur les pentes et les torpilles sur le rivage, la **ligne de vue** et l'arc de chaque canon sont testés contre le relief (on ne tire pas à travers une colline), l'IA contourne les îles et reste en eau profonde, les avions prennent de l'altitude devant une montagne et s'écrasent s'ils la touchent. À l'écran : relief maillé depuis la même fonction de hauteur, matière de sol, lignes d'écume au rivage, impacts avec poussière et éclats de terre.
 - **Mer** : les navires flottent sur la houle FFT (roulis, tangage, pilonnement) et laissent un sillage d'écume (vague d'étrave, ligne d'écume à la flottaison, remous des hélices puis longue traînée blanche, d'autant plus marquée que le navire va vite).
 
 ## Contrôle manuel (préparé, pas encore branché)
@@ -261,15 +262,15 @@ Les tourelles, la conduite de tir, les rechargements et les salves sont déjà g
 | `js/game/data/` | Fiches des navires (6 nations) |
 | `js/game/model/` | Constructeur de maillages procéduraux : coque loftée, superstructures, tourelles, mâts… |
 | `js/game/model/planes.js` | Générateur des avions (fuselage loftée, ailes, hélice, train, bombes, torpilles) |
-| `js/game/sim/` | Simulation pure (sans GPU) : monde, navires, armes, balistique, aviation (`aircraft.js`), modules et dégâts (`modules.js`, `damage.js`), explosions (`explosions.js`), débris (`debris.js`), contrôleurs |
+| `js/game/sim/` | Simulation pure (sans GPU) : monde, navires, îles (`terrain.js`), armes, balistique, aviation (`aircraft.js`), modules et dégâts (`modules.js`, `damage.js`), explosions (`explosions.js`), débris (`debris.js`), contrôleurs |
 | `js/game/render/` | Rendu des navires (`shipVisual.js`), des avions (`aircraftVisual.js`), particules, effets, ombres |
 | `js/game/audio/` | Synthèse des sons (`synth.js`) ; `js/game/audio.js` : lecture en 3D |
 | `js/game/ui/` | Interface, caméras, plan des dégâts |
 | `js/trailer.js`, `js/trailerScenes.js`, `js/trailerMusic.js`, `tools/trailer/` | Bande-annonce : réalisateur et scènes (`?trailer=1`), partition synthétisée, enregistreur image par image et montage ffmpeg (voir `tools/trailer/README.md`) |
-| `test/` | `models.mjs` (30 modèles), `damage.mjs` (dégâts localisés, explosions), `air.mjs` (aviation), `audio.mjs` (moteur sonore avec une API Web Audio factice), `manual.mjs` (pilotage manuel via ShipCommand), `battle.mjs` / `preset.mjs` (une bataille), `fuzz.mjs` (batailles aléatoires) |
+| `test/` | `models.mjs` (30 modèles), `damage.mjs` (dégâts localisés, explosions), `air.mjs` (aviation), `audio.mjs` (moteur sonore avec une API Web Audio factice), `manual.mjs` (pilotage manuel via ShipCommand), `battle.mjs` / `preset.mjs` (une bataille), `fuzz.mjs` (batailles aléatoires), `islands.mjs` (îles : génération, ligne de vue, échouage, impacts, batailles) |
 
 Paramètres d'URL utiles : `?scenario=duel&start=1` (démarrage direct), `seed=123` (combat reproductible),
-`mode=orbit`, `speed=4`, `scale=0.7` (résolution de rendu), `shadows=0`, `preview=iowa,yamato,plane:sbd` (aperçu de navires et d'avions ; `ruin=1`, `scars=30`, `split=20`, `parked=6` montrent les états endommagés), `quality=low|medium|high` (qualité graphique), `fft=128` et `grid=16` (océan allégé pour les machines lentes), `ocean=0` (sans océan : aperçus de modèles plus rapides).
+`mode=orbit`, `speed=4`, `scale=0.7` (résolution de rendu), `shadows=0`, `preview=iowa,yamato,plane:sbd` (aperçu de navires et d'avions ; `ruin=1`, `scars=30`, `split=20`, `parked=6` montrent les états endommagés), `quality=low|medium|high` (qualité graphique), `fft=128` et `grid=16` (océan allégé pour les machines lentes), `ocean=0` (sans océan : aperçus de modèles plus rapides), `islands=0|1|2` (aucune île, quelques-unes, archipel).
 
 ## Crédits et licence
 

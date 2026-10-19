@@ -20,6 +20,7 @@ export const MAT = {
   AIRCRAFT: 9,  // aircraft skins (slightly glossy)
   ENSIGN: 10,   // national ensign: rgb = (u, v, length) of the cloth, drawn and waved by the shader
   GLYPH: 11,    // hull number glyph: rgb = (glyph index, u, v) inside the glyph box
+  TERRAIN: 12,  // the ground of an island: rgb is the colour of the soil, the shader adds the grain
 };
 
 import { bakeAO } from './ao.js';

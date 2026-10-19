@@ -335,6 +335,22 @@ fn ggx(nh: f32, a: f32) -> f32 {
       albedo = vec3f(0.78, 0.78, 0.74);
       rough = 0.8;
     }
+    case 12u: {  // the ground of an island: the soil colour is in the vertex, the grain is added here
+      let tf = 1.0 - smoothstep(40.0, 420.0, dist);
+      let g1 = clamp(0.5 + 0.9 * gnoise(lp.xz * 0.21), 0.0, 1.0);
+      let g2 = clamp(0.5 + 0.9 * gnoise(lp.xz * 0.55 + 7.0), 0.0, 1.0);
+      let g3 = clamp(0.5 + 0.9 * gnoise(lp.xz * 2.1 + 3.0), 0.0, 1.0);
+      let steep = smoothstep(0.35, 0.75, 1.0 - up);
+      // strata and crumbled rock on the steep ground, tufts and patches on the gentle one
+      let strata = sin(lp.y * 0.9 + g1 * 5.0 + lp.x * 0.05) * 0.5 + 0.5;
+      albedo *= (0.78 + 0.4 * g1) * (0.9 + 0.2 * g2 * tf + 0.08 * g3 * tf);
+      albedo *= mix(1.0, 0.72 + 0.4 * strata, steep * 0.7);
+      // the sand next to the water is wet and darker
+      albedo *= mix(0.62, 1.0, smoothstep(0.0, 1.4, lp.y));
+      hgt = (0.35 * (g2 - 0.5) + 0.06 * (g3 - 0.5)) * tf;
+      rough = mix(0.93, 0.7, (1.0 - smoothstep(0.0, 0.8, lp.y)) * 0.7);
+      weather = 1.0;
+    }
     default: { rough = 0.74; }
   }
   N = bumpNormal(N, in.rel, hgt);

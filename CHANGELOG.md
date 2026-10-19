@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased — islands
+
+- **Islands of every size and height**: rocks (45-150 m of radius, 7-38 m high), small hilly islands (260-760 m, up to 120 m) and large mountainous ones (1.1-2.3 km, up to 560 m, some with a crater), lobed and stretched coasts, a shelf that falls 12 m for every 100 m. They are generated from the seed (`sim/terrain.js`: one analytic height field per island, sampled on a grid for the simulation) with the fleets' start and the axis between them kept clear; the menu has a selector (none / a few / archipelago) and `?islands=0|1|2`. Each island has a biome (green, arid, rock, volcanic).
+- **Rendering**: one mesh per island built from the same field (`model/islandMesh.js`, `render/islandVisual.js`), a terrain material in the ship shader (grain, strata on steep ground, wet sand, no weathering), surf lines re-stamped on the foam map along the coast near the camera, a camera that cannot go under the ground, shell and torpedo impacts on the land (flash, dust, earth chunks, sound).
+- **Simulation**: ships run aground where the water is shallower than 0.8 draught (pushed out along the slope, slowed, damaged by the speed of the impact); shells burst on the slopes and torpedoes explode on the shore; the line of sight and the ballistic arc of every gun are tested against the ground (a mount behind a hill is not feasible, a target behind an island is not picked); the AI keeps to water deeper than 32 m (fan of probes and a ring round the hull), goes round an island that is on its way (detour waypoint) and slows near the shallows; aircraft climb to clear mountains ahead (look-ahead at 300-2000 m) and crash into the ground.
+- `test/islands.mjs` (generation, line of sight, grounding, shells and torpedoes, the AI, six battles among islands) is part of `npm test`.
+
 ## 0.1.1 — air groups, gun audit, wakes and fleet tactics (19 October 2026)
 
 What changed since 0.1.0, in the order of the sections below (the newest first):

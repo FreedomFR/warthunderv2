@@ -91,7 +91,11 @@ function feasible(ship, m, target, out) {
   // the barrel must clear the towers and the other mounts at the elevation the shot needs
   const phi = m.rec.arcC + clamp(rel, m.rec.arcMin, m.rec.arcMax);
   const lo = clearElev(m.rec, phi);
-  return out.elev >= (lo > 0.001 ? lo - 0.01 : -1) && out.elev <= clearMax(m.rec, phi) + 0.01;
+  if (!(out.elev >= (lo > 0.001 ? lo - 0.01 : -1) && out.elev <= clearMax(m.rec, phi) + 0.01)) return false;
+  // an island between the guns and the target: the shell would burst on its slope
+  const T = ship.world && ship.world.terrain;
+  if (T && T.arcBlocked(out.px, out.py, out.pz, out.px + Math.sin(out.bearing) * out.range, out.pz - Math.cos(out.bearing) * out.range, Math.max(out.elev, 0), m.gun.v0)) return false;
+  return true;
 }
 
 const _alt = {};

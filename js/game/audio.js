@@ -168,6 +168,13 @@ export class GameAudio {
           if (e.killed > 0) this.play('crash_metal', e.x, e.y, e.z, { gain: 0.6, ref: 900, pri: 2, when: 0.1 });
           break;
         }
+        case 'landImpact': {
+          const cal = e.cal || 150;
+          if (e.torpedo) this.play('torpedo_hit', e.x, 0, e.z, { gain: 1.0, ref: 2200, pri: 3, wet: 0.4 });
+          else if (e.shell === 'AP') this.play('impact_through', e.x, e.y, e.z, { gain: clampR(cal / 360, 0.35, 0.9), ref: 800, pri: 2, wet: 0.2, rate: R(0.7, 0.9) });
+          else this.play('impact_he', e.x, e.y, e.z, { arg: (Math.random() * 3) | 0, gain: clampR(cal / 250, 0.4, 1.1), ref: 1000, pri: 2, wet: 0.3, rate: R(0.85, 1) });
+          break;
+        }
         case 'explosion': {
           if (e.stage === 'secondary') this.play('explosion_med', e.x, e.y, e.z, { gain: 0.8 * Math.min(1.2, 0.5 + e.size), ref: 1900, pri: 3, wet: 0.4, rate: R(0.9, 1.1) });
           else if (e.stage === 'air') this.play('explosion_small', e.x, e.y, e.z, { gain: 0.9, ref: 1000, pri: 3, wet: 0.3, rate: R(0.85, 1.1) });

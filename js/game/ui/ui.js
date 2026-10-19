@@ -60,6 +60,7 @@ export function createUI(game) {
   const sepVal = h('output', {}, '12 km');
   const sepInput = h('input', { type: 'range', min: 4, max: 25, step: 0.5, value: 12, oninput: (e) => { game.config.sep = Number(e.target.value) * 1000; sepVal.textContent = e.target.value + ' km'; changed(); } });
   const seedInput = h('input', { type: 'number', value: game.config.seed, style: 'width:84px', onchange: (e) => { game.config.seed = Number(e.target.value) | 0; changed(); } });
+  const islandSel = h('select', { onchange: (e) => { game.config.islands = Number(e.target.value); changed(); } }, [['0', 'Aucune'], ['1', 'Quelques-unes'], ['2', 'Archipel']].map(([v, t]) => h('option', { value: v, selected: Number(v) === game.config.islands }, t)));
   const presetSel = h('select', { onchange: () => {} }, h('option', { value: '' }, '— Choisir un scénario —'), PRESETS.map((p) => h('option', { value: p.id }, p.name)));
   const setup = h('div', { id: 'setup', class: 'panel' },
     h('div', { class: 'title' }, h('span', { class: 'big' }, 'Combat naval'), h('span', { class: 'sub' }, 'Simulation de la Seconde Guerre mondiale')),
@@ -68,6 +69,7 @@ export function createUI(game) {
     h('div', { class: 'row' }, h('button', { class: 'btn small', onclick: () => addTeam() }, '+ Équipe'), h('button', { class: 'btn small', onclick: () => randomize() }, 'Flottes aléatoires'), h('button', { class: 'btn small', onclick: () => { game.config.seed = (Math.random() * 1e6) | 0; seedInput.value = game.config.seed; changed(); } }, 'Nouvelle graine')),
     h('label', { class: 'slider' }, h('span', {}, 'Distance entre les flottes'), sepInput, sepVal),
     h('label', { class: 'slider' }, h('span', {}, 'Graine du combat'), seedInput, h('span')),
+    h('label', { class: 'slider' }, h('span', {}, 'Îles'), islandSel, h('span')),
     infoCard,
     h('div', { class: 'row' }, btnSpawn, btnStart),
     h('div', { class: 'hint' }, 'Faites apparaître les flottes pour les voir sur l\'eau, changez de caméra (1-7), puis lancez le combat : l\'IA pilote tous les navires.'),

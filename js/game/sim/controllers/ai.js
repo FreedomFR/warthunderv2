@@ -41,8 +41,11 @@ export class AIController {
     const gunR = st.main.maxRange * 0.93;
     const reach = Math.min(gunR, st.visualRange);
     let best = null, bs = 0;
+    const T = world.terrain;
     for (const e of enemies) {
       if (e._d > reach) continue;
+      // an island between the two ships hides the enemy: nobody shoots at what he cannot see
+      if (T && T.blocks(ship.x, ship.model.topY * 0.6, ship.z, e.x, e.model.topY * 0.45, e.z)) continue;
       let s = TYPE_VALUE[e.stats.type] * (1 + (1 - e.hpFrac) * 0.9) / (0.35 + e._d / reach);
       if (e === ship.lastAttacker) s *= 1.25;
       if (e === cmd.main.target) s *= 1.35;
@@ -62,6 +65,7 @@ export class AIController {
       let tb = 0;
       for (const e of enemies) {
         if (e._d < 2200 || e._d > clamp(tp.range * 0.5, 4500, 9000)) continue;
+        if (T && T.blocks(ship.x, 0.4, ship.z, e.x, 0.4, e.z)) continue;           // the torpedoes would run onto the shore
         const s = TYPE_VALUE[e.stats.type] * (1 + 0.5 * (e === best)) / (1 + e._d / 8000);
         if (s > tb) { tb = s; torpTarget = e; }
       }
@@ -102,6 +106,11 @@ export class AIController {
     } else {
       const corr = clamp((d - Rd) / Rd, -0.3, 0.3);
       want = bearing + this.circle * (90 - corr * 120) * D2R; thr = 0.7;
+    }
+    // an island on the way to the enemy: go round it (the fan of probes below keeps the ship off the shallows)
+    if (T && !crippled) {
+      const wp = T.detour(ship.x, ship.z, ref.x, ref.z);
+      if (wp) { want = Math.atan2(wp[0] - ship.x, -(wp[1] - ship.z)); thr = Math.max(thr, 0.8); }
     }
     // torpedo attack run: show the beam to the target
     if (torpTarget && d < clamp(tp.range * 0.5, 4500, 9000) * 1.15) {
@@ -157,6 +166,12 @@ export class AIController {
         if (dist < safe * 0.7) { vx -= rx / Math.max(dist, 1) * 1.5; vz -= rz / Math.max(dist, 1) * 1.5; }
         if (dist < safe * 0.9 && tcpa < 40) thr = Math.min(thr, 0.45);
       }
+    }
+    if (T) {
+      const av = T.avoid(ship.x, ship.z, ship.heading, ship.speed, st.L);
+      const m = Math.hypot(av.ax, av.az);
+      if (m > 0.01) { const k = Math.min(m, 3.2) / m * 1.3; vx += av.ax * k; vz += av.az * k; }
+      thr = Math.min(thr, Math.max(0.3, av.slow));
     }
     const r = Math.hypot(ship.x, ship.z);
     if (r > MAP_RADIUS - 4000) {

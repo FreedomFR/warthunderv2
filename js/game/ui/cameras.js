@@ -221,6 +221,8 @@ export class CameraRig {
       sm.yaw += wrapPi(yaw - sm.yaw) * k; sm.pitch += (pitch - sm.pitch) * k; sm.roll += wrapPi(roll - (sm.roll || 0)) * k;
     }
     cam.x = sm.x; cam.y = sm.y; cam.z = sm.z; cam.yaw = sm.yaw; cam.pitch = sm.pitch; cam.roll = sm.roll || 0;
+    // stay above the ground of an island
+    if (w.terrain) { const th = w.terrain.heightAt(cam.x, cam.z); if (th > -3 && cam.y < th + 3.5) cam.y = th + 3.5; }
     // stay above the sea
     const wh = this.engine.water.camH || 0;
     if (cam.y < wh + 1.2) cam.y = wh + 1.2;

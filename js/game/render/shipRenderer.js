@@ -95,6 +95,13 @@ export class ShipRenderer {
     return mesh;
   }
 
+  /** Free a mesh made by createMesh() (islands are rebuilt for every battle). */
+  releaseMesh(mesh) {
+    const k = this.meshes.indexOf(mesh);
+    if (k >= 0) this.meshes.splice(k, 1);
+    mesh.vbuf.destroy(); mesh.ibuf.destroy();
+  }
+
   /** Do the instances added from now on cast sun shadows? (default yes) */
   setCasting(on) { this.casting = on; }
 
