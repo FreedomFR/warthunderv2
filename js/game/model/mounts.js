@@ -112,7 +112,7 @@ function aaLen(s) {
 }
 
 export function getMountModel(spec) {
-  const key = [spec.kind, spec.cal, spec.n, spec.bore, spec.col, spec.variant || ''].join('|');
+  const key = [spec.kind, spec.cal, spec.n, spec.bore, spec.col, spec.variant || '', JSON.stringify(spec.top || '')].join('|');
   let m = cache.get(key);
   if (!m) { m = makeMount(spec); cache.set(key, m); }
   return m;
@@ -278,10 +278,35 @@ function houseMk30(hb, col, dark, f) {
 
 const HOUSES = { mk7: houseMk7, type94: houseType94, type3_155: houseType3, drh28_150: houseDrh28, lit381: houseLit381, lit152: houseLit152, rich380: houseRich380, fr152: houseFr152, it152: houseIt152, us152: houseUs152, brit152: houseBrit152, it120: houseIt120, de150_2: houseDe150_2, de150_1: houseMk30, fr138: houseMk30, brit120: houseBrit120, type3_127: houseType3_127, brit203: houseBrit203, type41_152: houseType41_152, us203: houseUs203, fr203: houseFr203, fr152_30: houseFr152_30, zara203: houseZara203, type3_203: houseType3_203, drh203: houseDrh203, drh34: houseDrh34, mk28: houseMk28, mk30: houseMk30 };
 
+/**
+ * Paint the flat roof of a gun house: `top.col` recolours it (Kriegsmarine turret tops were dark grey); `top.bands` = [stripe, ground]
+ * lays the ground colour and two stripes across it (the red and white recognition roofs of the Regia Marina, 1940-42).
+ */
+function markRoof(hb, top, h) {
+  let ymax = -1e9;
+  for (let i = 0; i < hb.p.length / 3; i++) if (hb.n[i * 4 + 1] > 0.9 && hb.p[i * 3 + 1] > h * 0.6) ymax = Math.max(ymax, hb.p[i * 3 + 1]);
+  const idx = [];
+  let x0 = 1e9, x1 = -1e9, z0 = 1e9, z1 = -1e9;
+  for (let i = 0; i < hb.p.length / 3; i++) {
+    if (hb.n[i * 4 + 1] < 0.9 || hb.p[i * 3 + 1] < ymax - h * 0.15) continue;
+    idx.push(i);
+    x0 = Math.min(x0, hb.p[i * 3]); x1 = Math.max(x1, hb.p[i * 3]); z0 = Math.min(z0, hb.p[i * 3 + 2]); z1 = Math.max(z1, hb.p[i * 3 + 2]);
+  }
+  if (!idx.length) return;
+  const ground = rgb(top.col || top.bands[1]);
+  for (const i of idx) { hb.c[i * 4] = ground[0]; hb.c[i * 4 + 1] = ground[1]; hb.c[i * 4 + 2] = ground[2]; }
+  if (!top.bands) return;
+  const stripe = rgb(top.bands[0]), len = x1 - x0;
+  for (const [a, c] of [[0.12, 0.34], [0.56, 0.78]]) {
+    hb.block({ x0: x0 + len * a, x1: x0 + len * c, hw: (z1 - z0) / 2, zc: (z0 + z1) / 2, y0: ymax - 0.02, y1: ymax + 0.035, tx0: x0 + len * a, tx1: x0 + len * c, thw: (z1 - z0) / 2 }, stripe, MAT.HULL);
+  }
+}
+
 function makeFamily(s, f) {
   const col = rgb(s.col || '#6b7076'), dark = rgb(s.dark || '#1d1f22');
   const hb = new MeshBuilder(), gb = new MeshBuilder();
   HOUSES[s.variant](hb, col, dark, f);
+  if (s.top) markRoof(hb, s.top, f.h);
   const muz = f.whiteMuzzle ? rgb('#e4e1d4') : null;
   for (let i = 0; i < f.n; i++) tube(gb, (i - (f.n - 1) / 2) * f.spacing, f, col, dark, muz);
   return { house: hb.build(), guns: gb.build(), trunnion: [f.trunX, f.trunY], muzzleX: f.fwd, barrelLen: f.fwd, height: f.h, recoil: f.recoil, lift: f.lift };

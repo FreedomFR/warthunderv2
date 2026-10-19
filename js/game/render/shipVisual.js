@@ -88,7 +88,7 @@ export class ShipVisuals {
     let rm = this.cache.get(model.id);
     if (rm) return rm;
     const r = this.r;
-    const mkey = (m) => ({ kind: m.kind, cal: m.cal, n: m.n, bore: m.bore, col: model.pal.sup, variant: m.variant });
+    const mkey = (m) => ({ kind: m.kind, cal: m.cal, n: m.n, bore: m.bore, col: model.pal.sup, variant: m.variant, top: model.pal.top });
     rm = {
       hull: r.createMesh(model.mesh, model.id),
       fine: model.fine ? r.createMesh(model.fine, model.id + ' fine') : null,       // lifelines, boats, rafts...: only drawn up close

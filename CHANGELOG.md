@@ -8,7 +8,9 @@
   - *Norfolk*: Home Fleet grey 507A, a dark bluish grey (about 10 % reflectance), instead of a light grey; *Illustrious*: Mediterranean Fleet grey 507C (about 45 %).
   - *Aquila*: hull and upperworks in the same light matt grey (grigio cenerino chiaro) as the rest of the Regia Marina.
   - Flight decks take the colour of the spec sheet (US flight deck stain, IJN dark brown, RN dark grey, planking for the *Graf Zeppelin* and the *Béarn*) instead of one grey for all.
-- What could not be confirmed is listed in TODO.md (Yamato's soot camouflage, the pattern of the Yukikaze, the French greys).
+- **Italian recognition stripes (1940-42)**: red and white diagonal stripes on the forecastle and the quarterdeck, red and white bands on the roofs of the gun houses, for the *Soldati*, *Montecuccoli*, *Zara* and *Littorio* (painted after the air attack of Punta Stilo in July 1940). The stripes are flat cells that follow the sheer and the camber of the deck (`PT.deckStripes`); the roofs are painted by `markRoof` in `mounts.js` (per-ship marks in `MARKS`, `livery.js`).
+- **Bismarck**: turret tops in Dunkelgrau (RAL 7024), as on 24 May 1941. **Yamato**: the wood deck is stained black, as it was from Leyte Gulf (October 1944) and for the last sortie.
+- What could not be confirmed is listed in TODO.md (the pattern of the Yukikaze, the French greys and recognition marks, the German aircraft recognition marks on the decks, which are not drawn).
 
 ## Unreleased — fighters
 

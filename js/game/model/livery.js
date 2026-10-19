@@ -37,6 +37,17 @@ export const LIVERY = {
   kagero: { scheme: CAMO.SPLOTCH, pal: 3, seed: 0.28 },       // Yukikaze wore a disruptive scheme in 1945
 };
 
+/**
+ * Recognition marks and special finishes, per ship id: { top: roof of the gun houses (col, or bands [stripe, ground]), stripes: { cols, w } diagonal deck stripes forward and aft }.
+ * Regia Marina: after the air attack of Punta Stilo (July 1940) the forecastle deck and the turret roofs wore red and white stripes, until 1942-43.
+ * Bismarck: turret tops Dunkelgrau (RAL 7024) on 24 May 1941.
+ */
+const IT_MARKS = { top: { bands: ['#a82e27', '#e6e3d8'] }, stripes: { cols: ['#a82e27', '#e6e3d8'], w: 2.6 } };
+export const MARKS = {
+  soldati: IT_MARKS, montecuccoli: IT_MARKS, zara: IT_MARKS, littorio: IT_MARKS,
+  bismarck: { top: { col: '#474A51' } },
+};
+
 /** Hull number carried on the bow ("61", "F03"...), taken from the reference ship of the spec: "USS Iowa (BB-61)". */
 export function hullNumber(spec) {
   const m = /\(([A-Z]{0,3})[- ]?(\d{1,3})\)/.exec(spec.refShip || '');
