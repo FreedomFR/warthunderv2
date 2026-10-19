@@ -244,7 +244,7 @@ export const SCENES = {
     const behind = (p) => p.tdX - lx(p);
     await T.until(() => (lander = mine((p) => p.phase === 'pattern' && p.leg === 2)), { max: 600, dt: 1 / 12 });
     T.log('deck: circuit turn at', T.now.toFixed(0), 'plane', lander.id);
-    await T.shot('deck_circuit', 6, rig([dp.x0 + 20, 14, -(dp.hw + 6)], () => [lander.x, lander.y, lander.z], 28));
+    await T.shot('deck_circuit', 7, chaseCam(() => lander, 70, 14, 40, 50, 40, 6));
     await T.until(() => lander.phase === 'final' && behind(lander) < 330, { max: 200, dt: 1 / 12 });
     await T.shot('deck_final', 8.5, chaseCam(() => lander, 34, 8, 10, 60, 40, 10));
     await T.until(() => lander.phase === 'rollout' || lander.phase === 'waveoff', { max: 30, dt: 1 / 12 });
