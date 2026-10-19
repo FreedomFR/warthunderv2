@@ -290,21 +290,102 @@ fn leafMask(shape: u32, uv: vec2f) -> vec2f {
   return vec2f(m, sh);
 }
 
+// ---- the instruments of a cockpit ----
+const TAU2: f32 = 6.2831853;
+// a needle from the centre of a dial at the angle a (clockwise from the top), length len, half width w
+fn needle(p: vec2f, a: f32, len: f32, w: f32) -> f32 {
+  let d = vec2f(sin(a), cos(a));
+  let t = dot(p, d);
+  let dist = abs(p.x * d.y - p.y * d.x);
+  return select(0.0, 1.0 - smoothstep(w * 0.55, w, dist), t > -0.16 * len && t < len);
+}
+// ticks round a dial: count of them over the sweep from a0 to a1 (clockwise from the top), between the radii r0 and r1
+fn ticks(p: vec2f, a0: f32, a1: f32, count: f32, r0: f32, r1: f32, w: f32) -> f32 {
+  let r = length(p);
+  var ang = atan2(p.x, p.y);
+  if (ang < a0 - 0.01 && a0 < 0.0) { ang += TAU2; }
+  let u = (ang - a0) / (a1 - a0) * count;
+  let d = abs(u - round(u)) * (a1 - a0) / count * r;
+  let inside = select(0.0, 1.0, ang >= a0 - 0.01 && ang <= a1 + 0.01 && r > r0 && r < r1);
+  return inside * (1.0 - smoothstep(w * 0.6, w, d));
+}
+fn rot2(p: vec2f, a: f32) -> vec2f { let c = cos(a); let s = sin(a); return vec2f(p.x * c - p.y * s, p.x * s + p.y * c); }
+// a dial: rgb and 1 inside the face, 0 outside. kind: 0 airspeed, 1 artificial horizon, 2 altimeter, 3 compass, 4 climb, 5 revolutions, 6 clock, 7 engine gauge
+fn gauge(kind: u32, uv: vec2f, ias: f32, alt: f32, hdg: f32, vsi: f32, bank: f32, pitch: f32, rpm: f32) -> vec4f {
+  let p = (uv - 0.5) * 2.0;
+  let r = length(p);
+  if (r > 1.0) { return vec4f(0.0); }
+  let ink = vec3f(0.78, 0.76, 0.68);
+  if (r > 0.9) { return vec4f(vec3f(0.07, 0.07, 0.075) * (0.8 + 0.5 * smoothstep(0.9, 1.0, r)), 1.0); }     // the bezel
+  var col = vec3f(0.012, 0.013, 0.012);
+  var m = 0.0;
+  var red = 0.0;
+  if (kind == 0u) {
+    let a = -2.3 + 4.6 * clamp(ias / 140.0, 0.0, 1.0);
+    m = max(ticks(p, -2.3, 2.3, 14.0, 0.72, 0.86, 0.025) , 0.8 * ticks(p, -2.3, 2.3, 28.0, 0.78, 0.86, 0.014));
+    red = ticks(p, 2.3 * 0.86, 2.3, 1.0, 0.62, 0.9, 0.03);
+    m = max(m, needle(p, a, 0.78, 0.05));
+  } else if (kind == 1u) {
+    let q = rot2(p, -bank);
+    let off = -pitch * 1.4;
+    let sky = q.y > off;
+    col = select(vec3f(0.17, 0.11, 0.05), vec3f(0.12, 0.26, 0.44), sky);
+    let line = 1.0 - smoothstep(0.012, 0.03, abs(q.y - off));
+    let ladder = (1.0 - smoothstep(0.01, 0.02, abs(fract((q.y - off) / 0.24 + 0.5) - 0.5) * 0.24)) * select(0.0, 1.0, abs(q.x) < 0.2) * step(0.12, abs(q.y - off));
+    m = max(line, ladder * 0.8);
+    // the fixed aircraft and the bank marks
+    let wing = (1.0 - smoothstep(0.02, 0.04, abs(p.y))) * select(0.0, 1.0, abs(p.x) > 0.12 && abs(p.x) < 0.55) + (1.0 - smoothstep(0.03, 0.06, length(p)));
+    col = mix(col, vec3f(1.0, 0.55, 0.1), clamp(wing, 0.0, 1.0));
+    m = max(m, ticks(p, -1.05, 1.05, 4.0, 0.76, 0.9, 0.03));
+  } else if (kind == 2u) {
+    m = ticks(p, -3.14159, 3.14159, 10.0, 0.74, 0.88, 0.03);
+    m = max(m, 0.7 * ticks(p, -3.14159, 3.14159, 50.0, 0.8, 0.88, 0.014));
+    m = max(m, needle(p, fract(alt / 1000.0) * TAU2, 0.8, 0.045));
+    m = max(m, needle(p, fract(alt / 10000.0) * TAU2, 0.5, 0.07));
+  } else if (kind == 3u) {
+    // the card turns with the heading; the lubber line is fixed
+    let q = rot2(p, -hdg);
+    m = max(ticks(q, -3.14159, 3.14159, 36.0, 0.72, 0.88, 0.02), ticks(q, -3.14159, 3.14159, 12.0, 0.66, 0.88, 0.03));
+    let north = (1.0 - smoothstep(0.03, 0.07, abs(q.x))) * select(0.0, 1.0, q.y > 0.3 && q.y < 0.62);
+    red = north;
+    col = mix(col, vec3f(1.0, 0.8, 0.1), (1.0 - smoothstep(0.015, 0.03, abs(p.x))) * select(0.0, 1.0, p.y > 0.55 && p.y < 0.9));
+  } else if (kind == 4u) {
+    m = ticks(p, -2.3, 2.3, 10.0, 0.72, 0.86, 0.03);
+    m = max(m, needle(p, -1.5708 + clamp(vsi / 10.0, -1.0, 1.0) * 2.2, 0.78, 0.05));
+  } else if (kind == 5u) {
+    m = ticks(p, -2.4, 2.4, 12.0, 0.72, 0.86, 0.03);
+    red = ticks(p, 2.4 * 0.82, 2.4, 1.0, 0.62, 0.9, 0.03);
+    m = max(m, needle(p, -2.4 + 4.8 * clamp(rpm, 0.0, 1.0), 0.78, 0.05));
+  } else if (kind == 6u) {
+    m = ticks(p, -3.14159, 3.14159, 12.0, 0.74, 0.88, 0.03);
+    m = max(m, needle(p, 0.9 + F.camPos.w * 0.0001, 0.5, 0.055));
+    m = max(m, needle(p, 4.1, 0.78, 0.035));
+  } else {
+    m = ticks(p, -1.6, 1.6, 6.0, 0.7, 0.86, 0.04);
+    m = max(m, needle(p, -0.4 + 0.5 * sin(F.camPos.w * 0.3 + hdg), 0.7, 0.07));
+  }
+  col = mix(col, ink, clamp(m, 0.0, 1.0));
+  col = mix(col, vec3f(0.9, 0.12, 0.08), clamp(red, 0.0, 1.0));
+  return vec4f(col, 1.0);
+}
+
 @fragment fn fs(in: VOut, @builtin(front_facing) ff: bool) -> @location(0) vec4f {
   if (in.misc.w != 0.0 && (in.local.x - in.misc.z) * in.misc.w < 0.0) { discard; }
   var N = normalize(in.nrm);
-  if (!ff && in.col.a * 255.0 < 14.5) { N = -N; }
+  let matId = u32(in.col.a * 255.0 + 0.5);
+  if (!ff && (matId <= 14u || matId == 17u)) { N = -N; }
   let Ng = N;                                              // geometric normal (shadow offset), before any bump
   let dist = length(in.rel);
   let V = -in.rel / dist;
   let Ld = F.sunDir.xyz;
   let mat = u32(in.col.a * 255.0 + 0.5);
-  if (mat == 2u && in.misc.x < 0.0) { discard; }                 // open canopy in the cockpit view
+  if ((mat == 2u || mat == 17u) && in.misc.x < 0.0) { discard; }                 // open canopy in the cockpit view
   var albedo = srgb2lin(in.col.rgb);
   var rough = 0.74;
   var metal = 0.0;
   var emissive = vec3f(0.0);
-  var trans = 0.0;                                           // light let through foliage
+  var trans = 0.0;
+  var interior = 0.0;                                        // lit by the sky more than by the sun (a cockpit)                                           // light let through foliage
   var f0 = vec3f(0.035);
   let lp = in.local;
   let fw = max(fwidth(lp.x) + fwidth(lp.y) + fwidth(lp.z), 1e-4);   // local-space pixel footprint
@@ -490,6 +571,39 @@ fn leafMask(shape: u32, uv: vec2f) -> vec2f {
       hgt = (0.5 * g1 + 0.3 * g2) * 0.1 * (1.0 - smoothstep(20.0, 150.0, dist));
       rough = mix(0.9, 0.97, moss); weather = 1.0;
     }
+    case 17u: { rough = 0.4; f0 = vec3f(0.05); }
+    case 18u: {  // a dial: drawn from the flight state (paint: speed, height, heading, climb; tint: bank, pitch, revolutions)
+      let kind = u32(in.col.b * 255.0 + 0.5) >> 4u;
+      let gq = gauge(kind, in.col.rg, in.paint.x, in.paint.y, in.paint.z, in.paint.w, in.tint.r, in.tint.g, in.tint.b);
+      if (gq.a < 0.5) { discard; }
+      albedo = gq.rgb * gq.rgb; emissive = gq.rgb * gq.rgb * 0.45;
+      rough = 0.22; f0 = vec3f(0.05); interior = 1.0; weather = 1.0;
+    }
+    case 19u: {  // a reflector sight: the ring, the dot and the marks, lit
+      let q = (in.col.rg - 0.5) * 2.0;
+      let rr = length(q);
+      let ang = atan2(q.x, q.y);
+      var ring = 1.0 - smoothstep(0.035, 0.06, abs(rr - 0.62));
+      ring = max(ring, 1.0 - smoothstep(0.05, 0.09, rr));
+      let tk = abs(fract(ang * 8.0 / TAU2 + 0.5) - 0.5) * TAU2 / 8.0 * rr;
+      if (abs(rr - 0.62) < 0.13 && tk < 0.02) { ring = 1.0; }
+      ring = max(ring, (1.0 - smoothstep(0.012, 0.025, abs(q.x))) * select(0.0, 1.0, abs(q.y) > 0.14 && abs(q.y) < 0.4));
+      ring = max(ring, (1.0 - smoothstep(0.012, 0.025, abs(q.y))) * select(0.0, 1.0, abs(q.x) > 0.14 && abs(q.x) < 0.4));
+      if (ring < 0.35) { discard; }
+      albedo = vec3f(0.0); emissive = vec3f(1.0, 0.42, 0.1) * 3.5 * ring; interior = 1.0; weather = 1.0;
+    }
+    case 20u: {  // the blur of a propeller: a dark disc seen through a screen of dither, streaked by the blades
+      let q = (in.col.rg - 0.5) * 2.0;
+      let rr = length(q);
+      if (rr > 1.0) { discard; }
+      let blades = f32(u32(in.col.b * 255.0 + 0.5) >> 4u);
+      let streak = 0.5 + 0.5 * sin(atan2(q.y, q.x) * blades);
+      let alpha = (0.025 + 0.09 * streak) * smoothstep(0.08, 0.3, rr) * (1.0 - 0.6 * smoothstep(0.85, 1.0, rr)) + 0.1 * (1.0 - smoothstep(0.04, 0.16, rr));
+      let h = f32(pcgHash(u32(in.pos.x) * 1973u + u32(in.pos.y) * 9277u + u32(F.camPos.w * 90.0) * 26699u) >> 8u) * (1.0 / 16777216.0);
+      if (h > alpha) { discard; }
+      albedo = vec3f(0.03); rough = 0.85; interior = 1.0; weather = 1.0;
+    }
+    case 21u: { rough = 0.82; interior = 1.0; weather = 1.0; }
     default: { rough = 0.74; }
   }
   N = bumpNormal(N, in.rel, hgt);
@@ -522,7 +636,7 @@ fn leafMask(shape: u32, uv: vec2f) -> vec2f {
   // ---- lighting ----
   // shadow: surfaces facing away from the sun are already dark; the map handles occlusion by other geometry
   let shadow = shadowAt(in.rel + Ng * 0.35);
-  let sunE = sunIlluminance() * sunVis[0] * shadow;
+  let sunE = sunIlluminance() * sunVis[0] * shadow * mix(1.0, 0.3, interior);
   let NdL = dot(N, Ld);
   // soft terminator: ships have lots of small features, a bit of wrap avoids hard black faces
   let wrap = clamp((NdL + 0.15) / 1.15, 0.0, 1.0);

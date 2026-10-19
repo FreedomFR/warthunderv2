@@ -199,3 +199,27 @@ console.log(fail ? `${fail} check(s) failed` : 'all air operation checks OK');
   ok(sp.skua.length > 20 && sp.swordfish.length > 20, `Skuas and Swordfish both flew the strike (${sp.skua.length} and ${sp.swordfish.length} samples)`);
   ok(mw > PERF.swordfish.vc * 0.85 && mw < PERF.swordfish.vmax && ms > PERF.skua.vc * 0.85 && ms < PERF.skua.vmax && mw < ms * 0.75, `in formation a Skua flies at ${ms.toFixed(0)} m/s and a Swordfish at ${mw.toFixed(0)} m/s`);
 }
+
+// ---- the battle is over: the aircraft in the air go home and land, they do not hang in the air ----
+{
+  const w = setup('essex:1,cleveland:1,fletcher:2', 'shokaku:1,kagero:1', 11, 22000);
+  run(w, 330);
+  const inAir = w.planes.filter((p) => !p.dying && p.y > 60 && p.owner.team === 0);
+  ok(inAir.length >= 6, `${inAir.length} aircraft are in the air when the battle is over`);
+  w.state = 'finished';
+  const p0 = new Map(inAir.map((p) => [p, [p.x, p.z]]));
+  let landed = 0;
+  run(w, 400, () => { for (const e of w.drainEvents()) if (e.type === 'planeLand') landed++; });
+  // (an aircraft that circles in the landing pattern stays near the carrier: what counts is that it flies)
+  let moved = 0, hang = 0;
+  for (const [p, a] of p0) {
+    if (!w.planes.includes(p)) { moved++; continue; }
+    const d = Math.hypot(p.x - a[0], p.z - a[1]);
+    if (d > 1500 || p.phase === 'pattern' || p.phase === 'final' || p.phase === 'taxiIn' || p.phase === 'rollout') moved++;
+    else if (p.speed < 25) hang++;
+    else moved++;
+  }
+  ok(hang === 0 && moved === inAir.length, `after the end of the battle every aircraft keeps flying (${moved} of ${inAir.length} fly on, ${hang} hang in the air)`);
+  ok(landed >= 2, `and they land (${landed} landings in 400 s)`);
+  ok(!w.planes.some((p) => !p.dying && ['cruise', 'assemble', 'escort', 'cap', 'engage', 'run', 'dive'].includes(p.phase)), 'none is still on its way to fight');
+}

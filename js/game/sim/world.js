@@ -149,10 +149,9 @@ export class World {
     }
     this.collisions(dt);
     if (this.terrain) this.grounding(dt);
-    if (this.state === 'running') {
-      for (const s of this.ships) if (s.alive) { updateGunnery(s, this, dt); updateTorpedoes(s, this, dt); }
-      updateAir(this, dt);
-    }
+    if (this.state === 'running') for (const s of this.ships) if (s.alive) { updateGunnery(s, this, dt); updateTorpedoes(s, this, dt); }
+    // once the battle is won the guns fall silent but the air goes on: the aircraft in the air go home and land (or ditch), the decks go on working
+    if (this.state === 'running' || this.state === 'finished') updateAir(this, dt);
     this.stepShells(dt);
     this.stepTorpedoes(dt);
     stepDebris(this, dt);
