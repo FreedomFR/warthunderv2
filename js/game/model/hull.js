@@ -86,8 +86,8 @@ export function buildHull(b, h) {
   };
 
   // levels (keel .. deck)
-  const levels = [-1, -0.85, -0.66, -0.46, -0.29, -0.15, -0.05, 0, 0.06, 0.16, 0.32, 0.52, 0.72, 0.88, 1];
-  const NS = h.stations || 110;
+  const levels = [-1, -0.9, -0.78, -0.66, -0.55, -0.46, -0.37, -0.29, -0.21, -0.15, -0.1, -0.05, 0, 0.06, 0.16, 0.24, 0.32, 0.42, 0.52, 0.62, 0.72, 0.8, 0.88, 0.95, 1];
+  const NS = h.stations || 150;
   const ts = [];
   for (let i = 0; i <= NS; i++) ts.push(0.5 - 0.5 * Math.cos(Math.PI * i / NS));
   const NK = levels.length;
@@ -131,7 +131,7 @@ export function buildHull(b, h) {
       idx[s][i] = [];
       for (let j = 0; j < NK; j++) {
         const p = P[i][j], n = N[i][j];
-        const ao = j < 3 ? 0.7 : 1;
+        const ao = levels[j] < -0.6 ? 0.7 : 1;
         idx[s][i][j] = b.vert(p[0], p[1], p[2] * sg, n[0], n[1], n[2] * sg, hullCol, MAT.SKIN, ao);
       }
     }
