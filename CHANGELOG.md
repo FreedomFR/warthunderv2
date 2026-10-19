@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased — muzzle flames
+
+- **Main guns showed no flame in a long battle** (only the foam on the water did): the particle pool (24000) was full after about a minute and every new particle was dropped, the muzzle fireballs included, while the sea foam (a separate clipmap) kept being stamped. The main load was the vapour trail of the shells in flight: one puff per simulated step and per shell, and hundreds of shells (secondary guns, AA) are in the air at once. The trail is now one puff every 22 to 60 m of flight (larger puffs), the pool holds 40000, and the peak in an 18-ship battle at normal speed falls from saturation to about 26000.
+- **Particle pool** (`render/particles.js`): when full, fireballs, flames, flashes, tracers and fire take the place of one of the oldest-looking puffs of smoke or spray instead of being lost; the effects emit less smoke as the pool fills (`fill()`), and the muzzle smoke clouds are thinner.
+- Test: `test/particles.mjs` (a full pool, priority of the flashes of a shot).
+
 ## Unreleased — take-off camera
 
 - **Automatic camera at a take-off or a landing**: the director cuts to an aircraft that takes off (or lands) and picked at random one of the three views of an aircraft; the "victim" view looks from the bridge of the ship the aircraft will attack, which is 20 km away from a carrier deck: the screen showed an empty sea and sky and the aircraft was a dot. A take-off or a landing is now only seen in the chase or the fly-past views, and the victim view is kept for an aircraft that is within 7 km of its target and not on a deck or assembling. Measured in the browser: the camera was 21.8 km from the aircraft in that view, 27 m in the chase view.

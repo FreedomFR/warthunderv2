@@ -6,6 +6,8 @@ import { DECK_PHASES } from '../sim/deck.js';
 
 const rnd = Math.random;
 const rr = (a, b) => a + (b - a) * rnd();
+/** a count that is a whole number on average (the clouds of smoke are thinned out, down to nothing, when the pool of particles fills up) */
+const stoch = (x) => Math.floor(x + rnd());
 
 /**
  * Foam stamps of a moving ship: the bow wave (a splash at the stem and two white wings flaring along the hull), the foam line along the waterline,
@@ -66,7 +68,16 @@ export class Effects {
   }
 
   // ---- events -------------------------------------------------------------------------------------------
+  /** The share of the usual number of particles that the effects emit: less and less as the pool fills (heavy fighting, many fires and splashes). */
+  fillFactor() { const f = this.p.fill(); return clamp((0.9 - f) / 0.4, 0.12, 1); }
+
   process(events) {
+    const base = this.emitScale;
+    this.emitScale = base * this.fillFactor();
+    try { this._process(events); } finally { this.emitScale = base; }
+  }
+
+  _process(events) {
     for (const e of events) {
       switch (e.type) {
         case 'muzzle': this.muzzle(e); break;
@@ -160,9 +171,9 @@ export class Effects {
     }
     // a ring of smoke thrown off the muzzle (heavy guns)
     if (heavy && lod > 0.5) {
-      const nr = Math.round(12 * es);
+      const nr = stoch(9 * es);
       for (let i = 0; i < nr; i++) {
-        const th = (i / nr) * 6.283 + rnd() * 0.3, cs = Math.cos(th), sn = Math.sin(th);
+        const th = (i / Math.max(nr, 1)) * 6.283 + rnd() * 0.3, cs = Math.cos(th), sn = Math.sin(th);
         const q = at(R * 0.5, cs * R * 0.5, sn * R * 0.5), rad = rr(9, 15) * Math.sqrt(c), fw = rr(16, 26) * Math.sqrt(c);
         p.add({
           kind: K.SMOKE, x: q[0], y: q[1], z: q[2],
@@ -173,7 +184,7 @@ export class Effects {
     }
     // the cloud: brown-grey powder smoke that expands, hangs over the water and drifts with the wind
     // (lighter guns: a smaller, greyer cloud that thins out in a few seconds, or a rapid-firing battery would hide its own ship)
-    const ns = Math.max(2, Math.round((heavy ? 12 : mid ? 6 : 3) * es * lod));
+    const ns = stoch((heavy ? 8 : mid ? 3.5 : 1.5) * es * lod);
     const grow = heavy ? [2.2, 3.6] : mid ? [1.9, 3.0] : [1.5, 2.3], life = heavy ? [6, 12] : mid ? [3, 6] : [1.8, 3.6];
     for (let i = 0; i < ns; i++) {
       const q = at(rr(0.4, 1.8) * R, rr(-0.9, 0.9) * R, rr(-0.7, 0.8) * R), sp = rr(3, 11) * Math.sqrt(c), dark = heavy && rnd() < 0.25;
@@ -776,6 +787,12 @@ export class Effects {
 
   // ---- continuous ---------------------------------------------------------------------------------------
   update(dt, world) {
+    const base = this.emitScale;
+    this.emitScale = base * this.fillFactor();
+    try { this._update(dt, world); } finally { this.emitScale = base; }
+  }
+
+  _update(dt, world) {
     for (let i = this.timers.length - 1; i >= 0; i--) { const tm = this.timers[i]; tm.t -= dt; if (tm.t <= 0) { this.timers.splice(i, 1); tm.fn(); } }
     const cam = this.engine.cam;
     const P = this.engine.P;

@@ -2,7 +2,7 @@
 import { PARTICLES } from '../../wgsl/particles.js';
 
 const GU = GPUBufferUsage;
-const MAX = 24000;
+const MAX = 40000;
 const MAX_TRANSIENT = 3000;
 const INST = 16;           // floats per instance
 const F = 24;              // floats per particle in the pool
@@ -59,8 +59,30 @@ export class Particles {
    * Spawn a particle. o: { kind, x, y, z, vx, vy, vz, s0, s1 (size m), life (s), r, g, b, a0, a1, rot, rotV, grav, drag, wind (0..1), stretch }
    */
   add(o) {
-    if (this.n >= MAX) return;
-    const p = this.pool, i = this.n++ * F;
+    let n = this.n;
+    if (n >= MAX) {
+      // the pool is full: what shows the shot (fireballs, flames, flashes, tracers) takes the place of one of the oldest-looking puffs of smoke or spray instead of being lost
+      if (o.kind !== K.FIREBALL && o.kind !== K.FLASH && o.kind !== K.FLAME && o.kind !== K.TRACER && o.kind !== K.FIRE) return;
+      const q = this.pool;
+      let best = -1, ba = 0.3;
+      for (let k = 0; k < 24; k++) {
+        const i = (Math.random() * n) | 0, kd = q[i * F + KIND];
+        if (kd !== K.SMOKE && kd !== K.SPRAY) continue;
+        const a = q[i * F + AGE] / q[i * F + LIFE];
+        if (a > ba) { ba = a; best = i; }
+      }
+      if (best < 0) return;
+      this._write(best, o);
+      return;
+    }
+    this._write(this.n++, o);
+  }
+
+  /** How full the pool is, 0..1: the effects emit less as it fills, the smoke and the spray first. */
+  fill() { return this.n / MAX; }
+
+  _write(idx, o) {
+    const p = this.pool, i = idx * F;
     p[i + X] = o.x; p[i + Y] = o.y; p[i + Z] = o.z;
     p[i + VX] = o.vx || 0; p[i + VY] = o.vy || 0; p[i + VZ] = o.vz || 0;
     p[i + AGE] = 0; p[i + LIFE] = o.life;
