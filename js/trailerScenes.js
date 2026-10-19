@@ -122,6 +122,39 @@ export const SCENES = {
     });
   },
 
+  // ---- wakes: ships of every size at their own speed, then a turn (a film set for checking the foam) -------------------------------------
+  async wakes(T) {
+    T.reset(11, 'morning', { windSpeed: 7 });
+    const lanes = [['fletcher', 36], ['belfast', 30], ['iowa', 26], ['essex', 22], ['shokaku', 14], ['kagero', 8]];
+    const ships = lanes.map(([id, kn], i) => T.ship(id, 0, 0, -700 + i * 520, 90, kn));
+    sail(ships, 0);
+    lanes.forEach(([, kn], i) => { ships[i].speed = kn * KN; ships[i].cmd.throttle = clamp(kn / (ships[i].stats.maxSpeed / KN), 0.05, 1); });
+    T.go();
+    // the wakes are only laid down for the ships near the camera (< 1.4 km): keep it over the middle of the group while they sail
+    const mid = () => [ships[2].x + 300, 0, (ships[0].z + ships[5].z) / 2];
+    T.camFn = () => ({ p: [mid()[0], 500, mid()[2]], l: [mid()[0] + 200, 0, mid()[2]], fov: 50 });
+    await T.wait(50);
+    const [dd, cl, bb, cv, , slow] = ships;
+    // A: the destroyer at full speed from behind and above, along its wake
+    await T.shot('wakes_a', 1.0, (t, T) => ({ p: H(dd, -140, 45, 90), l: H(dd, -620, 0, 0), fov: 52 }));
+    // B: the bow wave of the battleship, low, from ahead and the side
+    await T.shot('wakes_b', 1.0, (t, T) => ({ p: H(bb, 215, 62, 7), l: H(bb, 120, 0, 3), fov: 48 }));
+    // C: the battleship from straight above (hull, hull-side foam, stern wash, wake)
+    await T.shot('wakes_c', 1.0, (t, T) => ({ p: H(bb, -60, 0, 330), l: H(bb, -60, 0, 0), fov: 38 }));
+    // D: the carrier from behind, low: the stern wash
+    await T.shot('wakes_d', 1.0, (t, T) => ({ p: H(cv, -170, 30, 14), l: H(cv, -420, 0, 0), fov: 46 }));
+    // E: the slow ship from abeam, low
+    await T.shot('wakes_e', 1.0, (t, T) => ({ p: H(slow, 25, 85, 6), l: H(slow, -10, 0, 2), fov: 46 }));
+    // F2: the cruiser from above, 25 kn
+    await T.shot('wakes_h', 1.0, (t, T) => ({ p: H(cl, -50, 0, 260), l: H(cl, -50, 0, 0), fov: 40 }));
+    // F: a turn: the cruiser and the destroyer swing to starboard together, seen from above
+    for (const s of [dd, cl]) s.cmd.desiredHeading = Math.PI;
+    T.camFn = () => ({ p: [dd.x - 200, 400, (dd.z + cl.z) / 2], l: [dd.x, 0, (dd.z + cl.z) / 2], fov: 50 });
+    await T.wait(40);
+    await T.shot('wakes_f', 1.0, (t, T) => ({ p: H(dd, -150, 0, 420), l: H(dd, -150, 0, 0), fov: 45 }));
+    await T.shot('wakes_g', 1.0, (t, T) => ({ p: H(dd, -70, 60, 25), l: H(dd, -260, 0, 0), fov: 50 }));
+  },
+
   // ---- roster: one ship of each flavour, slow orbits ----------------------------------------------------------------------
   async roster(T) {
     // a higher sun than the other scenes, and cameras three-quarter to it: the hull paint and the relief of the plating show

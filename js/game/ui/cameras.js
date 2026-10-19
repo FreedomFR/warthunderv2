@@ -163,6 +163,11 @@ export class CameraRig {
     }
     let mode = this.mode;
     if (mode === 'auto') mode = this.updateAuto(dt);
+    // the ship that carries the camera is lost (blown up, capsizing, going down by the bow): the bridge goes with it, so the view steps out to an outside one
+    // instead of sitting in the fireball and then swinging round a hull that rolls while the horizon stays level
+    if (mode === 'bridge' && this.target && (this.target.state !== 'afloat' || this.target.exploded)) mode = 'orbit';
+    // the automatic director does not put the camera on the bridge of a ship that burns badly or is nearly lost: the screen is black smoke
+    else if (mode === 'bridge' && this.mode === 'auto' && this.target && (this.target.fireLevel > 0.4 || this.target.hpFrac < 0.35)) mode = 'follow';
     let px, py, pz, yaw, pitch, roll = 0;
     const tgt = this.target;
     const sm = this.smooth;
@@ -407,7 +412,15 @@ export class CameraRig {
       return this.lookAt(pc.fix.x, pc.fix.y, pc.fix.z, p.x + fx * 3, p.y, p.z + fz * 3);
     }
     // 'victim': from the deck of the ship the aircraft is attacking
-    const tgt = p.target && p.target.state !== 'sunk' ? p.target : null;
+    // (not from a ship that is going down, on fire or smoking heavily, nor when the aircraft is almost overhead: the screen is then a brown smoke or a blank sky)
+    let tgt = p.target && p.target.state === 'afloat' && !p.target.exploded && p.target.hpFrac > 0.4 && p.target.fireLevel < 0.35 ? p.target : null;
+    if (tgt) {
+      const b = tgt.model.bridge || { x: 0, y: tgt.model.topY * 0.6, z: 0 };
+      const q = [0, 0, 0];
+      tgt.toWorld(b.x, b.y + 1, b.z || 0, q);
+      const dist = Math.hypot(p.x - q[0], p.y - q[1], p.z - q[2]);
+      if ((p.y - q[1]) / Math.max(dist, 1) > 0.85) tgt = null;
+    }
     if (tgt) {
       const b = tgt.model.bridge || { x: 0, y: tgt.model.topY * 0.6, z: 0 };
       const q = [0, 0, 0];

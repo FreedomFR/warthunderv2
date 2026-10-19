@@ -69,7 +69,7 @@ const run = (w, secs, f) => { const n = Math.round(secs / 0.1); for (let i = 0; 
     });
     return { wave, events };
   };
-  const few = cut(8, 23); ok(few.events.includes('strikeMerged') && !few.events.includes('strikeAbort'), 'eight survivors of twenty close up into one formation per kind');
+  const few = cut(8, 24); ok(few.events.includes('strikeMerged') && !few.events.includes('strikeAbort'), 'eight survivors of twenty close up into one formation per kind');
   const none = cut(2, 24); ok(none.events.includes('strikeAbort'), 'two survivors of a big wave turn back');
 }
 
@@ -149,4 +149,27 @@ console.log(fail ? `${fail} check(s) failed` : 'all air operation checks OK');
     ok(tight < before * 0.8, `hunted, the section closes up (${before.toFixed(0)} m -> ${tight.toFixed(0)} m mean distance to the leader)`);
     ok(after > tight * 1.2 || after === 1e9, `and opens out again when the fighters have gone (${after === 1e9 ? 'attack' : after.toFixed(0) + ' m'})`);
   }
+}
+
+// ---- the light AA fires only inside the field of fire of its mount: not through the tower, not above what the barrel reaches ----
+{
+  const w = setup('essex:1,cleveland:2,fletcher:2', 'shokaku:1,agano:2,kagero:2', 11, 30000);
+  let shots = 0, outside = 0, worst = 0;
+  const wrap = (a) => Math.atan2(Math.sin(a), Math.cos(a));
+  run(w, 700, () => {
+    for (const e of w.drainEvents()) {
+      if (e.type !== 'aaFire') continue;
+      shots++;
+      const r = e.mount.rec, dx = e.plane.x - e.x, dy = e.plane.y - e.y, dz = e.plane.z - e.z;
+      if (Math.hypot(dx, dz) < 600) continue;               // close in, the lead the gun took and the aircraft's position differ by more than the tolerance
+      const rel = wrap(Math.atan2(dx, -dz) - e.ship.heading - r.yaw0), el = Math.atan2(dy, Math.hypot(dx, dz));
+      const slack = 14 * Math.PI / 180;
+      const miss = Math.min(...[rel - 2 * Math.PI, rel, rel + 2 * Math.PI].map((q) => Math.max(r.arcMin - q, q - r.arcMax, 0)));
+      worst = Math.max(worst, miss);
+      if (process.env.DBG && miss > slack) console.log('outlier', e.ship.stats.id, 'rel', (rel * 180 / Math.PI).toFixed(0), 'arc', (r.arcMin * 180 / Math.PI).toFixed(0), (r.arcMax * 180 / Math.PI).toFixed(0), 'dist', Math.hypot(dx, dz).toFixed(0), 'el', (el * 180 / Math.PI).toFixed(0), 'y', e.plane.y.toFixed(0), e.plane.phase);
+      if (miss > slack || el > (e.variant === 'iijn25' ? 80 : 88) * Math.PI / 180 + slack) outside++;
+    }
+  });
+  ok(shots > 50, `the light AA fired ${shots} times`);
+  ok(outside === 0, `every shot of the light AA is inside the arc of its mount and below its highest elevation (${outside} outside, worst ${(worst * 180 / Math.PI).toFixed(0)} deg beyond the arc)`);
 }

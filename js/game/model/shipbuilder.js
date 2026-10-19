@@ -6,6 +6,7 @@ import { MeshBuilder, MAT, rgb, shade, mix } from './meshbuilder.js';
 import { buildHull } from './hull.js';
 import * as PT from './parts.js';
 import { makeRng } from '../math.js';
+import { computeClearance, inFoot, barrelBlocked } from './clearance.js';
 import { paintOf, hullNumber, LIVERY, MARKS, PALETTES } from './livery.js';
 import * as DT from './details.js';
 import { mountDims } from './mounts.js';
@@ -296,6 +297,15 @@ export function buildShipModel(spec, tw = {}) {
     note(y0 + fh);
   }
 
+  // what a mount stands on: the highest roof or deck under it (within 1 m of its footprint centre)
+  const supportBelow = (x, z, y) => {
+    const hb = hull.halfBeamDeck(x);
+    let base = Math.abs(z) < hb ? Y(x) - hull.camber * Math.pow(z / (hb || 1), 2) : -9;
+    for (const s of b.solids) if (s[3] <= y + 0.1 && s[3] > base && inFoot(s, x, z, 0.3)) base = s[3];
+    return base;
+  };
+  // the foot of a mast or of one of its legs: it stands on the roof under it, not in the air above it (a base measured on the plan can float over a deck that the model builds lower)
+  const lowerBase = (x, z, y) => { const sp = supportBelow(x, z, y + 0.15); return y - sp > 0.5 && y - sp < 30 ? sp : y; };
   // -------- bridge tower / island --------
   if (!carrier) {
     const x = X(towerF);
@@ -321,7 +331,7 @@ export function buildShipModel(spec, tw = {}) {
     if (tw.foremast?.y0 != null) y = Y(x) + tw.foremast.y0;
     const mx = x + (tw.foremast?.dx ?? -0.8);
     // tw.foremast.base: where the legs of a tripod stand (m above the deck), apex: the height of its apex as a fraction of the mast
-    const mastBase = tw.foremast?.base != null ? Y(x) + tw.foremast.base : r.tops[Math.max(0, tiers.length - 3)];
+    let mastBase = tw.foremast?.base != null ? Y(x) + tw.foremast.base : r.tops[Math.max(0, tiers.length - 3)];
     // rigging of the foremast: forestay to the bow, stays to the funnels, a flag hoist on the yardarms
     const foreFine = () => {
       const top = [mx - 0.1, mastTopY - 0.8, 0], sc = rgb(pal.dark);
@@ -334,18 +344,22 @@ export function buildShipModel(spec, tw = {}) {
     };
     const mastRuin = (mx, my, mh) => () => b.cylinder(mx, my, 0, 0.5, 0.3, my + Math.max(2.5, mh * 0.18), rgb(charred(pal)), MAT.DARK, { seg: 6 });
     if (kindOf(mastDesc, 'tripod')) {
+      const sp0 = tw.foremast?.spread ?? topW * 0.6, bk0 = tw.foremast?.back ?? 4, fr0 = tw.foremast?.front ?? 2;
+      const feet = [lowerBase(mx - 0.2 + fr0, -sp0, mastBase), lowerBase(mx - 0.2 + fr0, sp0, mastBase), lowerBase(mx - 0.2 - bk0, 0, mastBase)];
       part('mast0', 'mast', 'Mât avant', () => {
-        PT.tripod(b, { x: mx - 0.2, y0: mastBase, h: mastTopY - mastBase, legSpread: tw.foremast?.spread ?? topW * 0.6, legBack: tw.foremast?.back ?? 4, legFront: tw.foremast?.front ?? 2, apexFrac: tw.foremast?.apex, platforms: [tw.foremast?.platform ?? 0.55], yards: [[0.8, 8]] }, pal);
+        PT.tripod(b, { x: mx - 0.2, y0: mastBase, h: mastTopY - mastBase, legSpread: sp0, legBack: bk0, legFront: fr0, feet, apexFrac: tw.foremast?.apex, platforms: [tw.foremast?.platform ?? 0.55], yards: [[0.8, 8]] }, pal);
         PT.pennant(b, mx, mastTopY + 0.2, 0.3, 4.5, 0, '#ffffff');
         if (ensOnFore) PT.ensign(b, { x: mx - 0.3, y: mastTopY - 7, z: 0, len: ensLen });
       }, mastRuin(mx - 0.2, mastBase, mastTopY - mastBase), { fine: foreFine });
     } else if (kindOf(mastDesc, 'cage|lattice')) {
+      mastBase = Math.min(...[[-2.4, -2.4], [2.4, -2.4], [2.4, 2.4], [-2.4, 2.4]].map(([a, c]) => lowerBase(mx - 0.2 + a, c, mastBase)));
       part('mast0', 'mast', 'Mât avant', () => {
         PT.cageMast(b, { x: mx - 0.2, y0: mastBase, h: mastTopY - mastBase - 4, r0: 2.4, r1: 1.0 }, pal);
         PT.pennant(b, x - 0.8, mastTopY + 0.2, 0.3, 4.5, 0, '#ffffff');
         if (ensOnFore) PT.ensign(b, { x: x - 1.1, y: mastTopY - 7, z: 0, len: ensLen });
       }, mastRuin(x - 1, mastBase, mastTopY - mastBase), { fine: foreFine });
     } else {
+      y = lowerBase(mx, 0, y);
       part('mast0', 'mast', 'Mât avant', () => {
         PT.poleMast(b, { x: mx, y0: y, h: Math.max(mastTopY - y, 6), r: 0.38, yards: [[0.55, 9], [0.8, 6]] }, pal);
         PT.pennant(b, mx, mastTopY + 0.2, 0.3, 4.5, 0, '#ffffff');
@@ -382,6 +396,9 @@ export function buildShipModel(spec, tw = {}) {
       let y0 = Y(x) + (model.house && x < model.house.x1 + 0.1 && x > model.house.x0 - 0.1 ? 0 : 0);
       if (model.house && x <= model.house.x1 && x >= model.house.x0 - 1e-9 + 0) y0 = model.house.y - 0.0;
       if (tw.mastY0?.[i] != null) y0 = Y(x) + tw.mastY0[i];
+      const isTri = !tw.mastRake?.[i] && kindOf(m.kind, 'tripod');
+      const feet2 = isTri ? [lowerBase(x + 1.5, -3.5, y0), lowerBase(x + 1.5, 3.5, y0), lowerBase(x - 4, 0, y0)] : null;
+      if (!isTri) y0 = lowerBase(x, 0, y0);
       const h = Math.max((m.heightAboveWaterM || 30) - y0, 8);
       part('mast' + i, 'mast', 'Mât ' + (i === 1 ? 'arrière' : 'secondaire'), () => {
         if (tw.mastRake?.[i]) {
@@ -390,7 +407,7 @@ export function buildShipModel(spec, tw = {}) {
           const mw = clamp(L * 0.0046, 0.35, 1.2);   // a destroyer's mast is a pole, a battleship's a tower
           b.beam([x, y0, 0], top, mw, mw, col, MAT.HULL);
           b.rodZ(x + tw.mastRake[i] * 0.75, y0 + h * 0.75, -4, 4, 0.08, 0.06, col, MAT.HULL, { seg: 5 });
-        } else if (kindOf(m.kind, 'tripod')) PT.tripod(b, { x, y0, h, legSpread: 3.5, legBack: 4, legFront: 1.5, platforms: [0.6], yards: [[0.78, 7]] }, pal);
+        } else if (kindOf(m.kind, 'tripod')) PT.tripod(b, { x, y0, h, legSpread: 3.5, legBack: 4, legFront: 1.5, feet: feet2, platforms: [0.6], yards: [[0.78, 7]] }, pal);
         else PT.poleMast(b, { x, y0, h, r: 0.36, yards: [[0.6, 8]] }, pal);
         if (i === masts.length - 1) PT.ensign(b, { x: x - 0.7, y: y0 + h * 0.8, z: 0, len: clamp(L * 0.021, 2.2, 6.2) });
       }, () => b.cylinder(x, y0, 0, 0.45, 0.3, y0 + Math.max(2.2, h * 0.16), rgb(charred(pal)), MAT.DARK, { seg: 6 }), {
@@ -413,6 +430,38 @@ export function buildShipModel(spec, tw = {}) {
     model.mounts.push(rec);
     return rec;
   };
+  // a mount whose spot is inside a structure (a deckhouse the sheet did not know about, a tower tier) or under one stands on the roof when that is a step of
+  // 2.2 m or less, otherwise it moves outboard along the deck until it is clear (its footprint of radius rr and its height h free); failing that it takes the roof
+  // anyway. Returns [z, y].
+  const clash = (x, z, y, rr, h) => {
+    let top = -1, over = false;
+    for (const s of b.solids) {
+      if (s[3] <= y + 0.2) continue;
+      let hit = false;
+      for (const [dx, dz] of [[0, 0], [rr, 0], [-rr, 0], [0, rr], [0, -rr]]) if (inFoot(s, x + dx, z + dz, -0.1)) { hit = true; break; }
+      if (!hit) continue;
+      if (s[2] <= y + 0.35) top = Math.max(top, s[3]);          // the pivot is in it (or on the very floor of it)
+      else if (s[2] < y + h) over = true;                        // it hangs over the mount
+    }
+    return { top, over };
+  };
+  const landOn = (x, z, y, rr = 1.0, h = 2.4, toDeck = true, maxLift = 2.2) => {
+    // below the deck (a measured height that does not allow for the sheer at the bow and the stern): on the deck
+    const hb = hull.halfBeamDeck(x), floor = Y(x) - hull.camber * Math.pow(Math.min(1, Math.abs(z) / (hb || 1)), 2);
+    if (toDeck && Math.abs(z) < hb * 0.97 && y < floor - 0.05 && floor - y < 9) y = floor + 0.02;
+    if (y < floor - 1.2 && Math.abs(z) < hb) return [z, y];       // a casemate in the side of the hull: nothing to land on
+    const c = clash(x, z, y, rr, h);
+    if (c.top < 0 && !c.over) return [z, y];
+    if (c.top >= 0 && c.top - y <= maxLift) { const c2 = clash(x, z, c.top, rr, h); if (c2.top < 0 && !c2.over) return [z, c.top]; }
+    const sg = z < 0 ? -1 : 1, lim = hull.halfBeamDeck(x) - 0.9;
+    for (let dz = 0.4; Math.abs(z + sg * dz) < lim && dz < 7; dz += 0.4) { const c3 = clash(x, z + sg * dz, y, rr, h); if (c3.top < 0 && !c3.over) return [z + sg * dz, y]; }
+    return [z, c.top >= 0 ? c.top : y];
+  };
+  /** a pillar from the roof or the deck up to a mount that would otherwise hang in the air (a sponson the sheet knew, the model does not) */
+  const pedestal = (x, z, y, r) => {
+    const base = supportBelow(x, z, y);
+    if (y - base > 0.5 && y - base < 7) b.cylinder(x, base - 0.1, z, r, r * 1.08, y - 0.05, shade(rgb(pal.hull), 1.05), MAT.HULL, { seg: 10 });
+  };
   const arcFor = (x, z) => {
     const side = Math.abs(z) > B * 0.22;
     if (side) return z > 0 ? [90 * D2R, 105 * D2R] : [-90 * D2R, 105 * D2R];
@@ -420,6 +469,7 @@ export function buildShipModel(spec, tw = {}) {
     if (x < -L * 0.1) return [Math.PI, 148 * D2R];
     return [0, 170 * D2R];
   };
+  const fdHw0 = carrier ? (tw.fdPlan ? Math.max(...tw.fdPlan.map((q) => q[1])) : (spec.flightDeckWidth || spec.beam) / 2) : 0;   // half-width of the flight deck
   const mainCal = spec.main.caliberMm;
   const mainKind = tw.mainKind || (mainCal >= 150 ? 'turret' : 'dp');
   const calM = mainCal / 1000;
@@ -438,10 +488,11 @@ export function buildShipModel(spec, tw = {}) {
       let pivot = deckY + bh;
       if (lvl >= 1) pivot = deckY + bh + dm.lift * lvl;
       if (mainKind === 'dp' && lvl >= 1) pivot = deckY + 1.0 + 2.6 * lvl;
+      let sideZ2 = sideZ; [sideZ2, pivot] = landOn(x, sideZ, pivot, Math.max(1.2, calM * 9), dm.height + 0.8, false);
       const r = dm.barbR || Math.max(calM * 6, 1.1);
-      PT.barbette(b, x, sideZ, mainKind === 'turret' ? r : 0.9, deckY - 0.2, pivot, pal.hull);
-      const [ac, ah] = arcFor(x, sideZ);
-      mountRec('main', mainKind, mainCal, m.guns, spec.main.boreCalibers, x, sideZ, pivot, ac, ah, { label: m.label, bore: spec.main.boreCalibers, variant });
+      PT.barbette(b, x, sideZ2, mainKind === 'turret' ? r : 0.9, deckY - 0.2, pivot, pal.hull);
+      const [ac, ah] = arcFor(x, sideZ2);
+      mountRec('main', mainKind, mainCal, m.guns, spec.main.boreCalibers, x, sideZ2, pivot, ac, ah, { label: m.label, bore: spec.main.boreCalibers, variant });
       note(pivot + dm.height + 0.8);
     }
   }
@@ -465,15 +516,22 @@ export function buildShipModel(spec, tw = {}) {
       const sg = p.side === 'port' ? -1 : p.side === 'starboard' ? 1 : 0;
       const hbd = hull.halfBeamDeck(x);
       const onHouse = model.house && x <= model.house.x1 + 0.1 && x >= model.house.x0 - 0.1 && !carrier;
-      const zz = p.offsetM != null ? sg * p.offsetM : sg * (onHouse ? Math.min(model.house.hw * 0.92, hbd * 0.85) : hbd * (kind === 'turret' ? 0.55 : 0.78));
+      let zz = p.offsetM != null ? sg * p.offsetM : sg * (onHouse ? Math.min(model.house.hw * 0.92, hbd * 0.85) : hbd * (kind === 'turret' ? 0.55 : 0.78));
       const lvl = (tw.secLevel ?? 0);
       const deckY = p.heightM != null ? Y(x) + p.heightM : Y(x) + (onHouse ? houseH : 0) + lvl;
       const sc = kind === 'turret' ? Math.max(calS * 4, 1.0) : 0.9;
       // a measured mount (heightM) stands on its own barbette from baseM (the deck, or the deckhouse roof it is on)
-      const pivot = p.heightM != null ? deckY : kind === 'turret' ? deckY + 0.5 + calS * 3 : deckY + 0.55;
+      let pivot;
+      const sponson = carrier && p.offsetM == null && p.heightM == null && sg !== 0;
+      if (sponson) {
+        // a carrier's guns are not under the flight deck: they stand on sponsons outside its edge, as the main mounts of the other carriers do
+        zz = sg * (fdHw0 + 1.4); pivot = fdY - 3.2;
+        b.block({ x0: x - 2.4, x1: x + 2.4, hw: 2.0, zc: zz, y0: pivot - 1.1, y1: pivot, tx0: x - 1.9, tx1: x + 1.9, thw: 1.7 }, shade(rgb(pal.hull), 1.1), MAT.HULL);
+      } else [zz, pivot] = landOn(x, zz, p.heightM != null ? deckY : kind === 'turret' ? deckY + 0.5 + calS * 3 : deckY + 0.55, Math.max(1.0, calS * 9), kind === 'turret' ? 3.2 : 2.6, false);
       const sv = tw.secVariant?.[si], sdm = sv ? mountDims({ kind, cal, n: per, variant: sv }) : null;
-      if (kind === 'turret') PT.barbette(b, x, zz, sdm?.barbR || sc, p.baseM != null ? Y(x) + p.baseM - 0.2 : deckY - 0.2, pivot, pal.hull);
-      if (kind !== 'turret' && p.heightM == null) PT.tub(b, x, deckY - 0.1, zz, 1.2 + calS * 3, 0.6, pal);
+      if (kind === 'turret' && !sponson) PT.barbette(b, x, zz, sdm?.barbR || sc, p.baseM != null ? Y(x) + p.baseM - 0.2 : deckY - 0.2, pivot, pal.hull);
+      if (kind !== 'turret' && p.heightM == null && !sponson) PT.tub(b, x, deckY - 0.1, zz, 1.2 + calS * 3, 0.6, pal);
+      if (kind !== 'turret' && !sponson) pedestal(x, zz, pivot, 0.9 + calS * 3);
       const [ac, ah] = arcFor(x, zz);
       mountRec('sec', kind, cal, per, s.boreCalibers || 40, x, zz, pivot, sg === 0 ? ac : ac, ah, { bore: s.boreCalibers || 40, si, variant: tw.secVariant?.[si] });
       note(pivot + 2);
@@ -485,14 +543,17 @@ export function buildShipModel(spec, tw = {}) {
     const tq = spec.torpedoes;
     const fr = Array.isArray(tq.fractionFromBow) && tq.fractionFromBow.length ? tq.fractionFromBow : [0.58];
     const per = Math.max(1, Math.round(tq.tubes / fr.length));
-    for (const f of fr) {
+    fr.forEach((f, fi) => {
       const x = X(f);
-      const y = Y(x) + (model.house && x < model.house.x1 && x > model.house.x0 ? houseH : 0);
+      // two mounts at one station (the sheet lists the station once for each) stand either side of the centre line
+      const nth = fr.slice(0, fi).filter((g) => g === f).length, twin = fr.filter((g) => g === f).length > 1;
+      let z = twin ? (nth % 2 ? 1 : -1) * 2.4 : 0, y;
+      [z, y] = landOn(x, z, Y(x) + (model.house && x < model.house.x1 && x > model.house.x0 ? houseH : 0), 1.7, 2.2, false, 5.5);
       const kind = t === 'DD' ? 1 : 0;
-      const to = { x, y, z: 0, n: per, r: (tq.caliberMm || 533) / 2000, len: 4.6 + (tq.caliberMm || 533) / 600 };
-      part('tubes' + model.tubes.length, 'tubes', 'Tubes lance-torpilles', () => PT.torpedoTubes(b, to, pal), () => b.box(x, y + 0.3, 0, 2.4, 0.6, 1.6, rgb(charred(pal)), MAT.DARK));
-      model.tubes.push({ x, y: y + 1, z: 0, n: per, side: 0 });
-    }
+      const to = { x, y, z, n: per, r: (tq.caliberMm || 533) / 2000, len: 4.6 + (tq.caliberMm || 533) / 600 };
+      part('tubes' + model.tubes.length, 'tubes', 'Tubes lance-torpilles', () => PT.torpedoTubes(b, to, pal), () => b.box(x, y + 0.3, z, 2.4, 0.6, 1.6, rgb(charred(pal)), MAT.DARK));
+      model.tubes.push({ x, y: y + 1, z, n: per, side: 0 });
+    });
   }
 
   // -------- aircraft facilities (cruisers / battleships) --------
@@ -564,28 +625,14 @@ export function buildShipModel(spec, tw = {}) {
   for (const a of tw.aa || []) {
     const ty = AA_TYPES[a.k], x = X(a.f);
     for (const sg of a.z && !a.one ? [1, -1] : [a.z < 0 ? -1 : 1]) {
-      const z = a.one ? a.z : sg * Math.abs(a.z || 0), y = (carrier ? fdY : Y(x)) + (a.y || 0);
+      let z = a.one ? a.z : sg * Math.abs(a.z || 0), y;
+      [z, y] = landOn(x, z, (carrier ? fdY : Y(x)) + (a.y || 0));
       if (ty.tub && !a.noTub) PT.tub(b, x, y - 0.05, z, ty.tub, 0.95, pal);
+      pedestal(x, z, y, 0.7);
       model.aaMounts.push({ variant: ty.v, cal: ty.cal, n: ty.n, bore: ty.bore, x, y, z, yaw0: z ? Math.sign(z) * Math.PI / 2 : (a.f < 0.5 ? 0 : Math.PI), label: ty.label });
       model.aa.push([x, y + 1.2, z]);
       note(y + 3);
     }
-  }
-  const aaTotal = tw.aa ? 0 : tw.aaCount ?? clamp(Math.round(L / (carrier ? 8 : 9)), 6, 40);
-  const zoneA = Math.max(0.06, towerF - 0.05), zoneB = Math.min(0.9, (fF.length ? Math.max(...fF) : 0.55) + 0.08);
-  for (let i = 0; i < aaTotal; i++) {
-    // most light AA clusters around the superstructure and funnels, the rest on the open decks
-    const f = !carrier && rnd() < 0.65 ? zoneA + (zoneB - zoneA) * rnd() : 0.10 + 0.82 * rnd();
-    const x = X(f);
-    const sg = rnd() < 0.5 ? -1 : 1;
-    let y = Y(x), z = sg * hull.halfBeamDeck(x) * (0.55 + 0.35 * rnd());
-    if (model.house && x < model.house.x1 && x > model.house.x0 && !carrier) { y += houseH; z = sg * model.house.hw * (0.5 + 0.4 * rnd()); }
-    if (carrier) { y = fdY - 2.4; z = sg * (hull.halfBeamDeck(x) + 1.0); }
-    const pick = AA_KINDS[spec.nation] || AA_KINDS.USA;
-    let rr = rnd() * (L > 150 ? 1 : 0.8), kd = pick[pick.length - 1];
-    for (const k of pick) { rr -= k.w; if (rr <= 0) { kd = k; break; } }
-    model.aaMounts.push({ variant: kd.v, cal: kd.cal, n: kd.n, bore: kd.bore, x, y, z, yaw0: sg * Math.PI / 2 + (rnd() - 0.5) * 0.4, label: kd.label });
-    model.aa.push([x, y + 1.2, z]);
   }
   // measured boats (tw.boats: [{ f0, f1, z (a boat off the centreline has its twin on the other side), y (above the deck), cabin, davits }])
   for (const bt of tw.boats || []) {
@@ -610,10 +657,15 @@ export function buildShipModel(spec, tw = {}) {
       DT.mooring(b, hull, X(0.85), X(0.96), pal, 3);
       if (t === 'DD') DT.depthCharges(b, hull, X(0.93), pal);
       const nb = tw.boats ? 0 : L > 150 ? 2 : 1;
+      // nothing of the clutter stands on a gun: a boat slides along the deck to the nearest free spot, rafts and ventilators are left out where a mount is
+      const nearGun = (x, z, rx, rz) => model.mounts.some((m) => Math.abs(m.x - x) < rx + m.cal / 100 && Math.abs(m.z - z) < rz + m.cal / 100 && m.y > Y(m.x) - 1) || model.aaMounts.some((m) => Math.abs(m.x - x) < rx + 0.8 && Math.abs(m.z - z) < rz + 0.8 && m.y > Y(m.x) - 1);
       for (let i = 0; i < nb; i++) for (const sg of [-1, 1]) {
-        const x = X(0.46 + i * 0.075), onH = model.house && x < model.house.x1 && x > model.house.x0;
+        const len = L > 150 ? 10.5 : 7.5, z = sg * (model.house ? model.house.hw * 0.74 : hull.halfBeamDeck(X(0.46)) * 0.66);
+        let x = X(0.46 + i * 0.075);
+        for (const d of [0, 0.02, -0.02, 0.04, -0.04, 0.06, -0.06, 0.09, -0.09]) { x = X(0.46 + i * 0.075 + d); if (!nearGun(x, z, len / 2 + 0.6, 2.2) && !nearGun(x, sg * (Math.abs(z) + 1), len / 2 + 0.6, 1)) break; }
+        const onH = model.house && x < model.house.x1 && x > model.house.x0;
         const hy = Y(x) + (onH ? houseH : 0);
-        DT.launch(b, { x, y: hy + 0.55, z: sg * (model.house ? model.house.hw * 0.74 : hull.halfBeamDeck(x) * 0.66), yaw: 0, len: L > 150 ? 10.5 : 7.5, cabin: i === 0, davits: true }, pal);
+        DT.launch(b, { x, y: hy + 0.55, z, yaw: 0, len, cabin: i === 0, davits: true }, pal);
       }
       // life rafts stacked along the deckhouse sides and on the quarterdeck
       const nr = Math.round(clamp(L / 20, 5, 14));
@@ -622,6 +674,7 @@ export function buildShipModel(spec, tw = {}) {
         const x = X(f), sg = rf() < 0.5 ? -1 : 1;
         const onH = model.house && x < model.house.x1 && x > model.house.x0;
         const z = sg * Math.max(1.2, (onH ? model.house.hw : hull.halfBeamDeck(x) * 0.8) - 1.0);
+        if (nearGun(x, z, 1.8, 1.8)) continue;
         DT.raft(b, x, Y(x) + (onH ? houseH : 0) + 0.15, z, rf() * 3.14, pal);
       }
       // ventilators
@@ -630,7 +683,9 @@ export function buildShipModel(spec, tw = {}) {
         const f = rf() < 0.5 ? 0.12 + 0.2 * rf() : 0.62 + 0.3 * rf();
         const x = X(f), onH = model.house && x < model.house.x1 && x > model.house.x0;
         const hb = onH ? model.house.hw : hull.halfBeamDeck(x);
-        DT.vent(b, x, Y(x) + (onH ? houseH : 0), (rf() * 2 - 1) * hb * 0.7, rf() * 6.28, pal, 0.8 + rf() * 0.5);
+        const vz = (rf() * 2 - 1) * hb * 0.7, va = rf() * 6.28, vs = 0.8 + rf() * 0.5;
+        if (nearGun(x, vz, 1.2, 1.2)) continue;
+        DT.vent(b, x, Y(x) + (onH ? houseH : 0), vz, va, pal, vs);
       }
     });
     PT.pennant(b, X(0.985), Y(X(0.985)) + 0.8, 0, 3.5, 0, '#ffffff');
@@ -642,6 +697,38 @@ export function buildShipModel(spec, tw = {}) {
       const nx = X(carrier ? 0.1 : 0.14), nh = clamp(L * 0.011, 1.2, 3.1);
       PT.hullNumber(b, hull, num, { x: nx, y: Math.max(Y(nx) * 0.56 + 0.3, nh), h: nh });
     }
+  }
+
+  // the light AA that is not measured goes in last, in the spots the boats, rafts and ventilators have left free
+  const aaTotal = tw.aa ? 0 : tw.aaCount ?? clamp(Math.round(L / (carrier ? 8 : 9)), 6, 40);
+  const zoneA = Math.max(0.06, towerF - 0.05), zoneB = Math.min(0.9, (fF.length ? Math.max(...fF) : 0.55) + 0.08);
+  // a light mount stands clear of everything that rises above its deck: a spot against a tower, a funnel or a turret is drawn again
+  const crowded = (x, y, z) => { for (const s of b.solids) if (!(carrier && s[2] > fdY - 1.3) && s[3] > y + 0.35 && s[2] < y + 2.6 && x > s[0] - 1.1 && x < s[1] + 1.1 && z > s[4] - 1.1 && z < s[5] + 1.1) return true; return false; };
+  const crowdedByGuns = (x, y, z) => model.mounts.some((m) => Math.abs(m.x - x) < 3.2 + m.cal / 120 && Math.abs(m.z - z) < 3.2 + m.cal / 120 && y < m.y + 3 && y > m.y - 5);
+  for (let i = 0; i < aaTotal; i++) {
+    let spot = null;
+    for (let tries = 0; tries < 40 && !spot; tries++) {
+      // most light AA clusters around the superstructure and funnels, the rest on the open decks
+      const f = !carrier && rnd() < 0.65 ? zoneA + (zoneB - zoneA) * rnd() : 0.10 + 0.82 * rnd();
+      const x = X(f);
+      const sg = rnd() < 0.5 ? -1 : 1;
+      let y = Y(x), z = sg * hull.halfBeamDeck(x) * (0.55 + 0.35 * rnd());
+      if (model.house && x < model.house.x1 && x > model.house.x0 && !carrier) { y += houseH; z = sg * model.house.hw * (0.5 + 0.4 * rnd()); }
+      if (carrier) { y = fdY - 2.4; z = sg * (Math.min(fdHw0, hull.halfBeamDeck(x) + 3.5) + 1.0); }
+      // and with a free field of fire outboard (the guns that stand against a wall have none)
+      const yaw = sg * Math.PI / 2;
+      if (!carrier && supportBelow(x, z, y) < y - 0.6) continue;     // it stands on a deck or a roof, not beyond the edge of one
+      if (!crowded(x, y, z) && !crowdedByGuns(x, y, z) && ![-1, -0.5, 0, 0.5, 1].some((d) => [0.1, 0.45].some((e) => barrelBlocked(b.solids, x, y, z, yaw + d, e, 3.2)))) spot = { x, y, z, sg };
+    }
+    if (!spot) continue;
+    const { x, y, z, sg } = spot;
+    // a carrier's light guns stand on sponsons along the edge of the flight deck
+    if (carrier) b.block({ x0: x - 1.6, x1: x + 1.6, hw: 1.5, zc: z, y0: y - 0.9, y1: y, tx0: x - 1.3, tx1: x + 1.3, thw: 1.2 }, shade(rgb(pal.hull), 1.1), MAT.HULL);
+    const pick = AA_KINDS[spec.nation] || AA_KINDS.USA;
+    let rr = rnd() * (L > 150 ? 1 : 0.8), kd = pick[pick.length - 1];
+    for (const k of pick) { rr -= k.w; if (rr <= 0) { kd = k; break; } }
+    model.aaMounts.push({ variant: kd.v, cal: kd.cal, n: kd.n, bore: kd.bore, x, y, z, yaw0: sg * Math.PI / 2 + (rnd() - 0.5) * 0.4, label: kd.label });
+    model.aa.push([x, y + 1.2, z]);
   }
 
   // -------- buoyancy sample points & hit zones --------
@@ -659,6 +746,8 @@ export function buildShipModel(spec, tw = {}) {
   model.topY = topY;
   model.radius = Math.hypot(L / 2, topY);
   if (model.bridge) bridgeEye(model, b.solids, L);
+  computeClearance(model, b.solids, hull);
+  model.solids = b.solids;                 // kept for the audit (tools/audit.mjs)
   b.solids = null;
   const built = b.build();
   model.mesh = built;
@@ -762,7 +851,7 @@ function buildCarrier(b, model, spec, hull, pal, tw, X, Y, fdY, rnd, note, part)
   // distribute mounts using spec fractions
   mc.mounts.forEach((m, i) => {
     const x = X(m.fractionFromBow);
-    const sgm = (m.side === 'port' ? -1 : m.side === 'starboard' ? 1 : (i % 2 ? -1 : 1));
+    const sgm = (m.side === 'port' ? -1 : m.side === 'starboard' ? 1 : /^P/.test(m.label || '') ? -1 : /^S/.test(m.label || '') ? 1 : (i % 2 ? -1 : 1));   // the label (S-fwd-1, P-aft-2) says the side when the sheet does not
     // m.offsetM / m.fdHeightM: a measured mount on the flight deck (Essex: the twin 5in pairs fore and aft of the island)
     const onFD = m.fdHeightM != null;
     const z = onFD ? sgm * m.offsetM : sgm * (hull.halfBeamDeck(x) + (tw.sponsonOut ?? 1.5));

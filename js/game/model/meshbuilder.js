@@ -231,7 +231,12 @@ export class MeshBuilder {
   prism(poly, y0, y1, col, mat = MAT.HULL, o = {}) {
     const n = poly.length;
     let cx = 0, cz = 0;
-    if (this.solids) this._track(Math.min(...poly.map((q) => q[0])), Math.max(...poly.map((q) => q[0])), y0, y1, Math.min(...poly.map((q) => q[1])), Math.max(...poly.map((q) => q[1])));
+    if (this.solids) {
+      this._track(Math.min(...poly.map((q) => q[0])), Math.max(...poly.map((q) => q[0])), y0, y1, Math.min(...poly.map((q) => q[1])), Math.max(...poly.map((q) => q[1])));
+      // the outline itself, in model space, for the tests that must not mistake a tapered house for its bounding box (gun clearance)
+      const m = this.m;
+      this.solids[this.solids.length - 1].poly = poly.map((q) => [m[0] * q[0] + m[8] * q[1] + m[12], m[2] * q[0] + m[10] * q[1] + m[14]]);
+    }
     for (const p of poly) { cx += p[0]; cz += p[1]; }
     cx /= n; cz /= n;
     const ts = o.topScale ?? 1;
@@ -265,7 +270,10 @@ export class MeshBuilder {
   cyl(cx, y0, cz, rx0, rz0, rx1, rz1, y1, col, mat = MAT.HULL, o = {}) {
     const seg = this._seg(o.seg || 16, Math.max(rx0, rz0, rx1, rz1));
     const dx = o.dx || 0, dz = o.dz || 0;
-    if (this.solids) this._track(cx - Math.max(rx0, rx1) + Math.min(0, dx), cx + Math.max(rx0, rx1) + Math.max(0, dx), y0, y1, cz - Math.max(rz0, rz1) + Math.min(0, dz), cz + Math.max(rz0, rz1) + Math.max(0, dz));
+    if (this.solids) {
+      this._track(cx - Math.max(rx0, rx1) + Math.min(0, dx), cx + Math.max(rx0, rx1) + Math.max(0, dx), y0, y1, cz - Math.max(rz0, rz1) + Math.min(0, dz), cz + Math.max(rz0, rz1) + Math.max(0, dz));
+      this.solids[this.solids.length - 1].round = true;       // an ellipse in its box
+    }
     const ao = o.ao ?? this.ao;
     const ring0 = [], ring1 = [];
     const h = y1 - y0;
@@ -359,6 +367,13 @@ export class MeshBuilder {
     const B = [corner(p1, -1, -1), corner(p1, 1, -1), corner(p1, 1, 1), corner(p1, -1, 1)];
     const ref = [(p0[0] + p1[0]) / 2, (p0[1] + p1[1]) / 2, (p0[2] + p1[2]) / 2];
     const ao = o.ao ?? this.ao;
+    if (this.solids && Math.max(w, h) >= 0.15) {     // legs and struts count as solids (stays and wires do not)
+      const pts = [...A, ...B], m = this.m;
+      const T = pts.map((q) => [m[0] * q[0] + m[4] * q[1] + m[8] * q[2] + m[12], m[1] * q[0] + m[5] * q[1] + m[9] * q[2] + m[13], m[2] * q[0] + m[6] * q[1] + m[10] * q[2] + m[14]]);
+      const bb = [0, 1, 2].flatMap((k) => [Math.min(...T.map((q) => q[k])), Math.max(...T.map((q) => q[k]))]);
+      this.solids.push([bb[0], bb[1], bb[2], bb[3], bb[4], bb[5]]);
+      this.solids[this.solids.length - 1].strut = true;
+    }
     for (let i = 0; i < 4; i++) {
       const j = (i + 1) % 4;
       this.quad(A[i], A[j], B[j], B[i], col, mat, ref, ao);

@@ -501,10 +501,10 @@ export const TWEAKS = {
       { f: [0.797, 0.835], hw: 2.0, y: [3.1, 6.6] },                        // 11 m
       { f: [0.776, 0.796], hw: 1.2, y: [3.1, 8.8] },                        // the after director tower, 13.2 m
     ],
-    towerF: 0.30, towerY0: 16.0,
+    towerF: 0.30, towerY0: 9.2,                                             // 16 m above the waterline = 9.2 m above the deck there (it was set to 16 above the deck: the director and the mast floated 7 m up)
     tiers: [{ len: 2.5, w: 2.5, h: 0.1 }],
     dir0: { dx: 0, w: 2.0, l: 2.2, h: 1.2 },
-    foremast: { dx: 0, y0: 16.0 },
+    foremast: { dx: 0, y0: 9.2 },
     funnels: [{ lx: 2.9, lz: 2.4, y0: 0.4, h: 8.2, rake: 0.4, top: 0.92, pipes: false }, { lx: 2.9, lz: 2.4, y0: 0.4, h: 8.2, rake: 0.4, top: 0.92, pipes: false }],
     mastY0: { 1: 4.6 },
   },

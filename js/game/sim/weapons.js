@@ -2,7 +2,10 @@
 import { clamp, wrapPi, approach, D2R, KN } from '../math.js';
 import { gunBallistics, solve } from './ballistics.js';
 import { mountDims } from '../model/mounts.js';
+import { clearElev, clearMax, pathClear, inArcRel } from '../model/clearance.js';
 
+/** how far a turret can depress below the horizontal (rad): a battleship has to shoot down at a destroyer that is close */
+const DEPRESS = 4 * D2R;
 const _p = [0, 0, 0];
 const _q = [0, 0, 0];
 
@@ -57,21 +60,23 @@ const sol = {};
 function slew(m, bearingWorld, elev, heading, dt) {
   const rec = m.rec;
   // bearing relative to the arc centre, clamped to the arc
-  const rel = wrapPi(bearingWorld - heading - rec.arcC);
-  const inArc = Math.abs(rel) <= rec.arcH;
-  const want = clamp(rel, -rec.arcH, rec.arcH);
+  const rel = inArcRel(rec, wrapPi(bearingWorld - heading - rec.arcC));
+  const inArc = rel >= rec.arcMin && rel <= rec.arcMax;
+  const want = clamp(rel, rec.arcMin, rec.arcMax);
   const rate = m.gun.trainRate * D2R * dt;
   m.trainRel = approach(m.trainRel, want, rate);
-  const er = approach(m.elev, clamp(elev, 0, Math.min(m.gun.maxElevDeg, 50) * D2R), m.gun.trainRate * D2R * 1.4 * dt);
+  // while it swings round the barrel rises over what stands in the way (a tower low on the horizon), then comes back to the elevation of the shot
+  const swing = Math.abs(m.trainRel - want) > 1.5 * D2R ? Math.min(pathClear(rec, m.trainRel, want) + 0.03, 0.7) : 0;
+  const er = approach(m.elev, clamp(Math.max(elev, swing), -DEPRESS, Math.min(m.gun.maxElevDeg, 50) * D2R), m.gun.trainRate * D2R * 1.4 * dt);
   m.elev = er;
   const trainErr = Math.abs(m.trainRel - rel);
-  return inArc && trainErr < 1.0 * D2R && Math.abs(m.elev - elev) < 0.8 * D2R;
+  return inArc && trainErr < 1.0 * D2R && Math.abs(m.elev - Math.max(elev, -DEPRESS)) < 0.8 * D2R;
 }
 
 function neutral(m, dt) {
   const rate = m.gun.trainRate * D2R * dt;
   m.trainRel = approach(m.trainRel, 0, rate);
-  m.elev = approach(m.elev, 0, rate);
+  m.elev = approach(m.elev, Math.abs(m.trainRel) > 1.5 * D2R ? Math.min(pathClear(m.rec, m.trainRel, 0) + 0.03, 0.7) : 0, rate);
 }
 
 const TYPE_VALUE = { DD: 1.0, CL: 1.3, CA: 1.8, BB: 2.5, CV: 2.3 };
@@ -81,7 +86,12 @@ function feasible(ship, m, target, out) {
   if (!target || !target.alive) return false;
   if (!mountSolution(ship, m, target, out)) return false;
   if (out.range > m.gun.maxRange * 0.97 || out.range > ship.stats.visualRange) return false;
-  return Math.abs(wrapPi(out.bearing - ship.heading - m.rec.arcC)) <= m.rec.arcH + 2 * D2R;
+  const rel = inArcRel(m.rec, wrapPi(out.bearing - ship.heading - m.rec.arcC));
+  if (m.rec.noArc || rel < m.rec.arcMin - 2 * D2R || rel > m.rec.arcMax + 2 * D2R) return false;
+  // the barrel must clear the towers and the other mounts at the elevation the shot needs
+  const phi = m.rec.arcC + clamp(rel, m.rec.arcMin, m.rec.arcMax);
+  const lo = clearElev(m.rec, phi);
+  return out.elev >= (lo > 0.001 ? lo - 0.01 : -1) && out.elev <= clearMax(m.rec, phi) + 0.01;
 }
 
 const _alt = {};

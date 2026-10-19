@@ -220,7 +220,8 @@ moteurs d'avions avec effet Doppler, sirène du Stuka en piqué, avion qui tombe
   corresponde à la portée réelle de chaque canon ; tables de tir inversées ; temps de vol réels (≈ 34 s à 20 km
   pour un 406 mm).
 - **Conduite de tir** : anticipation du mouvement de la cible *et* du navire tireur, tourelles qui tournent à leur
-  vitesse réelle dans leurs secteurs de tir, dispersion qui diminue salve après salve (réglage par observation des
+  vitesse réelle dans leurs secteurs de tir (calculés sur la géométrie du navire : un canon ne tire pas à travers la
+  passerelle ni une cheminée, relève le tube pour passer au-dessus d'un obstacle bas, et la DCA sous un pont d'envol ne peut pas se lever), dispersion qui diminue salve après salve (réglage par observation des
   gerbes), précision dégradée en virage.
 - **Dégâts** : obliquité et pénétration face au blindage (ceinture, pont, tourelles), obus AP ou explosifs, incendies,
   voies d'eau et gîte, tourelles détruites, avaries de machines et de gouvernail, explosions de soute, naufrage
@@ -228,8 +229,7 @@ moteurs d'avions avec effet Doppler, sirène du Stuka en piqué, avion qui tombe
 - **Torpilles** (destroyers, croiseurs) avec sillage visible, et **frappes aériennes** des porte-avions (voir plus haut).
 - **IA** : choix des cibles, distance de combat selon la classe, circulation, zigzag, évitement des collisions,
   attaques à la torpille, repli quand le navire est en perdition, porte-avions qui se tiennent à distance.
-- **Mer** : les navires flottent sur la houle FFT (roulis, tangage, pilonnement) et laissent un sillage d'écume
-  (étrave, flancs, hélices, bras divergents).
+- **Mer** : les navires flottent sur la houle FFT (roulis, tangage, pilonnement) et laissent un sillage d'écume (vague d'étrave, ligne d'écume à la flottaison, remous des hélices puis longue traînée blanche, d'autant plus marquée que le navire va vite).
 
 ## Contrôle manuel (préparé, pas encore branché)
 
