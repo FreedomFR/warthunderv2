@@ -245,7 +245,10 @@ export class GameAudio {
           break;
         }
         case 'planeDitch': this.play('splash_big', e.x, 1, e.z, { gain: 0.5, ref: 500, pri: 1, rate: 1.2 }); break;
-        case 'planeTouchdown': this.play('arrest', e.plane.x, e.plane.y, e.plane.z, { gain: 0.7, ref: 700, pri: 1 }); break;
+        case 'planeTouchdown': this.play('touchdown', e.plane.x, e.plane.y, e.plane.z, { gain: 0.8, ref: 700, pri: 1, rate: R(0.92, 1.1) }); break;
+        case 'wireCatch': this.play('arrest', e.plane.x, e.plane.y, e.plane.z, { gain: 0.7, ref: 700, pri: 1, when: 0.05 }); break;
+        case 'engineStart': this.play('engine_start', e.plane.x, e.plane.y, e.plane.z, { gain: 0.45, ref: 450, pri: 0, rate: R(0.92, 1.08) }); break;
+        case 'liftMove': this.play('lift_motor', e.x, e.y, e.z, { gain: 0.4, ref: 350, pri: 0 }); break;
         default: break;
       }
     }
@@ -311,7 +314,7 @@ export class GameAudio {
   planeLoops(w, cam) {
     const near = [];
     for (const p of w.planes) {
-      if (p.phase === 'queue' && p.t < -2.5) continue;
+      if (p.hidden || (p.eng != null && p.eng < 0.02)) continue;
       const d = Math.hypot(p.x - cam.x, p.y - cam.y, p.z - cam.z);
       if (d < 8000) near.push({ p, d });
     }
@@ -324,6 +327,7 @@ export class GameAudio {
       const vr = (p.vx * dx + p.vy * dy + p.vz * dz) / L;                  // > 0 receding
       const doppler = C_SOUND / (C_SOUND + Math.max(-120, Math.min(120, vr)));
       let rate = (0.72 + (p.speed - 40) / 170) * doppler;
+      if (p.eng != null) rate = (0.5 + 0.42 * Math.min(1, p.eng)) * doppler;      // an engine starting, idling or at full power on deck
       const diving = p.phase === 'dive' || p.phase === 'rollin';
       if (diving) rate *= 1.18;
       if (p.dying) rate *= Math.max(0.45, 1 - p.dyingT * 0.12);

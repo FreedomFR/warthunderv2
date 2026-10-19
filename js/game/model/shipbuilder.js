@@ -628,14 +628,17 @@ function buildCarrier(b, model, spec, hull, pal, tw, X, Y, fdY, rnd, note, part)
   const mk = rgb('#cfcdc4');
   b.decal((x0 + x1) / 2, fdY + 0.01, 0, fdL * 0.46, 0.18, mk, MAT.HULL);
   for (const s2 of [-1, 1]) b.decal((x0 + x1) / 2 - fdL * 0.02, fdY + 0.01, s2 * (hw - 1.0), fdL * 0.47, 0.12, mk, MAT.HULL);
-  for (let i = 0; i < 8; i++) b.decal(x0 + 12 + i * 3.2, fdY + 0.012, 0, 0.05, hw * 0.55, shade(mk, 0.4), MAT.HULL);   // arrester wires
+  model.wires = [];
+  for (let i = 0; i < 8; i++) { b.decal(x0 + 12 + i * 3.2, fdY + 0.012, 0, 0.05, hw * 0.55, shade(mk, 0.4), MAT.HULL); model.wires.push(x0 + 12 + i * 3.2); }   // arrester wires
   // elevators
   const els = (sil.flightDeckNotes ? null : null) || tw.elevators || [0.28, 0.6, 0.83];
+  model.elevators = [];       // the lifts as the deck operations use them: centre, half-length, half-width (the sim moves a platform and the aircraft on it)
   for (const [i, f] of els.entries()) {
     const x = X(f);
-    if (i === els.length - 1 && tw.deckEdge) { b.decal(x, fdY + 0.015, -hw + 5, 8, 7.5, rgb('#524f49'), MAT.HULL); continue; }
+    if (i === els.length - 1 && tw.deckEdge) { b.decal(x, fdY + 0.015, -hw + 5, 8, 7.5, rgb('#524f49'), MAT.HULL); model.elevators.push({ x, z: -hw + 5, hl: 8, hw: 7.5, edge: true }); continue; }
     const es = tw.elevSize || [8.5, hw * 0.34];      // measured half-length and half-width of the lifts
     b.decal(x, fdY + 0.015, tw.elevZ ?? 0, es[0], es[1], rgb('#55524c'), MAT.HULL);
+    model.elevators.push({ x, z: tw.elevZ ?? 0, hl: es[0], hw: es[1], edge: false });
   }
   // island
   const ix = X(isl.fractionFromBow);
@@ -703,13 +706,13 @@ function buildCarrier(b, model, spec, hull, pal, tw, X, Y, fdY, rnd, note, part)
     const arcC = onFD ? (x > model.island.x ? 0 : Math.PI) : sgm * 90 * D2R, arcH = onFD ? 155 * D2R : 110 * D2R;
     model.mounts.push({ group: 'main', kind: m.guns === 1 && variant === 'mk30' ? 'shield' : 'dp', cal: mc.caliberMm, n: m.guns, bore: mc.boreCalibers, x, z, y: y + 0.1, arcC, arcH, label: m.label || ('S' + i), variant });
   });
-  // parked aircraft on the aft part of the deck: drawn as separate instances (fewer as the air group takes off)
+  // parked aircraft on the aft part of the deck, wings folded: three staggered rows across the deck (drawn as separate instances, fewer as the air group takes off)
   const nPlanes = Math.min(16, (spec.aircraft && spec.aircraft.capacity ? Math.round(spec.aircraft.capacity * 0.17) : 8));
   for (let i = 0; i < nPlanes; i++) {
     const row = i % 3, col = Math.floor(i / 3);
-    const x = x0 + 9 + col * 6.4 + (row === 1 ? 2.2 : 0);
-    const z = -sg * (hw * 0.5 + (row - 1) * 4.6);
-    model.deckSlots.push({ x, y: fdY + 0.05, z, yaw: 0 });
+    const x = x0 + 13 + col * 13 + (row === 1 ? 5 : 0);
+    const z = -sg * (hw - 5.2 - row * 8.4);
+    model.deckSlots.push({ x, y: fdY + 0.04, z, yaw: 0 });
   }
   PT.deckRails(b, hull, x0 + 2, x1 - 4, 0.8, pal, 8);
   // fine detail: catwalk nets along the deck edge, hangar openings on open-hangar carriers, anchors, boats and rafts

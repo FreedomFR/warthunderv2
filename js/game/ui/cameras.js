@@ -295,18 +295,18 @@ export class CameraRig {
 
 
   // ---- aircraft cameras ----------------------------------------------------------------------------------------------
-  planeAlive(p) { return this.game.world.planes.includes(p) && !(p.phase === 'queue' && p.t < -1 && !(p.owner && p.owner.alive)); }
+  planeAlive(p) { return this.game.world.planes.includes(p) && !p.hidden && !(p.phase === 'queue' && !(p.owner && p.owner.alive)); }
 
   /** Aircraft worth watching, best first. */
   planeCandidates() {
     const w = this.game.world, cam = this.engine.cam;
     const out = [];
     for (const p of w.planes) {
-      if (p.phase === 'queue') continue;
+      if (p.hidden) continue;
       let sc = Math.random() * 1.2;
       if (ATTACK.has(p.phase)) sc += 5;
       if (p.dying) sc += 6;
-      if (p.phase === 'final' || p.phase === 'takeoff') sc += 1.5;
+      if (p.phase === 'final' || p.phase === 'takeoff' || p.phase === 'rollout') sc += 1.5;
       if (p.ordnance) sc += 1;
       const d = Math.hypot(p.x - cam.x, p.z - cam.z);
       sc -= d * 0.00004;
@@ -318,7 +318,7 @@ export class CameraRig {
 
   pickPlane(dir = 1) {
     const w = this.game.world;
-    const list = w.planes.filter((p) => p.phase !== 'queue').sort((a, b) => a.id - b.id);
+    const list = w.planes.filter((p) => !p.hidden && p.phase !== 'queue').sort((a, b) => a.id - b.id);
     if (!list.length) { this.plane = null; return; }
     // best candidate when nothing is followed, otherwise the neighbour in the list
     let i = list.indexOf(this.plane);
@@ -340,6 +340,8 @@ export class CameraRig {
     const pc = this.planeCam;
     for (const e of events) {
       if (this.mode === 'auto' && (e.type === 'bombDrop' || e.type === 'torpedoDrop' || e.type === 'planeDown') && Math.random() < 0.45 && this.auto.sub !== 'plane') { this.auto.forcePlane = e.plane; this.auto.t = 0; }
+      // the director likes a touchdown on the wire and a take-off run (a take-off only when the carrier is in sight)
+      if (this.mode === 'auto' && (e.type === 'planeTouchdown' || e.type === 'planeLaunch') && Math.random() < 0.3 && this.auto.sub !== 'plane') { this.auto.forcePlane = e.plane; this.auto.t = 0; }
       if (e.type === 'planeCrash' && e.plane === this.plane) {
         pc.crash = { x: e.x, y: Math.max(e.y, 2), z: e.z, dx: Math.sin(e.plane.heading), dz: -Math.cos(e.plane.heading) };
         pc.hold = 3.2;

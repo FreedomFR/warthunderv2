@@ -2,7 +2,7 @@
 //   view=dist,azimuthDeg,elevationDeg[,lookY]   heading=deg   elev=gun elevation   yaw=turret train
 //   ruin=1       every destroyable part wrecked        scars=N   N battle scars         split=x   ship broken in two at local x
 //   parked=N     aircraft parked on carriers           gear=1    undercarriage down      ord=1     ordnance hung on planes
-//   bank=deg pitch=deg  attitude of planes
+//   bank=deg pitch=deg  attitude of planes   fold=0..1 wings folded   hook=0..1 arrester hook down
 import { ShipRenderer } from './game/render/shipRenderer.js';
 import { ShipVisuals } from './game/render/shipVisual.js';
 import { PlaneVisuals } from './game/render/aircraftVisual.js';
@@ -83,7 +83,7 @@ export async function runPreview(engine, ids, qs) {
         const spec = PLANES[it.plane];
         pv.addPlane({
           typeKey: it.plane, x: it.x, y: Number(qs.get('alt')) || 40, z: it.z, heading: st.heading, pitch: (Number(qs.get('pitch')) || 0) * D2R, roll: (Number(qs.get('bank')) || 0) * D2R,
-          spin: 0.7, gearDown: qs.get('gear') === '1', ordnance: qs.get('ord') !== '0', lost: { wingL: qs.get('lost') === 'wing', wingR: false, tail: qs.get('lost') === 'tail', engine: false },
+          spin: 0.7, gearDown: qs.get('gear') === '1', fold: Number(qs.get('fold')) || 0, hook: Number(qs.get('hook')) || 0, ordnance: qs.get('ord') !== '0', lost: { wingL: qs.get('lost') === 'wing', wingR: false, tail: qs.get('lost') === 'tail', engine: false },
         }, cam, tint, 0.5, 0, 0);
         continue;
       }

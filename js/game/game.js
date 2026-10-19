@@ -259,7 +259,7 @@ export class Game {
     for (const p of w.planes) {
       const team = w.teams[p.team];
       const tint = team ? team.rgb : [255, 255, 255];
-      if (p.phase === 'queue' && !(p.owner && p.owner.alive)) continue;
+      if (p.hidden || (p.phase === 'queue' && !(p.owner && p.owner.alive))) continue;
       const cockpit = this.camera.mode === 'cockpit' && this.camera.plane === p;
       pv.addPlane(p, cam, tint, (p.id * 0.37) % 1, p.dying ? 0.85 : p.smoke > 0 ? 0.35 : 0, cockpit ? -1 : p.fire > 0.5 ? 0.6 : 0);
     }

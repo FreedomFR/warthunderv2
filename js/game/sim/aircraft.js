@@ -3,7 +3,8 @@
 // ships' anti-aircraft guns (damaged aircraft smoke, burn and fall until they hit the sea or a ship), then
 // returns and lands on the carrier. Bombs and torpedoes are simulated bodies, so where they hit decides the damage.
 import { clamp, wrapPi, approach, D2R, G } from '../math.js';
-import { planeTypeFor, PLANES, groundY } from '../model/planes.js';
+import { planeTypeFor, PLANES, groundY, GROUND_PITCH, hookBack } from '../model/planes.js';
+import { deckOf, planLaunch, settleService, beginRecovery, launching, stepDeck, stepDeckShip, touchdown, clearToLand, deckClearFor, DECK_PHASES } from './deck.js';
 import { segmentNearShip, segmentHit, resolveBombHit, resolveNearMiss, resolveCrashHit } from './damage.js';
 import { spawnPlaneDebris, spawnScrap } from './debris.js';
 
@@ -12,7 +13,6 @@ let nextBomb = 1;
 
 const V_CRUISE = 84;           // m/s (~165 kn)
 const V_TORP = 72;
-const TAKEOFF_RUN = 135;       // distance before the bow where the take-off run starts (m)
 
 /** Range, rate and damage of a light AA calibre (per mount, per barrel). */
 const AA = {
@@ -23,6 +23,37 @@ const AA = {
 const FLAK_RANGE = 7500;
 
 const rn = (world, a, b) => a + (b - a) * world.rng();
+
+// ---- the circuit round a carrier ---------------------------------------------------------------------------------------
+// Opposite course past the ship on the side away from the island, a 180-degree turn at a steady bank that ends on the ship's course about 1.5 km
+// astern, then the groove down to the wires. All in the ship's frame (x forward, z to starboard).
+const GROOVE_GATE = 2000;                 // the next aircraft turns in when the one ahead is this close behind its touchdown point (m)
+function circuit(ship) {
+  const dp = ship.model.deckPoints, isl = ship.model.island;
+  const side = isl && isl.z < 0 ? 1 : -1;       // the circuit is on the side away from the island
+  // radius of the turn at 56-62 m/s and 28 degrees of bank: about 700 m; the ship moves on 15 m/s during the 36 s of the turn
+  const zDown = side * 1480, turnX = dp.x0 - 960;
+  return {
+    side, zDown, turnX, turn: side, altDown: 200, altTurn: 135,
+    point() { return ship.toWorld(dp.x1 + 800, 0, zDown, [0, 0, 0]); },
+  };
+}
+/** May this aircraft turn in for the final approach: the deck is not launching or being cleared, and the aircraft ahead of it is well down its approach (or down)? */
+function mayTurnIn(world, ship, p) {
+  const D = deckOf(ship);
+  if (D.striking || launching(world, ship)) return false;
+  const q = D.landing.length ? D.landing[D.landing.length - 1] : null;
+  if (!q || q === p) return true;
+  if (q.phase === 'rollout' || q.phase === 'taxiIn') return true;
+  if (q.phase === 'final' && q.tdPick) { ship.toLocal(q.x, q.y, q.z, _l3); return q.tdX - _l3[0] < GROOVE_GATE; }
+  return false;
+}
+/** Heading of a direction given in the ship's frame (dxr forward, dzr to starboard). */
+function relHeading(ship, dxr, dzr) {
+  const sh = Math.sin(ship.heading), ch = Math.cos(ship.heading);
+  const wx = dxr * sh + dzr * ch, wz = -dxr * ch + dzr * sh;
+  return Math.atan2(wx, -wz);
+}
 
 // ---- strike formations ---------------------------------------------------------------------------------------------
 // A wave is split into sections of up to four aircraft of one kind (torpedo bombers, dive bombers). A section flies to the enemy in formation
@@ -78,6 +109,7 @@ function bestTargets(world, team, fromX, fromZ, n) {
 
 export function updateAir(world, dt) {
   launches(world, dt);
+  for (const ship of world.ships) if (ship.air && ship.alive) stepDeckShip(world, ship, dt);
   flight(world, dt);
   updateAA(world, dt);
   stepBombs(world, dt);
@@ -92,14 +124,19 @@ function launches(world, dt) {
     ship._parkT = (ship._parkT || 0) - dt;
     if (ship._parkT <= 0) { ship._parkT = 1; ship.updateParked(); }
     if (!(ship.cmd.air.launch && air.cooldown <= 0 && air.ready >= 4) || ship.deckWrecked) continue;
+    // the deck is either launching or recovering: not both at once
+    const D = deckOf(ship);
+    if (D.landing.length || D.recovering || D.striking || D.circuit > 0 || D.pending.some((q) => !q.service) || launching(world, ship)) continue;
     const target = bestTarget(world, ship.team, ship.x, ship.z);
     if (!target) continue;
     const n = Math.min(air.ready, Math.round(6 + world.rng() * 5));
+    settleService(world, ship);
     air.ready -= n;
     air.cooldown = 120 + n * 3.4 + world.rng() * 60;
     air.wave++;
     const dp = ship.model.deckPoints;
-    const wave = { ship, n, id: air.wave, launched: 0, assessed: false, aborted: false, t0: world.time };
+    const wave = { ship, n, id: air.wave, launched: 0, assessed: false, aborted: false, t0: world.time, planes: [] };
+    const order = wave.planes;
     const dive = planeTypeFor(ship.stats.nation, 'dive'), torp = planeTypeFor(ship.stats.nation, 'torp');
     // the composition: a little over half torpedo bombers; sections of three (a leftover pair, or a fourth aircraft in a section); dive bombers off the deck first
     const nT = Math.round(n * 0.55), nD = n - nT;
@@ -116,22 +153,23 @@ function launches(world, dt) {
       for (let j = 0; j < k; j++, i++) {
         const typeKey = kind === 'torp' ? torp : dive;
         const spec = PLANES[typeKey];
-        const lx = dp.x1 - TAKEOFF_RUN - i * 9.5;
         const p = {
           id: nextPlane++, owner: ship, team: ship.team, kind, typeKey, spec, wave, sec,
           x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, heading: ship.heading, pitch: 0, roll: 0, bank: 0, speed: 0,
-          phase: 'queue', t: -(2 + i * 3.3), age: 0, target: sec.target, hp: spec.hp, maxHp: spec.hp, ordnance: true,
+          phase: 'queue', ds: 'pending', t: 0, ts: 0, age: 0, target: sec.target, hp: spec.hp, maxHp: spec.hp, ordnance: true,
           spin: 0, gearDown: true, lost: { wingL: false, wingR: false, tail: false, engine: false }, dying: false, smoke: 0, fire: 0, harass: 0,
-          lx, lz: 0, u: 0, apOff: 0, jitter: (world.rng() - 0.5) * 2,
-          t0Air: 0, cruiseAlt: kind === 'dive' ? rn(world, 1500, 2000) : rn(world, 420, 650), relAlt: rn(world, 480, 620), fuel: 700 + world.rng() * 200,
+          lx: 0, lz: 0, u: 0, apOff: 0, jitter: (world.rng() - 0.5) * 2, fold: 1, hook: 0, eng: 0, aoa: 0, gp: GROUND_PITCH, yaw: 0, hidden: true, lift: null,
+          t0Air: 0, cruiseAlt: kind === 'dive' ? rn(world, 1500, 2000) : rn(world, 420, 650), relAlt: rn(world, 480, 620), fuel: 900 + world.rng() * 200,
           aimErr: [world.rng.normal(), world.rng.normal()], diveAng: rn(world, 58, 70) * D2R, group: i,
         };
-        ship.toWorld(p.lx, ship.model.fdY + groundY(spec), 0, _w);
-        p.x = _w[0]; p.y = _w[1]; p.z = _w[2];
+        p.x = ship.x; p.y = ship.y; p.z = ship.z;
         sec.members.push(p);
+        order.push(p);
         world.planes.push(p);
       }
     }
+    planLaunch(world, ship, order);
+    ship.updateParked();
     world.events.push({ type: 'airLaunch', ship, count: n });
   }
 }
@@ -144,9 +182,11 @@ function flight(world, dt) {
     const p = arr[i];
     p.age += dt;
     p.t += dt;
-    p.spin += dt * (p.lost.engine ? 0 : (p.phase === 'queue' && p.t < 0 ? 4 : 62 + (p.speed - 60) * 0.3));
+    // the propeller turns with the engine: slowly while it starts up and idles on deck, at full speed from the take-off run on
+    p.spin += dt * (p.lost.engine ? 0 : p.eng != null ? (p.eng < 0.02 ? 0 : 3 + 59 * Math.min(1, p.eng * 1.4)) : 62 + (p.speed - 60) * 0.3);
     p.harass = Math.max(0, p.harass - dt * 0.35);
     const keep = p.dying ? stepDying(world, p, dt) : stepPlane(world, p, dt);
+    p.roll = p.bank;
     if (!keep) { p.gone = true; arr.splice(i, 1); }
   }
 }
@@ -204,7 +244,7 @@ function stepPlane(world, p, dt) {
   const ship = p.owner;
   const spec = p.spec;
   // ---- queue and deck run ----
-  if (p.phase === 'queue' || p.phase === 'takeoff' || p.phase === 'rollout') return stepDeck(world, p, dt);
+  if (DECK_PHASES.has(p.phase)) return stepDeck(world, p, dt);
   // fuel
   p.fuel -= dt;
   let tgt = p.target;
@@ -215,9 +255,13 @@ function stepPlane(world, p, dt) {
     if (p.sec && tgt) p.sec.target = tgt;
     if (!tgt) p.phase = 'return';
   }
-  if (p.fuel < 0 && p.phase !== 'ditch' && p.phase !== 'floating' && p.phase !== 'final') p.phase = 'return';
+  if (p.fuel < 0 && p.phase !== 'ditch' && p.phase !== 'floating' && p.phase !== 'final' && p.phase !== 'pattern' && p.phase !== 'waveoff' && p.phase !== 'return') p.phase = 'return';
   const carrierOk = ship && ship.alive && !ship.deckWrecked;
   if (p.gearDown && p.age > p.t0Air + 3 && p.phase !== 'pattern' && p.phase !== 'final' && p.phase !== 'waveoff') p.gearDown = false;
+  // the hook is lowered with the gear for the landing; the nose is held high on the approach
+  const landing = p.phase === 'pattern' || p.phase === 'final' || (p.phase === 'waveoff' && p.t < 9);
+  p.hook = clamp(p.hook + (landing ? 1 : -1) * dt * 0.9, 0, 1);
+  p.aoa += ((p.phase === 'final' ? 0.15 : landing ? 0.07 : 0) - p.aoa) * Math.min(1, dt * 1.8);
 
   let hdg = p.heading, gam = 0, spd = V_CRUISE, o = {};
   switch (p.phase) {
@@ -226,7 +270,7 @@ function stepPlane(world, p, dt) {
       const dx = tgt.x + tgt.vx * 30 - p.x, dz = tgt.z + tgt.vz * 30 - p.z;
       const range = Math.hypot(dx, dz);
       // the strike is looked over once, 16 km from the target: too few left and it turns back, few left and it closes up
-      if (range < 16000 && !p.wave.assessed && (p.wave.launched >= p.wave.n || world.time - p.wave.t0 > 55)) assessWave(world, p.wave);
+      if (range < 16000 && !p.wave.assessed && (p.wave.launched >= p.wave.n || world.time - p.wave.t0 > 150)) assessWave(world, p.wave);
       if (p.wave.aborted) { p.phase = 'return'; break; }
       // ---- in formation behind the leader ----
       if (sec && lead && lead !== p && airborne(lead) && lead.phase === 'cruise') {
@@ -375,53 +419,106 @@ function stepPlane(world, p, dt) {
     }
     case 'return': {
       if (!carrierOk) { p.phase = 'ditch'; break; }
-      const dx = ship.x - p.x, dz = ship.z - p.z;
-      const range = Math.hypot(dx, dz);
+      // to the start of the circuit, ahead of the carrier on the side away from the island
+      const cc = circuit(ship), pt = cc.point();
+      const dx = pt[0] - p.x, dz = pt[2] - p.z;
       hdg = Math.atan2(dx, -dz);
-      gam = clamp((650 - p.y) / 700, -0.08, 0.1);
+      gam = clamp((ship.y + cc.altDown - p.y) / 700, -0.08, 0.1);
       spd = V_CRUISE;
-      if (range < 5200) { p.phase = 'pattern'; p.t = 0; p.gearDown = true; p.t0Air = p.age; }
+      if (Math.hypot(ship.x - p.x, ship.z - p.z) < 14000) beginRecovery(world, ship);      // the deck park goes below before the first one lands
+      if (Math.hypot(dx, dz) < 900) {
+        p.phase = 'pattern'; p.leg = 1; p.t = 0; p.gearDown = true; p.t0Air = p.age; p.holdT = 0;
+      }
       break;
     }
-    case 'pattern': {   // join the final approach 3.2 km astern of the carrier, descending
+    case 'pattern': {
+      // the circuit: downwind past the carrier, then a descending turn to the groove
       if (!carrierOk) { p.phase = 'ditch'; break; }
-      const fx = Math.sin(ship.heading), fz = -Math.cos(ship.heading);
-      const px = ship.x - fx * 3000 + ship.vx * 6, pz = ship.z - fz * 3000 + ship.vz * 6;
-      const dx = px - p.x, dz = pz - p.z;
-      hdg = Math.atan2(dx, -dz);
-      gam = clamp((190 - p.y) / 500, -0.08, 0.05);
-      spd = 62;
+      if (p.fuel < -90) { p.phase = 'ditch'; break; }
+      const cc = circuit(ship), dp = ship.model.deckPoints;
+      ship.toLocal(p.x, p.y, p.z, _l2);
+      const lx = _l2[0], lz = _l2[2];
       p.gearDown = true;
-      if (Math.hypot(dx, dz) < 450 || p.t > 60) { p.phase = 'final'; p.t = 0; }
+      if (p.leg === 1) {
+        // abeam the carrier on the opposite course, a little lower on the way
+        const rz = clamp((cc.zDown - lz) * 0.0011, -0.45, 0.45);
+        hdg = relHeading(ship, -1, rz);
+        gam = clamp((ship.y + cc.altDown - p.y) / 500, -0.05, 0.05);
+        spd = 62;
+        o = { bankMax: 20 * D2R };
+        // abeam the turning point: turn in if the groove is free, else hold in a circle away from the ship
+        if (lx < cc.turnX) {
+          if (mayTurnIn(world, ship, p) || p.holdT > 420) { p.leg = 2; p.t = 0; clearToLand(world, ship, p); }
+          else { p.leg = 3; p.holdAng = 0; p.holdPrev = null; }
+        }
+      } else if (p.leg === 3) {
+        // holding: a circle in the ship's frame on the far side of the downwind leg (the ship's own motion is allowed for), until it is the aircraft's turn
+        p.holdT += dt;
+        const R = 380, vc = 48, hx = cc.turnX, hz = cc.zDown + cc.side * R;
+        const rx = lx - hx, rz = lz - hz, rl = Math.hypot(rx, rz) || 1;
+        const k = clamp((R - rl) / R * 2.2, -1.2, 1.2);
+        let vx = cc.side * rz / rl + rx / rl * k, vz = -cc.side * rx / rl + rz / rl * k;
+        const vl = Math.hypot(vx, vz) || 1;
+        vx = vx / vl * vc + ship.speed; vz = vz / vl * vc;
+        hdg = relHeading(ship, vx, vz);
+        spd = Math.hypot(vx, vz);
+        gam = clamp((ship.y + cc.altDown - p.y) / 500, -0.05, 0.05);
+        o = { bankMax: 36 * D2R };
+        const th = Math.atan2(rz, rx);
+        if (p.holdPrev != null) p.holdAng += wrapPi(th - p.holdPrev);
+        p.holdPrev = th;
+        if (Math.abs(p.holdAng) > 6.0) p.leg = 1;
+      } else {
+        // the turn: a steady 28-degree bank towards the ship, losing height, until the nose is along the ship's course
+        hdg = p.heading + cc.turn * 1.0;
+        gam = clamp((ship.y + cc.altTurn - p.y) / 400, -0.06, 0.03);
+        spd = 56;
+        o = { bankMax: 28 * D2R };
+        if (Math.abs(wrapPi(p.heading - ship.heading)) < 0.3) {
+          // rolled out well off the centre line (or ahead of the ship): round the circuit again
+          if (Math.abs(lz) > 900 || lx > dp.x0 - 400) { p.leg = 1; p.holdT = 0; break; }
+          p.phase = 'final'; p.t = 0; p.tdPick = false;
+        }
+      }
       break;
     }
     case 'final': {
       if (!carrierOk) { p.phase = 'waveoff'; p.t = 0; break; }
       ship.toLocal(p.x, p.y, p.z, _l2);
       const lx = _l2[0], lz = _l2[2];
-      const dp = ship.model.deckPoints;
-      const behind = dp.x0 + 6 - lx;                          // metres astern of the touchdown point
-      const deckY = ship.y + ship.model.fdY;
-      hdg = ship.heading + clamp(-lz * 0.012, -0.3, 0.3) * clamp(behind / 600, 0.25, 1);
-      const wantY = deckY + 3.5 + Math.max(0, behind) * 0.062;
-      gam = clamp((wantY - p.y) / Math.max(120, behind * 0.6), -0.09, 0.06);
-      spd = Math.max(ship.speed + 24, 44);
-      o = { bankMax: 18 * D2R };
-      p.gearDown = true;
-      if (behind < 10 && behind > -80) {
-        if (Math.abs(lz) < dp.hw * 0.75 && p.y - deckY < 9 && p.y - deckY > -3) {
-          p.phase = 'rollout'; p.t = 0; p.lx = lx; p.lz = lz; p.u = Math.max(18, p.speed - ship.speed);
-          world.events.push({ type: 'planeTouchdown', plane: p, ship });
-          return true;
-        }
-        if (behind < -15) { p.phase = 'waveoff'; p.t = 0; }
+      const dp = ship.model.deckPoints, wires = ship.model.wires || [dp.x0 + 12];
+      const gy = groundY(spec), back = hookBack(spec);
+      if (!p.tdPick) {
+        // where the hook is to come down: just short of one of the first wires, most often the second or third
+        const k = [0, 0, 1, 1, 1, 2, 2, 2, 2, 3, 3, 4][Math.floor(world.rng() * 12)];
+        p.tdX = wires[Math.min(k, wires.length - 1)] - 2.2 + back + (world.rng() - 0.5) * 2; p.tdPick = true;
       }
-      if (behind > 2500) p.phase = 'pattern';
+      const behind = p.tdX - lx;                              // metres astern of the touchdown point
+      const deckY = ship.y + ship.model.fdY;
+      const vrel = Math.max(12, p.speed - ship.speed);
+      // line up on the centre line: steer at a point on it ahead of the aircraft, nearer as the deck comes up
+      hdg = ship.heading + clamp(Math.atan2(-lz, clamp(behind * 0.5, 120, 800)), -0.45, 0.45);
+      const wantY = deckY + gy + 0.18 + clamp(behind, 0, 1900) * 0.062;
+      gam = clamp(-0.062 * vrel / Math.max(p.speed, 30) + (wantY - p.y) / 70, -0.1, 0.07);
+      spd = Math.max(ship.speed + 26, 44) - clamp(1 - behind / 300, 0, 1) * 3;
+      o = { bankMax: 24 * D2R };
+      p.gearDown = true;
+      // the landing signal officer waves the aircraft off when the deck is not clear or the approach is bad
+      if (behind < 230 && behind > 0 && (!deckClearFor(world, ship, p) || launching(world, ship))) { p.phase = 'waveoff'; p.t = 0; break; }
+      if (behind < 150 && behind > 0 && Math.abs(lz) > dp.hw * 0.9) { p.phase = 'waveoff'; p.t = 0; break; }
+      if (behind < 0 && lx < dp.x1 - 60 && p.y <= deckY + gy + 0.3 && Math.abs(lz) < dp.hw * 0.85) {
+        touchdown(world, ship, p, lx, lz);
+        return true;
+      }
+      if (behind < -90 || (behind < 40 && p.y < deckY + 0.9)) { p.phase = 'waveoff'; p.t = 0; }
+      if (behind > 9000) p.phase = 'return';
       break;
     }
     case 'waveoff': {
-      hdg = p.heading; gam = 0.1; spd = 70;
-      if (p.t > 22) { p.phase = 'return'; }
+      hdg = p.heading; gam = 0.09; spd = 72;
+      o = { bankMax: 10 * D2R };
+      p.gearDown = p.t < 9;
+      if (p.t > 16) p.phase = 'return';
       break;
     }
     case 'ditch': {
@@ -453,58 +550,8 @@ function stepPlane(world, p, dt) {
   }
   return collideShips(world, p, prev);
 }
-const _l2 = [0, 0, 0];
+const _l2 = [0, 0, 0], _l3 = [0, 0, 0];
 const _prev = [0, 0, 0];
-
-/** Aircraft on the flight deck: queueing, take-off run, landing roll. */
-function stepDeck(world, p, dt) {
-  const ship = p.owner;
-  if (!ship || ship.state === 'sunk' || !ship.model.deckPoints.x1) return false;
-  const dp = ship.model.deckPoints;
-  const gy = groundY(p.spec);
-  if (p.phase === 'queue') {
-    if (!ship.alive) return false;
-    // taxi forward to the start of the run as the aircraft ahead launch
-    const startX = dp.x1 - TAKEOFF_RUN;
-    const queued = p.wave.n - p.wave.launched;
-    const targetLx = startX - Math.max(0, p.group - p.wave.launched) * 9.5;
-    p.lx += clamp(targetLx - p.lx, -4 * dt, 4 * dt);
-    p.lz = 0;
-    p.heading = ship.heading; p.speed = ship.speed; p.gearDown = true;
-    ship.toWorld(p.lx, ship.model.fdY + gy, p.lz, _w);
-    p.x = _w[0]; p.y = _w[1]; p.z = _w[2]; p.pitch = ship.pitch * 0.5; p.roll = ship.roll * 0.5; p.bank = ship.roll * 0.5;
-    p.vx = ship.vx; p.vz = ship.vz; p.vy = 0;
-    if (p.group === p.wave.launched && p.t >= 0 && Math.abs(p.lx - startX) < 1.5) { p.phase = 'takeoff'; p.t = 0; p.u = 0; p.wave.launched++; world.events.push({ type: 'planeLaunch', plane: p, ship }); }
-    return true;
-  }
-  if (p.phase === 'takeoff') {
-    p.u += 5.8 * dt;
-    p.lx += p.u * dt;
-    ship.toWorld(p.lx, ship.model.fdY + gy, 0, _w);
-    p.x = _w[0]; p.y = _w[1]; p.z = _w[2];
-    p.heading = ship.heading; p.speed = ship.speed + p.u;
-    p.vx = ship.vx + Math.sin(ship.heading) * p.u; p.vz = ship.vz - Math.cos(ship.heading) * p.u; p.vy = 0;
-    p.pitch = p.u > 20 ? 0.06 : 0;
-    if (p.u >= 25 || p.lx > dp.x1 - 2) {
-      p.phase = 'cruise'; p.t = 0; p.t0Air = p.age;
-      p.speed = Math.max(40, ship.speed + p.u);
-      p.pitch = 0.12; setVel(p);
-    }
-    return true;
-  }
-  // rollout after landing: the arrester wire stops the aircraft within a couple of seconds
-  p.u = Math.max(0, p.u - 17 * dt);
-  p.lx += p.u * dt;
-  ship.toWorld(p.lx, ship.model.fdY + gy, p.lz * (1 - Math.min(1, p.t / 1.5)), _w);
-  p.x = _w[0]; p.y = _w[1]; p.z = _w[2];
-  p.heading = ship.heading; p.speed = ship.speed + p.u; p.pitch = 0; p.bank = 0; p.gearDown = true;
-  p.vx = ship.vx + Math.sin(ship.heading) * p.u; p.vz = ship.vz - Math.cos(ship.heading) * p.u; p.vy = 0;
-  if (p.u <= 0.5 || p.lx > dp.x1 - 25) {
-    if (ship.alive) { ship.air.ready++; world.events.push({ type: 'planeLand', plane: p, ship }); }
-    return false;
-  }
-  return true;
-}
 
 function dropBomb(world, p, tgt) {
   p.ordnance = false;
@@ -560,7 +607,7 @@ function stepBombs(world, dt) {
 function planeThreats(world, ship) {
   const out = [];
   for (const p of world.planes) {
-    if (p.team === ship.team || p.phase === 'queue' || p.phase === 'takeoff' || p.phase === 'rollout' || p.y < 2) continue;
+    if (p.team === ship.team || DECK_PHASES.has(p.phase) || p.y < 2) continue;
     const dx = p.x - ship.x, dz = p.z - ship.z, d = Math.hypot(dx, dz);
     if (d > FLAK_RANGE) continue;
     out.push({ p, d });
@@ -700,7 +747,7 @@ export function killPlane(world, p, cause, attacker) {
   if (p.dying) return;
   const rng = world.rng;
   p.dying = true; p.dyingT = 0; p.cause = cause;
-  if (p.phase === 'rollout' || p.phase === 'queue' || p.phase === 'takeoff') { p.dying = false; return; }
+  if (DECK_PHASES.has(p.phase)) { p.dying = false; return; }
   p.owner && (p.owner.lostPlanes = (p.owner.lostPlanes || 0) + 1);
   if (attacker && attacker !== p.owner) attacker.planeKills = (attacker.planeKills || 0) + 1;
   const r = rng();
@@ -780,7 +827,7 @@ function stepDying(world, p, dt) {
 function collideShips(world, p, prev) {
   if (p.y > 130) return true;
   for (const ship of world.ships) {
-    if (ship.state === 'sunk' || p.phase === 'final' || p.phase === 'rollout') continue;
+    if (ship.state === 'sunk' || p.phase === 'final' || DECK_PHASES.has(p.phase)) continue;
     if (p.owner === ship && !p.dying) continue;
     if (!segmentNearShip(ship, prev[0], prev[1], prev[2], p.x, p.y, p.z)) continue;
     const hit = segmentHit(ship, prev[0], prev[1], prev[2], p.x, p.y, p.z);

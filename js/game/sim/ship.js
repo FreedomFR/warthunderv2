@@ -278,10 +278,13 @@ export class Ship {
     this.scars.push(sc);
   }
 
+  /** Aircraft drawn on the deck park: the full park to begin with, then whatever the deck crew have spotted (see sim/deck.js); never more than the air group allows. */
   updateParked() {
     const slots = this.model.deckSlots.length;
     if (!slots || !this.air) { this.parked = 0; return; }
-    this.parked = this.deckWrecked ? 0 : Math.round(slots * this.air.ready / Math.max(1, this.stats.air.capacity));
+    const cap = Math.round(slots * this.air.ready / Math.max(1, this.stats.air.capacity));
+    this.parked = this.deckWrecked ? 0 : this._parkInit ? Math.min(this.parked, cap) : cap;
+    this._parkInit = true;
   }
 
   // ---- per tick ---------------------------------------------------------------------------------------------------

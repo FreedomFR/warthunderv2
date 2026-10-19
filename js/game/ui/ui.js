@@ -607,7 +607,7 @@ export function createUI(game) {
   function updatePlaneMarkers(out, cam) {
     const seen = new Set();
     for (const p of world.planes) {
-      if (p.phase === 'queue' || p.phase === 'rollout' || p.phase === 'takeoff') continue;
+      if (p.phase === 'queue' || p.phase === 'rollout' || p.phase === 'takeoff' || p.phase === 'taxiIn') continue;
       const dist = Math.hypot(p.x - cam.x, p.y - cam.y, p.z - cam.z);
       const pr = engine.project(p.x, p.y + 6, p.z, out);
       if (!pr || dist > 16000 || dist < 25 || out[0] < -30 || out[0] > innerWidth + 30 || out[1] < -20 || out[1] > innerHeight + 20) continue;

@@ -66,6 +66,7 @@ Lot 2 (cuirassés et porte-avions des autres nations) : **fait, avec des réserv
 - [ ] **Destroyers (lot 5)** : *Fletcher*, *Tribal*, *Mob* sont mesurés sur des dessins partagés (© de leurs auteurs, mesures seulement, non redistribués) ; *Kagerō* sur un dessin CC BY-SA 4.0 ; *Le Fantasque* sur une feuille partagée (profil + plan, ±0,5 m) ; *Soldati* sur un petit dessin partagé (±0,6 m) ; tubes du *Fantasque* lus sur le plan mais les affûts de bord sont dessinés sur l'axe.
 - [ ] Pour chaque classe : chercher les plans libres (`tools/refs/search.py`, feuilles ONI sur Commons), créer les familles de tourelles manquantes, refaire les superstructures, la livrée d'époque.
 - [ ] Contrôler chaque tir en plein jeu (scène `firetest` : `node tools/trailer/record.mjs firetest <dossier> --q ship=<id>`).
+- [ ] **Pont d'envol (limites)** : pas de personnel de pont (aiguilleur, officier d'appontage avec ses raquettes), pas de barrière de sécurité ni de catapulte (course de 100 m), pas de miroir ni de feux de pente ; le vent relatif n'est pas modélisé (le circuit est dans le repère du navire, avec un vent nul) ; les ascenseurs sont ceux des carrés peints (positions de `tweaks.js`) ; sur l'*Aquila*, aucun n'est derrière le départ de la course : ses avions qui ne sont pas au parc apparaissent directement dans la file. Les avions du parc sont tous du même type (le bombardier en piqué de la nation).
 - [ ] *Graf Zeppelin* et *Aquila* n'ont jamais été achevés : décider quelle configuration de projet représenter.
 
 ## 3. Effets et rendu (tous navires)

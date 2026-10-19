@@ -2,6 +2,7 @@
 // impacts, fires, funnel smoke, sinking, anti-aircraft fire and wakes (foam stamps).
 import { clamp, D2R } from '../math.js';
 import { K } from './particles.js';
+import { DECK_PHASES } from '../sim/deck.js';
 
 const rnd = Math.random;
 const rr = (a, b) => a + (b - a) * rnd();
@@ -74,6 +75,8 @@ export class Effects {
         case 'planeBreakup': this.planeBreakup(e); break;
         case 'planeCrash': this.planeCrash(e); break;
         case 'planeDitch': this.planeDitch(e); break;
+        case 'planeTouchdown': this.touchdown(e); break;
+        case 'wireCatch': this.wireCatch(e); break;
         case 'torpedoEntry': this.torpedoEntry(e); break;
         case 'wakeStamp': this.engine.foam.add(e.x, e.z, e.x - e.vx * 0.1, e.z - e.vz * 0.1, 5, 0.3, 0.8, 0.5); break;
         case 'collision': this.collision(e); break;
@@ -664,6 +667,7 @@ export class Effects {
       const fx = Math.sin(p.heading), fz = -Math.cos(p.heading);
       const tail = p.spec ? p.spec.L * 0.38 : 4;
       const hot = p.fire > 0.5 || p.dying;
+      if (DECK_PHASES.has(p.phase) && !p.hidden && d < 2500) this.deckPlane(dt, p, d, fx, fz, acc);
       if (p.smoke > 0 || p.fire > 0) {
         let a = (acc.get(p.id) || 0) + dt * (hot ? 38 : 16) * this.emitScale * (d > 5000 ? 0.5 : 1);
         while (a >= 1) {
@@ -676,13 +680,59 @@ export class Effects {
         acc.set(p.id, a);
       }
       // spray and foam under an aircraft flying low over the sea
-      if (p.y < 30 && d < 1600 && p.phase !== 'queue' && p.phase !== 'takeoff' && p.phase !== 'rollout' && p.phase !== 'final') {
+      if (p.y < 30 && d < 1600 && !DECK_PHASES.has(p.phase) && p.phase !== 'final') {
         const k = 1 - p.y / 30;
         this.engine.foam.add(p.x, p.z, p.x - p.vx * 0.12, p.z - p.vz * 0.12, 4 + 5 * k, 0.12, 0.5 * k, 0.3 * k);
         if (p.y < 14 && rnd() < dt * 24) this.p.add({ kind: K.SPRAY, x: p.x - fx * 6, y: 0.4, z: p.z - fz * 6, vx: rr(-2, 2), vy: rr(3, 8), vz: rr(-2, 2), s0: 1.5, s1: rr(5, 9), life: rr(0.9, 1.6), r: 0.94, g: 0.97, b: 1, a0: 0.6, a1: 0, grav: 10, drag: 0.4 });
       }
     }
     if (acc.size > 400) for (const id of acc.keys()) if (!world.planes.some((q) => q.id === id)) acc.delete(id);
+  }
+
+  /** The wheels hit the deck: a puff of tyre smoke and a few sparks from the hook. */
+  touchdown(e) {
+    const p = e.plane, cam = this.engine.cam;
+    const d = Math.hypot(p.x - cam.x, p.z - cam.z);
+    if (d > 3000) return;
+    const fx = Math.sin(p.heading), fz = -Math.cos(p.heading), cs = d > 900 ? 1.5 : 1;
+    const rx = Math.cos(p.heading), rz = Math.sin(p.heading);
+    for (const side of [-1, 1]) {
+      for (let i = 0; i < 3; i++) this.p.add({ kind: K.SMOKE, x: p.x + rx * side * 1.5 + fx * 0.6, y: p.y - 1.5, z: p.z + rz * side * 1.5 + fz * 0.6, vx: p.vx * 0.2 + rr(-1, 1), vy: rr(0.4, 1.2), vz: p.vz * 0.2 + rr(-1, 1), s0: 0.5 * cs, s1: rr(2.4, 4) * cs, life: rr(1.2, 2.2), r: 0.82, g: 0.82, b: 0.8, a0: 0.5, a1: 0, drag: 0.8, wind: 1 });
+    }
+    this.sparks(p.x - fx * (e.back || 4), p.y - 1.6, p.z - fz * (e.back || 4), [-fx * 0.3, 0.4, -fz * 0.3], 10, 0.7, 8, cs, [1, 0.62, 0.24], { life: 0.5, grav: 22, size: 0.07, stretch: 1.6 });
+  }
+
+  /** The hook picks up a wire: it comes taut with a crack and a spray of sparks along the deck. */
+  wireCatch(e) {
+    const p = e.plane, cam = this.engine.cam;
+    if (Math.hypot(p.x - cam.x, p.z - cam.z) > 1500) return;
+    const fx = Math.sin(p.heading), fz = -Math.cos(p.heading);
+    this.sparks(p.x - fx * (p.back || 4), p.y - 1.6, p.z - fz * (p.back || 4), [-fx * 0.2, 0.35, -fz * 0.2], 12, 0.8, 9, 1, [1, 0.66, 0.26], { life: 0.5, grav: 22, size: 0.07, stretch: 1.6 });
+  }
+
+  /** An aircraft on a flight deck: the exhaust of a radial engine starting and idling, the spark of the hook dragging on the deck. */
+  deckPlane(dt, p, d, fx, fz, acc) {
+    const L = p.spec.L, eng = p.eng || 0;
+    const cs = d > 900 ? 1.4 : 1;
+    // exhaust: a puff from each side of the cowling, thick and dark at the first turns of the propeller, a thin haze when it idles
+    if (eng > 0.02 && p.phase !== 'rollout') {
+      const start = p.ds === 'spot' && p.ts < 4 ? 1 : 0;
+      let a = (acc.get('e' + p.id) || 0) + dt * (start ? 14 : p.phase === 'takeoff' ? 12 : 4) * this.emitScale;
+      while (a >= 1) {
+        a -= 1;
+        const side = rnd() < 0.5 ? -1 : 1, rx = Math.cos(p.heading), rz = Math.sin(p.heading);
+        const nx = p.x + fx * (L * 0.42 - 1.2) + rx * side * 0.75, nz = p.z + fz * (L * 0.42 - 1.2) + rz * side * 0.75;
+        const dark = start ? 0.06 : p.phase === 'takeoff' ? 0.16 : 0.34;
+        this.p.add({ kind: K.SMOKE, x: nx, y: p.y + 0.15, z: nz, vx: p.vx * 0.8 - fx * rr(0.5, 2.5) + rx * side * rr(0.2, 1.2), vy: rr(0.3, 1.3), vz: p.vz * 0.8 - fz * rr(0.5, 2.5) + rz * side * rr(0.2, 1.2), s0: 0.35 * cs, s1: (start ? rr(2.2, 3.4) : rr(1.2, 2.0)) * cs, life: start ? rr(1.4, 2.4) : rr(0.9, 1.6), r: dark, g: dark, b: dark * 1.02, a0: start ? 0.55 : 0.3, a1: 0, drag: 0.7, wind: 1, grav: -0.25 });
+      }
+      acc.set('e' + p.id, a);
+    }
+    // the hook dragging along the deck, until the wire has it
+    if (p.phase === 'rollout' && p.hook > 0.5 && (p.ds === 'roll' || (p.ds === 'arrest' && p.u > 3)) && d < 1200) {
+      const back = p.back || 4, hy = p.y - 1.6;
+      const x = p.x - fx * back, z = p.z - fz * back;
+      this.sparks(x, hy, z, [-fx * 0.4, 0.35, -fz * 0.4], Math.round(dt * 40), 0.6, 7, cs, [1, 0.62, 0.24], { life: 0.45, grav: 22, size: 0.07, stretch: 1.6 });
+    }
   }
 
   /** Burning wreckage trails smoke and fire. */

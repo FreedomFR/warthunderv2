@@ -1,9 +1,36 @@
 // Draws aircraft (in flight, crashing, parked on a flight deck) and the ordnance in flight.
-import { getPlaneModel, getFloatplaneModel, buildOrdnanceMeshes } from '../model/planes.js';
+import { getPlaneModel, getFloatplaneModel, buildOrdnanceMeshes, hookPivot, GROUND_PITCH } from '../model/planes.js';
 import { mat4Ship, mat4Mul, mat4RotX } from '../math.js';
+import { MeshBuilder, MAT, rgb } from '../model/meshbuilder.js';
+import { LIFT_DEPTH } from '../sim/deck.js';
 
 const S64 = new Float64Array(16), P64 = new Float64Array(16), RX = new Float64Array(16), W64 = new Float64Array(16);
 const S32 = new Float32Array(16), P32 = new Float32Array(16);
+const F64 = new Float64Array(16), H64 = new Float64Array(16), Q64 = new Float64Array(16);
+const Q32 = new Float32Array(16), R32 = new Float32Array(16);
+
+// How the wings fold: back about a hinge on the rear spar beside the fuselage, the hinge axis leaning forward by this much (the folded
+// wing ends up pointing aft and a little up); the Japanese aircraft fold steeper.
+const FOLD_TILT = { Japan: 0.5, UK: 0.0 };
+
+/** Local matrix of a wing folded by `fold` (0 spread .. 1 folded); sg = +1 starboard, -1 port. */
+function foldMatrix(out, spec, sg, fold) {
+  const w = spec.wing;
+  const hx = w.x - w.cr * 0.4, hy = w.y || 0, hz = sg * (spec.fus.r * 1.02 + 0.06);
+  const tilt = FOLD_TILT[spec.nation] ?? 0.14;
+  const ax = Math.sin(tilt), ay = Math.cos(tilt);
+  const th = -sg * fold * 1.45;
+  const c = Math.cos(th), sn = Math.sin(th), k = 1 - c;
+  // Rodrigues rotation about (ax, ay, 0)
+  const r00 = c + ax * ax * k, r01 = ax * ay * k, r02 = ay * sn;
+  const r10 = ax * ay * k, r11 = c + ay * ay * k, r12 = -ax * sn;
+  const r20 = -ay * sn, r21 = ax * sn, r22 = c;
+  out[0] = r00; out[1] = r10; out[2] = r20; out[3] = 0;
+  out[4] = r01; out[5] = r11; out[6] = r21; out[7] = 0;
+  out[8] = r02; out[9] = r12; out[10] = r22; out[11] = 0;
+  out[12] = hx - (r00 * hx + r01 * hy + r02 * hz); out[13] = hy - (r10 * hx + r11 * hy + r12 * hz); out[14] = hz - (r20 * hx + r21 * hy + r22 * hz); out[15] = 1;
+  return out;
+}
 
 export class PlaneVisuals {
   constructor(renderer) {
@@ -44,10 +71,20 @@ export class PlaneVisuals {
   addPlane(p, cam, tint, rnd = 0.5, dmg = 0, fire = 0) {
     const m = this.get(p.typeKey);
     const lost = p.lost;
-    mat4Ship(S64, p.x - cam.x, p.y - cam.y, p.z - cam.z, p.heading, p.pitch, p.roll);
+    mat4Ship(S64, p.x - cam.x, p.y - cam.y, p.z - cam.z, p.heading, p.pitch + (p.aoa || 0), p.roll);
     for (let i = 0; i < 16; i++) S32[i] = S64[i];
     const r = this.r;
-    if (!lost || (!lost.wingL && !lost.wingR && !lost.tail)) r.add(m.mesh.whole, S32, tint, dmg, fire, rnd);
+    if (p.fold > 0.003) {
+      // folded (or folding) wings: the fuselage and the tail as they are, each wing on its own hinge
+      r.add(m.mesh.body, S32, tint, dmg, fire, rnd);
+      r.add(m.mesh.tail, S32, tint, dmg, fire, rnd);
+      for (const [sg, key] of [[1, 'wingR'], [-1, 'wingL']]) {
+        if (lost && lost[key]) continue;
+        mat4Mul(P64, S64, foldMatrix(F64, m.pm.spec, sg, Math.min(1, p.fold)));
+        for (let i = 0; i < 16; i++) P32[i] = P64[i];
+        r.add(m.mesh[key], P32, tint, dmg, fire, rnd);
+      }
+    } else if (!lost || (!lost.wingL && !lost.wingR && !lost.tail)) r.add(m.mesh.whole, S32, tint, dmg, fire, rnd);
     else {
       r.add(m.mesh.body, S32, tint, Math.max(dmg, 0.7), fire, rnd);
       if (!lost.tail) r.add(m.mesh.tail, S32, tint, Math.max(dmg, 0.7), fire, rnd);
@@ -61,6 +98,14 @@ export class PlaneVisuals {
       r.add(m.mesh.prop, P32, tint, 0, 0, rnd);
     }
     if (p.gearDown && m.mesh.gear) r.add(m.mesh.gear, S32, tint, dmg, fire, rnd);
+    if (p.hook > 0.01 && m.mesh.hook) {
+      // the arrester hook, hinged under the rear fuselage: tucked along the belly, or down at ~35 degrees
+      const [hx, hy] = hookPivot(m.pm.spec), a = Math.min(1, p.hook) * 0.62, ca = Math.cos(a), sa = Math.sin(a);
+      H64.fill(0); H64[0] = ca; H64[1] = sa; H64[4] = -sa; H64[5] = ca; H64[10] = 1; H64[12] = hx; H64[13] = hy; H64[15] = 1;
+      mat4Mul(P64, S64, H64);
+      for (let i = 0; i < 16; i++) P32[i] = P64[i];
+      r.add(m.mesh.hook, P32, tint, dmg, fire, rnd);
+    }
     if (p.ordnance && m.mesh.ordnance) r.add(m.mesh.ordnance, S32, tint, 0, 0, rnd);
   }
 
@@ -90,6 +135,49 @@ export class PlaneVisuals {
     this.r.add(o[type === 'AP' ? 'shellAP' : 'shellHE'], S32, [255, 255, 255], 0, 0, 0.5);
   }
 
+  /** Unit meshes of the deck equipment: a lift platform, the dark shaft round it, an arrester wire. */
+  deckMeshes() {
+    if (this.dm) return this.dm;
+    const mk = (fn, label) => { const b = new MeshBuilder(); fn(b); return this.r.createMesh(b.build(), label); };
+    this.dm = {
+      plat: mk((b) => { b.block({ x0: -1, x1: 1, hw: 1, y0: -0.4, y1: 0 }, rgb('#4d4c48'), MAT.HULL); }, 'lift platform'),
+      pit: mk((b) => b.block({ x0: -1, x1: 1, hw: 1, y0: -0.02, y1: 0 }, rgb('#09090a'), MAT.CANVAS), 'lift shaft'),
+      wire: mk((b) => b.block({ x0: 0, x1: 1, hw: 0.5, y0: -0.5, y1: 0.5 }, rgb('#1b1b1a'), MAT.DARK), 'arrester wire'),
+    };
+    return this.dm;
+  }
+
+  /** The lifts (a platform that carries the aircraft up from the hangar, with the open shaft round it) and the arrester wire in use. */
+  addDeckGear(ship, S, tint, rnd, inHalf) {
+    const D = ship._deck, model = ship.model, fdY = model.fdY;
+    const dm = this.deckMeshes();
+    const put = (mesh, x, y, z, ex, ey, ez, ax = 1, az = 0) => {
+      // the local frame: x axis (ax, 0, az) scaled by ex, y up scaled by ey, z axis perpendicular scaled by ez
+      W64.fill(0);
+      W64[0] = ax * ex; W64[2] = az * ex;
+      W64[5] = ey;
+      W64[8] = -az * ez; W64[10] = ax * ez;
+      W64[12] = x; W64[13] = y; W64[14] = z; W64[15] = 1;
+      mat4Mul(P64, S, W64);
+      for (let k = 0; k < 16; k++) P32[k] = P64[k];
+      this.r.add(mesh, P32, tint, 0, 0, rnd);
+    };
+    for (const l of D.lifts) {
+      if (!inHalf(l.x)) continue;
+      if (l.h > 0.995 && !l.user) continue;                                // idle, flush with the deck: the painted square is all there is
+      put(dm.pit, l.x, fdY + 0.035, l.z, l.hl - 0.3, 1, l.hw - 0.3);
+      put(dm.plat, l.x, fdY + 0.045 - (1 - l.h) * LIFT_DEPTH, l.z, l.hl - 0.45, 1, l.hw - 0.45);
+    }
+    const w = D.wire;
+    if (w && inHalf(w.x)) {
+      for (const sg of [-1, 1]) {
+        const dx = w.ax - w.x, dz = w.az - sg * w.zs, len = Math.hypot(dx, dz);
+        if (len < 0.1) continue;
+        put(dm.wire, w.x, fdY + 0.09, sg * w.zs, len, 0.07, 0.07, dx / len, dz / len);
+      }
+    }
+  }
+
   /** Aircraft parked on a carrier's deck (ship matrix S, camera relative). */
   addParked(ship, S, tint, rnd, inHalf) {
     const model = ship.model;
@@ -98,12 +186,26 @@ export class PlaneVisuals {
     for (let i = 0; i < n; i++) {
       const sl = model.deckSlots[i];
       if (!inHalf(sl.x)) continue;
-      mat4Ship(W64, 0, 0, 0, sl.yaw + (i % 2 ? 0.0 : 0), 0, 0);
+      mat4Ship(W64, 0, 0, 0, sl.yaw, GROUND_PITCH, 0);
       W64[12] = sl.x; W64[13] = sl.y + m.pm.groundY; W64[14] = sl.z;
       mat4Mul(P64, S, W64);
-      for (let k = 0; k < 16; k++) P32[k] = P64[k];
-      this.r.add(m.mesh.whole, P32, tint, 0, 0, rnd);
-      if (m.mesh.gear) this.r.add(m.mesh.gear, P32, tint, 0, 0, rnd);
+      this.addParts(m, P64, tint, rnd, 1, true);
     }
+  }
+
+  /** An aircraft model placed by a camera-relative matrix M (float64), the wings folded by `fold` (0 spread .. 1 folded), the undercarriage down or not. */
+  addParts(m, M, tint, rnd, fold, gear, dmg = 0, fire = 0) {
+    const r = this.r;
+    for (let i = 0; i < 16; i++) Q32[i] = M[i];
+    if (fold > 0.003) {
+      r.add(m.mesh.body, Q32, tint, dmg, fire, rnd);
+      r.add(m.mesh.tail, Q32, tint, dmg, fire, rnd);
+      for (const [sg, key] of [[1, 'wingR'], [-1, 'wingL']]) {
+        mat4Mul(Q64, M, foldMatrix(F64, m.pm.spec, sg, Math.min(1, fold)));
+        for (let i = 0; i < 16; i++) R32[i] = Q64[i];
+        r.add(m.mesh[key], R32, tint, dmg, fire, rnd);
+      }
+    } else r.add(m.mesh.whole, Q32, tint, dmg, fire, rnd);
+    if (gear && m.mesh.gear) r.add(m.mesh.gear, Q32, tint, dmg, fire, rnd);
   }
 }
