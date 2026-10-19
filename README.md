@@ -28,7 +28,7 @@ Il faut un Chrome (ou Edge) récent avec WebGPU et une carte graphique correcte.
 3. Changer de caméra avec les touches `1` à `9`, regarder les navires de près, puis **Lancer le combat** : tous les navires sont pilotés par l'IA,
    jusqu'à ce qu'il ne reste qu'une équipe. `Espace` met en pause, `,` et `.` ralentissent ou accélèrent le temps.
 
-Si la machine est lente : `H` (Réglages) → « Résolution de rendu ». Sur un portable, forcer Chrome sur la carte graphique dédiée.
+Si la machine est lente : `H` (Réglages) → « Résolution de rendu ». Le même panneau règle le nombre maximal de particules (flammes, fumées, gerbes : plus il est haut, moins elles disparaissent dans les grosses batailles) et le son binaural pour casque. Sur un portable, forcer Chrome sur la carte graphique dédiée.
 
 ## Commandes
 
@@ -54,6 +54,7 @@ l'impact), **6 Tactique** (vue de dessus), **7 Libre**, **8 Avions** (suit un av
 - **Aviation embarquée** : bombardiers en piqué, torpilleurs, chasseurs et hydravions de chaque nation ; ascenseurs, ailes repliées, décollage, circuit d'appontage et brins d'arrêt.
 - **Dégâts modulaires** : chaufferies, soutes, tourelles, gouvernail, directeurs de tir, DCA, compartiments étanches, inondation, incendies ; les pièces détruites volent et retombent à la mer.
 - **Balistique et conduite de tir réalistes** : secteurs de tir calculés sur la géométrie du navire, anticipation, dispersion qui diminue salve après salve.
+- **Îles et végétation** : rochers, îles vallonnées et montagneuses tirées de la graine, forêts procédurales selon le climat ; les navires s'échouent, les obus éclatent sur les pentes, la ligne de vue est testée.
 - **Flottes et tactique** : vaisseau amiral, ligne en colonne, écran de destroyers, porte-avions à l'abri derrière la ligne, cible commune.
 - **Explosions et naufrages** : explosion de munitions, coque brisée en deux, nappes de mazout qui brûlent.
 - **Effets** : océan FFT, ciel physique, sillages, gerbes, flammes de bouche à trois temps, fumée, DCA et traçantes.
