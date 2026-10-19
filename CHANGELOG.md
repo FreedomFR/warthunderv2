@@ -1,5 +1,21 @@
 # Changelog
 
+## Unreleased — shells
+
+- **In flight**: the body of the shell is drawn when the camera is within 700 m (AP: dark ogive with a pale ballistic cap and a copper band; HE: blunter, with a fuze and a yellow band, 3.8 calibres long); the tracer
+  streak is red-orange for armour-piercing and yellow-white for high explosive, with a bright head, doubled for the first half second while the gases still surround the shell; a thin vapour trail hangs behind it.
+  A ring of vapour is thrown out round the bore as the shell clears the muzzle.
+- **At the impact**, by what the shell is and what became of it (the simulation now says which): armour-piercing **through the plate** = a pin-prick of light and hot metal at the entry, then (the fuze delay later) a dull
+  burst inside with jets of flame and black smoke through the hole and the openings; **over-penetration** (plate too thin to arm the fuze) = a hole in and a hole out and a streak that flies on; **ricochet** = a
+  scratch of sparks along the plate and the shell whining away on the reflected path; **plate holds** = orange flash, hail of sparks, a lump of the nose flung away; **high explosive** = an instant bright, wide
+  burst (white shock flash, fragments, grey smoke), or, on thick plate, it only shatters. Water splashes differ too (AP: narrow and tall, HE: wide with a flash and smoke). Sounds: an AP hit rings at the plate and
+  bursts a moment later.
+- **Angle of attack**: the incidence on superstructures, modules and turrets is now computed from the real geometry (it was a constant), and an armour-piercing shell arriving at more than 68 degrees from the
+  normal glances off (certain above 82) whatever its energy.
+- **Hit report** (`shellHit` event, J or the "Impacts" button): a floating tag at the impact and a log of the last hits of the selected ship (given and received): shooter -> target, part struck, shell type and
+  calibre, angle, plate and effective thickness against penetration, result (PERCE, TRAVERSE SANS ÉCLATER, RICOCHET, NE PERCE PAS, ÉCLATE, SE BRISE) and damage. `hittest` trailer scene to stage a hit
+  (`--q type=AP|HE --q angle=0..85 --q part=hull|deck|super|mount --q ship=iowa --q gun=yamato`).
+
 ## Unreleased — scoreboard
 
 - **Tab** (held) or the "Tableau" button shows a live scoreboard: per team and per ship, ships sunk, aircraft shot down, shells fired, hits, accuracy, torpedoes (hits / launched), damage dealt, and state

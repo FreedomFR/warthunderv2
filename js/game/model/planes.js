@@ -550,12 +550,37 @@ export function getFloatplaneModel(nation) {
   return m;
 }
 
-/** Standalone ordnance meshes, for the objects in flight: { bomb250, bomb500, torpedo }. */
+/** A naval shell of unit length along +x (nose forward): AP = ogive with a ballistic cap and a dark body, HE = blunter ogive with a fuze and a yellow band. */
+export function drawShell(b, type = 'AP') {
+  const ap = type === 'AP';
+  const len = 1, r = 0.125;
+  const body = ap ? rgb('#3d4144') : rgb('#6a7048'), cap = ap ? rgb('#d9d4c4') : rgb('#2a2d2f'), band = rgb('#cfa83a'), cu = rgb('#b4762f');
+  const st = [];
+  const n = 14;
+  for (let i = 0; i <= n; i++) {
+    const u = i / n, xx = len * 0.5 - u * len;
+    let rr = r;
+    const og = ap ? 0.34 : 0.24;                                 // length of the ogive
+    if (u < og) rr = r * Math.sqrt(1 - Math.pow(1 - u / og, 2) * (ap ? 0.92 : 0.97));
+    else if (u > 0.9) rr = r * (1 - 0.14 * (u - 0.9) / 0.1);     // boat tail
+    st.push({ x: xx, ry: Math.max(rr, 0.012), rz: Math.max(rr, 0.012), yc: 0, zc: 0 });
+  }
+  loft(b, st, body, MAT.HULL, { seg: 12 });
+  const capLen = ap ? 0.13 : 0.07, ogv = ap ? 0.34 : 0.24, u0 = capLen;
+  const capR = r * Math.sqrt(1 - Math.pow(1 - u0 / ogv, 2) * (ap ? 0.92 : 0.97)) + 0.004;
+  b.rod(len * 0.5 - capLen, len * 0.5, 0, 0, capR, 0.014, cap, MAT.HULL, { seg: 12, capTop: true });                   // the ballistic cap / the fuze
+  b.rod(-len * 0.3, -len * 0.25, 0, 0, r * 1.02, r * 1.02, ap ? cu : band, MAT.HULL, { seg: 12, capTop: false });      // the driving band
+  if (!ap) b.rod(len * 0.12, len * 0.17, 0, 0, r * 1.02, r * 1.02, band, MAT.HULL, { seg: 12, capTop: false });         // the yellow HE band
+}
+
+/** Standalone ordnance meshes, for the objects in flight: { bomb250, bomb500, torpedo, shellAP, shellHE }. */
 export function buildOrdnanceMeshes() {
   const mk = (fn) => { const b = new MeshBuilder(); fn(b); return b.build(); };
   return {
     bomb250: mk((b) => drawBomb(b, 0, 0, 0, 250)),
     bomb500: mk((b) => drawBomb(b, 0, 0, 0, 500)),
     torpedo: mk((b) => drawTorpedo(b, 0, 0, 0, 1)),
+    shellAP: mk((b) => drawShell(b, 'AP')),
+    shellHE: mk((b) => drawShell(b, 'HE')),
   };
 }
