@@ -213,7 +213,7 @@ export function damageMount(world, ship, m, amount, owner, penetrated) {
     ship.refreshArmament();
     // ammunition fire in the turret; a fire reaching the magazine below is the classic way to lose a ship
     if (penetrated || world.rng() < 0.3) {
-      ship.addFire(m.rec.x, m.rec.y + 1.5, m.rec.z, 1.0);
+      ship.addFire(m.rec.x, m.rec.y + 1.5, m.rec.z, 1.0, penetrated && m.rec.kind === 'turret');
       ship.applyDamage(ship.stats.maxHp * (m.rec.group === 'main' ? 0.012 : 0.003), owner, 'turret');
       if (penetrated && m.rec.kind === 'turret') ship.turretFlash(m, world, owner);
     }
@@ -236,7 +236,7 @@ function onModuleDestroyed(world, ship, m, owner, cause) {
   switch (m.kind) {
     case 'engine':
       ship.updatePropulsion();
-      if (rng() < 0.6) ship.addFire(m.x, 2, m.z, 0.8);
+      if (rng() < 0.6) ship.addFire(m.x, 2, m.z, 0.8, true);
       ship.flood(m.x, m.z, 0.15);
       break;
     case 'steering':

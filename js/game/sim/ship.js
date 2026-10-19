@@ -173,10 +173,10 @@ export class Ship {
   }
 
   // ---- damage model helpers (called by modules.js / damage.js) --------------------------------------------------
-  addFire(lx, ly, lz, power) {
+  addFire(lx, ly, lz, power, inside = false) {
     if (this.state === 'sunk') return;
     if (this.fires.length >= 8) { this.fires[0].t += 6; return; }
-    this.fires.push({ x: lx, y: Math.max(ly, 1), z: lz, t: this.world.rng.range(22, 55) * (0.7 + 0.5 * power), power });
+    this.fires.push({ x: lx, y: Math.max(ly, 1), z: lz, t: this.world.rng.range(22, 55) * (0.7 + 0.5 * power), power, inside });
     this.world.events.push({ type: 'fireStart', ship: this, x: lx, y: ly, z: lz });
   }
 
@@ -223,11 +223,20 @@ export class Ship {
 
   refreshArmament() { this.mainAlive = this.mounts.filter((m) => m.group === 'main' && m.alive).length; }
 
+  /**
+   * Chance that ammunition goes up when something sets it off, by class (the compact, lightly built hulls have their magazines closest to
+   * the shell's path) and by navy: cordite in silk bags flashes far more readily than US single-base powder (a flash that lights one
+   * unit of US powder lights 75 of cordite), German charges sat in brass cases, and the British anti-flash doors were often wedged open.
+   */
+  ammoRisk(base) { return base[this.stats.type] * this.stats.navy.flash; }
+
   /** Flash fire from a turret that has just been wrecked by a penetrating hit, travelling down the ammunition trunk. */
   turretFlash(mount, world, owner) {
     const mag = this.modules.find((m) => m.kind === 'magazine' && m.mount === mount.idx) || this.modules.find((m) => m.kind === 'magazine' && Math.abs(m.x - mount.rec.x) < 6);
     if (!mag || mag.flooded || mag.state === 2) return;
-    const p = { DD: 0.35, CL: 0.2, CA: 0.15, BB: 0.07, CV: 0.1 }[this.stats.type];
+    // a turret that has fired off its ammunition has little to burn
+    const stock = mount.ammo0 ? clamp((mount.ammo.AP + mount.ammo.HE) / mount.ammo0, 0.15, 1) : 1;
+    const p = this.ammoRisk({ DD: 0.30, CL: 0.17, CA: 0.13, BB: 0.06, CV: 0.08 }) * (0.5 + 0.5 * stock);
     if (world.rng() < p) { this.explosionSource = 'flash'; this.world.magazineExplosion(this, owner, this.toWorld(mag.x, mag.y, mag.z, [0, 0, 0]), mag); }
   }
 
@@ -235,11 +244,11 @@ export class Ship {
   magazineLost(m, world, owner, cause) {
     if (m.flooded) return;
     // a magazine wrecked from below (torpedo, near miss) is flooded far more often than it explodes
-    const p = { DD: 0.4, CL: 0.25, CA: 0.2, BB: 0.12, CV: 0.08 }[this.stats.type] * (cause === 'torpedo' || cause === 'blast' ? 0.2 : 1);
+    const p = this.ammoRisk({ DD: 0.35, CL: 0.2, CA: 0.15, BB: 0.09, CV: 0.07 }) * (cause === 'torpedo' || cause === 'blast' ? 0.2 : 1);
     if (world.rng() < p) { this.explosionSource = 'blast'; world.magazineExplosion(this, owner, this.toWorld(m.x, m.y, m.z, [0, 0, 0]), m); return; }
     // the ammunition of that turret is lost; the rest burns out
     if (m.mount != null && this.mounts[m.mount]) { this.mounts[m.mount].noAmmo = true; }
-    this.addFire(m.x, 1.5, m.z, 1.0);
+    this.addFire(m.x, 1.5, m.z, 1.0, true);
   }
 
   /** The torpedo tubes were destroyed: warheads may go up. */
@@ -287,6 +296,43 @@ export class Ship {
     const cap = Math.round(slots * this.air.ready / Math.max(1, this.stats.air.capacity));
     this.parked = this.deckWrecked ? 0 : this._parkInit ? Math.min(this.parked, cap) : cap;
     this._parkInit = true;
+  }
+
+  /**
+   * Fires inside the armoured citadel heat the magazines. The damage-control party floods a magazine that is heating up (it takes
+   * 10-25 s and does not always succeed: the navies differed a lot), and one that is not flooded in time may cook off.
+   * A flooded magazine saves the ship but the turret it fed is out of ammunition. Returns true when the ship blew up.
+   */
+  updateMagazines(dt) {
+    const rng = this.world.rng, st = this.stats, dc = st.navy.dc;
+    const cookRate = { DD: 0.03, CL: 0.02, CA: 0.016, BB: 0.008, CV: 0.01 }[st.type] * st.navy.flash;
+    for (const m of this.modules) {
+      if (m.kind !== 'magazine' || m.state === 2 || m.flooded) continue;
+      let heat = 0;
+      for (const f of this.fires) {
+        if (!f.inside) continue;
+        if (Math.abs(f.x - m.x) > m.hx + 4 || Math.abs(f.z - m.z) > m.hz + 4) continue;
+        heat += f.power;
+      }
+      if (heat <= 0) { m.heat = Math.max(0, (m.heat || 0) - dt * 0.5); continue; }
+      m.heat = (m.heat || 0) + heat * dt;
+      if (m.heat > 5 && m.floodAt == null) {
+        m.floodAt = this.world.time + 8 + rng() * 14;
+        m.floodOk = rng() < clamp(0.95 * dc, 0.2, 0.97);
+      }
+      if (m.floodAt != null && m.floodOk && this.world.time >= m.floodAt) {
+        m.flooded = true;
+        if (m.mount != null && this.mounts[m.mount]) this.mounts[m.mount].noAmmo = true;
+        this.world.events.push({ type: 'magazineFlooded', ship: this, x: m.x, y: m.y, z: m.z });
+        continue;
+      }
+      if (m.heat > 9 && rng() < dt * cookRate) {
+        this.explosionSource = 'fire';
+        this.world.magazineExplosion(this, this.lastAttacker, this.toWorld(m.x, m.y, m.z, [0, 0, 0]), m);
+        return true;
+      }
+    }
+    return false;
   }
 
   // ---- per tick ---------------------------------------------------------------------------------------------------
@@ -446,27 +492,20 @@ export class Ship {
     // ---- fires, magazine heating -------------------------------------------------------------------------
     if (afloat) {
       let burn = 0;
+      const dc = st.navy.dc;
+      // a carrier's hangar full of fuelled and armed aircraft, or a ship of wood and paint, feeds a fire; the damage-control parties put it out
+      const feed = st.type === 'CV' ? 2.2 : st.navy.dc < 0.7 ? 1.3 : 1;
       for (let i = this.fires.length - 1; i >= 0; i--) {
         const f = this.fires[i];
-        f.t -= dt;
+        f.t -= dt * dc;
         burn += f.power;
         if (f.t <= 0) { this.fires.splice(i, 1); continue; }
-        // a fire near ammunition heats the magazine; damage control may flood it in time
-        for (const m of this.modules) {
-          if (m.kind !== 'magazine' || m.state === 2 || m.flooded) continue;
-          if (Math.abs(f.x - m.x) > m.hx + 3 || Math.abs(f.z - m.z) > m.hz + 3) continue;
-          m.heat = (m.heat || 0) + f.power * dt;
-          if (m.heat > 14 && !m.checked) {
-            m.checked = true;
-            if (this.world.rng() < 0.7) { m.flooded = true; this.world.events.push({ type: 'magazineFlooded', ship: this, x: m.x, y: m.y, z: m.z }); }
-          }
-          if (m.heat > 14 && !m.flooded && this.world.rng() < dt * 0.05 * (this.stats.type === 'DD' ? 2.5 : 1)) {
-            this.explosionSource = 'fire';
-            this.world.magazineExplosion(this, this.lastAttacker, this.toWorld(m.x, m.y, m.z, [0, 0, 0]), m);
-            return;
-          }
+        // a strong fire spreads to the next compartment
+        if (f.power >= 0.7 && this.fires.length < 8 && this.world.rng() < dt * 0.012 * feed * (f.inside ? 1 : 0.6)) {
+          this.addFire(f.x + (this.world.rng() - 0.5) * 14, f.y, f.z + (this.world.rng() - 0.5) * 4, f.power * 0.8, f.inside);
         }
       }
+      if (this.updateMagazines(dt)) return;
       this.fireLevel = sat(burn * 0.35);
       if (burn > 0) this.applyDamage(Math.min(burn, 3.5) * 0.00036 * st.maxHp * dt, null, 'fire');
       if (this.floodRate > 0) this.applyDamage(this.floodRate * dt, null, 'flood');

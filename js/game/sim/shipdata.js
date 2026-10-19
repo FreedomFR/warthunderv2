@@ -8,7 +8,7 @@ const ACCEL_SECONDS = { DD: 38, CL: 52, CA: 62, BB: 95, CV: 80 };      // time t
 const SKIN = { DD: 10, CL: 16, CA: 20, BB: 25, CV: 18 };           // mm of hull plating where there is no belt
 const SUP = { DD: 6, CL: 10, CA: 12, BB: 15, CV: 10 };            // mm of superstructure plating
 const FLIGHT = { essex: 19, shokaku: 19 };                         // thin unarmoured flight deck over the armoured hangar deck (estimated)
-const HP_FACTOR = { DD: 0.42, CL: 0.36, CA: 0.34, BB: 0.30, CV: 0.28 };
+const HP_FACTOR = { DD: 0.42, CL: 0.27, CA: 0.25, BB: 0.30, CV: 0.28 };
 
 function gunStats(g, group, navy, extra = {}) {
   const cal = g.caliberMm;
@@ -56,6 +56,7 @@ export function makeStats(spec) {
       lower: prot.lower ?? (arm.beltMm ?? 0) * 0.4,
     },
     main, secs,
+    navy, torpProt: prot.torp || { kg: 0 }, avgas: prot.avgas || null,
     torpedo: spec.torpedoes && spec.torpedoes.tubes ? {
       tubes: spec.torpedoes.tubes, speed: (spec.torpedoes.speedKn || 40) * KN, range: spec.torpedoes.rangeM || 7000,
       warhead: spec.torpedoes.warheadKg || 300, cal: spec.torpedoes.caliberMm || 533,
@@ -65,12 +66,10 @@ export function makeStats(spec) {
     aaPower: Math.round(Math.sqrt(dispFull) * 0.35 + secs.reduce((a, s, i) => a + (s.cal <= 140 ? 6 : 1), 0)),
     // gameplay-scaled magazine / turret toughness
     mountHp: (cal) => (cal >= 300 ? 900 : cal >= 180 ? 520 : cal >= 120 ? 240 : 110),
-    // chance that a penetrating hit in the citadel detonates the magazine
-    magazineChance: { DD: 0.35, CL: 0.14, CA: 0.11, BB: 0.035, CV: 0.05 }[t],
     // fraction of torpedo damage that gets through underwater protection
     torpFactor: { DD: 1.3, CL: 1.0, CA: 0.9, BB: 0.6, CV: 0.8 }[t],
     sinkTime: { DD: 28, CL: 45, CA: 55, BB: 90, CV: 80 }[t],
-    softness: { DD: 1.0, CL: 0.85, CA: 0.65, BB: 0.28, CV: 0.55 }[t],     // damage taken from HE / unarmoured hits
+    softness: { DD: 3.0, CL: 0.85, CA: 0.65, BB: 0.28, CV: 0.55 }[t],     // damage taken from HE / unarmoured hits
     score: { DD: 1, CL: 1.5, CA: 2.2, BB: 4, CV: 3.5 }[t],
     visualRange: 32000,
   };

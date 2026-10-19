@@ -122,7 +122,8 @@ function hitNormal(ship, hit) {
   }
 }
 
-function addFireAt(ship, lx, ly, lz, power) { ship.addFire(lx, Math.max(ly, 1), lz, power); }
+/** `inside`: the fire is within the armoured citadel, where it can heat the magazines. */
+function addFireAt(ship, lx, ly, lz, power, inside = false) { ship.addFire(lx, Math.max(ly, 1), lz, power, inside); }
 
 /**
  * Burst of strength P at a local point: damages the modules around it, makes the visual event and scars the hull.
@@ -246,14 +247,17 @@ export function resolveShellHit(world, ship, shell, hit) {
         const thickEnough = armor >= fuzeThickness(cal, angle);
         const armed = thickEnough && !shell.dud;
         // inside the ship the shell is slowed by decks and bulkheads; the fuze fires after its delay
-        const delay = g.fuzeDelay * vres * 0.7;
+        // (a shell that has just defeated real armour is stopped by the structure behind it before it can leave on the far side)
+        const heavy = armor >= cal * 0.25;
+        const delay = Math.min(g.fuzeDelay * vres * 0.7, 12 + 14 * Math.sqrt(kg / 1000));
         let px = lx, py = ly, pz = lz, inside = armed || part === 'mount';
         if (inside && part !== 'mount') {
           const steps = Math.ceil(delay / 1.0);
           for (let i = 1; i <= steps; i++) {
             const dd = Math.min(i, delay);
-            px = lx + ldx * dd; py = ly + ldy * dd; pz = lz + ldz * dd;
-            if (!insideHull(ship, px, py, pz) && !insideSuper(ship, px, py, pz)) { inside = false; break; }
+            const qx = lx + ldx * dd, qy = ly + ldy * dd, qz = lz + ldz * dd;
+            if (!insideHull(ship, qx, qy, qz) && !insideSuper(ship, qx, qy, qz)) { if (!heavy) inside = false; break; }
+            px = qx; py = qy; pz = qz;
           }
         }
         if (!inside && part !== 'mount') {
@@ -282,7 +286,7 @@ export function resolveShellHit(world, ship, shell, hit) {
         if (part === 'mount') zone = 0.5;
         dmg = kg * 0.95 * zone * (0.85 + 0.3 * rng());
         kind = 'penetrate';
-        if (rng() < 0.30) addFireAt(ship, lx, Math.max(ly, 1), lz, 0.8);
+        if (rng() < 0.30) addFireAt(ship, px, py, pz, 0.8, inCitadel && part !== 'super' && part !== 'module');
         // flooding for waterline hits
         if (part === 'hull' && ly < 1.8) ship.flood(lx, lz, kg * 0.04);
         if (inCitadel && (part === 'hull' || part === 'deck') && rng() < 0.28) ship.engine = Math.max(0.15, ship.engine - 0.2 - 0.3 * rng());
@@ -370,7 +374,7 @@ export function resolveBombHit(world, ship, bomb, hit) {
   if (inside) {
     dmg = kg * 1.15 * st.softness * (0.8 + 0.4 * rng()) * (st.type === 'CV' ? 1.15 : 1);
     kind = 'penetrate';
-    if (rng() < 0.7) addFireAt(ship, lx, Math.max(ly, 1), lz, 1.0);
+    if (rng() < 0.7) addFireAt(ship, px, py, pz, 1.0, inCitadel);
     if (hit.part === 'mount') damageMount(world, ship, hit.mount, kg * 0.9, owner, true);
     detonate(world, ship, px, py, pz, kg * 0.9, 'inside', owner, 'bomb', 'penetrate', 250, hit);
   } else {
