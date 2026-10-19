@@ -404,8 +404,9 @@ export class MeshBuilder {
     if (!g) { g = { p: [], n: [], c: [], idx: [] }; this.groups.set(name, g); }
     const base = g.p.length / 3;
     this.p = g.p; this.n = g.n; this.c = g.c; this.idx = g.idx;
-    const i0 = this.idx.length;
+    const i0 = this.idx.length, s0 = this.solids ? this.solids.length : 0;
     fn(this);
+    if (this.solids) for (let i = s0; i < this.solids.length; i++) this.solids[i].part = name;       // the structures of a destroyable piece know which one they belong to
     // an appended call restarts its vertex numbering at 0: shift the new indices
     if (base > 0) for (let i = i0; i < this.idx.length; i++) this.idx[i] += base;
     this.p = saved.p; this.n = saved.n; this.c = saved.c; this.idx = saved.idx;
