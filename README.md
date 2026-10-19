@@ -229,8 +229,7 @@ moteurs d'avions avec effet Doppler, sirène du Stuka en piqué, avion qui tombe
 - **Torpilles** (destroyers, croiseurs) avec sillage visible, et **frappes aériennes** des porte-avions (voir plus haut).
 - **IA** : choix des cibles, distance de combat selon la classe, circulation, zigzag, évitement des collisions,
   attaques à la torpille, repli quand le navire est en perdition, porte-avions qui se tiennent à distance.
-- **Mer** : les navires flottent sur la houle FFT (roulis, tangage, pilonnement) et laissent un sillage d'écume (vague d'étrave, ligne d'écume à la flottaison, remous des hélices puis longue traînée blanche, d'autant plus marquée que le navire va vite)
-  (étrave, flancs, hélices, bras divergents).
+- **Mer** : les navires flottent sur la houle FFT (roulis, tangage, pilonnement) et laissent un sillage d'écume (vague d'étrave, ligne d'écume à la flottaison, remous des hélices puis longue traînée blanche, d'autant plus marquée que le navire va vite).
 
 ## Contrôle manuel (préparé, pas encore branché)
 
