@@ -140,7 +140,7 @@ for (const id of ['cleveland', 'fletcher', 'iowa']) {
     const { w, s } = mk(id, 11);
     for (let i = 0; i < 20; i++) w.update(0.1);
     const g = s.stats.main, owner = w.addShip('iowa', 0, 8000, 0, 0);
-    // a shell flying at 1000 m from the side: its incidence on a vertical plate is the angle between its path and the plate normal
+    // a shell flying at 1000 m from the side: its incidence is the angle between its path and the plate normal (Iowa's belt leans 19 degrees, so a flat shell meets it at 19)
     const a = angleDeg * Math.PI / 180;
     const sp = type === 'AP' ? g.v0 * 0.72 : g.v0 * 0.72;
     // heading 0: starboard is +x, forward is -z; the shell flies towards port, its path turned `a` away from the plate normal
@@ -153,7 +153,7 @@ for (const id of ['cleveland', 'fletcher', 'iowa']) {
     return { ev: ev.find((e) => e.type === 'shellHit'), imp: ev.find((e) => e.type === 'impact') };
   };
   const side = shoot('iowa', 'AP', 0, null);
-  ok(side.ev && side.ev.angle < 5 && ['pen', 'bounce', 'over'].includes(side.ev.result), `shell report: ${side.ev && side.ev.shell} ${side.ev && side.ev.cal} mm at ${side.ev && side.ev.angle.toFixed(0)} deg, plate ${side.ev && side.ev.armor} mm (${side.ev && side.ev.eff.toFixed(0)} effective) against ${side.ev && side.ev.pen.toFixed(0)} mm of penetration: ${side.ev && side.ev.result}`);
+  ok(side.ev && side.ev.angle > 15 && side.ev.angle < 22 && ['pen', 'bounce', 'over'].includes(side.ev.result), `shell report: ${side.ev && side.ev.shell} ${side.ev && side.ev.cal} mm at ${side.ev && side.ev.angle.toFixed(0)} deg, plate ${side.ev && side.ev.armor} mm (${side.ev && side.ev.eff.toFixed(0)} effective) against ${side.ev && side.ev.pen.toFixed(0)} mm of penetration: ${side.ev && side.ev.result}`);
   let glances = 0; for (let i = 0; i < 20; i++) if (shoot('iowa', 'AP', 80, null).ev.result === 'glance') glances++;
   ok(glances >= 10, `at 80 degrees an armour-piercing shell mostly glances off (${glances}/20)`);
   const he = shoot('iowa', 'HE', 0, null); ok(he.ev && ['burst', 'shatter', 'pen'].includes(he.ev.result) && he.ev.shell === 'HE', `an HE shell reports its burst (${he.ev && he.ev.result})`);
