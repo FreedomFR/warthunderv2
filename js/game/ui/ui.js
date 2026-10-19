@@ -48,7 +48,7 @@ export function createUI(game) {
   const engine = game.engine, world = game.world;
   const root = document.getElementById('ui');
   const ui = {};
-  const state = { labels: true, hudHidden: false, selectedShip: null, killFeed: [], dirty: false, firstSpawn: false };
+  const state = { hitLog: true, hits: [], tags: [], labels: true, hudHidden: false, selectedShip: null, killFeed: [], dirty: false, firstSpawn: false };
 
   // =========================================================================================
   // Setup panel
@@ -178,10 +178,13 @@ export function createUI(game) {
   const clock = h('span', { class: 'clock' }, '00:00');
   const fpsEl = h('span', { class: 'fps' }, '');
   const speedBtns = [0, 0.5, 1, 2, 4, 8].map((s) => h('button', { class: 'btn tiny', 'data-s': s, onclick: () => { if (s === 0) game.togglePause(); else { game.paused = false; game.setTimeScale(s); } } }, s === 0 ? '⏸' : s + '×'));
+  const scoreBtn = h('button', { class: 'btn tiny', title: 'Tableau de bord (Tab, maintenir)', onclick: () => { state.scoreSticky = !state.scoreSticky; scoreBtn.classList.toggle('on', state.scoreSticky); refreshScore(true); } }, 'Tableau');
   const topbar = h('div', { id: 'topbar', class: 'hud' }, clock, h('span', { class: 'sp' }, speedBtns), fpsEl,
     h('button', { class: 'btn tiny', title: 'Composer les flottes', onclick: () => setup.classList.toggle('collapsed') }, 'Flottes'),
     h('button', { class: 'btn tiny', id: 'btn-sound', title: 'Son (M)', onclick: () => toggleSound() }, 'Son'),
+    h('button', { class: 'btn tiny', title: 'Journal des impacts (J)', onclick: () => { state.hitLog = !state.hitLog; } }, 'Impacts'),
     h('button', { class: 'btn tiny', title: 'Plaques de nom (L)', onclick: () => { state.labels = !state.labels; } }, 'Noms'),
+    scoreBtn,
     h('button', { class: 'btn tiny', title: 'Réglages (H)', onclick: () => toggleSettings() }, 'Réglages'),
     h('button', { class: 'btn tiny', title: 'Aide (F1)', onclick: () => helpEl.classList.toggle('hidden') }, '?'));
   const teamsHud = h('div', { id: 'teamshud', class: 'hud' });
@@ -198,12 +201,20 @@ export function createUI(game) {
   // ---- results ----
   const results = h('div', { id: 'results', class: 'hidden panel' });
 
+  // ---- hit log (J): what the shells did ----
+  const hitlog = h('div', { id: 'hitlog', class: 'hud' });
+
+  // ---- scoreboard (Tab) ----
+  const score = h('div', { id: 'score', class: 'hidden panel' });
+
   // ---- help ----
   const helpEl = h('div', { id: 'help', class: 'panel hidden', onclick: () => helpEl.classList.add('hidden') },
     h('div', { class: 'title' }, h('span', { class: 'big' }, 'Commandes')),
     h('div', { class: 'helpgrid' },
       h('b', {}, '1 – 9'), h('span', {}, 'Caméras : auto, poursuite, orbite, passerelle, obus, tactique, libre, avions, cockpit'),
-      h('b', {}, 'N / B  ·  Tab'), h('span', {}, 'Navire (ou avion) suivant / précédent (clic sur un navire = le sélectionner)'),
+      h('b', {}, 'N / B'), h('span', {}, 'Navire (ou avion) suivant / précédent (clic sur un navire = le sélectionner)'),
+      h('b', {}, 'J'), h('span', {}, 'Journal des impacts : type d\'obus, angle d\'attaque, blindage, pénétration, résultat et dégâts de chaque touche'),
+      h('b', {}, 'Tab (maintenir)'), h('span', {}, 'Tableau de bord du combat : coulés, obus tirés, touches, dégâts de chaque navire, en temps réel'),
       h('b', {}, 'V'), h('span', {}, 'En caméra « Avions » : poursuite, passage devant l\'avion, vue depuis le navire visé'),
       h('b', {}, 'Glisser / molette'), h('span', {}, 'Orbiter autour du navire, zoom (altitude en vue tactique, vitesse en caméra libre)'),
       h('b', {}, 'ZQSD / WASD, Espace, Ctrl, Maj'), h('span', {}, 'Déplacement en caméra libre (Maj = rapide)'),
@@ -235,7 +246,7 @@ export function createUI(game) {
   }
   if (game.audio.muted) setTimeout(() => { const b = document.getElementById('btn-sound'); if (b) b.textContent = 'Son coupé'; }, 0);
 
-  root.append(setup, topbar, teamsHud, camBar, shipInfo, planeInfo, feed, labelsBox, banner, results, helpEl, settings);
+  root.append(setup, topbar, teamsHud, camBar, shipInfo, planeInfo, feed, labelsBox, banner, results, score, hitlog, helpEl, settings);
   setHudVisible(false);
 
   function setHudVisible(v) {
@@ -287,6 +298,7 @@ export function createUI(game) {
   const verbs = { magazine: 'a fait exploser', torpedo: 'a torpillé', bomb: 'a bombardé', shell: 'a coulé', fire: 'a incendié', flood: 'a envoyé par le fond', turret: 'a détruit', collision: 'a éperonné', blast: 'a anéanti' };
   ui.onEvents = (events) => {
     for (const e of events) {
+      if (e.type === 'shellHit') { addHit(e); continue; }
       if (e.type === 'planeDown' && e.attacker && e.cause === 'aa') {
         const pc = world.teams[e.plane.team];
         state.killFeed.push({ t: performance.now(), text: `${e.attacker.name} abat un ${e.plane.spec.name}`, c1: '#ccc', c2: pc ? css(pc.rgb) : '#ccc', v: { name: '' }, killer: e.attacker, plane: true });
@@ -307,6 +319,69 @@ export function createUI(game) {
       if (state.killFeed.length > 6) state.killFeed.shift();
     }
   };
+
+  // ---- hits: a floating tag where the shell struck and a log of the last ones --------------------------------------------------------------
+  const RESULT = {
+    pen: ['PERCE', '#ff7a45'], over: ['TRAVERSE SANS ÉCLATER', '#ffd24a'], glance: ['RICOCHET', '#9fd0ff'], bounce: ['NE PERCE PAS', '#9fd0ff'],
+    burst: ['ÉCLATE', '#ffb347'], shatter: ['SE BRISE SUR LE BLINDAGE', '#b8c4cf'],
+  };
+  const why = (e) => {
+    const a = Math.round(e.angle);
+    if (e.result === 'glance') return `incidence ${a}° : l'obus ricoche`;
+    if (e.result === 'bounce') return `plaque ${Math.round(e.armor)} mm à ${a}° = ${Math.round(e.eff)} mm effectifs > pénétration ${Math.round(e.pen)} mm`;
+    if (e.result === 'over') return `plaque trop mince (${Math.round(e.eff)} mm) : la fusée n'arme pas`;
+    if (e.result === 'shatter') return `plaque ${Math.round(e.armor)} mm à ${a}° : l'obus explosif éclate en surface`;
+    if (e.shell === 'HE') return `${a}° · ${e.result === 'pen' ? 'éclate derrière la tôle' : 'éclate au contact'}`;
+    return `plaque ${Math.round(e.armor)} mm à ${a}° = ${Math.round(e.eff)} mm effectifs < pénétration ${Math.round(e.pen)} mm`;
+  };
+  function addHit(e) {
+    const hit = { ...e, wall: performance.now() };
+    state.hits.push(hit);
+    if (state.hits.length > 60) state.hits.shift();
+    // a floating tag (only for hits that matter to the picture: near the camera, or on / by the ship being followed)
+    const sel = game.camera.target;
+    const near = Math.hypot(e.ship.x - engine.cam.x, e.ship.z - engine.cam.z) < 3500;
+    if (!(near || e.ship === sel || e.owner === sel) || e.cal < 100) return;
+    const [word, col] = RESULT[e.result] || ['TOUCHE', '#fff'];
+    const el = h('div', { class: 'hittag', style: `--hc:${col}` }, h('b', {}, word), h('span', {}, `${e.shell} ${Math.round(e.cal)} mm · ${Math.round(e.angle)}° · ${Math.round(e.dmg).toLocaleString('fr-FR')} dégâts`));
+    labelsBox.append(el);
+    state.tags.push({ el, ship: e.ship, lx: e.lx, ly: e.ly, lz: e.lz, t0: performance.now() });
+    while (state.tags.length > 7) state.tags.shift().el.remove();
+  }
+  function updateHitTags() {
+    const now = performance.now(), out = [0, 0, 0], w = [0, 0, 0];
+    for (let i = state.tags.length - 1; i >= 0; i--) {
+      const tg = state.tags[i], age = (now - tg.t0) / 1000;
+      if (age > 3.6 || !state.hitLog) { tg.el.remove(); state.tags.splice(i, 1); continue; }
+      tg.ship.toWorld(tg.lx, tg.ly, tg.lz, w);
+      const pr = engine.project(w[0], w[1] + 3 + age * 2.5, w[2], out);
+      if (!pr || out[0] < -80 || out[0] > innerWidth + 80 || out[1] < -40 || out[1] > innerHeight + 40) { tg.el.style.display = 'none'; continue; }
+      tg.el.style.display = '';
+      tg.el.style.opacity = String(clamp(1.6 - age / 2.2, 0, 1));
+      tg.el.style.transform = `translate(${out[0].toFixed(0)}px, ${out[1].toFixed(0)}px) translate(-50%, -100%)`;
+    }
+  }
+  let hitLogKey = '';
+  function refreshHitLog() {
+    hitlog.classList.toggle('hidden', !state.hitLog || game.state === 'setup' || state.hudHidden);
+    if (!state.hitLog) return;
+    const sel = game.camera.target;
+    const mine = state.hits.filter((e) => !sel || e.ship === sel || e.owner === sel).slice(-6);
+    const key = mine.map((e) => e.wall).join(',') + (sel ? sel.id : '');
+    if (key === hitLogKey) return;
+    hitLogKey = key;
+    hitlog.replaceChildren(
+      h('div', { class: 'hl-title' }, sel ? `Impacts — ${sel.name}` : 'Impacts'),
+      ...mine.reverse().map((e) => {
+        const [word, col] = RESULT[e.result] || ['TOUCHE', '#fff'];
+        const tc = (s) => (s && world.teams[s.team] ? css(world.teams[s.team].rgb) : '#ccc');
+        return h('div', { class: 'hl-row', style: `--hc:${col}` },
+          h('div', {}, h('b', { style: `color:${tc(e.owner)}` }, e.owner ? e.owner.name : '—'), ' → ', h('b', { style: `color:${tc(e.ship)}` }, e.ship.name), h('span', { class: 'hl-part' }, ` · ${e.label}`)),
+          h('div', {}, h('i', {}, `${e.shell} ${Math.round(e.cal)} mm`), ' · ', h('b', { class: 'hl-res' }, word), h('span', { class: 'hl-dmg' }, ` · ${Math.round(e.dmg).toLocaleString('fr-FR')} dégâts`)),
+          h('div', { class: 'hl-why' }, why(e)));
+      }),
+    );
+  }
 
   // ---- team panel ----
   let teamRows = [];
@@ -330,10 +405,55 @@ export function createUI(game) {
   }
 
   // =========================================================================================
+  // scoreboard (Tab held, or the "Tableau" button): who sank what, shells fired, hits, damage, in real time
+  // =========================================================================================
+  const SINK_WORD = { roll: 'chaviré', bow: 'coulé par l\'avant', stern: 'coulé par l\'arrière', level: 'envahi par les eaux', burn: 'consumé par l\'incendie', blast: 'détruit par explosion', split: 'brisé en deux' };
+  function refreshScore(force) {
+    const on = (state.scoreHold || state.scoreSticky) && (game.state === 'running' || game.state === 'finished' || (force && game.state !== 'setup'));
+    score.classList.toggle('hidden', !on);
+    if (!on) return;
+    const num = (n) => Math.round(n).toLocaleString('fr-FR');
+    const head = ['Navire', 'Classe', 'Coulés', 'Avions', 'Obus', 'Touches', 'Préc.', 'Torpilles', 'Dégâts', 'État'];
+    const blocks = [];
+    world.teams.forEach((t, ti) => {
+      if (!t) return;
+      const ships = world.ships.filter((s) => s.team === ti);
+      if (!ships.length) return;
+      ships.sort((a, b) => (b.kills - a.kills) || (b.damageDealt - a.damageDealt));
+      const sum = (f) => ships.reduce((a, s) => a + f(s), 0);
+      const shells = (s) => s.shotsFired - (s.torpFired || 0), hits = (s) => s.shotsHit - s.torpHits;
+      const alive = ships.filter((s) => s.alive).length;
+      const row = (cells, cls) => h('tr', cls ? { class: cls } : {}, ...cells.map((c, i) => h('td', i >= 2 && i <= 8 ? { class: 'n' } : {}, c)));
+      const tot = [`${t.name} — ${alive}/${ships.length} à flot`, '', num(sum((s) => s.kills)), num(sum((s) => s.planeKills || 0)), num(sum(shells)), num(sum(hits)), sum(shells) ? Math.round(sum(hits) / sum(shells) * 100) + ' %' : '–', `${num(sum((s) => s.torpHits))}/${num(sum((s) => s.torpFired || 0))}`, num(sum((s) => s.damageDealt)), ''];
+      const rows = ships.map((s) => {
+        const hp = s.alive ? `${Math.round(s.hpFrac * 100)} %` : (SINK_WORD[s.split ? 'split' : s.sinkMode] || 'coulé');
+        const sel = game.camera.target === s ? 'sel' : '';
+        return row([s.name, s.stats.type, s.kills || '·', s.planeKills || '·', num(shells(s)), num(hits(s)), shells(s) ? Math.round(hits(s) / shells(s) * 100) + ' %' : '–', s.torpFired ? `${s.torpHits}/${s.torpFired}` : '·', num(s.damageDealt), hp], (s.alive ? '' : 'dead ') + sel);
+      });
+      blocks.push(h('tbody', { style: `--tc:${css(t.rgb)}` }, row(tot, 'team'), ...rows));
+    });
+    const feedRows = world.kills.slice(-8).reverse().map((k) => {
+      const kc = k.killer && world.teams[k.killer.team] ? css(world.teams[k.killer.team].rgb) : '#aaa', vc = css(world.teams[k.victim.team].rgb);
+      const how = SINK_WORD[k.victim.split ? 'split' : k.victim.sinkMode] || 'coulé';
+      return h('div', { class: 'kl' }, h('span', { class: 'kt' }, fmtTime(k.t)), h('b', { style: `color:${kc}` }, k.killer ? k.killer.name : '—'), h('span', {}, ` ${verbs[k.cause] || 'a coulé'} `), h('b', { style: `color:${vc}` }, k.victim.name), h('span', { class: 'kh' }, ` (${how})`));
+    });
+    score.replaceChildren(
+      h('div', { class: 'title' }, h('span', { class: 'big' }, 'Tableau de bord'), h('span', { class: 'sub' }, `${fmtTime(world.time)} · ${game.state === 'finished' ? 'combat terminé' : 'en temps réel'}`)),
+      h('table', {}, h('thead', {}, h('tr', {}, ...head.map((x, i) => h('th', i >= 2 && i <= 8 ? { class: 'n' } : {}, x)))), ...blocks),
+      ...(feedRows.length ? [h('div', { class: 'klog' }, h('div', { class: 'kh2' }, 'Derniers naufrages'), ...feedRows)] : []),
+    );
+  }
+
+  // =========================================================================================
   // per-frame update
   // =========================================================================================
   let uiT = 0, labelEls = new Map();
+  let scoreT = 0;
   ui.update = (dt) => {
+    updateHitTags();
+    scoreT += dt;
+    if (scoreT > 0.25) refreshHitLog();
+    if (scoreT > 0.25) { scoreT = 0; refreshScore(); }
     uiT += dt;
     if (uiT < 0.1) { updateLabels(); return; }
     uiT = 0;
@@ -530,15 +650,20 @@ export function createUI(game) {
   // =========================================================================================
   addEventListener('keydown', (e) => {
     if (e.target && /INPUT|SELECT|TEXTAREA/.test(e.target.tagName)) return;
+    if (e.code === 'Tab') { e.preventDefault(); if (!state.scoreHold) { state.scoreHold = true; refreshScore(true); } return; }
     if (e.code === 'Space' && (game.state === 'running' || game.state === 'finished')) { game.togglePause(); e.preventDefault(); }
     else if (e.code === 'Period') { const steps = [0.5, 1, 2, 4, 8]; const i = steps.indexOf(game.timeScale); game.paused = false; game.setTimeScale(steps[Math.min(steps.length - 1, i + 1)] ?? 1); }
     else if (e.code === 'Comma') { const steps = [0.5, 1, 2, 4, 8]; const i = steps.indexOf(game.timeScale); game.paused = false; game.setTimeScale(steps[Math.max(0, i - 1)] ?? 1); }
     else if (e.code === 'KeyL') state.labels = !state.labels;
+    else if (e.code === 'KeyJ') state.hitLog = !state.hitLog;
     else if (e.code === 'KeyM') toggleSound();
     else if (e.code === 'KeyH') toggleSettings();
     else if (e.code === 'F1') { helpEl.classList.toggle('hidden'); e.preventDefault(); }
     else if (e.code === 'KeyG') { state.hudHidden = !state.hudHidden; setHudVisible(game.state !== 'setup'); }
   });
+
+  addEventListener('keyup', (e) => { if (e.code === 'Tab') { state.scoreHold = false; refreshScore(); } });
+  addEventListener('blur', () => { state.scoreHold = false; refreshScore(); });
 
   // buttons must not keep the keyboard focus (Space would activate them again)
   addEventListener('pointerup', () => { const a = document.activeElement; if (a && a.tagName === 'BUTTON') a.blur(); });

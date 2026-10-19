@@ -93,7 +93,7 @@ export class CameraRig {
       const m = CAMERA_MODES.find((x) => 'Digit' + x.key === e.code || 'Numpad' + x.key === e.code);
       if (m) this.setMode(m.id, true);
       const planeMode = this.mode === 'plane' || this.mode === 'cockpit';
-      if (e.code === 'Tab' || e.code === 'KeyN' || e.code === 'BracketRight') { if (planeMode) this.pickPlane(e.shiftKey ? -1 : 1); else this.pickTarget(e.shiftKey ? -1 : 1); e.preventDefault(); }
+      if (e.code === 'KeyN' || e.code === 'BracketRight') { if (planeMode) this.pickPlane(e.shiftKey ? -1 : 1); else this.pickTarget(e.shiftKey ? -1 : 1); e.preventDefault(); }
       if (e.code === 'KeyB' || e.code === 'BracketLeft') { if (planeMode) this.pickPlane(-1); else this.pickTarget(-1); }
       if (e.code === 'KeyV' && this.mode === 'plane') this.nextPlaneView();
     });

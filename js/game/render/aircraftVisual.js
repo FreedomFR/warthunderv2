@@ -33,7 +33,7 @@ export class PlaneVisuals {
   ordnance() {
     if (!this.ord) {
       const o = buildOrdnanceMeshes();
-      this.ord = { bomb250: this.r.createMesh(o.bomb250, 'bomb250'), bomb500: this.r.createMesh(o.bomb500, 'bomb500'), torpedo: this.r.createMesh(o.torpedo, 'torpedo') };
+      this.ord = { bomb250: this.r.createMesh(o.bomb250, 'bomb250'), bomb500: this.r.createMesh(o.bomb500, 'bomb500'), torpedo: this.r.createMesh(o.torpedo, 'torpedo'), shellAP: this.r.createMesh(o.shellAP, 'shellAP'), shellHE: this.r.createMesh(o.shellHE, 'shellHE') };
     }
     return this.ord;
   }
@@ -79,6 +79,15 @@ export class PlaneVisuals {
     mat4Ship(S64, x - cam.x, y - cam.y, z - cam.z, heading, pitch, 0);
     for (let i = 0; i < 16; i++) S32[i] = S64[i];
     this.r.add(o[kind], S32, [255, 255, 255], 0, 0, 0.5);
+  }
+
+  /** A naval shell in flight (type 'AP' | 'HE'): length in metres, direction of flight (unit vector). */
+  addShell(type, x, y, z, dx, dy, dz, length, cam) {
+    const o = this.ordnance();
+    mat4Ship(S64, x - cam.x, y - cam.y, z - cam.z, Math.atan2(dx, -dz), Math.asin(Math.max(-1, Math.min(1, dy))), 0);
+    for (let i = 0; i < 16; i++) S32[i] = S64[i];
+    for (let k = 0; k < 3; k++) { S32[k] *= length; S32[4 + k] *= length; S32[8 + k] *= length; }
+    this.r.add(o[type === 'AP' ? 'shellAP' : 'shellHE'], S32, [255, 255, 255], 0, 0, 0.5);
   }
 
   /** Aircraft parked on a carrier's deck (ship matrix S, camera relative). */

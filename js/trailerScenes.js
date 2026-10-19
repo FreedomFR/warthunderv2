@@ -366,6 +366,39 @@ export const SCENES = {
     }
   },
 
+  // ---- hittest: a development scene for the shell hits (?ship=iowa&gun=iowa&type=AP|HE&angle=0..85&part=hull|deck|super|mount) ---------------------------------------
+  async hittest(T) {
+    const qs = new URLSearchParams(location.search), id = qs.get('ship') || 'iowa', gunId = qs.get('gun') || id, type = qs.get('type') || 'AP';
+    const angle = Number(qs.get('angle') || 0) * D2R, part = qs.get('part') || 'hull', R = Number(qs.get('range') || 700);
+    T.reset(41, 'afternoon', { clouds: 0.25, veil: 0.15 });
+    const tg = T.fleet(1, [{ id }], 0, 0, 0, { knots: 0 })[0];
+    const sh = T.fleet(0, [{ id: gunId }], 6000, 6000, 270, { knots: 0 })[0];
+    T.go();
+    sail([tg, sh], 0);
+    tg.speed = 0; tg.vx = tg.vz = 0;
+    await T.wait(4);
+    // the point to hit, in the target's local axes: the waterline belt of the starboard side, the deck, or the front of the superstructure
+    const L = tg.stats.L, B = tg.stats.B;
+    const pts = { hull: [L * 0.05, 1.5, B / 2 - 0.2], deck: [L * 0.2, tg.model.hull.deckY(L * 0.2) - 0.1, 0], super: [(tg.model.superBox?.x1 ?? L * 0.1) - 1, 8, 0], mount: [0, 0, 0] };
+    const lp = pts[part] || pts.hull;
+    if (part === 'mount') { const m = tg.mounts.find((q) => q.group === 'main' && q.rec.x > 0) || tg.mounts[0]; lp[0] = m.rec.x; lp[1] = m.rec.y + 1.2; lp[2] = m.rec.z + B * 0.0; }
+    const w0 = [0, 0, 0]; tg.toWorld(lp[0], lp[1], lp[2], w0);
+    // the line of flight: for the hull a horizontal approach from starboard turned `angle` away from the normal; for the deck, a dive
+    const hd = tg.heading, side = [Math.cos(hd), Math.sin(hd)];            // starboard, in (x, z)
+    const fwd = [Math.sin(hd), -Math.cos(hd)];
+    let dir;
+    if (part === 'deck') dir = [Math.sin(angle) * fwd[0], -Math.cos(angle), Math.sin(angle) * fwd[1]];
+    else dir = [-Math.cos(angle) * side[0] + Math.sin(angle) * fwd[0], -0.02, -Math.cos(angle) * side[1] + Math.sin(angle) * fwd[1]];
+    const dl = Math.hypot(...dir); dir = dir.map((v) => v / dl);
+    const gun = sh.stats.main, g = gun, v0 = g.v0 * 0.8;
+    const shell = { owner: sh, gun: g, type, c: 0, x: w0[0] - dir[0] * R, y: w0[1] - dir[1] * R, z: w0[2] - dir[2] * R, vx: dir[0] * v0, vy: dir[1] * v0 + 4.905 * (R / v0), vz: dir[2] * v0, target: tg, group: 'main' };      // vy makes up for the drop
+    T.w.spawnShell(shell);
+    T.log('hittest', id, type, 'angle', (angle / D2R).toFixed(0), 'part', part, 'range', R);
+    const camAt = [w0[0] + side[0] * 55 - fwd[0] * 18, Math.max(w0[1] + 14, 6), w0[2] + side[1] * 55 - fwd[1] * 18];
+    await T.shot('flight', 0.9, followCam(() => (T.w.shells.includes(shell) ? shell : null), () => [w0[0] - dir[0] * 40, w0[1] - dir[1] * 40, w0[2] - dir[2] * 40], 22, 3, 6, 40, 12));
+    await T.shot('hit', 3.2, (t) => ({ p: camAt, l: [w0[0], w0[1] + 1.5, w0[2]], fov: 46 }));
+  },
+
   // ---- sinktest: a development scene for the ways of sinking (?ship=cleveland&mode=roll|bow|stern|level|burn|blast|split) ------------------------------
   async sinktest(T) {
     const qs = new URLSearchParams(location.search), id = qs.get('ship') || 'cleveland', mode = qs.get('mode') || 'roll', secs = Number(qs.get('secs')) || 30;

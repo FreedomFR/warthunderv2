@@ -182,7 +182,7 @@ export class World {
         // water impact
         const f = s.py / (s.py - s.y);
         const ix = s.px + (s.x - s.px) * f, iz = s.pz + (s.z - s.pz) * f;
-        this.events.push({ type: 'splash', x: ix, z: iz, cal: s.gun.cal });
+        this.events.push({ type: 'splash', x: ix, z: iz, cal: s.gun.cal, shell: s.type, dx: s.vx, dz: s.vz, speed: Math.hypot(s.vx, s.vy, s.vz) });
         // spotting: the firing ship corrects its aim from where the splashes land
         const o = s.owner;
         if (o && s.group === 'main' && s.target && s.target.alive) {

@@ -153,7 +153,12 @@ export class GameAudio {
         }
         case 'impact': {
           const k = e.kind, cal = e.cal || 150;
-          if (k === 'penetrate') {
+          if (k === 'penetrate' && e.shell === 'AP') {
+            // armour-piercing: a ringing clang at the plate, then the dull burst inside a moment later
+            this.play('impact_through', e.x, e.y, e.z, { gain: 0.7, ref: 900, pri: 2, wet: 0.2, rate: R(0.75, 0.95) });
+            this.play('impact_pen', e.x, e.y, e.z, { arg: (Math.random() * 3) | 0, gain: clampR(cal / 300, 0.45, 1.15), ref: 1500, pri: 3, wet: 0.45, when: 0.09, rate: R(0.8, 0.95) * (cal < 200 ? 1.15 : 1) });
+            if (cal >= 250) this.play('explosion_small', e.x, e.y, e.z, { gain: 0.5, ref: 1000, pri: 2, wet: 0.35, when: 0.17, rate: 0.7 });
+          } else if (k === 'penetrate') {
             this.play('impact_pen', e.x, e.y, e.z, { arg: (Math.random() * 3) | 0, gain: clampR(cal / 300, 0.45, 1.15), ref: 1500, pri: 3, wet: 0.35, rate: R(0.93, 1.08) * (cal < 200 ? 1.15 : 1) });
             if (cal >= 250) this.play('explosion_small', e.x, e.y, e.z, { gain: 0.45, ref: 1000, pri: 2, wet: 0.3, when: 0.08, rate: 0.8 });
           } else if (k === 'explode') this.play('impact_he', e.x, e.y, e.z, { arg: (Math.random() * 3) | 0, gain: clampR(cal / 250, 0.4, 1.1), ref: 1000, pri: 2, wet: 0.25, rate: R(0.94, 1.08) * (cal < 150 ? 1.2 : 1) });

@@ -297,7 +297,7 @@ export function updateTorpedoes(ship, world, dt) {
     });
   }
   ship.torpLeft -= n;
-  ship.shotsFired += n;
+  ship.shotsFired += n; ship.torpFired = (ship.torpFired || 0) + n;
   if (ship.torpLeft <= 0) ship.torpReload = 300;
   world.events.push({ type: 'torpedoLaunch', ship, x: _q[0], z: _q[2], bearing });
   cmd.fire = false;
