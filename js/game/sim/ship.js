@@ -236,7 +236,7 @@ export class Ship {
     if (!mag || mag.flooded || mag.state === 2) return;
     // a turret that has fired off its ammunition has little to burn
     const stock = mount.ammo0 ? clamp((mount.ammo.AP + mount.ammo.HE) / mount.ammo0, 0.15, 1) : 1;
-    const p = this.ammoRisk({ DD: 0.30, CL: 0.17, CA: 0.13, BB: 0.06, CV: 0.08 }) * (0.5 + 0.5 * stock);
+    const p = this.ammoRisk({ DD: 0.30, CL: 0.10, CA: 0.08, BB: 0.045, CV: 0.08 }) * (0.5 + 0.5 * stock);
     if (world.rng() < p) { this.explosionSource = 'flash'; this.world.magazineExplosion(this, owner, this.toWorld(mag.x, mag.y, mag.z, [0, 0, 0]), mag); }
   }
 
@@ -244,7 +244,7 @@ export class Ship {
   magazineLost(m, world, owner, cause) {
     if (m.flooded) return;
     // a magazine wrecked from below (torpedo, near miss) is flooded far more often than it explodes
-    const p = this.ammoRisk({ DD: 0.35, CL: 0.2, CA: 0.15, BB: 0.09, CV: 0.07 }) * (cause === 'torpedo' || cause === 'blast' ? 0.2 : 1);
+    const p = this.ammoRisk({ DD: 0.35, CL: 0.13, CA: 0.10, BB: 0.06, CV: 0.07 }) * (cause === 'torpedo' || cause === 'blast' ? 0.2 : 1);
     if (world.rng() < p) { this.explosionSource = 'blast'; world.magazineExplosion(this, owner, this.toWorld(m.x, m.y, m.z, [0, 0, 0]), m); return; }
     // the ammunition of that turret is lost; the rest burns out
     if (m.mount != null && this.mounts[m.mount]) { this.mounts[m.mount].noAmmo = true; }
@@ -308,7 +308,7 @@ export class Ship {
    */
   updateMagazines(dt) {
     const rng = this.world.rng, st = this.stats, dc = st.navy.dc;
-    const cookRate = { DD: 0.03, CL: 0.02, CA: 0.016, BB: 0.008, CV: 0.01 }[st.type] * st.navy.flash;
+    const cookRate = { DD: 0.03, CL: 0.008, CA: 0.006, BB: 0.005, CV: 0.008 }[st.type] * st.navy.flash;
     for (const m of this.modules) {
       if (m.kind !== 'magazine' || m.state === 2 || m.flooded) continue;
       let heat = 0;
@@ -321,7 +321,7 @@ export class Ship {
       m.heat = (m.heat || 0) + heat * dt;
       if (m.heat > 5 && m.floodAt == null) {
         m.floodAt = this.world.time + 8 + rng() * 14;
-        m.floodOk = rng() < clamp(0.95 * dc, 0.2, 0.97);
+        m.floodOk = rng() < 0.95 - 0.55 * (1 - dc);
       }
       if (m.floodAt != null && m.floodOk && this.world.time >= m.floodAt) {
         m.flooded = true;
@@ -569,7 +569,8 @@ export class Ship {
       if (this.updateMagazines(dt)) return;
       if (this.avgasLeak) this.updateAvgas(dt);
       this.fireLevel = sat(burn * 0.35);
-      if (burn > 0) this.applyDamage(Math.min(burn, 3.5) * 0.00036 * st.maxHp * dt, null, 'fire');
+      // a fire does less harm to a big, compartmented, armoured ship than to a destroyer or a carrier with fuel and aircraft aboard
+      if (burn > 0) this.applyDamage(Math.min(burn, 3.5) * 0.00036 * st.maxHp * dt * { DD: 1.2, CL: 1.0, CA: 0.85, BB: 0.6, CV: 1.2 }[st.type], null, 'fire');
       if (this.floodRate > 0) this.applyDamage(this.floodRate * dt, null, 'flood');
       // structural failure: a long, battered ship whose neighbouring compartments are both full amidships breaks her back
       if (st.L > 110 && this.hpFrac < 0.3 && !this.split && this.state === 'afloat') {

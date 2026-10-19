@@ -125,7 +125,7 @@ function hitsToKill(id, shooter, type, range, maxHits = 600) {
 
 // ---- ammunition: navy, flash, fires, damage control ----
 {
-  const bbRisk = (id) => mk(id).s.ammoRisk({ DD: 0.3, CL: 0.17, CA: 0.13, BB: 0.06, CV: 0.08 });
+  const bbRisk = (id) => mk(id).s.ammoRisk({ DD: 0.3, CL: 0.1, CA: 0.08, BB: 0.045, CV: 0.08 });
   ok(bbRisk('kgv') > 1.8 * bbRisk('iowa') && bbRisk('bismarck') < bbRisk('iowa'), 'cordite flashes more than US powder (a flash that lights one unit of it lights 75 of cordite); German charges in brass cases less');
   // a fire on the weather deck does not heat the magazines; one inside the citadel does
   const run = (inside, id, seed) => {
