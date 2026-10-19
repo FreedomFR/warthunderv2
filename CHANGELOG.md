@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased — take-off camera
+
+- **Automatic camera at a take-off or a landing**: the director cuts to an aircraft that takes off (or lands) and picked at random one of the three views of an aircraft; the "victim" view looks from the bridge of the ship the aircraft will attack, which is 20 km away from a carrier deck: the screen showed an empty sea and sky and the aircraft was a dot. A take-off or a landing is now only seen in the chase or the fly-past views, and the victim view is kept for an aircraft that is within 7 km of its target and not on a deck or assembling. Measured in the browser: the camera was 21.8 km from the aircraft in that view, 27 m in the chase view.
+
 ## Unreleased — cameras, cockpit, end of battle, effects
 
 - **Automatic camera**: it cut again at every frame while the ship it followed was going down: a ship that sinks is not `alive`, and the director took that for "gone" and picked a new ship, a new kind of shot and a new orbit at each frame (the sinking ship being the most interesting one, it picked her again). It now follows a ship down to the end of her sinking (16 s at most) and cuts when her time is up or she is gone.

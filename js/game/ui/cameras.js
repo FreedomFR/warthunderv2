@@ -2,6 +2,7 @@
 // "director" that cuts between the action. It only writes engine.cam each frame.
 import { clamp, wrapPi, lerp, D2R, TAU } from '../math.js';
 import { cockpitEye } from '../model/cockpit.js';
+import { DECK_PHASES } from '../sim/deck.js';
 
 export const CAMERA_MODES = [
   { id: 'auto', key: '1', name: 'Auto', hint: 'Réalisateur automatique : suit l\'action' },
@@ -354,7 +355,7 @@ export class CameraRig {
     for (const e of events) {
       if (this.mode === 'auto' && (e.type === 'bombDrop' || e.type === 'torpedoDrop' || e.type === 'planeDown') && Math.random() < 0.45 && this.auto.sub !== 'plane') { this.auto.forcePlane = e.plane; this.auto.t = 0; }
       // the director likes a touchdown on the wire and a take-off run (a take-off only when the carrier is in sight)
-      if (this.mode === 'auto' && (e.type === 'planeTouchdown' || e.type === 'planeLaunch') && Math.random() < 0.3 && this.auto.sub !== 'plane') { this.auto.forcePlane = e.plane; this.auto.t = 0; }
+      if (this.mode === 'auto' && (e.type === 'planeTouchdown' || e.type === 'planeLaunch') && Math.random() < 0.3 && this.auto.sub !== 'plane') { this.auto.forcePlane = e.plane; this.auto.t = 0; this.auto.deckShot = true; }
       if (e.type === 'planeCrash' && e.plane === this.plane) {
         pc.crash = { x: e.x, y: Math.max(e.y, 2), z: e.z, dx: Math.sin(e.plane.heading), dz: -Math.cos(e.plane.heading) };
         pc.hold = 3.2;
@@ -439,6 +440,8 @@ export class CameraRig {
     // 'victim': from the deck of the ship the aircraft is attacking
     // (not from a ship that is going down, on fire or smoking heavily, nor when the aircraft is almost overhead: the screen is then a brown smoke or a blank sky)
     let tgt = p.target && p.target.state === 'afloat' && !p.target.exploded && p.target.hpFrac > 0.4 && p.target.fireLevel < 0.35 ? p.target : null;
+    // the view from the deck of the victim is for an aircraft that is attacking or about to: from a ship far away it would look at an empty sky
+    if (tgt && (Math.hypot(p.x - tgt.x, p.z - tgt.z) > 7000 || DECK_PHASES.has(p.phase) || p.phase === 'assemble')) tgt = null;
     if (tgt) {
       const b = tgt.model.bridge || { x: 0, y: tgt.model.topY * 0.6, z: 0 };
       const q = [0, 0, 0];
@@ -506,7 +509,10 @@ export class CameraRig {
     }
     if (planeShot) {
       this.setPlane(planeShot);
-      this.planeCam.view = ['chase', 'side', 'victim', 'chase'][Math.floor(Math.random() * 4)];
+      // (a take-off or a landing is seen from outside, not from the ship the aircraft will attack, which is tens of kilometres away)
+      const views = a.deckShot ? ['chase', 'side', 'chase'] : ['chase', 'side', 'victim', 'chase'];
+      a.deckShot = false;
+      this.planeCam.view = views[Math.floor(Math.random() * views.length)];
       this.planeCam.yaw = (Math.random() - 0.5) * 0.5; this.planeCam.pitch = Math.random() * 0.1; this.planeCam.zoom = 0.8 + Math.random() * 0.6;
       this.planeCam.hold = 0; this.planeCam.crash = null; this.planeCam.fix = null;
       a.sub = 'plane'; a.t = 6 + Math.random() * 5;
