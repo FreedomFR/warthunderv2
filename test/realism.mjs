@@ -11,6 +11,7 @@ const ok = (c, m) => { console.log(c ? 'PASS' : 'FAIL', m); if (!c) { fail++; pr
 const mk = (id, seed = 1, enemy = 'iowa') => {
   const w = new World(seed); w.addTeam(0); w.addTeam(1);
   const s = w.addShip(id, 1, 0, 0, 0); const o = w.addShip(enemy, 0, 9000, 0, 0); w.start();
+  o.cmd.main.fire = false; o.cmd.sec.fire = false; s.cmd.main.fire = false; s.cmd.sec.fire = false;      // only the hits the test makes
   for (let i = 0; i < 10; i++) w.update(0.1);
   return { w, s, o };
 };
@@ -175,9 +176,10 @@ function hitsToKill(id, shooter, type, range, maxHits = 600) {
     const m = s.modules.find((q) => q.kind === 'avgas');
     s.startAvgasLeak(m, w);
     if (!s.avgasLeak) return 0;
-    s.addFire(m.x, 4, m.z, 0.5, true); s.fires[0].t = 1e6;
-    for (let i = 0; i < 6000 && s.avgasLeak; i++) { w.update(0.1); w.drainEvents(); }
-    return !s.avgasLeak && s.hp < s.stats.maxHp * 0.7 ? 1 : 0;
+    s.addFire(m.x, 4, m.z, 0.5, true); s.fires[0].t = 1e6;      // the fire is the spark
+    let boom = 0;
+    for (let i = 0; i < 6000 && s.avgasLeak; i++) { w.update(0.1); for (const e of w.drainEvents()) if (e.avgas) boom = 1; }
+    return boom;
   };
   let jp = 0, us = 0;
   for (let seed = 1; seed <= 30; seed++) { jp += leak('shokaku', seed); us += leak('essex', seed); }

@@ -379,7 +379,7 @@ export class Ship {
     if (lk.t > lk.blow && (this.fires.length > 0 || this.world.rng() < dt * 0.05)) {
       this.avgasLeak = null;
       const rng = this.world.rng, w = this.toWorld(lk.x, 0, lk.z, [0, 0, 0]);
-      this.world.events.push({ type: 'explosion', x: w[0], y: w[1] + 3, z: w[2], size: 1.4, ship: this, stage: 'secondary' });
+      this.world.events.push({ type: 'explosion', x: w[0], y: w[1] + 3, z: w[2], size: 1.4, ship: this, stage: 'secondary', avgas: true });
       for (let i = 0; i < 3; i++) this.world.after(0.4 + i * 0.5 + rng() * 0.4, () => this.world.secondaryBlast(this, lk.x + (rng() - 0.5) * 60, 3 + rng() * 3, (rng() - 0.5) * 8, 0.6 + rng() * 0.5));
       blast(this.world, this, lk.x, 0, lk.z, 700, 'inside', this.lastAttacker, 'bomb');
       this.addFire(lk.x, 4, lk.z, 1.3, true);
