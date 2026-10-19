@@ -231,7 +231,12 @@ export class MeshBuilder {
   prism(poly, y0, y1, col, mat = MAT.HULL, o = {}) {
     const n = poly.length;
     let cx = 0, cz = 0;
-    if (this.solids) this._track(Math.min(...poly.map((q) => q[0])), Math.max(...poly.map((q) => q[0])), y0, y1, Math.min(...poly.map((q) => q[1])), Math.max(...poly.map((q) => q[1])));
+    if (this.solids) {
+      this._track(Math.min(...poly.map((q) => q[0])), Math.max(...poly.map((q) => q[0])), y0, y1, Math.min(...poly.map((q) => q[1])), Math.max(...poly.map((q) => q[1])));
+      // the outline itself, in model space, for the tests that must not mistake a tapered house for its bounding box (gun clearance)
+      const m = this.m;
+      this.solids[this.solids.length - 1].poly = poly.map((q) => [m[0] * q[0] + m[8] * q[1] + m[12], m[2] * q[0] + m[10] * q[1] + m[14]]);
+    }
     for (const p of poly) { cx += p[0]; cz += p[1]; }
     cx /= n; cz /= n;
     const ts = o.topScale ?? 1;
@@ -265,7 +270,10 @@ export class MeshBuilder {
   cyl(cx, y0, cz, rx0, rz0, rx1, rz1, y1, col, mat = MAT.HULL, o = {}) {
     const seg = this._seg(o.seg || 16, Math.max(rx0, rz0, rx1, rz1));
     const dx = o.dx || 0, dz = o.dz || 0;
-    if (this.solids) this._track(cx - Math.max(rx0, rx1) + Math.min(0, dx), cx + Math.max(rx0, rx1) + Math.max(0, dx), y0, y1, cz - Math.max(rz0, rz1) + Math.min(0, dz), cz + Math.max(rz0, rz1) + Math.max(0, dz));
+    if (this.solids) {
+      this._track(cx - Math.max(rx0, rx1) + Math.min(0, dx), cx + Math.max(rx0, rx1) + Math.max(0, dx), y0, y1, cz - Math.max(rz0, rz1) + Math.min(0, dz), cz + Math.max(rz0, rz1) + Math.max(0, dz));
+      this.solids[this.solids.length - 1].round = true;       // an ellipse in its box
+    }
     const ao = o.ao ?? this.ao;
     const ring0 = [], ring1 = [];
     const h = y1 - y0;
