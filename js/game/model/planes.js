@@ -364,8 +364,11 @@ export function drawPlane(b, s, { part = 'whole' } = {}) {
       const tip = [[x0 + ct / 2 + w.sweep * 0.5, yr - drop * 0.1 + rise, sg * hs], [x0 - ct / 2 + w.sweep * 0.5, yr - drop * 0.1 + rise, sg * hs]];
       panel(b, root[0], knee[0], knee[1], root[1], w.t * 1.05, w.t * 0.9, top, bot);
       panel(b, knee[0], tip[0], tip[1], knee[1], w.t * 0.9, w.t * 0.5, top, bot);
-      insignia(b, s.nation, x0 - 0.1, yr - drop * 0.1 + rise + 0.02 + w.t * 0.3, sg * hs * 0.72, 0.55, 'y', 1);
-      insignia(b, s.nation, x0 - 0.1, yr - drop * 0.1 + rise + 0.02 - w.t * 0.3, sg * hs * 0.72, 0.55, 'y', -1);
+      // the roundel sits on the outer panel, at 72 % of the half span: its height and the thickness of the panel there
+      const fr = (0.72 * hs - kneeZ) / (hs - kneeZ), ym = (yr - drop * 0.5) + ((yr - drop * 0.1 + rise) - (yr - drop * 0.5)) * fr, hh = w.t * (0.9 - 0.4 * fr) / 2;
+      const ri = Math.min(0.55, hs * 0.08);
+      insignia(b, s.nation, x0 - 0.1 + w.sweep * 0.3, ym + hh + 0.05, sg * hs * 0.72, ri, 'y', 1);
+      insignia(b, s.nation, x0 - 0.1 + w.sweep * 0.3, ym - hh - 0.05, sg * hs * 0.72, ri, 'y', -1);
       // wing leading-edge stripe (team colour)
       return;
     }
@@ -383,8 +386,8 @@ export function drawPlane(b, s, { part = 'whole' } = {}) {
       const A = [x0 + cr / 2, yr, 0], B = [x0 + ct / 2 + sweep, yr + dih, sg * hs], C = [x0 - ct / 2 + sweep, yr + dih, sg * hs], D = [x0 - cr / 2, yr, 0];
       panel(b, A, B, C, D, w.t, w.t * 0.45, top, bot);
     }
-    insignia(b, s.nation, x0 - 0.15, yr + dih * 0.65 + w.t * 0.32, sg * hs * 0.68, Math.min(0.62, hs * 0.09), 'y', 1);
-    insignia(b, s.nation, x0 - 0.15, yr + dih * 0.65 - w.t * 0.32, sg * hs * 0.68, Math.min(0.62, hs * 0.09), 'y', -1);
+    insignia(b, s.nation, x0 - 0.15, yr + dih * 0.65 + w.t * 0.32 + 0.05, sg * hs * 0.68, Math.min(0.62, hs * 0.09), 'y', 1);
+    insignia(b, s.nation, x0 - 0.15, yr + dih * 0.65 - w.t * 0.32 - 0.05, sg * hs * 0.68, Math.min(0.62, hs * 0.09), 'y', -1);
   };
   if (all || part === 'wingR') wingSide(1);
   if (all || part === 'wingL') wingSide(-1);
@@ -487,8 +490,8 @@ function biplaneWing(b, s, sg, top, bot, acc) {
   panel(b, [xU + w.cr / 2, yU, sg * 0.1], [xU + w.ct / 2 + w.sweep, yU + w.dih, sg * hs], [xU - w.ct / 2 + w.sweep, yU + w.dih, sg * hs], [xU - w.cr / 2, yU, sg * 0.1], w.t, w.t * 0.8, top, bot);
   // lower wing
   panel(b, [xL + w.cr / 2, yL, sg * 0.2], [xL + w.ct / 2 + w.sweep * 0.5, yL, sg * lowerSpan], [xL - w.ct / 2 + w.sweep * 0.5, yL, sg * lowerSpan], [xL - w.cr / 2, yL, sg * 0.2], w.t, w.t * 0.8, top, bot);
-  insignia(b, s.nation, xU - 0.1, yU + w.dih * 0.6 + w.t * 0.5 + 0.02, sg * hs * 0.66, Math.min(0.7, hs * 0.1), 'y', 1);
-  insignia(b, s.nation, xL - 0.1, yL - w.t * 0.5 - 0.02, sg * lowerSpan * 0.66, Math.min(0.7, hs * 0.1), 'y', -1);
+  insignia(b, s.nation, xU - 0.1, yU + w.dih * 0.6 + w.t * 0.5 + 0.06, sg * hs * 0.66, Math.min(0.7, hs * 0.1), 'y', 1);
+  insignia(b, s.nation, xL - 0.1, yL - w.t * 0.5 - 0.06, sg * lowerSpan * 0.66, Math.min(0.7, hs * 0.1), 'y', -1);
   // interplane struts (N-struts) and cabane struts
   const strut = shade(top, 0.7);
   for (const u of [0.38, 0.8]) {

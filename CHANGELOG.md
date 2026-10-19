@@ -21,7 +21,7 @@
   into their turns (the renderer read a roll that was never set; it is `bank` now). The camera in auto mode cuts to a touchdown or a take-off from time to time.
 - **Sounds**: `engine_start`, `lift_motor`, `touchdown` (the wire keeps `arrest`). **Dev**: `deck` trailer scene (park, lift, queue and run, circuit, groove, trap, the way down, the park struck and spotted), `?fold=` and
   `?hook=` in the preview, `test/deckops.mjs` (every carrier: launch from the park and the lifts, recovery of the whole wave on the wires, park struck and spotted again).
-- Aircraft models: the stray blade on every wing (an aileron quad that did not lie on the surface) is gone, the bars of the US insignia run along the span on the wings (they hung over the leading and trailing edges), the canopies are tapered and a lighter glass.
+- Aircraft models: the stray blade on every wing (an aileron quad that did not lie on the surface) is gone, the bars of the US insignia run along the span on the wings (they hung over the leading and trailing edges), the canopies are tapered and a lighter glass, the roundels no longer sink half into the sloping wing (or float above the gull wing of the LN.401 and Stuka).
 - Aircraft that run out of fuel in the circuit now ditch near the ship instead of flipping between return and circuit; the fuel of a strike is 900-1100 s.
 
 ## Unreleased — air operations
