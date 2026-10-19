@@ -1,6 +1,6 @@
 # Reste à faire
 
-État au 19 octobre 2026 : **version 0.1.0** (les 30 navires et tous les avions relevés sur plans, nouvelle bande-annonce + comparatif avec la 0.0.1).
+État au 19 octobre 2026 : **version 0.1.1** (flottes qui naviguent en formation, chasseurs et groupes aériens, pont d'envol animé, tirs et DCA calculés sur la géométrie des navires, sillages, livrées vérifiées ; la 0.1.0 : les 30 navires et tous les avions relevés sur plans).
 Cases cochées = fait et vérifié ; cases vides = à faire. Les points marqués *(limite)* sont des choses que je ne sais pas faire
 (ou pas vérifier) depuis l'environnement de développement actuel.
 
@@ -83,7 +83,7 @@ Lot 2 (cuirassés et porte-avions des autres nations) : **fait, avec des réserv
 ## 4. Vidéo et version
 
 - [x] **Bande-annonce 0.1.0** faite (`docs/trailer-v0.1.0.mp4`, 89 s, 1080p 60 images/s : deux batailles de flottes, 26 navires, tirs) + comparatif côte à côte avec la 0.0.1 (`docs/comparatif-0.0.1-0.1.0.mp4`) ; l'ancienne est conservée.
-- [ ] **Tag `v0.1.0`** : l'environnement refuse de pousser les tags. À faire de votre côté après le merge : `git tag v0.1.0 && git push origin v0.1.0` (ou créer une version sur GitHub). Idem `v0.0.1` : `git tag v0.0.1 c22a94c`.
+- [ ] **Tags** : l'environnement refuse de pousser les tags. À faire de votre côté après le merge : `git tag v0.1.1 && git push origin v0.1.1` (ou créer une version sur GitHub). Idem `v0.0.1` : `git tag v0.0.1 c22a94c`.
 - [x] **CHANGELOG** : la section est passée en « 0.1.0 ».
 - [ ] **Dépôt public** : il est toujours privé (*limite* : je ne peux pas changer la visibilité). À faire de votre côté : *Settings → General → Danger Zone → Change visibility*.
 
