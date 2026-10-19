@@ -1,7 +1,7 @@
 // The scenes of the trailers (v0.0.1 and v0.1.0) (see js/trailer.js for the director and tools/trailer for the recorder).
 // Each scene: build a battle, let it run until something worth filming happens, record shots.
 import { clamp, lerp, D2R, KN } from './game/math.js';
-import { mv } from './trailer.js';
+import { mv, FPS } from './trailer.js';
 import { magazineExplosion } from './game/sim/explosions.js';
 
 /** world point `fwd` ahead of / `side` to starboard of a ship (heading only, no roll or pitch) at absolute height y */
@@ -44,7 +44,7 @@ function chaseCam(get, back, up, side, ahead, fov, rate = 14) {
     if (!o) return { p: [0, 50, 0], l: [0, 50, -100], fov };
     last = { x: o.x, y: o.y, z: o.z, vx: o.vx, vy: o.vy, vz: o.vz };
     const v = unit(o.vx, o.vy, o.vz), r = unit(-v[2], 0, v[0]);
-    const k = 1 - Math.exp(-rate / 24);
+    const k = 1 - Math.exp(-rate / FPS);
     pos = damp(pos, [o.x - v[0] * back + r[0] * side, Math.max(3, o.y - v[1] * back + up), o.z - v[2] * back + r[2] * side], k);
     look = damp(look, [o.x + v[0] * ahead, o.y + v[1] * ahead, o.z + v[2] * ahead], k);
     return { p: pos, l: look, fov };
@@ -58,7 +58,7 @@ function followCam(get, getLook, back, up, side, fov, rate = 12) {
     const o = get() || last;
     if (!o) return { p: [0, 50, 0], l: [0, 50, -100], fov };
     last = { x: o.x, y: o.y, z: o.z, vx: o.vx, vy: o.vy, vz: o.vz };
-    const v = unit(o.vx, o.vy, o.vz), r = unit(-v[2], 0, v[0]), k = 1 - Math.exp(-rate / 24);
+    const v = unit(o.vx, o.vy, o.vz), r = unit(-v[2], 0, v[0]), k = 1 - Math.exp(-rate / FPS);
     pos = damp(pos, [o.x - v[0] * back + r[0] * side, Math.max(3, o.y - v[1] * back + up), o.z - v[2] * back + r[2] * side], k);
     look = damp(look, getLook(), k);
     return { p: pos, l: look, fov };
@@ -67,6 +67,32 @@ function followCam(get, getLook, back, up, side, fov, rate = 12) {
 
 /** the first aircraft matching pred */
 const findPlane = (T, pred) => T.w.planes.find(pred) || null;
+
+/** A fleet action: two columns of five on opposite courses, shots from the air, from the water and on the enemy as the hits land. */
+async function fleetBattle(T, tag, seed, look, blue, red) {
+  T.reset(seed, look, { clouds: 0.3, veil: 0.25 });
+  const us = T.fleet(0, blue.map((id) => ({ id })), -1500, -1400, 90, { knots: 20, spread: 1 });
+  const en = T.fleet(1, red.map((id) => ({ id })), 1500, 1400, 270, { knots: 20, spread: 1 });
+  T.go();
+  const lead = us.find((x) => x.stats.id === blue[0]), foe = en.find((x) => x.stats.id === red[0]);
+  await T.until(() => T.count('impact') > 10 && lead.mounts.some((m) => m.group === 'main' && m.alive && m.flash > 0.3), { max: 420, dt: 1 / 10 });
+  T.log(tag + ' engaged', T.now.toFixed(0), 'range', dist2(lead, foe).toFixed(0));
+  const mid = () => [(lead.x + foe.x) / 2, 0, (lead.z + foe.z) / 2];
+  // A: the whole action from above, the two columns firing across the water
+  await T.shot(tag + '_a', 2.6, mv.orbit(() => P3(lead, 20), 150, 190, 760, 600, 260, 200, 10, 50));
+  // B: low alongside the leader, the broadside
+  await T.until(() => lead.mounts.some((m) => m.group === 'main' && m.alive && m.aimOk && m.fireT < 0.2), { max: 60, dt: 1 / 12 });
+  await T.shot(tag + '_b', 2.6, mv.orbit(() => P3(lead, 8), 128, 168, 210, 175, 20, 30, 14, 50));
+  // C: the enemy leader under fire
+  await T.until(() => T.count('impact') > 24, { max: 90, dt: 1 / 12 });
+  await T.shot(tag + '_c', 2.6, (t) => {
+    const e = unit(foe.x - lead.x, 0, foe.z - lead.z), n = [-e[2], 0, e[0]];
+    return { p: [foe.x - e[0] * 560 + n[0] * 90, 8, foe.z - e[2] * 560 + n[2] * 90], l: [foe.x, foe.y + 18, foe.z], fov: lerp(28, 22, t / 2.6) };
+  });
+  // D: the destroyers at speed
+  const dd = us.find((x) => x.stats.id === blue[blue.length - 1]);
+  await T.shot(tag + '_d', 2.4, mv.orbit(() => P3(dd, 6), 40, 100, 150, 110, 9, 12, 6, 52));
+}
 
 export const SCENES = {
   // ---- opening: an allied column steaming into the dawn ---------------------------------------------------------------------
@@ -130,6 +156,29 @@ export const SCENES = {
       await T.shot('roster2_' + id, dur, mv.orbit(() => P3(s), az[0], az[1], L * 0.9, L * 0.8, h[0], h[1], look, 46));
     }
   },
+
+  // ---- roster 3: the battleships, carriers and heavy cruisers (0.1.0) -------------------------------------------------------------
+  async roster3(T) {
+    T.reset(9, 'afternoon', { sunElev: 25, sunAzim: -35, exposure: 1.12, haze: 2.5, veil: 0.22, contrast: 1.12, warmth: -0.05, bloom: 0.08 });
+    const ids = ['iowa', 'essex', 'kgv', 'graf_zeppelin', 'richelieu', 'admiral_hipper', 'kagero', 'soldati'];
+    const ships = T.column(ids, 0, 0, 0, 90, 900, 9);
+    sail(ships, 9);
+    T.go();
+    await T.wait(20);
+    const spec = [
+      ['iowa', 0.9, [60, 100], [10, 9], 10], ['essex', 0.9, [-20, 20], [26, 30], 8], ['kgv', 0.9, [-30, 10], [9, 10], 9],
+      ['graf_zeppelin', 0.9, [70, 40], [30, 26], 8], ['richelieu', 0.9, [-8, 36], [9, 10], 9], ['admiral_hipper', 0.9, [88, 52], [8, 9], 8],
+      ['kagero', 0.9, [-14, 24], [6, 7], 5], ['soldati', 0.9, [66, 104], [6, 7], 5],
+    ];
+    for (const [id, dur, az, h, look] of spec) {
+      const s = ships[ids.indexOf(id)], L = s.stats.L;
+      await T.shot('roster3_' + id, dur, mv.orbit(() => P3(s), az[0], az[1], L * 0.95, L * 0.8, h[0], h[1], look, 46));
+    }
+  },
+
+  // ---- fleet battles: two columns of five trade fire (Atlantic, Mediterranean) ------------------------------------------------------
+  async fleets(T) { await fleetBattle(T, 'fleets', 61, 'afternoon', ['kgv', 'norfolk', 'belfast', 'tribal', 'tribal'], ['bismarck', 'admiral_hipper', 'koenigsberg', 'type1936a_mob', 'type1936a_mob']); },
+  async med(T) { await fleetBattle(T, 'med', 74, 'morning', ['richelieu', 'algerie', 'la_galissoniere', 'fantasque', 'fantasque'], ['littorio', 'zara', 'montecuccoli', 'soldati', 'soldati']); },
 
   // ---- carrier: the deck, the take-off, the strike forming up ---------------------------------------------------------
   async carrier(T) {

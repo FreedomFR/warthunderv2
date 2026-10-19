@@ -3,7 +3,7 @@
 // Loaded with ?trailer=1&manual=1. A scene is an async function that builds a battle (fleets, time of day), lets the simulation
 // run ("pre-roll": frames that only run the physics and the ocean read-back, nothing is drawn) until something worth filming
 // happens, then records shots: for every frame the camera function of the shot places the camera and the engine renders and
-// captures exactly 1/24 s. All randomness comes from the seeded world, so a scene can be recorded again identically.
+// captures exactly 1/FPS s (24 by default). All randomness comes from the seeded world, so a scene can be recorded again identically.
 import { clamp, lerp, smoothstep, D2R, KN, makeRng } from './game/math.js';
 import { spawnFleet } from './game/sim/formation.js';
 import { magazineExplosion } from './game/sim/explosions.js';
@@ -11,7 +11,7 @@ import { PRESETS } from './game/scenarios.js';
 import { renderMusic, wavBase64 } from './trailerMusic.js';
 import { TEAM_COLORS } from './game/sim/world.js';
 
-export const FPS = 24;
+export const FPS = Number(new URLSearchParams(location.search).get('fps')) || 24;   // ?fps=60 for the 0.1.0 trailer
 const ease = (t) => t * t * (3 - 2 * t);
 const easeOut = (t) => 1 - (1 - t) * (1 - t);
 

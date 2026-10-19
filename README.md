@@ -11,14 +11,14 @@ tirent dessus jusqu'à ce qu'il ne reste qu'une équipe.
 
 [![Bande-annonce de la version 0.1.0 (aperçu animé)](docs/trailer-v0.1.0.gif)](docs/trailer-v0.1.0.mp4)
 
-▶ [**Voir la bande-annonce complète** (MP4, 62 s, 1280×720, 20 Mo)](docs/trailer-v0.1.0.mp4)
+▶ [**Voir la bande-annonce complète** (MP4, 89 s, 1920×1080, **60 images/s**, 36 Mo)](docs/trailer-v0.1.0.mp4)
 
-Cette version montre les 30 navires et tous les avions relevés sur plans d'époque (tourelles, cheminées, mâts, ponts, hélices), les nouveaux effets de tir
-et 17 nouvelles familles de tourelles. Pour mesurer le chemin parcouru depuis la 0.0.1, une vidéo met les deux versions côte à côte, **mêmes scènes, mêmes graines
-aléatoires** : ▶ [**Comparatif 0.0.1 / 0.1.0**](docs/comparatif-0.0.1-0.1.0.mp4) (MP4, 48 s, 20 Mo). La bande-annonce d'origine est conservée :
+Cette version montre les 30 navires et tous les avions relevés sur plans d'époque (tourelles, cheminées, mâts, ponts, hélices), deux batailles de flottes
+(Atlantique, Méditerranée) avec dix navires chacune, les nouveaux effets de tir et 17 nouvelles familles de tourelles. Pour mesurer le chemin parcouru depuis la 0.0.1, une vidéo met les deux versions côte à côte, **mêmes scènes, mêmes graines
+aléatoires** : ▶ [**Comparatif 0.0.1 / 0.1.0**](docs/comparatif-0.0.1-0.1.0.mp4) (MP4, 48 s, 24 images/s, 20 Mo). La bande-annonce d'origine est conservée :
 ▶ [bande-annonce 0.0.1](docs/trailer-v0.0.1.mp4) (48 s).
 
-Toutes les images sont rendues par le jeu lui-même, image par image (environ 25 s de calcul par scène avec une RTX 3080 ; plusieurs heures en rendu logiciel sans carte
+Toutes les images sont rendues par le jeu lui-même, image par image (environ 2 min de calcul par scène en 1080p 60 images/s avec une RTX 3080 : 35 min pour toute la vidéo ; plusieurs heures en rendu logiciel sans carte
 graphique), les sons sont ceux du jeu et la musique est synthétisée par programme. Les plans sont cadrés par script (`js/trailerScenes.js`) ; pour deux
 d'entre eux (la bombe sur le croiseur et la torpille sur le Takao), l'arme est placée près de sa cible pour que l'impact tombe dans le
 champ de la caméra : l'impact lui-même est calculé par le vrai modèle de dégâts du jeu. Voir `tools/trailer/README.md` pour refaire la vidéo.

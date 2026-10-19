@@ -10,7 +10,7 @@ node tools/trailer/music.mjs out tools/trailer/score.json        # the score -> 
 node tools/trailer/assemble.mjs tools/trailer/edit.json         # cut, grade, titles, sound mix -> docs/trailer-v0.0.1.mp4 (edit.json)
 ```
 
-v0.1.0: `edit-0.1.0.json` + `score-0.1.0.json` (new scenes `roster2` and `fire_<ship>`: `SCENES.firetest(T, id)` registered for several ships), `music.mjs` into its own folder
+v0.1.0 (1920×1080, 60 fps, about 20 GB of frames, 35 min with a GPU): `node tools/trailer/record.mjs <scene> out/frames60 --w 1920 --h 1080 --fps 60 --audio 1` for each scene of `edit-0.1.0.json`, then `edit-0.1.0.json` + `score-0.1.0.json` (new scenes `roster2`, `roster3`, `fleets`, `med` and `fire_<ship>`: `SCENES.firetest(T, id)` registered for several ships), `music.mjs` into its own folder
 (`node tools/trailer/music.mjs out/music_010 tools/trailer/score-0.1.0.json`). The side-by-side comparison with 0.0.1 is made with `edit.json` re-recorded on the same scenes
 (same seeds) then `ffmpeg ... hstack` (see the CHANGELOG 0.1.0). With a GPU (`GPU=hardware`, Windows Node under WSL2: see CLAUDE.md) a scene takes 20-35 s.
 
