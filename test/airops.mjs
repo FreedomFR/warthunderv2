@@ -28,7 +28,8 @@ const run = (w, secs, f) => { const n = Math.round(secs / 0.1); for (let i = 0; 
   run(w, 200, () => {
     for (const sec of secs) {
       const live = sec.members.filter((m) => !m.dying && !m.gone && m.phase === 'cruise');
-      if (live.length < 3) continue;
+      // (a big section takes a while to join up: judged once its last aircraft has been flying for some time)
+      if (live.length < 3 || !live.every((m) => m.age - m.t0Air > 60)) continue;
       const L = live[0];
       for (const m of live.slice(1)) { const d = Math.hypot(m.x - L.x, m.z - L.z); checked++; worst = Math.max(worst, d); }
     }
@@ -55,7 +56,7 @@ const run = (w, secs, f) => { const n = Math.round(secs / 0.1); for (let i = 0; 
 // ---- a wave that has lost most of its aircraft closes up, or turns back when too few are left ----
 {
   const cut = (survivors, seed) => {
-    const w = setup('essex:1,cleveland:2', 'shokaku:1,agano:2', seed, 26000);
+    const w = setup('essex:1,cleveland:2', 'shokaku:1,agano:2', seed, 40000);
     let wave = null, done = false; const events = [];
     run(w, 600, () => {
       for (const e of w.drainEvents()) events.push(e.type);
@@ -68,7 +69,7 @@ const run = (w, secs, f) => { const n = Math.round(secs / 0.1); for (let i = 0; 
     });
     return { wave, events };
   };
-  const few = cut(4, 23); ok(few.events.includes('strikeMerged') && !few.events.includes('strikeAbort'), 'four survivors close up into one formation per kind');
+  const few = cut(8, 23); ok(few.events.includes('strikeMerged') && !few.events.includes('strikeAbort'), 'eight survivors of twenty close up into one formation per kind');
   const none = cut(2, 24); ok(none.events.includes('strikeAbort'), 'two survivors of a big wave turn back');
 }
 

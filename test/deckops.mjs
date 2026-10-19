@@ -12,10 +12,10 @@ const ids = process.argv.length > 2 ? process.argv.slice(2) : ['essex', 'shokaku
 
 for (const id of ids) {
   const w = new World(31); w.addTeam(0); w.addTeam(1);
-  const s0 = teamStart(0, 2, 60000), s1 = teamStart(1, 2, 60000);
+  const s0 = teamStart(0, 2, 74000), s1 = teamStart(1, 2, 74000);
   spawnFleet(w, 0, parse(id + ':1,fletcher:1'), s0.x, s0.z, s0.heading);
   spawnFleet(w, 1, parse('fletcher:1'), s1.x, s1.z, s1.heading);
-  for (const s of w.ships) s.cmd.throttle = 0.5;
+  for (const s of w.ships) s.cmd.throttle = s.team === 0 ? 0.5 : 0;      // the enemy lies still and far away: the battle must not end during the test
   w.start();
   const ship = w.ships.find((s) => s.stats.id === id);
   const dp = ship.model.deckPoints;
@@ -48,7 +48,7 @@ for (const id of ids) {
   if (process.env.DEBUG) console.log('   called back', inAir, 'of', wave.planes.length, wave.planes.map((p) => p.phase + (p.dying ? '!' : '')).join(' '));
   const total = () => ship.air.ready + ship.air.fReady + ship.air.servicing.length;
   const readyBefore = total();
-  step(1200, () => !w.planes.some((p) => p.owner === ship && !p.service && ['return', 'pattern', 'final', 'waveoff', 'rollout', 'taxiIn'].includes(p.phase)));
+  step(3000, () => !w.planes.some((p) => p.owner === ship && !p.service && ['return', 'pattern', 'final', 'waveoff', 'rollout', 'taxiIn'].includes(p.phase)));
   if (process.env.DEBUG) console.log('   after', w.time.toFixed(0), JSON.stringify(ev), wave.planes.map((p) => p.phase + (p.gone ? 'G' : '')).join(' '));
   const landed = ev.planeLand || 0;
   ok(landed >= inAir - 1, `${id}: ${landed} of the ${inAir} aircraft called back landed (touchdowns ${ev.planeTouchdown || 0}, bolters ${ev.bolter || 0}, wire catches ${ev.wireCatch || 0})`);
@@ -61,7 +61,7 @@ for (const id of ids) {
   // 3. the deck park is struck for the recovery and spotted again afterwards
   if (parked0 > 0 && ship.model.elevators.length) {
     ok(parkedMin === 0 || ship.parked > 0, `${id}: the park was struck below for the recovery (lowest ${parkedMin})`);
-    step(400, () => ship.parked >= Math.round(ship.model.deckSlots.length * ship.air.ready / ship.stats.air.capacity) - 0);
+    step(900, () => ship.parked >= Math.round(ship.model.deckSlots.length * ship.air.ready / ship.stats.air.capacity) - 0);
     const want = Math.round(ship.model.deckSlots.length * ship.air.ready / ship.stats.air.capacity);
     if (process.env.DEBUG) { const D = ship._deck; console.log('   lifts', D.lifts.map((l) => l.x.toFixed(0) + ':h' + l.h.toFixed(2) + ':tgt' + l.tgt + (l.user ? ':user p' + l.user.id + '/' + l.user.phase + '/' + l.user.ds + (l.user.gone ? 'GONE' : '') : '')).join(' ')); console.log('   respot state', w.time.toFixed(0), 'parked', ship.parked, 'want', want, 'striking', D.striking, 'rec', D.recovering, 'circuit', D.circuit, 'pending', D.pending.length, 'nextService', D.nextService.toFixed(0), w.planes.filter((q) => q.owner === ship).map((q) => q.phase + '/' + q.ds + (q.service ? 'S' : '') + (q.leg ? '#' + q.leg : '') + ' hold' + (q.holdT||0).toFixed(0) + ' fuel' + q.fuel.toFixed(0) + ' land:' + D.landing.map((z)=>z.id+z.phase).join(',')).join(' ')); }
     ok(ship.parked >= want - 1, `${id}: and spotted again from the hangar (${ship.parked} of ${want})`);

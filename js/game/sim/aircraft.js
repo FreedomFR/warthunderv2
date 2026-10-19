@@ -176,7 +176,8 @@ function launches(world, dt) {
     if (!(ship.cmd.air.launch && air.cooldown <= 0 && air.ready >= 4) || deckBusy) continue;
     const target = bestTarget(world, ship.team, ship.x, ship.z);
     if (!target) continue;
-    const n = Math.min(air.ready, Math.round(6 + world.rng() * 5));
+    // a big deck load: about an eighth to a quarter of the air group (Essex 13-23 bombers, Illustrious 7-13, Béarn 5-9), so that more of the strike gets through the AA
+    const n = Math.min(air.ready, Math.max(6, Math.round(ship.stats.air.capacity * (0.13 + world.rng() * 0.1))));
     settleService(world, ship);
     air.ready -= n;
     air.cooldown = 200 + n * 6 + world.rng() * 80;       // the next strike needs the aircraft serviced and a new deck load spotted
@@ -195,7 +196,7 @@ function launches(world, dt) {
     let i = 0, tIdx = 0;
     for (const [kind, k] of plan) {
       const idx = kind === 'torp' ? tIdx++ : wave.sections.filter((q) => q.kind === 'dive').length;
-      const sec = { id: wave.sections.length, kind, members: [], wave, target: targets[(wave.sections.length >= 2 && targets.length > 1 && wave.sections.length % 3 === 2) ? 1 : 0] || target, spread: kind === 'torp' ? (idx - (torpSections - 1) / 2) * SECTION_SPREAD : 0, dLat: (idx - 0.5) * 900, state: 'form', rollT: null };
+      const sec = { id: wave.sections.length, kind, members: [], wave, target: targets[(wave.sections.length >= 2 && targets.length > 1 && wave.sections.length % 3 === 2) ? 1 : 0] || target, spread: kind === 'torp' ? (idx - (torpSections - 1) / 2) * Math.min(SECTION_SPREAD, 2.4 / Math.max(1, torpSections - 1)) : 0, dLat: (idx - 0.5) * 900, state: 'form', rollT: null };
       wave.sections.push(sec);
       for (let j = 0; j < k; j++, i++) {
         const typeKey = kind === 'torp' ? torp : dive;
@@ -216,7 +217,7 @@ function launches(world, dt) {
       }
     }
     // the escort: fighters leave after the bombers (they are faster and catch up)
-    const nF = air.fReady >= 2 ? Math.min(air.fReady, n >= 9 ? 4 : n >= 6 ? 3 : 2) : 0;
+    const nF = air.fReady >= 2 ? Math.min(air.fReady, clamp(Math.round(n * 0.3), 2, 7)) : 0;
     if (nF) { air.fReady -= nF; spawnFighters(world, ship, wave, nF, 'escort'); }
     planLaunch(world, ship, order);
     ship.updateParked();
@@ -278,7 +279,7 @@ function assessWave(world, wave) {
     world.events.push({ type: 'strikeAbort', ship: wave.ship, left: strike.length, planned: wave.n });
     return;
   }
-  if (strike.length < 5) {
+  if (strike.length < Math.max(5, Math.round(wave.n * 0.55))) {
     wave.sections = [];
     for (const kind of ['dive', 'torp']) {
       const members = strike.filter((q) => q.kind === kind).sort((a, b) => a.id - b.id);
