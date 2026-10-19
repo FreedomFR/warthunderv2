@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased — masts that floated
+
+- **Masts in the air** (seen on the *Belfast*: the legs of the aft tripod stopped short above the boat deck): the foot of every mast and of each leg of a tripod now stands on the roof under it (`lowerBase`, `shipbuilder.js`; `PT.tripod` takes the height of each foot). The same bug was on the *Norfolk* (aft tripod) and the *Algerie*. The *Fantasque* had its bridge tower, director and foremast 7 m too high (the tweak gave the height above the waterline where the code reads a height above the deck): `towerY0` and the foremast base are now 9.2.
+- `tools/audit/check.mjs` finds the clusters of structures that do not touch the deck or another structure (legs and struts of 0.15 m or more count as structures) and says how far they hang in the air.
+
 ## Unreleased — wakes
 
 - **Ship wakes redone** (`addWakeStamps`, `render/effects.js`): they were hardly visible (a faint thin line behind a destroyer at 36 knots, nothing at the bow of a battleship) and the diverging arms were short bars. Now: a splash at the stem and a bank of foam along the first quarter of the hull (the bow wave), a line of foam at the waterline, white churned water behind the screws, the wake that breaks up over one to three lengths and a wide pale bed that stays on the sea, all scaled by the speed (a ship at a quarter of her speed marks the water little, at full speed she leaves a white road). The Kelvin arms are gone (they looked like detached hatched strips). Wakes last a little longer (decay 0.03 per second).

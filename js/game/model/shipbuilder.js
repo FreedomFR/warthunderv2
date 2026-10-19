@@ -297,6 +297,15 @@ export function buildShipModel(spec, tw = {}) {
     note(y0 + fh);
   }
 
+  // what a mount stands on: the highest roof or deck under it (within 1 m of its footprint centre)
+  const supportBelow = (x, z, y) => {
+    const hb = hull.halfBeamDeck(x);
+    let base = Math.abs(z) < hb ? Y(x) - hull.camber * Math.pow(z / (hb || 1), 2) : -9;
+    for (const s of b.solids) if (s[3] <= y + 0.1 && s[3] > base && inFoot(s, x, z, 0.3)) base = s[3];
+    return base;
+  };
+  // the foot of a mast or of one of its legs: it stands on the roof under it, not in the air above it (a base measured on the plan can float over a deck that the model builds lower)
+  const lowerBase = (x, z, y) => { const sp = supportBelow(x, z, y + 0.15); return y - sp > 0.5 && y - sp < 30 ? sp : y; };
   // -------- bridge tower / island --------
   if (!carrier) {
     const x = X(towerF);
@@ -322,7 +331,7 @@ export function buildShipModel(spec, tw = {}) {
     if (tw.foremast?.y0 != null) y = Y(x) + tw.foremast.y0;
     const mx = x + (tw.foremast?.dx ?? -0.8);
     // tw.foremast.base: where the legs of a tripod stand (m above the deck), apex: the height of its apex as a fraction of the mast
-    const mastBase = tw.foremast?.base != null ? Y(x) + tw.foremast.base : r.tops[Math.max(0, tiers.length - 3)];
+    let mastBase = tw.foremast?.base != null ? Y(x) + tw.foremast.base : r.tops[Math.max(0, tiers.length - 3)];
     // rigging of the foremast: forestay to the bow, stays to the funnels, a flag hoist on the yardarms
     const foreFine = () => {
       const top = [mx - 0.1, mastTopY - 0.8, 0], sc = rgb(pal.dark);
@@ -335,18 +344,22 @@ export function buildShipModel(spec, tw = {}) {
     };
     const mastRuin = (mx, my, mh) => () => b.cylinder(mx, my, 0, 0.5, 0.3, my + Math.max(2.5, mh * 0.18), rgb(charred(pal)), MAT.DARK, { seg: 6 });
     if (kindOf(mastDesc, 'tripod')) {
+      const sp0 = tw.foremast?.spread ?? topW * 0.6, bk0 = tw.foremast?.back ?? 4, fr0 = tw.foremast?.front ?? 2;
+      const feet = [lowerBase(mx - 0.2 + fr0, -sp0, mastBase), lowerBase(mx - 0.2 + fr0, sp0, mastBase), lowerBase(mx - 0.2 - bk0, 0, mastBase)];
       part('mast0', 'mast', 'Mât avant', () => {
-        PT.tripod(b, { x: mx - 0.2, y0: mastBase, h: mastTopY - mastBase, legSpread: tw.foremast?.spread ?? topW * 0.6, legBack: tw.foremast?.back ?? 4, legFront: tw.foremast?.front ?? 2, apexFrac: tw.foremast?.apex, platforms: [tw.foremast?.platform ?? 0.55], yards: [[0.8, 8]] }, pal);
+        PT.tripod(b, { x: mx - 0.2, y0: mastBase, h: mastTopY - mastBase, legSpread: sp0, legBack: bk0, legFront: fr0, feet, apexFrac: tw.foremast?.apex, platforms: [tw.foremast?.platform ?? 0.55], yards: [[0.8, 8]] }, pal);
         PT.pennant(b, mx, mastTopY + 0.2, 0.3, 4.5, 0, '#ffffff');
         if (ensOnFore) PT.ensign(b, { x: mx - 0.3, y: mastTopY - 7, z: 0, len: ensLen });
       }, mastRuin(mx - 0.2, mastBase, mastTopY - mastBase), { fine: foreFine });
     } else if (kindOf(mastDesc, 'cage|lattice')) {
+      mastBase = Math.min(...[[-2.4, -2.4], [2.4, -2.4], [2.4, 2.4], [-2.4, 2.4]].map(([a, c]) => lowerBase(mx - 0.2 + a, c, mastBase)));
       part('mast0', 'mast', 'Mât avant', () => {
         PT.cageMast(b, { x: mx - 0.2, y0: mastBase, h: mastTopY - mastBase - 4, r0: 2.4, r1: 1.0 }, pal);
         PT.pennant(b, x - 0.8, mastTopY + 0.2, 0.3, 4.5, 0, '#ffffff');
         if (ensOnFore) PT.ensign(b, { x: x - 1.1, y: mastTopY - 7, z: 0, len: ensLen });
       }, mastRuin(x - 1, mastBase, mastTopY - mastBase), { fine: foreFine });
     } else {
+      y = lowerBase(mx, 0, y);
       part('mast0', 'mast', 'Mât avant', () => {
         PT.poleMast(b, { x: mx, y0: y, h: Math.max(mastTopY - y, 6), r: 0.38, yards: [[0.55, 9], [0.8, 6]] }, pal);
         PT.pennant(b, mx, mastTopY + 0.2, 0.3, 4.5, 0, '#ffffff');
@@ -383,6 +396,9 @@ export function buildShipModel(spec, tw = {}) {
       let y0 = Y(x) + (model.house && x < model.house.x1 + 0.1 && x > model.house.x0 - 0.1 ? 0 : 0);
       if (model.house && x <= model.house.x1 && x >= model.house.x0 - 1e-9 + 0) y0 = model.house.y - 0.0;
       if (tw.mastY0?.[i] != null) y0 = Y(x) + tw.mastY0[i];
+      const isTri = !tw.mastRake?.[i] && kindOf(m.kind, 'tripod');
+      const feet2 = isTri ? [lowerBase(x + 1.5, -3.5, y0), lowerBase(x + 1.5, 3.5, y0), lowerBase(x - 4, 0, y0)] : null;
+      if (!isTri) y0 = lowerBase(x, 0, y0);
       const h = Math.max((m.heightAboveWaterM || 30) - y0, 8);
       part('mast' + i, 'mast', 'Mât ' + (i === 1 ? 'arrière' : 'secondaire'), () => {
         if (tw.mastRake?.[i]) {
@@ -391,7 +407,7 @@ export function buildShipModel(spec, tw = {}) {
           const mw = clamp(L * 0.0046, 0.35, 1.2);   // a destroyer's mast is a pole, a battleship's a tower
           b.beam([x, y0, 0], top, mw, mw, col, MAT.HULL);
           b.rodZ(x + tw.mastRake[i] * 0.75, y0 + h * 0.75, -4, 4, 0.08, 0.06, col, MAT.HULL, { seg: 5 });
-        } else if (kindOf(m.kind, 'tripod')) PT.tripod(b, { x, y0, h, legSpread: 3.5, legBack: 4, legFront: 1.5, platforms: [0.6], yards: [[0.78, 7]] }, pal);
+        } else if (kindOf(m.kind, 'tripod')) PT.tripod(b, { x, y0, h, legSpread: 3.5, legBack: 4, legFront: 1.5, feet: feet2, platforms: [0.6], yards: [[0.78, 7]] }, pal);
         else PT.poleMast(b, { x, y0, h, r: 0.36, yards: [[0.6, 8]] }, pal);
         if (i === masts.length - 1) PT.ensign(b, { x: x - 0.7, y: y0 + h * 0.8, z: 0, len: clamp(L * 0.021, 2.2, 6.2) });
       }, () => b.cylinder(x, y0, 0, 0.45, 0.3, y0 + Math.max(2.2, h * 0.16), rgb(charred(pal)), MAT.DARK, { seg: 6 }), {
@@ -440,13 +456,6 @@ export function buildShipModel(spec, tw = {}) {
     const sg = z < 0 ? -1 : 1, lim = hull.halfBeamDeck(x) - 0.9;
     for (let dz = 0.4; Math.abs(z + sg * dz) < lim && dz < 7; dz += 0.4) { const c3 = clash(x, z + sg * dz, y, rr, h); if (c3.top < 0 && !c3.over) return [z + sg * dz, y]; }
     return [z, c.top >= 0 ? c.top : y];
-  };
-  // what a mount stands on: the highest roof or deck under it (within 1 m of its footprint centre)
-  const supportBelow = (x, z, y) => {
-    const hb = hull.halfBeamDeck(x);
-    let base = Math.abs(z) < hb ? Y(x) - hull.camber * Math.pow(z / (hb || 1), 2) : -9;
-    for (const s of b.solids) if (s[3] <= y + 0.1 && s[3] > base && inFoot(s, x, z, 0.3)) base = s[3];
-    return base;
   };
   /** a pillar from the roof or the deck up to a mount that would otherwise hang in the air (a sponson the sheet knew, the model does not) */
   const pedestal = (x, z, y, r) => {

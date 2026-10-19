@@ -153,9 +153,10 @@ export function tripod(b, o, pal) {
   const sp = o.legSpread ?? 4.5, back = o.legBack ?? 6;
   const w = o.r ?? 0.55;
   const apex = [o.x, apexY, z0];
-  b.beam([o.x + (o.legFront ?? 2), o.y0, z0 - sp], apex, w, w, col, MAT.HULL);
-  b.beam([o.x + (o.legFront ?? 2), o.y0, z0 + sp], apex, w, w, col, MAT.HULL);
-  b.beam([o.x - back, o.y0, z0], apex, w, w, col, MAT.HULL);
+  const fy = o.feet || [o.y0, o.y0, o.y0];       // the height of the foot of each leg (they may stand on different roofs)
+  b.beam([o.x + (o.legFront ?? 2), fy[0], z0 - sp], apex, w, w, col, MAT.HULL);
+  b.beam([o.x + (o.legFront ?? 2), fy[1], z0 + sp], apex, w, w, col, MAT.HULL);
+  b.beam([o.x - back, fy[2], z0], apex, w, w, col, MAT.HULL);
   b.cylinder(o.x, apexY - 0.5, z0, w * 0.9, w * 0.45, o.y0 + o.h, col, MAT.HULL, { seg: 8 });
   for (const f of (o.platforms || [])) {
     const py = o.y0 + o.h * f;

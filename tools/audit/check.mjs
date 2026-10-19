@@ -54,6 +54,36 @@ for (const spec of ALL_SHIPS) {
     const d = Math.hypot(a.x - b.x, a.z - b.z);
     if (d < (ra + rb) * 0.75 && Math.abs(a.y - b.y) < 2.4) issues.push({ bug: true, text: `${a.group}${a.label || i} and ${b.group}${b.label || j} overlap (${d.toFixed(1)} m apart, radii ${ra.toFixed(1)} + ${rb.toFixed(1)})` });
   }
+  // parts in the air: clusters of touching structures that do not reach the deck (a mast whose legs stop short, a platform on nothing)
+  {
+    const solids = m.solids.filter((q) => !(q[1] - q[0] < 0.25 && q[3] - q[2] < 0.25 && q[5] - q[4] < 0.25));
+    const floor = (x, z) => { const hb = m.hull.halfBeamDeck(x); return Math.abs(z) <= hb + 0.5 ? m.hull.deckY(x) : -50; };
+    const n = solids.length, parent = solids.map((_, i) => i);
+    const find = (i) => { while (parent[i] !== i) { parent[i] = parent[parent[i]]; i = parent[i]; } return i; };
+    const pad = 0.3;
+    for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) {
+      const a = solids[i], b = solids[j];
+      if (a[0] - pad > b[1] || b[0] - pad > a[1] || a[2] - pad > b[3] || b[2] - pad > a[3] || a[4] - pad > b[5] || b[4] - pad > a[5]) continue;
+      parent[find(i)] = find(j);
+    }
+    const grounded = new Set();
+    solids.forEach((q, i) => { const cx = (q[0] + q[1]) / 2, cz = (q[4] + q[5]) / 2; if (q[2] <= Math.max(floor(cx, cz), floor(q[0], cz), floor(q[1], cz)) + 0.9 || q[2] <= 1) grounded.add(find(i)); });
+    // gun mounts and their barbettes also hold what stands on them: count the mounts as ground
+    const groups = new Map();
+    solids.forEach((q, i) => { const r = find(i); if (!groups.has(r)) groups.set(r, []); groups.get(r).push(q); });
+    for (const [r, list] of groups) {
+      if (grounded.has(r)) continue;
+      const bb = [Math.min(...list.map((q) => q[0])), Math.max(...list.map((q) => q[1])), Math.min(...list.map((q) => q[2])), Math.max(...list.map((q) => q[3])), Math.min(...list.map((q) => q[4])), Math.max(...list.map((q) => q[5]))];
+      const ext = Math.max(bb[1] - bb[0], bb[3] - bb[2], bb[5] - bb[4]);
+      if (ext < 1.2 && list.length < 3) continue;
+      // what is under it: the highest top of another structure under its footprint, or the deck; the gap is how far it hangs in the air
+      let under = floor((bb[0] + bb[1]) / 2, (bb[4] + bb[5]) / 2);
+      for (const q of solids) if (!list.includes(q) && q[3] <= bb[2] + 0.2 && q[1] > bb[0] - 1 && q[0] < bb[1] + 1 && q[5] > bb[4] - 1 && q[4] < bb[5] + 1) under = Math.max(under, q[3]);
+      const gap = bb[2] - under;
+      if (gap < 0.6) continue;
+      issues.push({ bug: gap > 1.5 && bb[3] - bb[2] > 3, text: `a group of ${list.length} parts floats ${gap.toFixed(1)} m above what is under it: x ${bb[0].toFixed(1)}..${bb[1].toFixed(1)}, y ${bb[2].toFixed(1)}..${bb[3].toFixed(1)}, z ${bb[4].toFixed(1)}..${bb[5].toFixed(1)}` });
+    }
+  }
   const bad = issues.filter((q) => q.bug).length;
   bugs += bad;
   console.log(`${spec.id.padEnd(16)} ${bad ? 'BUGS ' + bad : 'ok'}  (${issues.length} notes)`);

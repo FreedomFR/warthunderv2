@@ -367,6 +367,13 @@ export class MeshBuilder {
     const B = [corner(p1, -1, -1), corner(p1, 1, -1), corner(p1, 1, 1), corner(p1, -1, 1)];
     const ref = [(p0[0] + p1[0]) / 2, (p0[1] + p1[1]) / 2, (p0[2] + p1[2]) / 2];
     const ao = o.ao ?? this.ao;
+    if (this.solids && Math.max(w, h) >= 0.15) {     // legs and struts count as solids (stays and wires do not)
+      const pts = [...A, ...B], m = this.m;
+      const T = pts.map((q) => [m[0] * q[0] + m[4] * q[1] + m[8] * q[2] + m[12], m[1] * q[0] + m[5] * q[1] + m[9] * q[2] + m[13], m[2] * q[0] + m[6] * q[1] + m[10] * q[2] + m[14]]);
+      const bb = [0, 1, 2].flatMap((k) => [Math.min(...T.map((q) => q[k])), Math.max(...T.map((q) => q[k]))]);
+      this.solids.push([bb[0], bb[1], bb[2], bb[3], bb[4], bb[5]]);
+      this.solids[this.solids.length - 1].strut = true;
+    }
     for (let i = 0; i < 4; i++) {
       const j = (i + 1) % 4;
       this.quad(A[i], A[j], B[j], B[i], col, mat, ref, ao);
