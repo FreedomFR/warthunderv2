@@ -311,7 +311,7 @@ export class GameAudio {
   planeLoops(w, cam) {
     const near = [];
     for (const p of w.planes) {
-      if (p.phase === 'queue' && p.t < -2.5) continue;
+      if (p.hidden || (p.eng != null && p.eng < 0.02)) continue;
       const d = Math.hypot(p.x - cam.x, p.y - cam.y, p.z - cam.z);
       if (d < 8000) near.push({ p, d });
     }
@@ -324,6 +324,7 @@ export class GameAudio {
       const vr = (p.vx * dx + p.vy * dy + p.vz * dz) / L;                  // > 0 receding
       const doppler = C_SOUND / (C_SOUND + Math.max(-120, Math.min(120, vr)));
       let rate = (0.72 + (p.speed - 40) / 170) * doppler;
+      if (p.eng != null) rate = (0.5 + 0.42 * Math.min(1, p.eng)) * doppler;      // an engine starting, idling or at full power on deck
       const diving = p.phase === 'dive' || p.phase === 'rollin';
       if (diving) rate *= 1.18;
       if (p.dying) rate *= Math.max(0.45, 1 - p.dyingT * 0.12);

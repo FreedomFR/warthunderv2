@@ -628,14 +628,17 @@ function buildCarrier(b, model, spec, hull, pal, tw, X, Y, fdY, rnd, note, part)
   const mk = rgb('#cfcdc4');
   b.decal((x0 + x1) / 2, fdY + 0.01, 0, fdL * 0.46, 0.18, mk, MAT.HULL);
   for (const s2 of [-1, 1]) b.decal((x0 + x1) / 2 - fdL * 0.02, fdY + 0.01, s2 * (hw - 1.0), fdL * 0.47, 0.12, mk, MAT.HULL);
-  for (let i = 0; i < 8; i++) b.decal(x0 + 12 + i * 3.2, fdY + 0.012, 0, 0.05, hw * 0.55, shade(mk, 0.4), MAT.HULL);   // arrester wires
+  model.wires = [];
+  for (let i = 0; i < 8; i++) { b.decal(x0 + 12 + i * 3.2, fdY + 0.012, 0, 0.05, hw * 0.55, shade(mk, 0.4), MAT.HULL); model.wires.push(x0 + 12 + i * 3.2); }   // arrester wires
   // elevators
   const els = (sil.flightDeckNotes ? null : null) || tw.elevators || [0.28, 0.6, 0.83];
+  model.elevators = [];       // the lifts as the deck operations use them: centre, half-length, half-width (the sim moves a platform and the aircraft on it)
   for (const [i, f] of els.entries()) {
     const x = X(f);
-    if (i === els.length - 1 && tw.deckEdge) { b.decal(x, fdY + 0.015, -hw + 5, 8, 7.5, rgb('#524f49'), MAT.HULL); continue; }
+    if (i === els.length - 1 && tw.deckEdge) { b.decal(x, fdY + 0.015, -hw + 5, 8, 7.5, rgb('#524f49'), MAT.HULL); model.elevators.push({ x, z: -hw + 5, hl: 8, hw: 7.5, edge: true }); continue; }
     const es = tw.elevSize || [8.5, hw * 0.34];      // measured half-length and half-width of the lifts
     b.decal(x, fdY + 0.015, tw.elevZ ?? 0, es[0], es[1], rgb('#55524c'), MAT.HULL);
+    model.elevators.push({ x, z: tw.elevZ ?? 0, hl: es[0], hw: es[1], edge: false });
   }
   // island
   const ix = X(isl.fractionFromBow);

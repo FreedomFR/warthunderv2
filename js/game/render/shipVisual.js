@@ -202,5 +202,6 @@ export class ShipVisuals {
     }
     // aircraft parked on the flight deck
     if (this.planes && model.deckSlots.length && ship.parked > 0) this.planes.addParked(ship, S, tint, rnd, inHalf);
+    if (this.planes && ship._deck) this.planes.addDeckGear(ship, S, tint, rnd, inHalf);
   }
 }

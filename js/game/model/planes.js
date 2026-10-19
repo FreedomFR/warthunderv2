@@ -234,7 +234,7 @@ function insignia(b, nation, cx, cy, cz, r, axis, sign) {
 // ---- the generator -----------------------------------------------------------------------------------------
 
 /**
- * Draw (part of) an aircraft into builder b. part: 'whole' | 'body' | 'wingL' | 'wingR' | 'tail' | 'prop' | 'gear' | 'ordnance'.
+ * Draw (part of) an aircraft into builder b. part: 'whole' | 'body' | 'wingL' | 'wingR' | 'tail' | 'prop' | 'gear' | 'hook' | 'ordnance'.
  */
 export function drawPlane(b, s, { part = 'whole' } = {}) {
   const P = PAINT[s.nation] || PAINT.USA;
@@ -342,7 +342,6 @@ export function drawPlane(b, s, { part = 'whole' } = {}) {
     b.quad([tx - t.finChord * 0.05, fy + t.fin * 0.5, -0.062], [tx - t.finChord * 0.2, fy + t.fin * 0.82, -0.062], [tx - t.finChord * 0.2 - 0.33, fy + t.fin * 0.82, -0.062], [tx - t.finChord * 0.05 - 0.35, fy + t.fin * 0.5, -0.062], acc, MAT.FLAG, [tx, fy, 1], 1);
     }   // end of the central fin
     // tail wheel
-    if (s.gear !== 'float' && s.gear !== 'retract') b.cylinder(tx + 0.3, -ry0 * 0.1, 0, 0.05, 0.05, ry0 * 0.15, dark, MAT.DARK, { seg: 5 });
     if (s.gear === 'float') b.beam([tx + 0.3, ry0 * 0.05, 0], [tx + 0.4, -ry0 * 0.5, 0], 0.07, 0.07, dark, MAT.DARK);
   }
 
@@ -401,7 +400,16 @@ export function drawPlane(b, s, { part = 'whole' } = {}) {
   }
 
   // ----- retractable undercarriage (drawn only while it is down) -----
-  if (part === 'gear' && s.gear !== 'float') drawGear(b, s, top, dark, false);
+  if (part === 'gear' && s.gear !== 'float') { drawGear(b, s, top, dark, false); drawTailWheel(b, s, dark); }
+  if ((all || part === 'body') && (s.gear === 'spats' || s.gear === 'fixedbig')) drawTailWheel(b, s, dark);
+
+  // ----- arrester hook: the shank points aft from its pivot (origin of this part, see hookPivot) -----
+  if (part === 'hook') {
+    const hl = HOOK_LEN;
+    b.beam([0, 0, 0], [-hl, 0, 0], 0.07, 0.07, dark, MAT.DARK);
+    b.beam([-hl, 0, 0], [-hl - 0.18, -0.2, 0], 0.07, 0.07, rgb('#8a8a86'), MAT.DARK);       // the bare steel of the hook point
+    b.block({ x0: -0.25, x1: 0.05, hw: 0.12, y0: -0.1, y1: 0.1 }, shade(top, 0.8), MAT.AIRCRAFT);   // the housing
+  }
   if (part === 'gear' && s.gear === 'float') drawFloats(b, s, top, dark);
   if (all && s.gear === 'float') drawFloats(b, s, top, dark);
 
@@ -410,6 +418,24 @@ export function drawPlane(b, s, { part = 'whole' } = {}) {
     if (s.ordnance === 'torp') drawTorpedo(b, 0, -(ry0 + 0.36), 0, 1);
     else if (s.ordnance === 'bomb') drawBomb(b, 0.2, -(ry0 + 0.32), 0, s.bombKg || 250);
   }
+}
+
+/** Where the arrester hook is hinged (aircraft frame) and how long it is. */
+export const HOOK_LEN = 1.1;
+export function hookPivot(s) { return [s.tail.x + 1.3, -s.fus.r * s.fus.ar * 0.4]; }
+/** How far behind the aircraft's origin the tip of the lowered hook trails (m). */
+export function hookBack(s) { return -(s.tail.x + 1.3 - HOOK_LEN * Math.cos(0.62)); }
+/** Nose-up attitude of the aircraft on its three wheels (rad); the tail wheel is drawn to touch the ground at this attitude. */
+export const GROUND_PITCH = 0.14;
+
+/** Tail wheel on its strut, long enough to hold the aircraft at GROUND_PITCH. */
+function drawTailWheel(b, s, dark) {
+  const w = s.wing, ry0 = s.fus.r * s.fus.ar;
+  const wr = 0.16, xt = s.tail.x + 0.35;
+  const yTop = -ry0 * 0.25;
+  const yc = -groundY(s) + (w.x + 0.45 - xt) * Math.tan(GROUND_PITCH) + wr;
+  b.beam([xt + 0.1, yTop, 0], [xt, yc, 0], 0.09, 0.09, dark, MAT.DARK);
+  b.rodZ(xt, yc, -0.07, 0.07, wr, wr, rgb('#1b1b1b'), MAT.CANVAS, { seg: 8 });
 }
 
 function drawGear(b, s, top, dark, fixed) {
@@ -526,7 +552,7 @@ export function getPlaneModel(typeKey) {
   if (m) return m;
   const spec = PLANES[typeKey];
   const out = {};
-  for (const part of ['whole', 'body', 'wingL', 'wingR', 'tail', 'prop', 'gear', 'ordnance']) {
+  for (const part of ['whole', 'body', 'wingL', 'wingR', 'tail', 'prop', 'gear', 'hook', 'ordnance']) {
     const b = new MeshBuilder();
     drawPlane(b, spec, { part });
     out[part] = b.vertexCount ? b.build() : null;

@@ -198,6 +198,53 @@ export const SCENES = {
     await T.shot('carrier_b', 3.6, chaseCam(airborne, 26, 7, 9, 40, 46));
   },
 
+  // ---- deck: the lifts, the wings, the engines starting, the take-off run, the circuit, the touchdown and the wire, the way down ----------
+  async deck(T) {
+    T.reset(21, 'morning');
+    const us = T.fleet(0, [{ id: 'essex' }, { id: 'cleveland' }, { id: 'fletcher', count: 2 }], -2200, 0, 90, { knots: 22 });
+    const jpc = T.fleet(1, [{ id: 'takao' }, { id: 'kagero', count: 2 }], 7000, 200, 270, { knots: 14 });
+    quiet(us); quiet(jpc);
+    T.go();
+    const ship = us.find((s) => s.stats.id === 'essex'), dp = ship.model.deckPoints, fdY = ship.model.fdY;
+    const startX = dp.x1 - 135;
+    const at = (lx, ly, lz) => ship.toWorld(lx, ship.y + 0 + ly, lz, [0, 0, 0]);
+    const lx = (p) => ship.toLocal(p.x, p.y, p.z, [0, 0, 0])[0];
+    const mine = (f) => T.w.planes.find((p) => p.owner === ship && f(p));
+    // the camera rides with the ship: (forward, height above the water, starboard)
+    const rig = (from, to, fov, ft = null) => () => ({ p: at(from[0], from[1], from[2]), l: typeof to === 'function' ? to() : at(to[0], to[1], to[2]), fov });
+    const onP = (p, dy = 0) => () => [p.x, p.y + dy, p.z];
+
+    // ---- the lift brings the first aircraft up, its wings spread, the engine starts ----
+    await T.until(() => mine((p) => p.ds === 'lower'), { max: 200, dt: 1 / 12 });
+    const lift = mine((p) => p.ds === 'lower').lift;
+    T.log('deck: first lift at', lift.x.toFixed(0), 'launch at', T.now.toFixed(0));
+    await T.shot('deck_lift', 11.5, rig([lift.x - 17, fdY + 7.5, lift.z - 22], [lift.x, fdY + 1.5, lift.z], 40));
+    await T.shot('deck_lift_b', 6, (t) => ({ p: at(lift.x + 20 - t * 1.2, fdY + 3.2, lift.z + 15), l: at(lift.x - 3, fdY + 2.2, lift.z), fov: 32 }));
+    // ---- the taxi and the queue ----
+    await T.shot('deck_taxi', 8, rig([startX - 70, fdY + 8, -26], [startX - 30, fdY + 2, 0], 42));
+    // ---- the run ----
+    await T.until(() => mine((p) => p.phase === 'takeoff'), { max: 90, dt: 1 / 12 });
+    await T.shot('deck_run', 6.5, rig([startX + 38, fdY + 9, -(dp.hw + 24)], () => { const p = mine((q) => q.phase === 'takeoff'); return p ? [p.x, p.y + 1, p.z] : at(startX + 20, fdY + 2, 0); }, 36));
+    // ---- the strike goes; it is called back at once, so that it lands again ----
+    await T.until(() => ship.air.wave > 0 && T.w.planes.filter((p) => p.owner === ship && p.wave && p.phase === 'cruise').length >= 6 && !T.w.planes.some((p) => p.owner === ship && (p.phase === 'queue' || p.phase === 'takeoff')), { max: 200, dt: 1 / 12 });
+    for (const p of T.w.planes) if (p.owner === ship && p.wave) { p.wave.aborted = true; p.wave.assessed = true; p.phase = 'return'; }
+    T.log('deck: wave called back at', T.now.toFixed(0));
+    let lander = null;
+    const behind = (p) => p.tdX - lx(p);
+    await T.until(() => (lander = mine((p) => p.phase === 'pattern' && p.leg === 2)), { max: 400, dt: 1 / 12 });
+    T.log('deck: circuit turn at', T.now.toFixed(0), 'plane', lander.id);
+    await T.shot('deck_circuit', 6, rig([dp.x0 + 20, fdY + 14, -(dp.hw + 6)], () => [lander.x, lander.y, lander.z], 28));
+    await T.until(() => lander.phase === 'final' && behind(lander) < 330, { max: 200, dt: 1 / 12 });
+    await T.shot('deck_final', 8.5, chaseCam(() => lander, 34, 8, 10, 60, 40, 10));
+    T.log('deck: after final, phase', lander.phase, lander.ds, 'behind', behind(lander).toFixed(0));
+    await T.until(() => lander.phase === 'rollout' || lander.phase === 'waveoff', { max: 30, dt: 1 / 12 });
+    T.log('deck: touchdown?', lander.phase, 'at', T.now.toFixed(1));
+    await T.shot('deck_trap', 9, rig([dp.x0 + 70, fdY + 6, -(dp.hw + 12)], () => [lander.x, lander.y + 1.5, lander.z], 34));
+    await T.until(() => lander.phase === 'taxiIn' || !T.w.planes.includes(lander), { max: 30, dt: 1 / 12 });
+    if (T.w.planes.includes(lander)) await T.shot('deck_down', 16, chaseCam(() => lander, 22, 7, 14, 6, 44, 6));
+    T.log('deck: done at', T.now.toFixed(0), 'ready', ship.air.ready);
+  },
+
   // ---- dive: dive bombers on a cruiser -----------------------------------------------------------------------------------
   async dive(T) {
     T.reset(33, 'noon', { clouds: 0.22, veil: 0.2 });
