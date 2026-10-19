@@ -88,12 +88,12 @@ export function breakInTwo(world, ship, cutX) {
     const longer = (isBow && !bowHeavy) || (!isBow && bowHeavy) ? 1 : 0;       // bow is longer when the cut is aft of centre
     return {
       sign, dx: 0, dy: 0, dz: 0,
-      vx: sign * (1.5 + rng() * 3) * Math.min(S, 2), vy: 2 + rng() * 5, vz: (rng() - 0.5) * 2,
+      vx: sign * (1.5 + rng() * 3) * Math.min(S, 2), vy: 0.3 + rng() * 1.3, vz: (rng() - 0.5) * 2,
       yaw: 0, pitch: 0, roll: 0, wp: sign * (0.15 + rng() * 0.25), wr: (rng() - 0.5) * 0.6, wy: (rng() - 0.5) * 0.12,
       // resting attitude: the broken ends point upwards while the section fills with water
       pitchT: isBow ? (0.25 + rng() * 0.45) * (longer ? 0.6 : 1) : -(0.2 + rng() * 0.45),
       rollT: (rng() < 0.5 ? -1 : 1) * (0.15 + rng() * 0.6),
-      buoy: longer ? 0.95 : 0.7, leak: longer ? 0.05 + rng() * 0.04 : 0.09 + rng() * 0.06,
+      buoy: longer ? 0.95 : 0.75, leak: longer ? 0.025 + rng() * 0.02 : 0.045 + rng() * 0.03,
     };
   };
   ship.split = { cut: cutX, t: 0, halves: [mk(1), mk(-1)] };

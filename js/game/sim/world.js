@@ -9,7 +9,7 @@ import { stepShell } from './ballistics.js';
 import { segmentNearShip, segmentHit, resolveShellHit, resolveTorpedoHit } from './damage.js';
 import { updateAir } from './aircraft.js';
 import { spawnPartDebris, stepDebris } from './debris.js';
-import { magazineExplosion, shipGone } from './explosions.js';
+import { magazineExplosion, shipGone, secondaryBlast, breakInTwo } from './explosions.js';
 
 const statsCache = new Map();
 function statsFor(spec) {
@@ -276,6 +276,8 @@ export class World {
   }
 
   magazineExplosion(ship, owner, where, mag) { magazineExplosion(this, ship, owner, where, mag); }
+  breakInTwo(ship, cutX) { breakInTwo(this, ship, cutX); }
+  secondaryBlast(ship, lx, ly, lz, size) { secondaryBlast(this, ship, lx, ly, lz, size); }
 
   onShipSunk(ship, killer, cause) {
     this.kills.push({ t: this.time, victim: ship, killer, cause });

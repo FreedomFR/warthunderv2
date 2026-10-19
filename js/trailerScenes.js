@@ -366,6 +366,22 @@ export const SCENES = {
     }
   },
 
+  // ---- sinktest: a development scene for the ways of sinking (?ship=cleveland&mode=roll|bow|stern|level|burn|blast|split) ------------------------------
+  async sinktest(T) {
+    const qs = new URLSearchParams(location.search), id = qs.get('ship') || 'cleveland', mode = qs.get('mode') || 'roll', secs = Number(qs.get('secs')) || 30;
+    T.reset(31, 'afternoon', { clouds: 0.25, veil: 0.2 });
+    const us = T.fleet(0, [{ id }], 0, 0, 90, { knots: 10 });
+    T.fleet(1, [{ id: 'iowa' }], 6000, 6000, 270, { knots: 10 });
+    T.go();
+    const ship = us[0];
+    await T.wait(8);
+    sail([ship], 8);
+    if (mode === 'split') { ship.destroy(null, 'structure'); ship.sinkMode = 'split'; T.w.breakInTwo(ship, 0); }
+    else { ship.destroy(null, 'shell'); ship.sinkMode = mode; ship.sinkStyle = mode; if (mode === 'burn') { ship.burnT = 25; for (let i = 0; i < 4; i++) ship.addFire((i - 1.5) * ship.stats.L * 0.18, 4, 0, 1.3); } }
+    const L = ship.stats.L;
+    await T.shot('sink', secs, mv.orbit(() => P3(ship, 4), 60, 150, L * 1.35, L * 1.1, 20, 26, 6, 46));
+  },
+
   // ---- end plate: the column against the setting sun ------------------------------------------------------------------------
   async end(T) {
     T.reset(72, 'dusk');
