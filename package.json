@@ -1,6 +1,6 @@
 {
   "name": "naval-combat-sim",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "WWII naval combat simulation on a real-time WebGPU ocean: real ships by nation and class, autonomous AI fleets.",
   "license": "MIT",
   "private": true,

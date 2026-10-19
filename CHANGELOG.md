@@ -1,35 +1,44 @@
 # Changelog
 
-## Unreleased — fleet tactics
+## 0.1.1 — air groups, gun audit, wakes and fleet tactics (19 October 2026)
+
+What changed since 0.1.0, in the order of the sections below (the newest first):
+**fleet tactics** (flagship, line in column, destroyer screen, carriers astern, common target); a **camera** that steps out when its ship is lost and a calmer automatic director;
+**masts that no longer float** (Belfast, Norfolk, Algérie, Fantasque); **ship wakes** redone (bow wave, waterline foam, screw wash, long fading wake); a **gun audit** (field of fire of every gun from
+the geometry of its ship, light AA arcs and elevation limits, mounts settled out of the superstructures, audit tools and tests); **liveries** checked against the published references (Italian recognition stripes,
+Kriegsmarine, Royal Navy and US Navy greys); **fighters** (escort, patrol, dogfights, rear gunners, bigger air groups and raids, least-defended approach, shelter under friendly guns);
+**carrier operations** (lifts, folding wings, take-off, landing circuit, arrestor wires, servicing); **cameras** for every bridge and aircraft; gunnery, shells, damage and sinking refinements.
+
+### fleet tactics
 
 - **The ships used to fight alone** (each picked its own target, circled the enemy at its own range in a random direction, and the carriers wandered off by themselves). A fleet now has an order of battle (`sim/fleet.js`): the flagship (heaviest of the line) leads, the line follows in column (battleships, heavy cruisers, light cruisers) at a gap that follows the lengths of the ships, the destroyers screen ahead and on both bows, the carriers sail behind the line on the side away from the enemy with two destroyers as escort. The whole fleet circles the enemy the same way (chosen when it is put on the water), at the range of the shortest-ranged ship of the line and at the speed of the slowest, and the line shoots at one target chosen for the fleet. A ship that is crippled (hull under 35 %, or short of power) leaves the formation and fights on her own; a destroyer on a torpedo run, a ship that is too close to the enemy and a carrier that is threatened break formation too. Ships of one fleet avoid each other only when really close (the old avoidance pushed them apart).
 - `spawnFleet` puts the ships in that order (it used to lay them out in rows by class).
 - In 18 simulated battles (six matches, three seeds) 17 finished against 17 before, in 1 293 s on average against 1 235 s; the fleets now sail in column (see `test/fleet.mjs`: the stations are held within a tenth of a tether, no hull touches another).
 
-## Unreleased — camera on a lost ship
+### camera on a lost ship
 
 - **Bridge camera on a ship that blows up or goes down**: the eye stayed on the bridge, in the fireball (a brown screen for ten seconds) or, on a capsizing ship, swung round the rolling hull while the horizon stayed level. The view now steps out to the outside (orbit) camera as soon as the ship is no longer afloat or has exploded; it goes back to the bridge of the next ship when the camera moves on.
 - **Automatic camera** (where it was seen, rarely): the cut to the deck of the ship an aircraft is attacking (the "victim" view) is no longer made from a ship that is going down, burning or smoking heavily (the screen was black or brown) nor when the aircraft is almost overhead (a blank sky); and the automatic director does not put the camera on the bridge of a ship that burns badly or is nearly lost. Measured on 480 frames of the automatic camera with ships blown up and sunk at random: 5 black or flat frames of 220 before, 1 of 260 after.
 - **The white slab on the sea at a magazine explosion**: the foam of the blast (a disc and an expanding ring, both persistent) covered the whole window of the foam map with a hard edge; the disc is smaller and the ring thinner and shorter-lived.
 
-## Unreleased — masts that floated
+### masts that floated
 
 - **Masts in the air** (seen on the *Belfast*: the legs of the aft tripod stopped short above the boat deck): the foot of every mast and of each leg of a tripod now stands on the roof under it (`lowerBase`, `shipbuilder.js`; `PT.tripod` takes the height of each foot). The same bug was on the *Norfolk* (aft tripod) and the *Algerie*. The *Fantasque* had its bridge tower, director and foremast 7 m too high (the tweak gave the height above the waterline where the code reads a height above the deck): `towerY0` and the foremast base are now 9.2.
 - `tools/audit/check.mjs` finds the clusters of structures that do not touch the deck or another structure (legs and struts of 0.15 m or more count as structures) and says how far they hang in the air.
 
-## Unreleased — wakes
+### wakes
 
 - **Ship wakes redone** (`addWakeStamps`, `render/effects.js`): they were hardly visible (a faint thin line behind a destroyer at 36 knots, nothing at the bow of a battleship) and the diverging arms were short bars. Now: a splash at the stem and a bank of foam along the first quarter of the hull (the bow wave), a line of foam at the waterline, white churned water behind the screws, the wake that breaks up over one to three lengths and a wide pale bed that stays on the sea, all scaled by the speed (a ship at a quarter of her speed marks the water little, at full speed she leaves a white road). The Kelvin arms are gone (they looked like detached hatched strips). Wakes last a little longer (decay 0.03 per second).
 - New trailer scene `wakes` (ships of every size at their own speed, from the stern, the bow, above, and in a turn). The foam is only laid for the ships within 1.4 km of the camera and kept for 512 m round it, so a scene has to keep the camera near the ships while they sail (`T.camFn` during the wait); the recorder needs `--q prelite=1` for the foam to be laid on every frame.
 
-## Unreleased — guns audit
+### guns audit
 
 - **Field of fire of every gun** (`model/clearance.js`): for each mount the model computes, bearing by bearing (3 degrees), the band of elevations at which the barrel clears the towers, funnels, masts, the house of the other mounts and the rising deck of the forecastle (`rec.clr`, `rec.clrHi`), and from it the arc the mount can be trained over (`arcMin` .. `arcMax`). The sim uses it: a gun does not train into a blind sector, does not fire through the superstructure, and a barrel that has to swing across a low obstacle rises over it, then comes back to the elevation of the shot. A mount whose centre is blocked rests in the middle of its widest free stretch. Casemates in the hull side are left out (they fire through their port).
 - **Light AA**: the same arcs; the aircraft it picks must be in its arc and between the lowest and the highest elevation the barrel can reach there (a gun in a sponson under the flight deck cannot rise; the Type 96 reaches 80 degrees, so an aircraft right above is safe from it). A mount with a blind sector is stopped by it instead of swinging through the tower. The dual-purpose guns are held to the maximum elevation of their gun and to their arcs when they choose an aircraft. Turrets can now depress 4 degrees, so a battleship shoots at a destroyer that is close (they used to be unable to fire below -0.8 degrees).
 - **Model bugs found by the audit**: the *Illustrious* had eight 4.5 in mounts on four spots (two on top of each other: the side came from the order of the list, now from the label); mounts that stood inside a deckhouse (*Cleveland*, *Takao*, *Yamato*, *Norfolk*, *La Galissonniere*, *Montecuccoli*, ...) now stand on its roof or beside it, and a mount that hung beside a wall has a pillar; the light AA that is not measured is placed last, away from boats, rafts, ventilators and walls, on something solid (a sponson of its own on a carrier, along the edge of the flight deck, instead of under it); boats slide along the deck away from guns; the two torpedo mounts that the sheet put at one station (*Norfolk*, *Algerie*) stand either side of the centre line and the tubes that were buried in a deckhouse take its roof; the 8.8 cm centre-line mount of the *Koln* no longer stands on turret B, the 120 mm star-shell mounts of the *Littorio* are outboard of the 90 mm line, a *Bearn* 75 mm no longer stands in the island, the *Graf Zeppelin* casemates are in pairs at the four corners (they were inside the island sponson).
 - `tools/audit/check.mjs` (buried, floating, overlapping and blocked mounts), `tools/audit/arcs.mjs` + `arcs.py` (a plan of the arcs of every ship), `test/mounts.mjs` (the same checks, and eight bearings of fire for five ships: every main mount fires and none trains outside its arc) and a test of the light AA in `test/airops.mjs`.
 
-## Unreleased — liveries
+### liveries
 
 - **Paints checked against the sources** (US Navy measures: Munsell values and reflectances; Royal Navy 507A/B/C; Kriegsmarine RAL cards): the palettes and plain paints that disagreed were corrected.
   - US Measure 32 dazzle: the three tones are now Navy Blue 5-N, Ocean Gray 5-O and Light Gray 5-L (reflectances 9, 17 and 35 %); the middle tone was a navy-blue that made the dazzle too dark and too contrasted.
@@ -41,7 +50,7 @@
 - **Bismarck**: turret tops in Dunkelgrau (RAL 7024), as on 24 May 1941. **Yamato**: the wood deck is stained black, as it was from Leyte Gulf (October 1944) and for the last sortie.
 - What could not be confirmed is listed in TODO.md (the pattern of the Yukikaze, the French greys and recognition marks, the German aircraft recognition marks on the decks, which are not drawn).
 
-## Unreleased — fighters
+### fighters
 
 - **Fighters** for each nation (F6F Hellcat, A6M Zero, Fulmar, Bf 109 T, D.520, MC.202: the dimensions of the real aircraft, the rest estimated): about a quarter of every air group (`air.fReady`; the
   bombers are `air.ready`). They come up on the lifts, never from the deck park.
@@ -77,7 +86,7 @@
   leg damps its lateral correction; the hold circle is bigger and banked more; the next aircraft turns in when the one ahead is 3.6 km from its touchdown point; an aircraft that floats past the first wires
   is waved off sooner. Landings are about twice as frequent when many aircraft come back together.
 
-## Unreleased — cameras
+### cameras
 
 - **Bridge view**: the eye used to sit 5 m ahead of the centre of the tower, on the centre line, where the foremast, its stays or a wall were in the way on most ships (and inside a block on the King George V, the
   Bismarck, the Takao and the carriers, which have no tower and looked from over the flight deck). The model now carries an eye (`model.bridge`: x, y, z) found by a search over the front of every tier of the
@@ -87,7 +96,7 @@
   `roll`); the propeller is not drawn from the pilot's seat (a frozen blade hid the view). The fly-past camera is narrower (30 degrees) and the victim camera's field of view follows the distance (8 to 50
   degrees) so that the aircraft is seen. Checked on the 12 types in the cruise and in the attack with the `planecams` scene.
 
-## Unreleased — deck operations
+### deck operations
 
 - **Lifts**: a launching aircraft that is not in the deck park comes up on a **lift**: the platform goes down, the aircraft rides up out of an open shaft in the deck (the lifts are now in the ship model:
   position and size of the painted squares), wings folded, then spreads them (the wings fold back about a hinge on the rear spar; the Japanese ones more steeply) and starts its engine: dark smoke from the
@@ -111,7 +120,7 @@
 - Aircraft models: the stray blade on every wing (an aileron quad that did not lie on the surface) is gone, the bars of the US insignia run along the span on the wings (they hung over the leading and trailing edges), the canopies are tapered and a lighter glass, the roundels no longer sink half into the sloping wing (or float above the gull wing of the LN.401 and Stuka).
 - Aircraft that run out of fuel in the circuit now ditch near the ship instead of flipping between return and circuit; the fuel of a strike is 900-1100 s.
 
-## Unreleased — air operations
+### air operations
 
 - **Strike formations**: a wave leaves in sections of three or four aircraft of one kind (dive bombers off the deck first), and each section flies to the enemy in formation behind its leader (a vee, the fourth aircraft in
   the middle astern, the leader going easy until the section has joined). The torpedo sections come in on **approach bearings of their own** (about 40 degrees apart) and each section attacks **line abreast**; the dive
@@ -124,7 +133,7 @@
 - **AA targeting**: the aircraft in their attack run or dive, and those going for the ship, come first; the dying ones last.
 - `strike` trailer scene to film a wave in formation and the torpedo sections coming in; `test/airops.mjs`.
 
-## Unreleased — gunnery
+### gunnery
 
 - **The shell is chosen against the target** (`shellChoice`): the expected damage per round of AP and of HE against where the target will be hit (belt, deck, upperworks), from the impact speed and fall angle at that range and
   the aspect of the target (beam-on or bow-on): AP where it gets through the plate and bursts inside, HE against destroyers (AP goes through without arming), against a bow-on battleship at long range (grazing angle, thick plate)
@@ -135,7 +144,7 @@
 - **Mounts with a target of their own**: a mount that cannot bear on its battery's target (out of its arc, out of range) picks an enemy it can engage (in its arc and range, valued by class, state and distance) and
   re-chooses every second or so, instead of staying idle; the secondary guns do the same.
 
-## Unreleased — shells
+### shells
 
 - **In flight**: the body of the shell is drawn when the camera is within 700 m (AP: dark ogive with a pale ballistic cap and a copper band; HE: blunter, with a fuze and a yellow band, 3.8 calibres long); the tracer
   streak is red-orange for armour-piercing and yellow-white for high explosive, with a bright head, doubled for the first half second while the gases still surround the shell; a thin vapour trail hangs behind it.
@@ -151,12 +160,12 @@
   calibre, angle, plate and effective thickness against penetration, result (PERCE, TRAVERSE SANS ÉCLATER, RICOCHET, NE PERCE PAS, ÉCLATE, SE BRISE) and damage. `hittest` trailer scene to stage a hit
   (`--q type=AP|HE --q angle=0..85 --q part=hull|deck|super|mount --q ship=iowa --q gun=yamato`).
 
-## Unreleased — scoreboard
+### scoreboard
 
 - **Tab** (held) or the "Tableau" button shows a live scoreboard: per team and per ship, ships sunk, aircraft shot down, shells fired, hits, accuracy, torpedoes (hits / launched), damage dealt, and state
   (hull % or how she was lost), sorted by kills, plus the last sinkings. Tab no longer selects the next ship (N / B / ] / [ still do). `Ship.torpFired` counts the torpedoes launched.
 
-## Unreleased — ways of sinking
+### ways of sinking
 
 - A ship now goes down in one of several ways, chosen when she is lost (`Ship.chooseSinkMode`): **capsizing** (strongly one-sided flooding, a torpedo: the hull rolls over, floats keel up for a while, then
   goes down), **by the bow** or **by the stern** (the trim from the flooding: up to 65 degrees), **settling** on an even keel (even flooding), **burning out** (lost to fire: dead in the water for 30-100 s,
@@ -165,7 +174,7 @@
 - Fixed: after a magazine explosion the two sections of a broken hull rose out of the water (up to 20 m): they now only hop a little, float on a buoyancy that falls with their leak, and go down.
 - `sinktest` trailer scene (`--q ship=baltimore --q mode=roll|bow|stern|level|burn|blast|split`) to look at a way of sinking; tests in `test/damage.mjs`.
 
-## Unreleased — finer meshes
+### finer meshes
 
 - Boxes of a metre or more (superstructure tiers, turret houses, deck blocks) have their vertical and roof edges chamfered (`DETAIL.bevel` in `meshbuilder.js`,
   10 % of the smallest dimension up to 0.5 m); big round parts (funnels, turret bases, barbettes, domes) have 1.75 times the segments (up to 40), gun barrels 1.6 times
