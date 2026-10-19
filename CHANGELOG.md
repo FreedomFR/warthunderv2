@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased — ways of sinking
+
+- A ship now goes down in one of several ways, chosen when she is lost (`Ship.chooseSinkMode`): **capsizing** (strongly one-sided flooding, a torpedo: the hull rolls over, floats keel up for a while, then
+  goes down), **by the bow** or **by the stern** (the trim from the flooding: up to 65 degrees), **settling** on an even keel (even flooding), **burning out** (lost to fire: dead in the water for 30-100 s,
+  cooking off ammunition with small explosions, then settling) and **blown apart** (magazine explosion: fast, wrecked). A long, battered ship whose neighbouring midships compartments are full
+  can **break her back** by herself. The ship panel says how she was lost.
+- Fixed: after a magazine explosion the two sections of a broken hull rose out of the water (up to 20 m): they now only hop a little, float on a buoyancy that falls with their leak, and go down.
+- `sinktest` trailer scene (`--q ship=baltimore --q mode=roll|bow|stern|level|burn|blast|split`) to look at a way of sinking; tests in `test/damage.mjs`.
+
 ## Unreleased — finer meshes
 
 - Boxes of a metre or more (superstructure tiers, turret houses, deck blocks) have their vertical and roof edges chamfered (`DETAIL.bevel` in `meshbuilder.js`,
