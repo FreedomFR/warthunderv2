@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased — finer meshes
+
+- Boxes of a metre or more (superstructure tiers, turret houses, deck blocks) have their vertical and roof edges chamfered (`DETAIL.bevel` in `meshbuilder.js`,
+  10 % of the smallest dimension up to 0.5 m); big round parts (funnels, turret bases, barbettes, domes) have 1.75 times the segments (up to 40), gun barrels 1.6 times
+  (up to 16); the hull has 150 stations (was 110) and 25 levels (was 15) for smoother flare and tumblehome. Triangles per ship: base 11 500 -> 16 700, close-up detail
+  5 600 -> 6 600. Frame rate unchanged on an RTX 3080 (60 fps at 1080p, quality high, 12 ships); build time 60-155 ms per ship.
+
 ## 0.1.0 — every ship and aircraft measured on plans (19 October 2026)
 
 All 30 ships and all the aircraft were compared with period drawings (ONI sheets, Commons drawings, plans shared by the project owner) in metres and corrected, in five
