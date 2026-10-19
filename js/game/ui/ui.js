@@ -71,6 +71,7 @@ export function createUI(game) {
     infoCard,
     h('div', { class: 'row' }, btnSpawn, btnStart),
     h('div', { class: 'hint' }, 'Faites apparaître les flottes pour les voir sur l\'eau, changez de caméra (1-7), puis lancez le combat : l\'IA pilote tous les navires.'),
+    h('div', { class: 'row' }, h('a', { class: 'btn small', href: 'wiki.html', target: '_blank', title: 'Fiches techniques et arbres par nation' }, 'Wiki des navires'), h('a', { class: 'btn small', href: 'viewer.html', target: '_blank', title: 'Voir chaque navire et avion en 3D' }, 'Visualiseur 3D')),
   );
 
   function ensureTeams() {

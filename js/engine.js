@@ -867,7 +867,7 @@ export async function createEngine(canvas, options = {}) {
       if (hooks.preMain) hooks.preMain(enc);
       const rp = enc.beginRenderPass(mainPass);
       if (hooks.drawOpaque) hooks.drawOpaque(rp);
-      if (nodeCount && qs.get('ocean') !== '0') {      // ?ocean=0: model previews without the sea (much faster on a software rasteriser)
+      if (nodeCount && engine.showOcean) {      // ?ocean=0: model previews without the sea (much faster on a software rasteriser); the 3D viewer toggles it
         rp.setPipeline(oceanPipe);
         rp.setBindGroup(0, bgOcean[foamCur]);
         rp.setVertexBuffer(0, instBuf);
@@ -994,6 +994,8 @@ export async function createEngine(canvas, options = {}) {
 
   const engine = {
     device, canvas, P, qs, cam, hooks, water, foam, shadow, stats, hasTS, offscreen,
+    /** draw the ocean surface (off: sky only) */
+    showOcean: qs.get('ocean') !== '0',
     /** shared GPU resources for game pipelines (same pass layout as the ocean) */
     gpu: {
       device, HDR, DEPTH, MSAA, swapFormat, frameUBO, transView, skyView, sampClamp, sampRepeat, envCubeView, sunVisBuf,

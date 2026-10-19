@@ -1,0 +1,238 @@
+// Data adapter of the wiki: reads the same spec sheets as the game (js/game/data, js/game/model/planes.js) and turns them into
+// display records (French labels, number formatting, tiers, statistic sections). Nothing is copied: the wiki never goes out of date.
+import { ALL_SHIPS, BY_ID, NATIONS, TYPES, typeName } from '../game/data/ships.js';
+import { PLANES, floatplaneSpec, planeTypeFor } from '../game/model/planes.js';
+import { shipName, ROLE_NAMES } from '../viewer/subjects.js';
+import { tierOf } from './tiers.js';
+
+export { NATIONS, TYPES, typeName, shipName, ROLE_NAMES };
+
+// ---- number formatting (French) ----
+const fmts = new Map();
+export function fr(n, d = 1) {
+  if (n == null || Number.isNaN(n)) return '—';
+  let f = fmts.get(d);
+  if (!f) { f = new Intl.NumberFormat('fr-FR', { maximumFractionDigits: d }); fmts.set(d, f); }
+  return f.format(n).replace(/ /g, ' ');
+}
+const NB = ' ';
+const unit = (n, u, d = 1) => (n == null ? '—' : `${fr(n, d)}${NB}${u}`);
+
+// ---- ships ----
+// Classes that never entered service: the year shown is the launch (or conversion) year.
+const UNFINISHED = {
+  graf_zeppelin: { year: 1938, label: 'lancé en 1938', note: 'Lancé le 8 décembre 1938, achevé à environ 85 %, jamais mis en service.' },
+  aquila: { year: 1943, label: 'conversion de 1943', note: 'Paquebot Roma transformé en porte-avions (1941-43), jamais achevé.' },
+};
+
+const YEARLESS = 1940;
+
+/** Display record of one ship. */
+function makeRecord(spec) {
+  const u = UNFINISHED[spec.id];
+  const year = u ? u.year : spec.commissioned ?? YEARLESS;
+  return {
+    id: spec.id, spec, nation: spec.nation, type: spec.type, name: shipName(spec.id),
+    year, yearLabel: u ? u.label : String(year), unfinished: !!u, unfinishedNote: u ? u.note : '',
+    tier: tierOf(year),
+  };
+}
+
+export const SHIPS = ALL_SHIPS.map(makeRecord);
+export const SHIP = Object.fromEntries(SHIPS.map((r) => [r.id, r]));
+export const nationShips = (nation) => SHIPS.filter((r) => r.nation === nation);
+export const nationInfo = (id) => NATIONS.find((n) => n.id === id);
+export const nationBySlug = (s) => NATIONS.find((n) => n.id.toLowerCase() === s);
+
+/** Largest values over the whole roster, for the relative bars of the cards. */
+export const MAXIMA = {
+  disp: Math.max(...ALL_SHIPS.map((s) => s.displacementStd)),
+  loa: Math.max(...ALL_SHIPS.map((s) => s.loa)),
+  speed: Math.max(...ALL_SHIPS.map((s) => s.speedKn)),
+  caliber: Math.max(...ALL_SHIPS.map((s) => s.main.caliberMm)),
+  guns: Math.max(...ALL_SHIPS.map((s) => s.main.gunsTotal)),
+  belt: Math.max(...ALL_SHIPS.map((s) => s.armour.beltMm || 0)),
+  crew: Math.max(...ALL_SHIPS.map((s) => s.crew)),
+};
+
+/** The few figures shown as bars at the top of a ship card. */
+export function bars(rec) {
+  const s = rec.spec;
+  return [
+    { label: 'Déplacement', v: s.displacementStd / MAXIMA.disp, text: unit(s.displacementStd, 't', 0) },
+    { label: 'Longueur', v: s.loa / MAXIMA.loa, text: unit(s.loa, 'm') },
+    { label: 'Vitesse', v: s.speedKn / MAXIMA.speed, text: unit(s.speedKn, 'nœuds') },
+    { label: 'Calibre principal', v: s.main.caliberMm / MAXIMA.caliber, text: unit(s.main.caliberMm, 'mm', 0) },
+    { label: 'Canons principaux', v: s.main.gunsTotal / MAXIMA.guns, text: fr(s.main.gunsTotal, 0) },
+    { label: 'Ceinture blindée', v: (s.armour.beltMm || 0) / MAXIMA.belt, text: s.armour.beltMm ? unit(s.armour.beltMm, 'mm', 0) : 'aucune' },
+  ];
+}
+
+// ---- helpers for the statistic sections ----
+const GUN_NAMES = ['', 'simple', 'double', 'triple', 'quadruple', 'quintuple', 'sextuple'];
+const plural = (n, one, many) => (n > 1 ? many : one);
+
+/** "3 affûts triples", "2 affûts doubles + 1 affût simple" from a list of { guns } or counts. */
+export function describeMounts(list) {
+  const by = new Map();
+  for (const m of list) by.set(m.guns, (by.get(m.guns) || 0) + (m.n || 1));
+  return [...by.entries()].sort((a, b) => b[0] - a[0]).map(([g, n]) => `${n}${NB}${plural(n, 'affût', 'affûts')} ${GUN_NAMES[g] || g + ' canons'}${n > 1 ? 's' : ''}`).join(' + ');
+}
+
+/** Was this value flagged as estimated in the spec sheet? ("armour" marks the whole block, "main.reloadSecPerGun" one field) */
+export function isEstimated(spec, path) {
+  return (spec.estimated || []).some((e) => {
+    const t = (e.match(/^[A-Za-z0-9_.*[\]]+/) || [''])[0].replace(/\[[^\]]*\]/g, '');
+    return t === path || path.startsWith(t + '.');
+  });
+}
+
+const row = (spec, k, v, path) => ({ k, v, est: path ? isEstimated(spec, path) : false });
+
+/** Statistic sections of a ship card: [{ id, title, rows: [{ k, v, est }] }]. Empty rows are left out. */
+export function shipSections(rec) {
+  const s = rec.spec, sec = [];
+  const add = (id, title, rows) => { rows = rows.filter(Boolean).filter((r) => r.v != null && r.v !== ''); if (rows.length) sec.push({ id, title, rows }); };
+
+  add('id', 'Identité', [
+    row(s, 'Classe', s.className),
+    row(s, 'Navire de référence', s.refShip),
+    row(s, rec.unfinished ? 'Statut' : 'Mise en service', rec.unfinished ? rec.unfinishedNote : String(rec.year)),
+    row(s, 'Ère', `${rec.tier.roman} · ${rec.tier.name} (${rec.tier.years})`),
+    s.classShips && s.classShips.length ? row(s, 'Navires de la classe', `${s.classShips.length}${NB}: ${s.classShips.slice(0, 4).join(', ')}${s.classShips.length > 4 ? '…' : ''}`) : null,
+  ]);
+
+  add('dim', 'Dimensions', [
+    row(s, 'Longueur hors tout', unit(s.loa, 'm'), 'loa'),
+    row(s, 'Longueur à la flottaison', unit(s.lwl, 'm'), 'lwl'),
+    row(s, 'Largeur', unit(s.beam, 'm'), 'beam'),
+    s.beamWaterline && Math.abs(s.beamWaterline - s.beam) > 0.5 ? row(s, 'Largeur à la flottaison', unit(s.beamWaterline, 'm'), 'beamWaterline') : null,
+    row(s, 'Tirant d\'eau', unit(s.draft, 'm'), 'draft'),
+    row(s, 'Déplacement standard', unit(s.displacementStd, 't', 0), 'displacementStd'),
+    row(s, 'Déplacement en charge', unit(s.displacementFull, 't', 0), 'displacementFull'),
+    s.flightDeckLength ? row(s, 'Pont d\'envol', `${fr(s.flightDeckLength, 0)}${NB}m × ${fr(s.flightDeckWidth, 1)}${NB}m`, 'flightDeckLength') : null,
+  ]);
+
+  add('prop', 'Propulsion et équipage', [
+    row(s, 'Vitesse maximale', `${fr(s.speedKn)}${NB}nœuds (${fr(s.speedKn * 1.852, 0)}${NB}km/h)`, 'speedKn'),
+    row(s, 'Puissance', unit(s.shp, 'ch d\'arbre (shp)', 0), 'shp'),
+    row(s, 'Rayon d\'action', unit(s.rangeNm, 'milles marins', 0), 'rangeNm'),
+    row(s, 'Équipage', unit(s.crew, 'hommes', 0), 'crew'),
+  ]);
+
+  const m = s.main;
+  add('main', s.type === 'CV' ? 'Artillerie (double emploi)' : 'Artillerie principale', [
+    row(s, 'Canons', `${fr(m.gunsTotal, 0)}${NB}× ${fr(m.caliberMm, 1)}${NB}mm (L/${fr(m.boreCalibers, 0)})`),
+    row(s, 'Disposition', describeMounts(m.mounts)),
+    row(s, 'Obus', unit(m.shellKg, 'kg', 0)),
+    row(s, 'Vitesse initiale', unit(m.muzzleVelocityMs, 'm/s', 0)),
+    row(s, 'Portée maximale', `${fr(m.maxRangeM / 1000, 1)}${NB}km`, 'main.maxRangeM'),
+    row(s, 'Élévation maximale', `${fr(m.maxElevationDeg, 0)}°`),
+    row(s, 'Cadence', `${fr(60 / m.reloadSecPerGun, 1)}${NB}coups/min par canon`, 'main.reloadSecPerGun'),
+    row(s, 'Rotation des tourelles', `${fr(m.trainRateDegS, 1)}°/s`, 'main.trainRateDegS'),
+  ]);
+
+  const secRows = [];
+  for (const sc of s.secondary || []) {
+    const many = s.secondary.length > 1;
+    secRows.push(
+      row(s, many ? `Canons de ${fr(sc.caliberMm, 1)}${NB}mm` : 'Canons', `${fr(sc.mounts * sc.gunsPerMount, 0)}${NB}× ${fr(sc.caliberMm, 1)}${NB}mm (L/${fr(sc.boreCalibers, 0)}), ${sc.mounts}${NB}${plural(sc.mounts, 'affût', 'affûts')} ${GUN_NAMES[sc.gunsPerMount] || ''}${sc.mounts > 1 ? 's' : ''}`),
+      row(s, many ? `Portée (${fr(sc.caliberMm, 1)}${NB}mm)` : 'Portée maximale', `${fr(sc.maxRangeM / 1000, 1)}${NB}km`),
+      row(s, many ? `Obus (${fr(sc.caliberMm, 1)}${NB}mm)` : 'Obus', unit(sc.shellKg, 'kg', 0)));
+  }
+  add('sec', 'Artillerie secondaire', secRows);
+
+  if (s.torpedoes) {
+    const t = s.torpedoes;
+    add('torp', 'Torpilles', [
+      row(s, 'Tubes', `${fr(t.tubes, 0)}${NB}× ${fr(t.caliberMm, 0)}${NB}mm`),
+      row(s, 'Vitesse', unit(t.speedKn, 'nœuds', 0)),
+      row(s, 'Portée', `${fr(t.rangeM / 1000, 1)}${NB}km`),
+      row(s, 'Charge explosive', unit(t.warheadKg, 'kg', 0)),
+    ]);
+  }
+
+  if (s.aircraft) {
+    add('air', s.type === 'CV' ? 'Groupe aérien' : 'Hydravions', [
+      row(s, s.type === 'CV' ? 'Capacité' : 'Hydravions embarqués', `${fr(s.aircraft.capacity, 0)}${NB}${plural(s.aircraft.capacity, 'appareil', 'appareils')}`, 'aircraft.capacity'),
+      row(s, 'Catapultes', fr(s.aircraft.catapults, 0)),
+    ]);
+  }
+
+  const a = s.armour;
+  const mm = (v) => (v ? unit(v, 'mm', 0) : 'non blindé');
+  add('armour', 'Protection', [
+    row(s, 'Ceinture', mm(a.beltMm), 'armour.beltMm'),
+    row(s, 'Pont blindé', mm(a.deckMm), 'armour.deckMm'),
+    row(s, 'Tourelles (face)', mm(a.turretFaceMm), 'armour.turretFaceMm'),
+    row(s, 'Tourelles (côtés)', mm(a.turretSideMm), 'armour.turretSideMm'),
+    row(s, 'Poste de commandement', mm(a.conningTowerMm), 'armour.conningTowerMm'),
+  ]);
+
+  const sil = s.silhouette, fun = sil && sil.funnels;
+  const mastTop = sil && sil.masts && sil.masts.length ? Math.max(...sil.masts.map((x) => x.heightAboveWaterM)) : null;
+  add('sil', 'Silhouette', [
+    fun ? row(s, 'Cheminées', `${fun.count}${NB}(${fr(fun.heightAboveDeckM, 1)}${NB}m au-dessus du pont)`) : null,
+    mastTop ? row(s, 'Mât le plus haut', unit(mastTop, 'm au-dessus de l\'eau')) : null,
+    sil && sil.island ? row(s, 'Îlot', `à ${sil.island.side === 'starboard' ? 'tribord' : 'bâbord'}, ${fr(sil.island.lengthM, 0)}${NB}m de long`) : null,
+  ]);
+
+  return sec;
+}
+
+/** Texts of the spec sheet that exist only in English (sources notes): shown apart, in a folded block. */
+export function sheetNotes(rec) {
+  const s = rec.spec, out = [];
+  if (s.silhouette && s.silhouette.distinctive) out.push(['Traits distinctifs', s.silhouette.distinctive]);
+  if (s.aa) out.push(['Défense antiaérienne', s.aa]);
+  if (s.armour && s.armour.magazineNote) out.push(['Blindage', s.armour.magazineNote]);
+  if (s.main && s.main.penetrationNote) out.push(['Artillerie principale', s.main.penetrationNote]);
+  if (s.torpedoes && s.torpedoes.type) out.push(['Torpilles', s.torpedoes.type]);
+  if (s.aircraft && s.aircraft.notes) out.push(['Aviation', s.aircraft.notes]);
+  if (s.measured) out.push(['Relevé du modèle 3D', s.measured]);
+  return out;
+}
+
+/** Sources of the spec sheet: [{ text, href? }]. */
+export function sourcesOf(rec) {
+  return (rec.spec.sources || []).map((t) => (/^https?:\/\//.test(t) ? { text: t.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, ''), href: t } : { text: t }));
+}
+
+// ---- aircraft ----
+export function aircraftRecords() {
+  const out = [];
+  for (const [id, p] of Object.entries(PLANES)) out.push(makeAircraft('plane:' + id, p));
+  for (const n of NATIONS) out.push(makeAircraft('float:' + n.id, floatplaneSpec(n.id)));
+  return out;
+}
+
+function makeAircraft(key, spec) {
+  let users = [];
+  if (key.startsWith('plane:')) {
+    const k = key.slice(6);
+    users = SHIPS.filter((r) => r.nation === spec.nation && r.type === 'CV').filter((r) => ['dive', 'torp', 'fighter'].some((role) => planeTypeFor(spec.nation, role) === k));
+  } else {
+    users = SHIPS.filter((r) => r.nation === spec.nation && r.type !== 'CV' && r.spec.aircraft && r.spec.aircraft.capacity > 0 && r.type !== 'DD');
+  }
+  return { key, id: key, spec, nation: spec.nation, name: spec.name, role: spec.role, roleName: ROLE_NAMES[spec.role] || spec.role, users };
+}
+
+export const AIRCRAFT = aircraftRecords();
+export const AIRCRAFT_BY_KEY = Object.fromEntries(AIRCRAFT.map((a) => [a.key, a]));
+
+export function aircraftSections(a) {
+  const s = a.spec;
+  const rows = [
+    ['Nation', NATIONS.find((n) => n.id === s.nation).name],
+    ['Rôle', a.roleName],
+    ['Configuration', s.kind === 'bi' ? 'biplan' : 'monoplan'],
+    ['Longueur', unit(s.L, 'm', 2)],
+    ['Envergure', unit(s.span, 'm', 2)],
+    s.mass ? ['Masse (modèle du jeu)', unit(s.mass, 't')] : null,
+    s.bombKg ? ['Charge', `une bombe de ${fr(s.bombKg, 0)}${NB}kg`] : (s.role === 'torp' ? ['Charge', 'une torpille'] : null),
+    s.role === 'fighter' ? ['Armement', 'mitrailleuses d\'aile et de capot (traçantes)'] : null,
+    s.siren ? ['Particularité', 'sirène « trompettes de Jéricho » en piqué'] : null,
+    a.users.length ? [s.role === 'float' ? 'Embarqué sur' : 'Porte-avions', a.users.map((r) => r.name).join(', ')] : null,
+  ].filter(Boolean);
+  return [{ id: 'air', title: 'Caractéristiques', rows: rows.map(([k, v]) => ({ k, v, est: false })) }];
+}
