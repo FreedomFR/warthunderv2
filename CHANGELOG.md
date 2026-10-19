@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased — sinking and camera fixes
+
+- **A ship that was listing, trimmed or sagging stood up and rose out of the water when a torpedo finished her**: the trim (up to 12 degrees by the bow or stern) and the sag of a flooded hull (2-3 m) were applied only while she was afloat, so both vanished in one frame at the moment she was lost, and the sinking then started from an upright ship. They now ease out (a few seconds for the trim, about ten for the sag) while the sinking motion takes over. Two related jumps are gone too: a hit on the other side no longer reverses the way she capsizes (`listSide` is kept once she is lost, and she goes over to the side she was already leaning to), and a hull that breaks in two while it sinks goes on from the depth it had instead of coming back to the surface. `test/damage.mjs` finishes three flooded ships with a torpedo from the other side and checks that the pose changes by no more than a few centimetres a tick and that the roll keeps its direction.
+- **Camera swept through the hull when the ship under it was lost just after a cut to her bridge**: the automatic director cuts to the bridge of a ship and, a moment later, she blows up or capsizes; the bridge view then turned into the outside view without a cut and the camera flew from the bridge to 450 m out through the hull and the fireball, swinging round by 160 degrees. A change between the bridge view and any other, whatever the cause, is now a cut.
+
 ## Unreleased — islands
 
 - **Islands of every size and height**: rocks (45-150 m of radius, 7-38 m high), small hilly islands (260-760 m, up to 120 m) and large mountainous ones (1.1-2.3 km, up to 560 m, some with a crater), lobed and stretched coasts, a shelf that falls 12 m for every 100 m. They are generated from the seed (`sim/terrain.js`: one analytic height field per island, sampled on a grid for the simulation) with the fleets' start and the axis between them kept clear; the menu has a selector (none / a few / archipelago) and `?islands=0|1|2`. Each island has a biome (green, arid, rock, volcanic).
