@@ -5,7 +5,7 @@
 import { clamp, wrapPi, approach, D2R, G } from '../math.js';
 import { planeTypeFor, PLANES, groundY, GROUND_PITCH, hookBack } from '../model/planes.js';
 import { AA, FLAK_RANGE } from './aadata.js';
-import { clearElev, clearMax } from '../model/clearance.js';
+import { clearElev, clearMax, inArcRel } from '../model/clearance.js';
 import { chooseApproach, aaSources, density, refugeShip } from './routing.js';
 import { fighterSteer, fighterFields, bomberDefense, markHunted, FIGHT_PHASES } from './fighters.js';
 import { deckOf, planLaunch, settleService, beginRecovery, launching, stepDeck, stepDeckShip, touchdown, clearToLand, deckClearFor, DECK_PHASES } from './deck.js';
@@ -715,7 +715,7 @@ function planeThreats(world, ship) {
 function aaAim(ship, a, p, cfg, lead) {
   const w = ship.toWorld(a.rec.x, a.rec.y + 1.2, a.rec.z, _w);
   const dx = p.x + p.vx * lead - w[0], dy = p.y + p.vy * lead - w[1], dz = p.z + p.vz * lead - w[2];
-  const rel = wrapPi(Math.atan2(dx, -dz) - ship.heading - a.rec.yaw0), elev = Math.atan2(dy, Math.hypot(dx, dz));
+  const rel = inArcRel(a.rec, wrapPi(Math.atan2(dx, -dz) - ship.heading - a.rec.yaw0)), elev = Math.atan2(dy, Math.hypot(dx, dz));
   return { rel, elev, dx, dy, dz, ok: aaCan(a.rec, rel, elev, cfg) };
 }
 
@@ -729,7 +729,7 @@ function aaCan(rec, rel, elev, cfg) {
 function flakCan(ship, m, p) {
   const w = ship.toWorld(m.rec.x, m.rec.y + 1.2, m.rec.z, _w);
   const dx = p.x + p.vx * 2.2 - w[0], dy = p.y + p.vy * 2.2 - w[1], dz = p.z + p.vz * 2.2 - w[2];
-  const rel = wrapPi(Math.atan2(dx, -dz) - ship.heading - m.rec.arcC), e = Math.atan2(dy, Math.hypot(dx, dz));
+  const rel = inArcRel(m.rec, wrapPi(Math.atan2(dx, -dz) - ship.heading - m.rec.arcC)), e = Math.atan2(dy, Math.hypot(dx, dz));
   if (m.rec.noArc || rel < m.rec.arcMin || rel > m.rec.arcMax) return false;
   const phi = m.rec.arcC + rel, lo = clearElev(m.rec, phi);
   return e >= (lo > 0.001 ? lo : -0.2) && e <= Math.min(m.gun.maxElevDeg * D2R, clearMax(m.rec, phi));
@@ -780,12 +780,12 @@ function updateAA(world, dt) {
       const want = Math.atan2(dx, -dz) - ship.heading - a.rec.yaw0;
       const elevWant = Math.atan2(dy, hd), full = a.rec.arcMax - a.rec.arcMin > 6.2;
       // a mount with a free circle takes the short way round; one with a blind sector is stopped by it (it cannot swing through the tower)
-      const trainTo = full ? a.train + wrapPi(want - a.train) : clamp(wrapPi(want), a.rec.arcMin, a.rec.arcMax);
+      const trainTo = full ? a.train + wrapPi(want - a.train) : clamp(inArcRel(a.rec, wrapPi(want)), a.rec.arcMin, a.rec.arcMax);
       a.train += clamp(trainTo - a.train, -cfg.turn * D2R * dt, cfg.turn * D2R * dt);
       a.elev += clamp(clamp(elevWant, -0.2, cfg.elevMax * D2R) - a.elev, -cfg.turn * D2R * dt, cfg.turn * D2R * dt);
       const dist = Math.hypot(dx, dy, dz);
       if (dist > cfg.range) continue;
-      if (!aaCan(a.rec, wrapPi(want), elevWant, cfg)) continue;        // it follows the aircraft as far as it can, but cannot fire
+      if (!aaCan(a.rec, inArcRel(a.rec, wrapPi(want)), elevWant, cfg)) continue;        // it follows the aircraft as far as it can, but cannot fire
       const aligned = Math.abs(wrapPi(want - a.train)) < 0.12;
       if (!aligned) continue;
       // the rounds that reach the aircraft
@@ -826,7 +826,7 @@ function updateAA(world, dt) {
       const dx = p.x + p.vx * 2.2 - w[0], dy = p.y + p.vy * 2.2 - w[1], dz = p.z + p.vz * 2.2 - w[2];
       const hd = Math.hypot(dx, dz), dist = Math.hypot(dx, dy, dz);
       const bearing = Math.atan2(dx, -dz);
-      const rel = wrapPi(bearing - ship.heading - m.rec.arcC);
+      const rel = inArcRel(m.rec, wrapPi(bearing - ship.heading - m.rec.arcC));
       const needElev = Math.atan2(dy, hd), phi = m.rec.arcC + clamp(rel, m.rec.arcMin, m.rec.arcMax);
       // the arc the mount can be trained over (towers and other mounts are in the way elsewhere), and the elevations it can reach there
       const inArc = !m.rec.noArc && rel >= m.rec.arcMin && rel <= m.rec.arcMax && needElev <= Math.min(m.gun.maxElevDeg * D2R, clearMax(m.rec, phi)) && needElev >= (clearElev(m.rec, phi) > 0.001 ? clearElev(m.rec, phi) : -0.2);

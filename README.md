@@ -220,7 +220,8 @@ moteurs d'avions avec effet Doppler, sirène du Stuka en piqué, avion qui tombe
   corresponde à la portée réelle de chaque canon ; tables de tir inversées ; temps de vol réels (≈ 34 s à 20 km
   pour un 406 mm).
 - **Conduite de tir** : anticipation du mouvement de la cible *et* du navire tireur, tourelles qui tournent à leur
-  vitesse réelle dans leurs secteurs de tir, dispersion qui diminue salve après salve (réglage par observation des
+  vitesse réelle dans leurs secteurs de tir (calculés sur la géométrie du navire : un canon ne tire pas à travers la
+  passerelle ni une cheminée, relève le tube pour passer au-dessus d'un obstacle bas, et la DCA sous un pont d'envol ne peut pas se lever), dispersion qui diminue salve après salve (réglage par observation des
   gerbes), précision dégradée en virage.
 - **Dégâts** : obliquité et pénétration face au blindage (ceinture, pont, tourelles), obus AP ou explosifs, incendies,
   voies d'eau et gîte, tourelles détruites, avaries de machines et de gouvernail, explosions de soute, naufrage

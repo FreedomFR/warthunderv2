@@ -193,3 +193,10 @@ export function pathClear(rec, a, b) {
   for (let i = 0; i <= n; i++) hi = Math.max(hi, clearElev(rec, rec.arcC + a + (b - a) * i / n));
   return hi;
 }
+
+/** `rel` (rad, wrapped to +-pi) taken round the circle into the arc of the mount when the arc runs across the back (an arc of -111..180 holds -177 as 183). */
+export function inArcRel(rec, rel) {
+  if (rel < rec.arcMin && rel + 2 * Math.PI <= rec.arcMax + 1e-6) return rel + 2 * Math.PI;
+  if (rel > rec.arcMax && rel - 2 * Math.PI >= rec.arcMin - 1e-6) return rel - 2 * Math.PI;
+  return rel;
+}
