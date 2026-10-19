@@ -87,6 +87,7 @@ export class Ship {
         rec, idx: i, group: rec.group, gun, n: rec.n,
         trainRel: 0, elev: 0, reload: world.rng.range(0, gun.reload * 0.6),
         hp, maxHp: hp, alive: true, jam: 0, noAmmo: false,
+        ammo: { AP: Math.round(gun.rpg * rec.n * gun.apShare), HE: gun.rpg * rec.n - Math.round(gun.rpg * rec.n * gun.apShare) }, ammo0: gun.rpg * rec.n, loaded: null, alt: null, altT: 0,
         recoil: 0, aimOk: false, target: null, flash: 0, airTarget: null,
         trunnion: null, mount: null,
       };
@@ -116,6 +117,17 @@ export class Ship {
   }
 
   get alive() { return this.state === 'afloat'; }
+  /** shells left in the magazines of a battery ('main' | 'sec'): { AP, HE, frac } (frac of what the guns started with, working mounts only) */
+  ammoLeft(group = 'main') {
+    let AP = 0, HE = 0, all = 0;
+    for (const m of this.mounts) {
+      if (m.group !== group) continue;
+      all += m.ammo0;
+      if (m.noAmmo && m.ammo.AP + m.ammo.HE > 0 && !m.alive) continue;
+      AP += m.ammo.AP; HE += m.ammo.HE;
+    }
+    return { AP, HE, frac: all ? (AP + HE) / all : 0 };
+  }
   get hpFrac() { return this.hp / this.stats.maxHp; }
   get forwardX() { return Math.sin(this.heading); }
   get forwardZ() { return -Math.cos(this.heading); }

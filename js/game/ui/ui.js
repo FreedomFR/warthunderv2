@@ -425,6 +425,7 @@ export function createUI(game) {
         h('span', {}, 'Vitesse'), h('b', {}, `${(s.speed / KN).toFixed(0)} nœuds${s.propulsion < 0.95 ? ` (machines ${Math.round(s.propulsion * 100)} %)` : ''}`),
         h('span', {}, 'Cap'), h('b', {}, `${((s.heading * R2D % 360 + 360) % 360).toFixed(0)}°`),
         h('span', {}, 'Artillerie'), h('b', {}, `${mainAlive}/${mainMounts.length} tourelles, ${ready} prêtes${jam ? `, ${jam} enrayée${jam > 1 ? 's' : ''}` : ''}`),
+        h('span', {}, 'Obus (principale)'), h('b', {}, (() => { const a = s.ammoLeft('main'); return `${a.AP} AP · ${a.HE} HE (${Math.round(a.frac * 100)} %)`; })()),
         h('span', {}, 'Cible'), h('b', {}, target && target.alive ? `${target.name} (${(Math.hypot(target.x - s.x, target.z - s.z) / 1000).toFixed(1)} km)` : '—'),
         h('span', {}, 'Machines'), h('b', {}, okOf('engine') || '—'),
         h('span', {}, 'Gouvernail'), h('b', {}, s.rudderDead ? 'détruit' : s.rudderJam ? 'bloqué' : 'normal'),

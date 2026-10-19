@@ -74,6 +74,28 @@ function neutral(m, dt) {
   m.elev = approach(m.elev, 0, rate);
 }
 
+const TYPE_VALUE = { DD: 1.0, CL: 1.3, CA: 1.8, BB: 2.5, CV: 2.3 };
+
+/** Can mount `m` engage `target` now: a firing solution, the range, the sight and, above all, a bearing inside the mount's arc? Fills `out`. */
+function feasible(ship, m, target, out) {
+  if (!target || !target.alive) return false;
+  if (!mountSolution(ship, m, target, out)) return false;
+  if (out.range > m.gun.maxRange * 0.97 || out.range > ship.stats.visualRange) return false;
+  return Math.abs(wrapPi(out.bearing - ship.heading - m.rec.arcC)) <= m.rec.arcH + 2 * D2R;
+}
+
+const _alt = {};
+/** The best enemy that mount `m` can engage on its own: in its arc and range, valued by class, state and distance. */
+function pickAlt(world, ship, m) {
+  let best = null, bs = 0;
+  for (const e of world.enemiesOf(ship)) {
+    if (!feasible(ship, m, e, _alt)) continue;
+    const s = TYPE_VALUE[e.stats.type] * (1 + (1 - e.hpFrac) * 0.9) / (0.35 + _alt.range / (m.gun.maxRange * 0.93));
+    if (s > bs) { bs = s; best = e; }
+  }
+  return best;
+}
+
 export function updateGunnery(ship, world, dt) {
   const cmd = ship.cmd;
   let anyMainTarget = false;
@@ -91,23 +113,20 @@ export function updateGunnery(ship, world, dt) {
     let target = grp.target;
     // manual control: aim at a ground point when no ship is locked
     if (!target && grp.aim) target = pseudoTarget(grp.aim);
-    if (m.group === 'sec' || (target && !target.alive)) {
-      // secondary mounts choose their own target (nearest in range and arc); main falls back to idle
-      m.retarget = (m.retarget || 0) - dt;
-      if (m.group === 'sec' && (m.retarget <= 0 || !m.target || !m.target.alive)) {
-        m.retarget = 1.2 + world.rng() * 0.8;
-        m.target = grp.target && grp.target.alive ? grp.target : world.nearestEnemy(ship, m.gun.maxRange * 0.9);
-      }
-      if (m.group === 'sec') target = m.target;
-    }
-    if (!target || !target.alive || !grp.fire) { neutral(m, dt); m.aimOk = false; continue; }
-    if (!mountSolution(ship, m, target, sol)) { neutral(m, dt); m.aimOk = false; continue; }
-    if (sol.range > m.gun.maxRange * 0.97 || sol.range > ship.stats.visualRange) { neutral(m, dt); m.aimOk = false; continue; }
-    const ok = slew(m, sol.bearing, sol.elev, ship.heading, dt);
-    m.aimOk = ok;
+    // the battery's target when this mount can bear on it; otherwise (behind the superstructure, out of its arc, out of range, or the battery
+    // has none) the mount picks an enemy of its own: the sectors of a ship fighting on both sides are never idle
+    let ok = !!(target && target.alive && grp.fire) && feasible(ship, m, target, sol);
+    if (!ok && grp.fire && !(grp.aim && !grp.target)) {
+      m.altT = (m.altT || 0) - dt;
+      if (m.altT <= 0 || !m.alt || !m.alt.alive) { m.altT = 1.0 + world.rng() * 0.7; m.alt = pickAlt(world, ship, m); }
+      if (m.alt && feasible(ship, m, m.alt, sol)) { target = m.alt; ok = true; }
+    } else if (ok) m.alt = null;
+    if (!ok) { neutral(m, dt); m.aimOk = false; continue; }
+    const aligned = slew(m, sol.bearing, sol.elev, ship.heading, dt);
+    m.aimOk = aligned;
     m.target = target;
     if (m.group === 'main') anyMainTarget = true;
-    if (ok && m.reload <= 0) fireMount(world, ship, m, target, sol);
+    if (aligned && m.reload <= 0) fireMount(world, ship, m, target, sol);
   }
   // fire-control accuracy improves while the same target is engaged (ranging in), decays when idle
   const t = cmd.main.target;
@@ -127,7 +146,20 @@ function fireMount(world, ship, m, target, s) {
   const maneuver = 1 + Math.abs(ship.yawRate) * 12 + (ship.stats.type === 'DD' ? 0.35 : 0);
   const sigR = 0.0085 * s.range * acc * maneuver * (gun.cal < 150 ? 1.25 : 1);
   const sigA = 0.0030 * acc * maneuver;
-  const type = chooseShell(ship, target, gun);
+  // the shell: the better of AP and HE for this target at this range and aspect, from what is left in the magazine; changing the type means
+  // unloading the breech (a long delay), so a mount keeps the shell it has loaded unless the other one is clearly better
+  if (m.ammo.AP + m.ammo.HE <= 0) { m.noAmmo = true; return; }
+  const ch = shellChoice(ship, m, target, s);
+  let type = ch.type;
+  if (m.loaded && m.loaded !== type && m.ammo[m.loaded] > 0 && ch.values[m.loaded] >= ch.values[type] * 0.7) type = m.loaded;
+  if (m.loaded && m.loaded !== type) { m.loaded = type; m.reload = gun.reload * 1.25; return; }
+  m.loaded = type;
+  // the barrels that still have a round; a mount out of both kinds is dead weight
+  const left = m.ammo[type];
+  const nFire = Math.min(m.n, left);
+  if (nFire <= 0) { m.noAmmo = true; return; }
+  m.ammo[type] -= nFire;
+  if (m.ammo.AP + m.ammo.HE <= 0) m.noAmmo = true;
   // barrel muzzles: the trunnion sits on the gun house, each tube runs from there along the elevation; spacing as drawn
   const dm = dimsOf(m.rec);
   const spacing = m.n >= 2 ? dm.spacing : 0;
@@ -140,6 +172,7 @@ function fireMount(world, ship, m, target, s) {
   const barrels = [];
   for (let i = 0; i < m.n; i++) {
     const off = (i - (m.n - 1) / 2) * spacing;
+    if (i >= nFire) { barrels.push(mx0 + rightx * off, my0, mz0 + rightz * off); continue; }
     const bx = mx0 + rightx * off, by = my0, bz = mz0 + rightz * off;
     barrels.push(bx, by, bz);
     // dispersion: perturb the range solution and the bearing
@@ -156,7 +189,7 @@ function fireMount(world, ship, m, target, s) {
       target, aimX: target.x, aimZ: target.z, group: m.group,
     });
   }
-  ship.shotsFired += m.n;
+  ship.shotsFired += nFire;
   m.reload = gun.reload * (0.92 + world.rng() * 0.16) * (1 + (1 - m.hp / m.maxHp) * 0.7);
   m.recoil = 0; m.fireT = 0; m.flash = 1;
   // the recoil of the salvo heels the ship away from the side it fires to (a few tenths of a degree for destroyers, about a degree for a full battleship broadside)
@@ -168,12 +201,50 @@ function fireMount(world, ship, m, target, s) {
   world.events.push({ type: 'muzzle', ship, mount: m, x: mx0, y: my0, z: mz0, dx: fwdx, dy: fwdy, dz: fwdz, cal: gun.cal, n: m.n, group: m.group, barrels });
 }
 
-function chooseShell(ship, target, gun) {
-  if (!gun.ap) return 'HE';
-  const t = target.stats ? target.stats.type : 'DD';
-  if (t === 'BB' || t === 'CA' || t === 'CV') return 'AP';
-  if (t === 'CL') return ship.world.rng() < 0.5 ? 'AP' : 'HE';
-  return 'HE';
+/**
+ * Which shell to fire: the expected damage per round of armour-piercing and of high-explosive, against where this target will probably be hit
+ * (the belt, the deck, the unarmoured upperworks), at the range's impact speed and the angle the shell will arrive at. Returns { type, values: { AP, HE } }.
+ * AP wins where it gets through the plate and bursts inside; it loses on a thin plate (it goes through without arming), on a thick one
+ * (it bounces), at a grazing angle (it glances off) and against a target with little to wreck; HE wins against destroyers, cruisers' upperworks
+ * and heavy plate it cannot hurt anyway. The state of the magazine decides when one kind is gone.
+ */
+export function shellChoice(ship, m, target, solu) {
+  const g = m.gun, ts = target.stats;
+  const hasAP = g.ap && m.ammo.AP > 0, hasHE = m.ammo.HE > 0;
+  if (!g.ap || !ts || !ts.armor) return { type: m.ammo.HE > 0 || !hasAP ? 'HE' : 'AP', values: { AP: 0, HE: 1 } };
+  const b = ball(m), lk = b.lookup(solu.range) || { vImpact: g.v0 * 0.7, fall: 0.15 };
+  const kg = g.shellKg, cal = g.cal;
+  const penAP = g.pen0 * Math.pow(lk.vImpact / g.v0, 1.43);
+  // the aspect: how square the target's side is to the line of fire
+  const dx = target.x - ship.x, dz = target.z - ship.z, dl = Math.hypot(dx, dz) || 1;
+  const along = Math.abs((dx * Math.sin(target.heading) - dz * Math.cos(target.heading)) / dl);
+  const beam = Math.sqrt(Math.max(0, 1 - along * along));
+  const cosBelt = Math.max(beam * Math.cos(lk.fall), 0.17), cosDeck = Math.max(Math.sin(lk.fall), 0.17);
+  const effBelt = ts.armor.belt / cosBelt, effDeck = ts.armor.deck / cosDeck;
+  const sg = (x) => 1 / (1 + Math.exp(-x));
+  const soft = ts.softness ?? 1;
+  const deg = (c) => Math.acos(Math.min(1, c)) * 57.3;
+  // a plate: [expected damage of AP, of HE] per kg of shell
+  const plate = (armor, eff, cosA, zone) => {
+    const thin = eff < cal * 0.12;
+    const glance = armor > cal * 0.08 ? clamp((deg(cosA) - 68) / 14, 0, 1) : 0;
+    const pPen = sg((penAP - eff) / Math.max(0.12 * eff, 8));
+    const ap = glance * 0.035 + (1 - glance) * (thin ? 0.06 * soft : pPen * 0.95 * zone + (1 - pPen) * 0.035);
+    const he = 0.2 * soft * (eff > cal * 0.5 ? 0.1 : 0.55);
+    return [ap, he];
+  };
+  const belt = plate(ts.armor.belt, effBelt, cosBelt, 0.8), deck = plate(ts.armor.deck, effDeck, cosDeck, 0.7);
+  // the upperworks: little armour, AP often goes through without bursting, HE bursts on them
+  const sup = ts.armor.citadel * 0.15 + 12, supEff = Math.min(30, sup) / 0.7;
+  const superAP = supEff < cal * 0.12 ? 0.06 * soft : 0.95 * 0.25, superHE = 0.2 * soft;
+  // where the hits will go: the belt in proportion to the beam aspect, the deck at long range (steep fall), the rest on the upperworks
+  const wBelt = 0.4 * beam, wDeck = 0.1 + 0.4 * clamp((lk.fall - 0.12) / 0.4, 0, 1), wSup = Math.max(0.15, 1 - wBelt - wDeck);
+  const wt = wBelt + wDeck + wSup;
+  // doctrine: armour-piercing shells go through a destroyer's thin skin without arming, which the plate model above only half sees
+  const AP = kg * (wBelt * belt[0] + wDeck * deck[0] + wSup * superAP) / wt * (ts.type === 'DD' ? 0.55 : 1);
+  const HE = kg * (wBelt * belt[1] + wDeck * deck[1] + wSup * superHE) / wt;
+  const type = !hasAP ? 'HE' : !hasHE ? 'AP' : AP > HE ? 'AP' : 'HE';
+  return { type, values: { AP, HE } };
 }
 
 // ---- torpedoes ------------------------------------------------------------------------------------

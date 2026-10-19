@@ -23,6 +23,9 @@ function gunStats(g, group, extra = {}) {
     pen0: penAtMuzzle(cal),
     // AP capable only for the heavier guns
     ap: cal >= 150,
+    // the magazine: rounds per gun (a 16 in battleship carried about 100 a gun, a 6 in cruiser 200, a destroyer's 5 in 400 or more) and the share of them that is armour-piercing
+    rpg: cal >= 300 ? 100 : cal >= 200 ? 150 : cal >= 150 ? 200 : cal >= 120 ? 280 : cal >= 90 ? 400 : 500,
+    apShare: cal >= 280 ? 0.62 : cal >= 150 ? 0.5 : 0,
     ...extra,
   };
 }
