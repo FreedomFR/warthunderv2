@@ -72,7 +72,7 @@ export class Ship {
     this.vx = 0; this.vz = 0;
 
     // statistics
-    this.kills = 0; this.damageDealt = 0; this.shotsFired = 0; this.shotsHit = 0; this.torpHits = 0;
+    this.kills = 0; this.damageDealt = 0; this.shotsFired = 0; this.shotsHit = 0; this.torpHits = 0; this.torpFired = 0;
     this.planeKills = 0; this.lostPlanes = 0;
     this.lastAttacker = null;
 

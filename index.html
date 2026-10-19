@@ -120,6 +120,19 @@
   #results th { text-align: left; opacity: .6; font-weight: 600; padding: 3px 6px; }
   #results td { padding: 3px 6px; border-top: 1px solid #ffffff12; }
   #results tr.dead td { opacity: .55; }
+  #score { position: fixed; top: 54px; left: 50%; transform: translateX(-50%); min-width: 760px; max-width: 96vw; max-height: 84vh; overflow: auto; pointer-events: none; background: #0b0f14e6; }
+  #score table { width: 100%; border-collapse: collapse; margin: 6px 0 4px; font-size: 12.5px; font-variant-numeric: tabular-nums; }
+  #score th { text-align: left; opacity: .6; font-weight: 600; padding: 3px 7px; white-space: nowrap; }
+  #score th.n, #score td.n { text-align: right; }
+  #score td { padding: 2px 7px; border-top: 1px solid #ffffff10; white-space: nowrap; }
+  #score tr.team td { background: #ffffff10; font-weight: 700; color: var(--tc); border-top: 2px solid var(--tc); }
+  #score tr.dead td { opacity: .5; }
+  #score tr.sel td:first-child { box-shadow: inset 3px 0 0 var(--amber); }
+  #score .klog { margin-top: 6px; font-size: 12px; }
+  #score .kh2 { opacity: .6; font-weight: 600; margin-bottom: 2px; }
+  #score .kl .kt { opacity: .5; margin-right: 6px; font-variant-numeric: tabular-nums; }
+  #score .kl .kh { opacity: .55; }
+  .btn.tiny.on { background: var(--amber); color: #111; }
   #help { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); max-width: 640px; cursor: pointer; }
   .helpgrid { display: grid; grid-template-columns: 210px 1fr; gap: 6px 14px; margin-top: 6px; }
   .helpgrid b { color: var(--amber); font-weight: 600; }

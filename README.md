@@ -89,7 +89,7 @@ npm test                               # sans carte graphique
 | 8 | **Avions** : suit un avion. `V` change de vue : poursuite derrière l'appareil (le long de sa trajectoire, donc dans le piqué), passage devant l'avion, ou vue depuis le pont du navire attaqué. `N` / `B` : avion suivant / précédent. Après un écrasement, la caméra reste sur l'impact |
 | 9 | **Cockpit** : vue du pilote (verrière ouverte), glisser pour regarder autour |
 
-`N` / `B` (ou `Tab`) : navire suivant / précédent (avion suivant / précédent en caméras 8 et 9). Le réalisateur automatique (touche 1) coupe aussi sur les largages de bombes et de torpilles et sur les avions touchés. Un clic sur un navire le sélectionne, ainsi qu'un clic dans la
+`Tab` (maintenu) ou le bouton « Tableau » : **tableau de bord du combat en temps réel**, par équipe et par navire (navires coulés, avions abattus, obus tirés, touches, précision, torpilles, dégâts infligés, état, et les derniers naufrages). `N` / `B` : navire suivant / précédent (avion suivant / précédent en caméras 8 et 9). Le réalisateur automatique (touche 1) coupe aussi sur les largages de bombes et de torpilles et sur les avions touchés. Un clic sur un navire le sélectionne, ainsi qu'un clic dans la
 liste des équipes. `Espace` : pause. `,` et `.` : ralentir / accélérer. `L` : plaques de nom. `H` : réglages de
 l'océan, du ciel et de la qualité. `F1` : aide.
 
