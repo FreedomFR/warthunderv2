@@ -234,6 +234,10 @@ export function createUI(game) {
       ...[['auto', 'Automatique'], ['high', 'Haute'], ['medium', 'Moyenne'], ['low', 'Basse']].map(([v, l]) => h('option', { value: v, selected: game.qualityMode === v }, l)));
     settings.append(h('label', { class: 'slider' }, h('span', {}, 'Qualité graphique'), qsel, h('span')));
     settings.append(h('label', { class: 'slider' }, h('span', {}, 'Ombres des navires'), h('input', { type: 'checkbox', checked: game.shadowsOn, onchange: (e) => { game.userShadows = e.target.checked; game.applyQuality(); } }), h('span')));
+    const pval = h('output', {}, game.particleMax / 1000 + ' k');
+    settings.append(h('label', { class: 'slider', title: 'Plus de particules : flammes, fumées et gerbes ne disparaissent plus dans les grosses batailles, mais le processeur et la carte graphique travaillent plus.' },
+      h('span', {}, 'Particules max'),
+      h('input', { type: 'range', min: 10000, max: 200000, step: 5000, value: game.particleMax, onchange: (e) => game.setParticleMax(Number(e.target.value)), oninput: (e) => { pval.textContent = e.target.value / 1000 + ' k'; } }), pval));
     settings.append(h('label', { class: 'slider' }, h('span', {}, 'Résolution de rendu'), h('input', { type: 'range', min: 0.4, max: 1.5, step: 0.05, value: engine.getRenderScale(), oninput: (e) => { engine.setRenderScale(Number(e.target.value)); scaleVal.textContent = Math.round(e.target.value * 100) + '%'; } }), scaleVal));
     for (const [key, label, min, max, step, kind] of SLIDERS) {
       const val = h('output', {}, String(engine.P[key]));

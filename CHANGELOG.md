@@ -4,7 +4,9 @@
 
 - **Main guns showed no flame in a long battle** (only the foam on the water did): the particle pool (24000) was full after about a minute and every new particle was dropped, the muzzle fireballs included, while the sea foam (a separate clipmap) kept being stamped. The main load was the vapour trail of the shells in flight: one puff per simulated step and per shell, and hundreds of shells (secondary guns, AA) are in the air at once. The trail is now one puff every 22 to 60 m of flight (larger puffs), the pool holds 40000, and the peak in an 18-ship battle at normal speed falls from saturation to about 26000.
 - **Particle pool** (`render/particles.js`): when full, fireballs, flames, flashes, tracers and fire take the place of one of the oldest-looking puffs of smoke or spray instead of being lost; the effects emit less smoke as the pool fills (`fill()`), and the muzzle smoke clouds are thinner.
-- Test: `test/particles.mjs` (a full pool, priority of the flashes of a shot).
+- **Setting "Particules max"** (10 k to 200 k, 40 k by default, saved in the browser, `?particles=N` in the URL): the pool grows or shrinks at run time (`Particles.setMax`).
+- **`render/effects.js` split by domain** (1046 lines -> about 200 + `render/fx/`: `guns`, `water`, `hits`, `air`, `fires`, `wake`, `common`): the methods moved unchanged and are mixed into `Effects`, so a change to the guns touches one small file.
+- Tests: `test/particles.mjs` (a full pool, priority of the flashes of a shot, the capacity setting), `test/effects.mjs` (every event of a fifteen minute fleet battle goes through the effects without an exception or a NaN).
 
 ## Unreleased — take-off camera
 

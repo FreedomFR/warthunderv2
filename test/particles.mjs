@@ -26,3 +26,15 @@ P.add({ kind: K.FLASH, x: 1, y: 1, z: 1, s0: 1, s1: 5, life: 1, r: 1, g: 1, b: 1
 let after = 0;
 for (let k = 0; k < full; k++) if (P.pool[k * 24 + 19] === K.FLASH) after++;
 ok(after === 0, 'but a fresh puff is not thrown away for it');
+
+// ---- the capacity is a setting ----
+{
+  const Q = new Particles(engine); Q.ready.catch(() => {});
+  for (let k = 0; k < 5000; k++) Q.add(smoke());
+  Q.setMax(100000);
+  ok(Q.max === 100000 && Q.n === 5000 && Q.pool.length === 100000 * 24, 'a larger pool keeps the particles alive');
+  Q.setMax(3000);
+  ok(Q.n === 3000 && Q.fill() === 1, 'a smaller one keeps what fits');
+  Q.setMax(1);
+  ok(Q.max >= 2000, 'and never goes under a floor');
+}

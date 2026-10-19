@@ -9,7 +9,7 @@ import { IslandVisuals } from './render/islandVisual.js';
 import { VegetationVisuals } from './render/vegetationVisual.js';
 import { Terrain } from './sim/terrain.js';
 import { PlaneVisuals } from './render/aircraftVisual.js';
-import { Particles, K } from './render/particles.js';
+import { Particles, K, DEFAULT_MAX } from './render/particles.js';
 import { Effects } from './render/effects.js';
 import { CameraRig } from './ui/cameras.js';
 import { lightMatrix } from './render/shadows.js';
@@ -56,7 +56,17 @@ export class Game {
     this.fxScale = 1;
     this.userShadows = this.shadowsOn;
     this.slowT = 0; this.fastT = 0;
+    let pmax = 0;
+    try { pmax = Number(localStorage.getItem('naval.particles')) || 0; } catch (e) { /* storage blocked */ }
+    this.particleMax = Number(qs.get('particles')) || pmax || DEFAULT_MAX;
     this.applyQuality();
+  }
+
+  /** Capacity of the particle pool (a setting; saved for the next visit). */
+  setParticleMax(n) {
+    this.particleMax = n;
+    try { localStorage.setItem('naval.particles', String(n)); } catch (e) { /* storage blocked */ }
+    this.particles?.setMax(n);
   }
 
   get autoScale() { return this.canAuto && this.qualityMode === 'auto'; }
@@ -83,6 +93,7 @@ export class Game {
     const e = this.engine;
     this.shipRenderer = new ShipRenderer(e);
     this.particles = new Particles(e);
+    this.particles.setMax(this.particleMax);
     await Promise.all([this.shipRenderer.ready, this.particles.ready]);
     this.effects = new Effects(e, this.particles, this);
     this.camera = new CameraRig(e, this.canvas, this);
