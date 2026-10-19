@@ -270,27 +270,48 @@ export class Game {
     for (const t of w.torpedoes) {
       if (t.air && t.h > 0.2) pv.addOrdnance('torpedo', t.x, t.h, t.z, t.fallDir, Math.atan2(t.hv, t.fallSpeed || 1), cam);
     }
+    // the body of every shell within a few hundred metres of the camera (3.8 calibres long)
+    for (const s of w.shells) {
+      const sp = Math.hypot(s.vx, s.vy, s.vz);
+      if (sp < 1 || Math.hypot(s.x - cam.x, s.y - cam.y, s.z - cam.z) > 700) continue;
+      pv.addShell(s.type, s.x, s.y, s.z, s.vx / sp, s.vy / sp, s.vz / sp, s.gun.cal * 0.0038, cam);
+    }
     for (const d of w.debris) {
       if (d.kind === 'plane') { const team = w.teams[0]; pv.addPiece(d, cam, [120, 120, 120], 0.5); continue; }
       this.shipVisuals.addDebris(d, cam, [130, 130, 130]);
     }
     r.upload();
     this.updateShadow();
-    // shells: bright streaks along their velocity
+    // shells in flight: the body of the shell itself when the camera is near (a few hundred metres), a glowing tracer streak along the path at any
+    // distance (red-orange for armour-piercing, yellow-white for high explosive) and a thin trail of hot vapour that hangs behind it
+    const running = w.state === 'running' && !this.paused;
     for (const s of w.shells) {
       const sp = Math.hypot(s.vx, s.vy, s.vz);
       if (sp < 1) continue;
       const d = Math.hypot(s.x - cam.x, s.z - cam.z);
       if (d > 30000) continue;
-      const cal = s.gun.cal;
+      const cal = s.gun.cal, ap = s.type === 'AP';
+      const ux = s.vx / sp, uy = s.vy / sp, uz = s.vz / sp;
+      const d3 = Math.hypot(d, s.y - cam.y);
       // streaks shrink when the shell is close to the lens (a 60 m white bar a few metres from the camera looks absurd)
       const near = clamp(d / 400, 0.18, 1);
       const len = Math.min((cal >= 300 ? 60 : cal >= 150 ? 40 : 18) * near, 0.6 + d * 0.06);
       const wid = (cal >= 300 ? 1.1 : cal >= 150 ? 0.8 : 0.5) * (1 + d / 5000) * clamp(d / 250, 0.3, 1);
       // a shell passing a few metres from the lens is a smear across the screen: fade it out
-      const d3 = Math.hypot(d, s.y - cam.y), f = clamp((d3 - 10) / 35, 0, 1);
+      const f = clamp((d3 - 10) / 35, 0, 1);
       if (f <= 0) continue;
-      this.particles.streak(s.x, s.y, s.z, s.vx / sp, s.vy / sp, s.vz / sp, len * (1 + d / 8000), wid, 1, 0.68, 0.28, 6 * clamp(d / 150, 0.35, 1) * f * f * (3 - 2 * f));
+      const k = 6 * clamp(d / 150, 0.35, 1) * f * f * (3 - 2 * f);
+      const fresh = clamp(1 - s.age / 0.5, 0, 1);                 // the first half second: the hot gases still round the shell
+      if (ap) this.particles.streak(s.x, s.y, s.z, ux, uy, uz, len * (1 + d / 8000), wid, 1, 0.42, 0.18, k * (1 + fresh));
+      else this.particles.streak(s.x, s.y, s.z, ux, uy, uz, len * (1 + d / 8000) * 0.8, wid * 1.15, 1, 0.84, 0.46, k * (1 + fresh));
+      // a bright head
+      this.particles.streak(s.x, s.y, s.z, ux, uy, uz, len * 0.18, wid * 1.5, 1, 0.95, 0.8, k * 0.9);
+      // vapour trail: one puff per simulated step, only for the shells near enough to matter
+      if (running && s._trailT !== w.time && d < 6000 && s.age > 0.04) {
+        s._trailT = w.time;
+        const cs = clamp(cal / 300, 0.3, 1.5), tr = this.effects.emitScale ?? 1;
+        if (Math.random() < tr) this.particles.add({ kind: K.SMOKE, x: s.x, y: s.y, z: s.z, vx: 0, vy: 0.3, vz: 0, s0: 0.35 * cs, s1: (ap ? 2.2 : 3.2) * cs, life: 1.4, r: 0.9, g: 0.9, b: 0.92, a0: ap ? 0.07 : 0.11, a1: 0, drag: 0.6, wind: 0.5 });
+      }
     }
     this.particles.upload();
   }

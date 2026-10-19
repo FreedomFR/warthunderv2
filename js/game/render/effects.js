@@ -124,6 +124,15 @@ export class Effects {
     p.add({ kind: K.FLASH, x: b[0] + dx * R * 0.5, y: b[1] + dy * R * 0.5, z: b[2] + dz * R * 0.5, s0: R * 1.1, s1: R * 2.4, life: 0.08, r: 1, g: 0.86, b: 0.58, a0: 10, a1: 0 });
     const jl = R * 2.6;
     p.add({ kind: K.TRACER, x: b[0] + dx * jl * 0.5, y: b[1] + dy * jl * 0.5, z: b[2] + dz * jl * 0.5, vx: -dx * 2, vy: -dy * 2, vz: -dz * 2, s0: R * 0.55, life: 0.075, r: 1, g: 0.82, b: 0.5, a0: 9, a1: 0, stretch: jl });
+    // the shock ring: a thin ring of vapour thrown outward round the bore a barrel's width ahead of the muzzle, as the shell clears the tube
+    if (mid) {
+      const nr = Math.max(6, Math.round((heavy ? 16 : 10) * es * lod));
+      for (let i = 0; i < nr; i++) {
+        const th = (i / nr) * 6.283, c1 = Math.cos(th), s1 = Math.sin(th);
+        const q = at(R * 1.5, c1 * R * 0.12, s1 * R * 0.12), sp = R * rr(1.6, 2.4);
+        p.add({ kind: K.SMOKE, x: q[0], y: q[1], z: q[2], vx: (ux * c1 + vx * s1) * sp + dx * R * 1.5, vy: (uy * c1 + vy * s1) * sp + dy * R * 1.5, vz: (uz * c1 + vz * s1) * sp + dz * R * 1.5, s0: R * 0.22, s1: R * 0.8, life: 0.45, r: 1, g: 0.92, b: 0.82, a0: 0.55, a1: 0, drag: 2.6 });
+      }
+    }
     // hot glow around the fireball (light on the smoke and the sea)
     p.add({ kind: K.FIRE, x: b[0] + dx * R * 1.1, y: b[1] + dy * R * 1.1, z: b[2] + dz * R * 1.1, s0: R * 2.4, s1: R * 3.8, life: heavy ? 0.4 : 0.28, r: 1, g: 0.55, b: 0.18, a0: heavy ? 1.8 : 1.2, a1: 0 });
 
@@ -189,10 +198,16 @@ export class Effects {
     if (d > 22000 * (0.4 + cs)) return;
     this.addShake(0.02 * cs, e.x, e.z);
     const p = this.p;
-    const n = Math.round((8 + 12 * cs) * this.emitScale);
+    // an armour-piercing shell slips in and its column rises narrow and tall (a fraction of a second later, when the fuze or the impact throws it up);
+    // a high-explosive shell bursts at once on the surface: a wider, lower crown with a flash and a puff of smoke
+    if (e.shell === 'HE') {
+      p.add({ kind: K.FLASH, x: e.x, y: 1.5, z: e.z, s0: 5 * cs, s1: 12 * cs, life: 0.1, r: 1, g: 0.85, b: 0.6, a0: 5, a1: 0 });
+      for (let i = 0; i < Math.round(5 * this.emitScale); i++) p.add({ kind: K.SMOKE, x: e.x + rr(-2, 2) * cs, y: rr(1, 4) * cs, z: e.z + rr(-2, 2) * cs, vy: rr(2, 6), s0: 3 * cs, s1: rr(10, 18) * cs, life: rr(2, 3.5), r: 0.3, g: 0.3, b: 0.3, a0: 0.45, a1: 0, drag: 0.5, wind: 1 });
+    }
+    const n = Math.round((8 + 12 * cs) * this.emitScale * (e.shell === 'AP' ? 0.8 : 1.15));
     for (let i = 0; i < n; i++) {
-      const a = rnd() * 6.283, sp = rr(1, 6) * cs;
-      p.add({ kind: K.SPRAY, x: e.x + Math.cos(a) * rr(0, 3) * cs, y: 0.4, z: e.z + Math.sin(a) * rr(0, 3) * cs, vx: Math.cos(a) * sp, vy: rr(16, 46) * Math.pow(cs, 0.7), vz: Math.sin(a) * sp, s0: 2.6 * cs, s1: rr(8, 13) * cs, life: rr(1.5, 3.2), r: 0.92, g: 0.96, b: 1, a0: 0.95, a1: 0, grav: 17, drag: 0.15, wind: 0.4 });
+      const a = rnd() * 6.283, sp = rr(1, 6) * cs * (e.shell === 'AP' ? 0.5 : e.shell === 'HE' ? 1.3 : 1);
+      p.add({ kind: K.SPRAY, x: e.x + Math.cos(a) * rr(0, 3) * cs, y: 0.4, z: e.z + Math.sin(a) * rr(0, 3) * cs, vx: Math.cos(a) * sp, vy: rr(16, 46) * Math.pow(cs, 0.7) * (e.shell === 'AP' ? 1.35 : e.shell === 'HE' ? 0.8 : 1), vz: Math.sin(a) * sp, s0: 2.6 * cs, s1: rr(8, 13) * cs, life: rr(1.5, 3.2), r: 0.92, g: 0.96, b: 1, a0: 0.95, a1: 0, grav: 17, drag: 0.15, wind: 0.4 });
     }
     for (let i = 0; i < 3; i++) p.add({ kind: K.SMOKE, x: e.x + rr(-3, 3) * cs, y: rr(2, 9) * cs, z: e.z + rr(-3, 3) * cs, vy: rr(1, 4), s0: 7 * cs, s1: rr(22, 34) * cs, life: rr(2.5, 4), r: 0.85, g: 0.9, b: 0.95, a0: 0.5, a1: 0, drag: 0.5, wind: 1 });
     if (d < 1100) this.engine.foam.add(e.x, e.z, e.x, e.z, 6 + 13 * cs, 0.0, 1.0, 0.95);
@@ -204,6 +219,7 @@ export class Effects {
     const cs = clamp(e.cal / 250, 0.25, 2.2);
     const p = this.p;
     const k = e.kind;
+    if (e.shell && k !== 'torpedo') { this.shellImpact(e, d, cs); return; }
     if (k === 'torpedo') {
       // water column: a dense white core thrown up the side of the hull, a crown spreading at the top, oil smoke at the base
       const n = Math.round(70 * this.emitScale);
@@ -243,6 +259,118 @@ export class Effects {
     for (let i = 0; i < ns; i++) p.add({ kind: K.SMOKE, x: e.x + rr(-3, 3) * cs, y: e.y + rr(0, 4) * cs, z: e.z + rr(-3, 3) * cs, vx: rr(-3, 3), vy: rr(5, 13), vz: rr(-3, 3), s0: 4 * cs, s1: rr(18, 34) * cs, life: rr(7, 14), r: 0.07, g: 0.065, b: 0.06, a0: 0.78, a1: 0, drag: 0.35, wind: 1, grav: -0.25 });
     for (let i = 0; i < 12; i++) p.add({ kind: K.TRACER, x: e.x, y: e.y, z: e.z, vx: rr(-60, 60), vy: rr(10, 80), vz: rr(-60, 60), s0: 0.35 * cs, life: rr(0.4, 1.1), r: 1, g: 0.7, b: 0.3, a0: 3.5, a1: 0, grav: 20, stretch: 4 * cs });
     this.addShake(0.16 * cs * big, e.x, e.z);
+  }
+
+
+  /** A shower of sparks / fragments from a point, spread round a direction (unit vector). */
+  sparks(x, y, z, dir, n, cone, speed, cs, col = [1, 0.72, 0.3], o = {}) {
+    const p = this.p;
+    n = Math.max(2, Math.round(n * this.emitScale));
+    for (let i = 0; i < n; i++) {
+      // a random direction inside the cone round `dir`
+      let vx = dir[0] + rr(-cone, cone), vy = dir[1] + rr(-cone, cone) * (o.flat ? 0.5 : 1), vz = dir[2] + rr(-cone, cone);
+      const l = Math.hypot(vx, vy, vz) || 1, sp = speed * rr(0.35, 1.0);
+      p.add({ kind: K.TRACER, x, y, z, vx: vx / l * sp, vy: vy / l * sp + (o.lift || 0), vz: vz / l * sp, s0: (o.size || 0.3) * cs, life: rr(0.3, o.life || 0.9), r: col[0], g: col[1], b: col[2], a0: 3.6, a1: 0, grav: o.grav ?? 20, stretch: (o.stretch || 3.5) * cs });
+    }
+  }
+
+  /**
+   * A shell striking a ship. What happens depends on what the shell is and what became of it (the sim says: e.kind, e.shell 'AP' | 'HE', e.angle, e.glance,
+   * e.delay, e.entry / e.exit; (e.dx, e.dy, e.dz) is the direction it was flying in):
+   *  - armour-piercing, through the plate: a bright pin-prick and a spray of hot metal at the entry, then (the fuze delay later) a dull internal burst that
+   *    blows jets of flame and black smoke out of the hole and the nearest openings;
+   *  - armour-piercing, too fast for its fuze (thin plate): a hole in and a hole out, the shell flies on;
+   *  - armour-piercing, bounced (a grazing angle, or too much plate): a spray of sparks and a streak flying away on the reflected path;
+   *  - high explosive: a big bright burst on contact, a white shock flash, fragments in every direction, a lighter smoke; on a thick plate it only shatters.
+   */
+  shellImpact(e, d, cs) {
+    const p = this.p, ap = e.shell === 'AP', k = e.kind;
+    const dir = [e.dx || 0, e.dy || -0.3, e.dz || 0];
+    const back = [-dir[0], -dir[1] + 0.25, -dir[2]];
+    const es = this.emitScale;
+    const dust = (x, y, z, sz, a, grey = 0.45, life = 2.2) => p.add({ kind: K.SMOKE, x, y, z, vy: 2.5, s0: sz * 0.5, s1: sz * 2.4, life, r: grey, g: grey * 0.97, b: grey * 0.94, a0: a, a1: 0, wind: 1, drag: 0.5 });
+    if (k === 'bounce') {
+      const r = [e.rwx || -dir[0], e.rwy || 0.4, e.rwz || -dir[2]];
+      const rl = Math.hypot(r[0], r[1], r[2]) || 1, rd = [r[0] / rl, r[1] / rl, r[2] / rl];
+      if (!ap) {
+        // HE shattering on armour: grey flash, fragments scraping across the plate, a pall of grey smoke
+        p.add({ kind: K.FLASH, x: e.x, y: e.y, z: e.z, s0: 6 * cs, s1: 14 * cs, life: 0.12, r: 1, g: 0.9, b: 0.7, a0: 8, a1: 0 });
+        this.sparks(e.x, e.y, e.z, rd, 16, 0.9, 70, cs, [1, 0.82, 0.5], { life: 0.7 });
+        dust(e.x, e.y + 1, e.z, 7 * cs, 0.55, 0.4); dust(e.x, e.y + 2, e.z, 5 * cs, 0.4, 0.3, 3);
+        this.addShake(0.05 * cs, e.x, e.z);
+        return;
+      }
+      if (e.glance) {
+        // a grazing hit: a scratch of sparks along the plate and the shell, whole, whining away
+        p.add({ kind: K.FLASH, x: e.x, y: e.y, z: e.z, s0: 5 * cs, s1: 12 * cs, life: 0.1, r: 1, g: 0.85, b: 0.55, a0: 8, a1: 0 });
+        for (let i = 0; i < Math.round(22 * es); i++) {
+          const t = i / 22, dl = 16 * cs * t;
+          p.add({ kind: K.TRACER, x: e.x + rd[0] * dl, y: e.y + rd[1] * dl, z: e.z + rd[2] * dl, vx: rd[0] * rr(25, 80) + rr(-8, 8), vy: rr(5, 26), vz: rd[2] * rr(25, 80) + rr(-8, 8), s0: 0.4 * cs, life: rr(0.35, 0.9), r: 1, g: 0.8, b: 0.4, a0: 4.5, a1: 0, grav: 18, stretch: 4 * cs });
+        }
+        p.add({ kind: K.TRACER, x: e.x, y: e.y, z: e.z, vx: rd[0] * 260, vy: rd[1] * 260, vz: rd[2] * 260, s0: 0.5 * cs, life: 1.3, r: 1, g: 0.55, b: 0.22, a0: 5, a1: 0, grav: 6, stretch: 22 * cs });
+        dust(e.x, e.y, e.z, 3 * cs, 0.3, 0.5, 1.6);
+        this.addShake(0.02 * cs, e.x, e.z);
+        return;
+      }
+      // the plate holds: orange flash, a hail of sparks, a lump of the shell's nose flung away, a puff of dust
+      p.add({ kind: K.FLASH, x: e.x, y: e.y, z: e.z, s0: 5 * cs, s1: 11 * cs, life: 0.1, r: 1, g: 0.7, b: 0.3, a0: 8, a1: 0 });
+      this.sparks(e.x, e.y, e.z, [rd[0] * 0.6 + back[0] * 0.4, rd[1] * 0.6 + 0.5, rd[2] * 0.6 + back[2] * 0.4], 24, 0.9, 85, cs, [1, 0.72, 0.28], { life: 1 });
+      p.add({ kind: K.TRACER, x: e.x, y: e.y, z: e.z, vx: rd[0] * 120, vy: rd[1] * 120 + 20, vz: rd[2] * 120, s0: 0.45 * cs, life: 0.9, r: 1, g: 0.5, b: 0.2, a0: 4.5, a1: 0, grav: 20, stretch: 8 * cs });
+      dust(e.x, e.y + 1, e.z, 6 * cs, 0.5, 0.45); this.addShake(0.06 * cs, e.x, e.z);
+      return;
+    }
+    if (k === 'through') {
+      // the shell goes in and out: a pin-prick of light each way and a streak that flies on
+      p.add({ kind: K.FLASH, x: e.x, y: e.y, z: e.z, s0: 2.5 * cs, s1: 6 * cs, life: 0.08, r: 1, g: 0.85, b: 0.6, a0: 6, a1: 0 });
+      this.sparks(e.x, e.y, e.z, back, 12, 0.7, 45, cs, [1, 0.78, 0.4], { life: 0.6 });
+      dust(e.x, e.y, e.z, 3 * cs, 0.35, 0.3);
+      const ex = e.exit || [e.x + dir[0] * 6, e.y + dir[1] * 6, e.z + dir[2] * 6];
+      this.later(0.04, () => {
+        p.add({ kind: K.FLASH, x: ex[0], y: ex[1], z: ex[2], s0: 4 * cs, s1: 9 * cs, life: 0.1, r: 1, g: 0.7, b: 0.35, a0: 7, a1: 0 });
+        this.sparks(ex[0], ex[1], ex[2], dir, 14, 0.45, 70, cs, [1, 0.7, 0.3], { life: 0.7 });
+        p.add({ kind: K.TRACER, x: ex[0], y: ex[1], z: ex[2], vx: dir[0] * 280, vy: dir[1] * 280, vz: dir[2] * 280, s0: 0.5 * cs, life: 0.9, r: 1, g: 0.45, b: 0.18, a0: 5, a1: 0, grav: 12, stretch: 20 * cs });
+        dust(ex[0], ex[1] + 1, ex[2], 5 * cs, 0.4, 0.22, 2.6);
+      });
+      this.addShake(0.04 * cs, e.x, e.z);
+      return;
+    }
+    // penetrate (armour-piercing: delayed burst inside; high explosive through thin skin) / explode (high explosive on contact)
+    if (ap && k === 'penetrate') {
+      const en = e.entry || [e.x - dir[0] * 3, e.y - dir[1] * 3, e.z - dir[2] * 3];
+      // at the plate: a white pin-prick, hot metal thrown back, a ring of dust
+      p.add({ kind: K.FLASH, x: en[0], y: en[1], z: en[2], s0: 3.5 * cs, s1: 8 * cs, life: 0.09, r: 1, g: 0.9, b: 0.7, a0: 8, a1: 0 });
+      this.sparks(en[0], en[1], en[2], back, 18, 0.8, 60, cs, [1, 0.78, 0.4], { life: 0.7 });
+      dust(en[0], en[1], en[2], 4 * cs, 0.4, 0.4);
+      // then, the fuze delay later, the burst inside: a dull red glow, jets of flame and black smoke through the hole and every opening, a heavy shake
+      const t = clamp((e.delay || 3) / Math.max(e.speed || 400, 100) + 0.05, 0.05, 0.25);
+      this.later(t, () => {
+        p.add({ kind: K.FLASH, x: e.x, y: e.y + 1, z: e.z, s0: 10 * cs, s1: 24 * cs, life: 0.28, r: 1, g: 0.5, b: 0.18, a0: 6, a1: 0 });
+        const nf = Math.round((5 + 5 * cs) * es);
+        for (let i = 0; i < nf; i++) {
+          // jets: back out of the hole, up through the deck, sideways through the openings
+          const up = i % 3 === 0, jd = up ? [rr(-0.3, 0.3), 1, rr(-0.3, 0.3)] : [back[0] + rr(-0.5, 0.5), back[1] * 0.5 + rr(0, 0.6), back[2] + rr(-0.5, 0.5)];
+          const l = Math.hypot(jd[0], jd[1], jd[2]) || 1, sp = rr(10, 26) * Math.sqrt(cs);
+          p.add({ kind: K.FIRE, x: e.x + rr(-1, 1) * cs, y: e.y + rr(0, 2) * cs, z: e.z + rr(-1, 1) * cs, vx: jd[0] / l * sp, vy: jd[1] / l * sp, vz: jd[2] / l * sp, s0: 3 * cs, s1: rr(9, 16) * cs, life: rr(0.45, 1.0), r: 1, g: 0.5, b: 0.15, a0: 4, a1: 0, drag: 1.4 });
+        }
+        const ns = Math.round((9 + 7 * cs) * es);
+        for (let i = 0; i < ns; i++) p.add({ kind: K.SMOKE, x: e.x + rr(-2, 2) * cs, y: e.y + rr(0, 3) * cs, z: e.z + rr(-2, 2) * cs, vx: back[0] * rr(0, 6) + rr(-3, 3), vy: rr(6, 15), vz: back[2] * rr(0, 6) + rr(-3, 3), s0: 3.5 * cs, s1: rr(16, 30) * cs, life: rr(8, 15), r: 0.045, g: 0.042, b: 0.04, a0: 0.85, a1: 0, drag: 0.35, wind: 1, grav: -0.3 });
+        this.sparks(e.x, e.y + 1, e.z, [0, 1, 0], 14, 1.1, 45, cs, [1, 0.62, 0.22], { life: 1.1 });
+        this.addShake(0.2 * cs, e.x, e.z);
+      });
+      return;
+    }
+    // high explosive: instant, bright and wide (on contact, or just behind a thin skin)
+    const inside = e.inside, big = k === 'penetrate' ? 1.0 : 0.85;
+    p.add({ kind: K.FLASH, x: e.x, y: e.y + 1, z: e.z, s0: 20 * cs * big, s1: 44 * cs * big, life: 0.16, r: 1, g: 0.9, b: 0.66, a0: 11, a1: 0 });
+    p.add({ kind: K.FLASH, x: e.x, y: e.y + 2, z: e.z, s0: 9 * cs, s1: 18 * cs, life: 0.3, r: 1, g: 0.6, b: 0.25, a0: 7, a1: 0 });
+    const nf = Math.round((7 * big + 2) * es);
+    for (let i = 0; i < nf; i++) p.add({ kind: K.FIRE, x: e.x + rr(-2, 2) * cs, y: e.y + rr(0, 3) * cs, z: e.z + rr(-2, 2) * cs, vx: rr(-9, 9), vy: rr(3, 16), vz: rr(-9, 9), s0: 5 * cs, s1: rr(12, 22) * cs, life: rr(0.4, 0.95), r: 1, g: 0.72, b: 0.3, a0: 4.4, a1: 0, drag: 1.3 });
+    // fragments in every direction, hot and fast
+    this.sparks(e.x, e.y, e.z, [0, 0.3, 0], 30, 2.2, 95, cs, [1, 0.85, 0.5], { life: 0.9, stretch: 4 });
+    const ns = Math.round((6 * big + 2) * es);
+    for (let i = 0; i < ns; i++) p.add({ kind: K.SMOKE, x: e.x + rr(-3, 3) * cs, y: e.y + rr(0, 4) * cs, z: e.z + rr(-3, 3) * cs, vx: rr(-4, 4), vy: rr(4, 11), vz: rr(-4, 4), s0: 4 * cs, s1: rr(14, 26) * cs, life: rr(5, 10), r: 0.2, g: 0.19, b: 0.18, a0: 0.7, a1: 0, drag: 0.4, wind: 1, grav: -0.2 });
+    if (inside) this.later(0.08, () => this.sparks(e.x, e.y + 1, e.z, [0, 1, 0], 10, 1.0, 40, cs, [1, 0.6, 0.2], { life: 1 }));
+    this.addShake(0.2 * cs * big, e.x, e.z);
   }
 
   explosion(e) {

@@ -1,5 +1,37 @@
 # Changelog
 
+## Unreleased — gunnery
+
+- **The shell is chosen against the target** (`shellChoice`): the expected damage per round of AP and of HE against where the target will be hit (belt, deck, upperworks), from the impact speed and fall angle at that range and
+  the aspect of the target (beam-on or bow-on): AP where it gets through the plate and bursts inside, HE against destroyers (AP goes through without arming), against a bow-on battleship at long range (grazing angle, thick plate)
+  and when the AP is gone. It used to depend on the class of the target alone (and a coin toss for cruisers).
+- **Magazines**: every mount holds a number of rounds (about 100 a gun for 16 in, 150 for 8 in, 200 for 6 in, 280 for 5 in, 400-500 for the small ones), split between AP and HE for the guns that have both; a salvo spends
+  one round a barrel; a mount with nothing left falls silent. Changing from one kind to the other means unloading the breech (a reload and a quarter) and is only done when the other shell is clearly better (a mount keeps
+  what it has loaded when the loss is under 30 %). The ship panel shows the AP / HE left in the main battery.
+- **Mounts with a target of their own**: a mount that cannot bear on its battery's target (out of its arc, out of range) picks an enemy it can engage (in its arc and range, valued by class, state and distance) and
+  re-chooses every second or so, instead of staying idle; the secondary guns do the same.
+
+## Unreleased — shells
+
+- **In flight**: the body of the shell is drawn when the camera is within 700 m (AP: dark ogive with a pale ballistic cap and a copper band; HE: blunter, with a fuze and a yellow band, 3.8 calibres long); the tracer
+  streak is red-orange for armour-piercing and yellow-white for high explosive, with a bright head, doubled for the first half second while the gases still surround the shell; a thin vapour trail hangs behind it.
+  A ring of vapour is thrown out round the bore as the shell clears the muzzle.
+- **At the impact**, by what the shell is and what became of it (the simulation now says which): armour-piercing **through the plate** = a pin-prick of light and hot metal at the entry, then (the fuze delay later) a dull
+  burst inside with jets of flame and black smoke through the hole and the openings; **over-penetration** (plate too thin to arm the fuze) = a hole in and a hole out and a streak that flies on; **ricochet** = a
+  scratch of sparks along the plate and the shell whining away on the reflected path; **plate holds** = orange flash, hail of sparks, a lump of the nose flung away; **high explosive** = an instant bright, wide
+  burst (white shock flash, fragments, grey smoke), or, on thick plate, it only shatters. Water splashes differ too (AP: narrow and tall, HE: wide with a flash and smoke). Sounds: an AP hit rings at the plate and
+  bursts a moment later.
+- **Angle of attack**: the incidence on superstructures, modules and turrets is now computed from the real geometry (it was a constant), and an armour-piercing shell arriving at more than 68 degrees from the
+  normal glances off (certain above 82) whatever its energy.
+- **Hit report** (`shellHit` event, J or the "Impacts" button): a floating tag at the impact and a log of the last hits of the selected ship (given and received): shooter -> target, part struck, shell type and
+  calibre, angle, plate and effective thickness against penetration, result (PERCE, TRAVERSE SANS ÉCLATER, RICOCHET, NE PERCE PAS, ÉCLATE, SE BRISE) and damage. `hittest` trailer scene to stage a hit
+  (`--q type=AP|HE --q angle=0..85 --q part=hull|deck|super|mount --q ship=iowa --q gun=yamato`).
+
+## Unreleased — scoreboard
+
+- **Tab** (held) or the "Tableau" button shows a live scoreboard: per team and per ship, ships sunk, aircraft shot down, shells fired, hits, accuracy, torpedoes (hits / launched), damage dealt, and state
+  (hull % or how she was lost), sorted by kills, plus the last sinkings. Tab no longer selects the next ship (N / B / ] / [ still do). `Ship.torpFired` counts the torpedoes launched.
+
 ## Unreleased — ways of sinking
 
 - A ship now goes down in one of several ways, chosen when she is lost (`Ship.chooseSinkMode`): **capsizing** (strongly one-sided flooding, a torpedo: the hull rolls over, floats keel up for a while, then
