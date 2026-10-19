@@ -28,6 +28,9 @@ export class AIController {
       this.zig = 1; this.zigT = 8 + rng() * 20;
       this.retreatT = 0;
     }
+    // a ship that sails with a fleet follows its captain (sim/fleet.js): same way round the enemy, same target for the line, a station to keep
+    const fleet = ship.station ? world.fleetOf(ship.team) : null;
+    if (fleet && fleet.circle) this.circle = fleet.circle;
     const enemies = world.enemiesOf(ship);
     if (!enemies.length) { cmd.throttle = 0.35; cmd.main.target = null; cmd.sec.target = null; cmd.torpedo.fire = false; cmd.air.launch = false; return; }
     for (const e of enemies) e._d = Math.hypot(e.x - ship.x, e.z - ship.z);
@@ -43,6 +46,7 @@ export class AIController {
       let s = TYPE_VALUE[e.stats.type] * (1 + (1 - e.hpFrac) * 0.9) / (0.35 + e._d / reach);
       if (e === ship.lastAttacker) s *= 1.25;
       if (e === cmd.main.target) s *= 1.35;
+      if (fleet && e === fleet.focus && st.type !== 'DD') s *= 1.45;
       if (st.type === 'DD' || st.type === 'CL') s *= Math.pow(reach / Math.max(e._d, 1500), 0.7);
       if (s > bs) { bs = s; best = e; }
     }
@@ -83,7 +87,10 @@ export class AIController {
     Rd *= ramp * (lull ? 0.7 : 1);
     if (st.type === 'CV') Rd = lull ? 9000 : Math.max(Rd, 22000 * ramp);
     if (tp && ship.torpLeft > 0) Rd = Math.min(Rd, clamp(tp.range * 0.5, 3800, 7500));
-    let want, thr;
+    ship.aiRd = Rd;                                  // what this ship would fight at; the captain takes the shortest of the line (sim/fleet.js)
+    const stn = fleet ? ship.station : null;
+    if (stn && stn.flag && fleet.Rd) Rd = fleet.Rd;
+    let want, thr, torpRun = false;
     // a crippled ship withdraws, but only while it is still being shot at
     const crippled = (ship.hpFrac < 0.28 || (ship.engine * ship.propulsion < 0.4 && ship.hpFrac < 0.5)) && world.time - ship.lastHitT < 90;
     if (crippled && st.type !== 'DD') {
@@ -99,12 +106,32 @@ export class AIController {
     // torpedo attack run: show the beam to the target
     if (torpTarget && d < clamp(tp.range * 0.5, 4500, 9000) * 1.15) {
       const bt = Math.atan2(torpTarget.x - ship.x, -(torpTarget.z - ship.z));
-      want = bt + this.circle * 82 * D2R; thr = 1;
+      want = bt + this.circle * 82 * D2R; thr = 1; torpRun = true;
     }
+    // sailing with the fleet: keep the station (a ship breaks formation when it is crippled, in the middle of a torpedo run or too close to the enemy)
+    let following = false;
+    const fp = stn ? fleet.stationPoint(ship) : null;
+    if (fp && !stn.flag && !crippled && !torpRun && ship.hpFrac > 0.3 && !(st.type !== 'DD' && st.type !== 'CV' && d < Rd * 0.55) && !(st.type === 'CV' && d < Rd * 0.85)) {
+      const [sx, sz, fx, fz, rx, rz] = fp, F = fleet.flag;
+      const ex = sx - ship.x, ez = sz - ship.z, dist = Math.hypot(ex, ez);
+      const ea = ex * fx + ez * fz, el = ex * rx + ez * rz;      // metres short of the station along the course (+) and to starboard of the ship (+)
+      const vF = Math.max(F.speed, 0);
+      if (dist > stn.tether) {
+        // back to the station, aiming a little ahead of it (it is moving)
+        const lead = clamp(dist / Math.max(vF + 4, 6), 0, 25);
+        want = Math.atan2(ex + F.vx * lead, -(ez + F.vz * lead));
+        thr = dist > stn.tether * 2.2 ? 1 : clamp(vF / st.maxSpeed + 0.25 + ea / 1500, 0.4, 1);
+      } else {
+        want = F.heading + clamp(el / 450, -0.5, 0.5);
+        thr = clamp(vF / st.maxSpeed * (1 + clamp(ea / 700, -0.3, 0.3)), 0.15, 1);
+      }
+      following = true;
+    }
+    if (stn && stn.flag && !crippled) thr = Math.min(thr, fleet.speedCap / st.maxSpeed);
     // evasive zigzag
     this.zigT -= dt;
     if (this.zigT <= 0) { this.zig = -this.zig; this.zigT = (st.type === 'DD' ? 9 : 16) + rng() * 20; }
-    want += this.zig * (st.type === 'DD' ? 14 : st.type === 'BB' ? 6 : 9) * D2R;
+    if (!following) want += this.zig * (st.type === 'DD' ? 14 : st.type === 'BB' ? 6 : 9) * D2R * (stn && stn.flag ? 0.5 : 1);
 
     // steering vector with obstacle avoidance and map boundary
     let vx = Math.sin(want), vz = -Math.cos(want);
@@ -112,7 +139,8 @@ export class AIController {
       if (o === ship || o.state === 'sunk') continue;
       const rx = o.x - ship.x, rz = o.z - ship.z;
       const dist = Math.hypot(rx, rz);
-      const safe = (st.L + o.stats.L) * 0.5 + 220 + (o.alive ? 0 : 120);
+      const mate = o.team === ship.team && ship.station && o.station;            // ships of one fleet keep close order: they only avoid each other when really near
+      const safe = (st.L + o.stats.L) * 0.5 + (mate ? 90 : 220) + (o.alive ? 0 : 120);
       // predicted closest point of approach
       const vx2 = o.vx - ship.vx, vz2 = o.vz - ship.vz;
       const vv = vx2 * vx2 + vz2 * vz2;

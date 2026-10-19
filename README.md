@@ -229,6 +229,13 @@ moteurs d'avions avec effet Doppler, sirène du Stuka en piqué, avion qui tombe
 - **Torpilles** (destroyers, croiseurs) avec sillage visible, et **frappes aériennes** des porte-avions (voir plus haut).
 - **IA** : choix des cibles, distance de combat selon la classe, circulation, zigzag, évitement des collisions,
   attaques à la torpille, repli quand le navire est en perdition, porte-avions qui se tiennent à distance.
+- **Flottes et tactique** (`sim/fleet.js`) : chaque flotte a un ordre de bataille et le garde. Le **vaisseau amiral** (le plus gros de la ligne) mène ;
+  la **ligne** (cuirassés, puis croiseurs lourds, puis croiseurs légers) le suit en colonne, à un intervalle qui dépend de la longueur des navires, et
+  tourne avec lui ; les **destroyers** font l'**écran**, devant la ligne et sur les deux bossoirs (un destroyer le quitte pour lancer ses torpilles, puis y revient) ;
+  les **porte-avions** naviguent derrière la ligne, du côté opposé à l'ennemi, avec deux destroyers d'escorte. Toute la flotte tourne autour de l'ennemi dans
+  le même sens, à la distance que tient le navire de la ligne qui tire le moins loin, et pas plus vite que le plus lent d'entre eux ; la ligne se
+  partage une **cible commune** (celle que le plus grand nombre de canons atteint, la plus précieuse et déjà touchée). Un navire gravement touché ou privé de
+  machines quitte la formation et se débrouille seul ; il ne règle plus l'allure de la flotte. Les flottes sont posées sur l'eau dans cet ordre.
 - **Mer** : les navires flottent sur la houle FFT (roulis, tangage, pilonnement) et laissent un sillage d'écume (vague d'étrave, ligne d'écume à la flottaison, remous des hélices puis longue traînée blanche, d'autant plus marquée que le navire va vite).
 
 ## Contrôle manuel (préparé, pas encore branché)

@@ -57,6 +57,7 @@ const run = (w, secs, f) => { const n = Math.round(secs / 0.1); for (let i = 0; 
 {
   const cut = (survivors, seed) => {
     const w = setup('essex:1,cleveland:2', 'shokaku:1,agano:2', seed, 40000);
+    for (const s of w.ships) if (s.team === 1 && s.air) s.air.fReady = 0;       // no patrol: the survivors must reach the point where the wave is looked over
     let wave = null, done = false; const events = [];
     run(w, 600, () => {
       for (const e of w.drainEvents()) events.push(e.type);
