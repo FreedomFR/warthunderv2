@@ -102,6 +102,51 @@ for (const spec of ALL_SHIPS) {
   for (let i = 0; i < 1200; i++) w.update(0.1);
   ok(s.state === 'sunk', 'the sections sink');
 }
+// ---- the broken hull never leaves the water: the sections only hop a little, then settle and go down ----
+{
+  const { w, s } = mk('iowa', 4);
+  const mag = mod(s, 'magazine', 0);
+  w.magazineExplosion(s, null, s.toWorld(mag.x, mag.y, mag.z, [0, 0, 0]), mag);
+  let top = -1e9;
+  for (let i = 0; i < 1500 && s.state !== 'sunk'; i++) { w.update(0.1); if (s.split) for (const h of s.split.halves) top = Math.max(top, h.dy); }
+  ok(top < 3, `the sections of an exploded battleship rise at most ${top.toFixed(1)} m above the water`);
+  ok(s.state === 'sunk', 'and they go down');
+}
+// ---- the ways of sinking: capsizing, by the bow, by the stern, settling, burning out, blown apart ----
+{
+  const run = (id, mode) => {
+    const { w, s } = mk(id, 6);
+    for (let i = 0; i < 30; i++) w.update(0.1);
+    s.destroy(null, 'shell'); s.sinkMode = mode; s.sinkStyle = mode; if (mode === 'burn') s.burnT = 30;
+    let roll = 0, pitch = 0, depth30 = 0, n = 0;
+    for (let i = 0; i < 4000 && s.state !== 'sunk'; i++) { w.update(0.1); n = i; roll = Math.max(roll, Math.abs(s.roll)); pitch = Math.max(pitch, Math.abs(s.pitch)); if (i === 250) depth30 = s.sinkDepth; }
+    return { s, roll, pitch, depth30, t: (n + 1) / 10 };
+  };
+  const cap = run('cleveland', 'roll'); ok(cap.roll > 2.8 && cap.s.state === 'sunk', `capsizing: the hull rolls over (${(cap.roll * 57.3).toFixed(0)} deg) before going down in ${cap.t.toFixed(0)} s`);
+  const bow = run('baltimore', 'bow'); ok(bow.pitch > 0.9 && bow.s.state === 'sunk', `by the bow: ${(bow.pitch * 57.3).toFixed(0)} deg`);
+  const stern = run('baltimore', 'stern'); ok(stern.pitch > 0.9 && stern.s.state === 'sunk', `by the stern: ${(stern.pitch * 57.3).toFixed(0)} deg`);
+  const lev = run('baltimore', 'level'); ok(lev.pitch < 0.2 && lev.roll < 0.3 && lev.s.state === 'sunk', 'settling: she stays on an even keel');
+  const burn = run('baltimore', 'burn'); ok(burn.depth30 < 1 && burn.t > 60, `burning out: still on the surface after 25 s, gone after ${burn.t.toFixed(0)} s`);
+  const blast = run('fletcher', 'blast'); ok(blast.t < 25 && blast.s.state === 'sunk', 'blown apart: down in ' + blast.t.toFixed(0) + ' s');
+}
+// ---- the mode follows what killed her ----
+{
+  const mk2 = (id, f) => { const { w, s } = mk(id, 8); for (let i = 0; i < 30; i++) w.update(0.1); f(s); return s; };
+  const a = mk2('cleveland', (s) => { s.floodList = 0.25; s.floodTrim = 0; }); a.destroy(null, 'torpedo'); ok(a.sinkMode === 'roll', 'a strongly one-sided flooding capsizes her');
+  const b = mk2('cleveland', (s) => { s.floodList = 0; s.floodTrim = 0.3; }); b.destroy(null, 'shell'); ok(b.sinkMode === 'bow', 'down by the bow when the bow is flooded');
+  const c = mk2('cleveland', (s) => { s.floodList = 0; s.floodTrim = -0.3; }); c.destroy(null, 'shell'); ok(c.sinkMode === 'stern', 'down by the stern when the stern is flooded');
+  const d = mk2('cleveland', () => {}); d.destroy(null, 'fire'); ok(d.sinkMode === 'burn' && d.burnT >= 30, `lost to fire: she burns out first (${d.burnT.toFixed(0)} s)`);
+  const e = mk2('cleveland', () => {}); e.destroy(null, 'magazine'); ok(e.sinkMode === 'blast', 'a magazine explosion blows her apart');
+}
+// ---- a long ship whose middle is full of water and whose hull is wrecked breaks her back ----
+{
+  const { w, s } = mk('iowa', 9);
+  for (let i = 0; i < 30; i++) w.update(0.1);
+  for (const c of s.comps) { c.water[0] = c.water[1] = 0.95; }
+  s.hp = s.stats.maxHp * 0.2;
+  for (let i = 0; i < 1200 && !s.split && s.state === 'afloat'; i++) { for (const c of s.comps) { c.water[0] = c.water[1] = 0.95; } w.update(0.1); }
+  ok(!!s.split && s.state === 'sinking', 'the flooded, battered hull breaks in two by itself');
+}
 // ---- aircraft models ----
 for (const k of Object.keys(PLANES)) {
   const m = getPlaneModel(k);

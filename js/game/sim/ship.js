@@ -1,7 +1,7 @@
 // A ship in the simulation: kinematics, wave response, damage state and weapon mounts.
 // A ship never decides anything itself: it executes its `cmd` (ShipCommand), which is written by a
 // controller (AI today, a human tomorrow — see controllers/).
-import { clamp, wrapPi, approach, KN, D2R, sat } from '../math.js';
+import { clamp, wrapPi, approach, KN, D2R, sat, smoothstep } from '../math.js';
 import { createModules, createCompartments, AA_HP, blast } from './modules.js';
 import { planeTypeFor } from '../model/planes.js';
 
@@ -60,6 +60,9 @@ export class Ship {
     this.commandLoss = false; this.deckWrecked = false;
     this.lastHitT = -999;
     this.sinkT = 0; this.sinkStyle = 'roll';
+    this.sinkMode = null;           // how she goes down: roll (capsizes) | bow | stern | level (settles) | burn (burns out first) | blast (blown apart)
+    this.burnT = 0;                 // seconds she burns before settling (mode burn)
+    this._cookT = 0;
     this.exploded = false;
     this.split = null;              // broken in two: { cut, halves: [..] }
 
@@ -353,21 +356,57 @@ export class Ship {
     this.listCur += (listT - this.listCur) * Math.min(1, dt * 0.3);
     const trimT = (afloat ? -dmgF * 0.015 - clamp(this.floodTrim * 0.9, -0.3, 0.3) : 0);
 
-    // ---- sinking ------------------------------------------------------------------------------
+    // ---- sinking: the way down follows the mode chosen when she was lost (see destroy) -----------------------------
     let sinkRollT = 0, sinkPitchT = 0;
     if (!afloat) {
       this.sinkT += dt;
-      const T = st.sinkTime * (this.exploded ? 0.45 : 1);
-      const k = this.sinkT / T;
       const full = st.D * 1.2 + (this.model.topY * 0.9);
       if (this.split) {
         this.updateSplit(dt, full);
         this.sinkDepth = 0;
       } else {
-        this.sinkDepth = full * Math.pow(Math.min(k, 1.4), 1.7);
-        if (this.sinkStyle === 'roll') { sinkRollT = this.listSide * Math.min(1.9, k * 2.1); sinkPitchT = 0.08 * k; }
-        else if (this.sinkStyle === 'stern') { sinkPitchT = Math.min(0.5, k * 0.65); sinkRollT = this.listSide * 0.15 * k; }
-        else { sinkPitchT = -Math.min(0.4, k * 0.5); sinkRollT = this.listSide * 0.2 * k; }
+        const mode = this.sinkMode || this.sinkStyle;
+        // a burning ship first burns out dead in the water, cooking off ammunition, then settles
+        let t = this.sinkT;
+        if (mode === 'burn') {
+          t = Math.max(0, this.sinkT - this.burnT);
+          this._cookT -= dt;
+          if (this.sinkT < this.burnT && this._cookT <= 0) {
+            this._cookT = 3 + this.world.rng() * 7;
+            const sz = (0.25 + this.world.rng() * 0.35) * Math.min(1.6, st.L / 130);
+            this.world.secondaryBlast(this, (this.world.rng() - 0.5) * st.L * 0.7, 2 + this.world.rng() * 5, (this.world.rng() - 0.5) * st.B * 0.5, sz);
+          }
+          this.fireLevel = Math.max(this.fireLevel, this.sinkT < this.burnT ? 0.85 : 0.5);
+        }
+        const T = st.sinkTime * ({ roll: 1.1, bow: 1, stern: 1.05, level: 1.6, burn: 1.5, blast: 0.4 }[mode] || 1);
+        const k = t / T;
+        const kk = Math.min(k, 1.4);
+        let depth;
+        if (mode === 'roll') {
+          // capsizes: rolls over to the keel and floats upside down for a while, then goes down
+          const turn = smoothstep(0, 0.5, k);
+          sinkRollT = this.listSide * Math.PI * 0.96 * turn;
+          sinkPitchT = 0.05 * k;
+          const inverted = st.D * 0.75 * smoothstep(1.3, 2.7, Math.abs(this.sinkRoll));
+          depth = st.D * 0.25 * Math.min(1, k * 2) + inverted + full * Math.pow(Math.max(0, (k - 0.5) / 0.6), 1.7);
+        } else if (mode === 'bow') {
+          sinkPitchT = -Math.min(1.15, 0.12 + k * 1.5);
+          sinkRollT = this.listSide * 0.12 * k;
+          depth = full * Math.pow(kk, 2.1);
+        } else if (mode === 'stern') {
+          sinkPitchT = Math.min(1.1, 0.12 + k * 1.4);
+          sinkRollT = this.listSide * 0.12 * k;
+          depth = full * Math.pow(kk, 2.1);
+        } else if (mode === 'blast') {
+          sinkPitchT = this.listSide * 0.3 * Math.min(1, k * 1.4);
+          sinkRollT = this.listSide * 0.35 * Math.min(1, k * 1.4);
+          depth = full * Math.pow(kk, 1.5);
+        } else {   // level, burn: settles on an even keel, the deck awash, the bow or stern a little low
+          sinkPitchT = this.floodTrim * -0.12 * Math.min(1, k * 2);
+          sinkRollT = this.listSide * 0.07 * Math.min(1, k * 2);
+          depth = full * Math.pow(kk, 1.35);
+        }
+        this.sinkDepth = depth;
         if (this.sinkDepth > full) { this.state = 'sunk'; this.world.shipGone(this); }
       }
     }
@@ -407,6 +446,24 @@ export class Ship {
       this.fireLevel = sat(burn * 0.35);
       if (burn > 0) this.applyDamage(Math.min(burn, 3.5) * 0.00036 * st.maxHp * dt, null, 'fire');
       if (this.floodRate > 0) this.applyDamage(this.floodRate * dt, null, 'flood');
+      // structural failure: a long, battered ship whose neighbouring compartments are both full amidships breaks her back
+      if (st.L > 110 && this.hpFrac < 0.3 && !this.split && this.state === 'afloat') {
+        this._breakT = (this._breakT || 0) + dt;
+        if (this._breakT > 1) {
+          this._breakT = 0;
+          for (let i = 0; i + 1 < this.comps.length; i++) {
+            const a = this.comps[i], c = this.comps[i + 1];
+            if (Math.abs(a.xc) > st.L * 0.32 || Math.min((a.water[0] + a.water[1]) / 2, (c.water[0] + c.water[1]) / 2) < 0.8) continue;
+            if (this.world.rng() < 0.12) {
+              this.sinkMode = 'split';
+              this.destroy(this.lastAttacker, 'structure');
+              this.sinkMode = 'split'; this.sinkStyle = 'split';
+              this.world.breakInTwo(this, (a.xc + c.xc) / 2);
+              return;
+            }
+          }
+        }
+      }
       // temporary engine disruption and rudder repairs; destroyed modules are gone for good
       if (this.engine < 1) this.engine = Math.min(1, this.engine + dt * 0.002);
       if (this.rudderJam !== 0 && !this.rudderDead && this.world.time - this.lastHitT > 25) this.rudderJam = 0;
@@ -432,9 +489,10 @@ export class Ship {
     sp.t += dt;
     let deep = 0;
     for (const h of sp.halves) {
-      // the section is thrown apart by the blast, then drifts and sinks at its own pace
-      h.vy += (h.buoy * 4.5 - 9.81 * (1 - h.buoy) * 0.6 * Math.min(1, sp.t / 2.5)) * dt;
-      h.vy *= Math.exp(-dt * 0.6);
+      // the section is thrown apart by the blast (a small hop), then floats on its own buoyancy: a spring towards the waterline it would
+      // sit at, which falls as the section fills with water and takes it down
+      const eq = -Math.pow(1 - h.buoy, 2.2) * full * 1.05;
+      h.vy += (-6 * (h.dy - eq) - 3.2 * h.vy) * dt;
       h.dy += h.vy * dt;
       h.dx += h.vx * dt; h.vx *= Math.exp(-dt * 0.5);
       h.buoy = Math.max(0, h.buoy - dt * h.leak);
@@ -458,6 +516,25 @@ export class Ship {
     return false;
   }
 
+  /**
+   * How a ship that has been lost goes down, from what killed her and the state of her hull: a magazine blows her apart; a fire that
+   * got out of hand burns her out first; a strongly one-sided flooding (a torpedo) capsizes her; a trim by the bow or stern takes her
+   * down that way; an even flooding lets her settle on her keel; otherwise it depends on the class.
+   */
+  chooseSinkMode(cause, type, rng) {
+    const r = rng();
+    if (cause === 'magazine') return 'blast';
+    if (cause === 'fire' || (this.fireLevel > 0.55 && cause !== 'torpedo' && r < 0.5)) return 'burn';
+    const list = Math.abs(this.floodList), trim = this.floodTrim;
+    if (list > 0.16 && type !== 'BB') return 'roll';
+    if (list > 0.3) return 'roll';
+    if (trim > 0.1) return 'bow';
+    if (trim < -0.1) return 'stern';
+    if (cause === 'flood' && this.waterFill > 0.55) return 'level';
+    const w = { DD: [0.4, 0.2, 0.3, 0.1], CL: [0.25, 0.25, 0.3, 0.2], CA: [0.2, 0.25, 0.3, 0.25], BB: [0.1, 0.3, 0.3, 0.3], CV: [0.2, 0.2, 0.2, 0.4] }[type] || [0.3, 0.25, 0.25, 0.2];
+    return ['roll', 'bow', 'stern', 'level'][r < w[0] ? 0 : r < w[0] + w[1] ? 1 : r < w[0] + w[1] + w[2] ? 2 : 3];
+  }
+
   destroy(attacker, cause) {
     if (this.state !== 'afloat') return;
     this.state = 'sinking';
@@ -468,15 +545,14 @@ export class Ship {
     this.killedBy = killer || null;
     this.cause = cause;
     const t = this.stats.type;
-    const r = this.world.rng();
-    // how it goes down follows the flooding: by the bow, by the stern, or capsizing
-    this.sinkStyle = t === 'DD' ? (r < 0.6 ? 'roll' : 'stern') : t === 'BB' ? (r < 0.5 ? 'roll' : r < 0.8 ? 'stern' : 'bow') : (r < 0.5 ? 'roll' : r < 0.75 ? 'stern' : 'bow');
-    if (this.floodTrim > 0.1) this.sinkStyle = 'bow';
-    else if (this.floodTrim < -0.1) this.sinkStyle = 'stern';
-    if (cause === 'magazine') { this.exploded = true; this.sinkStyle = r < 0.5 ? 'stern' : 'bow'; }
+    const rng = this.world.rng;
+    this.sinkMode = this.chooseSinkMode(cause, t, rng);
+    this.sinkStyle = this.sinkMode;
+    if (this.sinkMode === 'burn') this.burnT = clamp(this.stats.L * 0.3 + rng() * 40, 30, 100);
+    if (cause === 'magazine') this.exploded = true;
     for (const m of this.mounts) { m.alive = false; }
     this.cmd.throttle = 0; this.cmd.desiredHeading = null;
-    this.world.events.push({ type: 'sinking', ship: this, magazine: cause === 'magazine' });
+    this.world.events.push({ type: 'sinking', ship: this, magazine: cause === 'magazine', mode: this.sinkMode });
     this.world.onShipSunk(this, killer, cause);
   }
 }
