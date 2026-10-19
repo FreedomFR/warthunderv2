@@ -632,8 +632,19 @@ function stepPlane(world, p, dt) {
   }
   if (p.phase === 'return' && p.carrierOkLast !== carrierOk) p.carrierOkLast = carrierOk;
   const prev = _prev; prev[0] = p.x; prev[1] = p.y; prev[2] = p.z;
+  const T = world.terrain;
+  // an island ahead: the pilot climbs over it (not in a dive, on the approach to a deck or at the very low level of a torpedo run)
+  if (T && !LAND_BLIND.has(p.phase)) {
+    let top = -1e9;
+    for (const d of [300, 750, 1300, 2000]) top = Math.max(top, T.heightAt(p.x + Math.sin(p.heading) * d, p.z - Math.cos(p.heading) * d));
+    if (top + 35 > p.y) gam = Math.max(gam, clamp((top + 80 - p.y) / 420, 0.05, 0.3));
+  }
   guide(p, dt, hdg, gam, spd, o);
   p.x += p.vx * dt; p.y += p.vy * dt; p.z += p.vz * dt;
+  if (T) {
+    const gh = T.heightAt(p.x, p.z);
+    if (gh > 0 && p.y < gh + 2.5 && !DECK_PHASES.has(p.phase)) { landCrash(world, p, gh); return false; }
+  }
   // never below the sea: a low pass over the water stays at a few metres
   if (p.y < 4 && p.phase !== 'ditch' && p.phase !== 'floating') {
     p.y = 4; if (p.pitch < 0) p.pitch = 0;
@@ -642,6 +653,17 @@ function stepPlane(world, p, dt) {
   return collideShips(world, p, prev);
 }
 const _l2 = [0, 0, 0], _l3 = [0, 0, 0];
+const LAND_BLIND = new Set(['dive', 'rollin', 'pullout', 'ditch', 'floating', 'final', 'waveoff', 'pattern', 'run', 'ip', ...DECK_PHASES]);
+
+/** An aircraft flies into the ground of an island. */
+function landCrash(world, p, gh) {
+  if (!p.dying) {
+    p.owner && (p.owner.lostPlanes = (p.owner.lostPlanes || 0) + 1);
+    world.events.push({ type: 'planeDown', plane: p, mode: 'dive', x: p.x, y: p.y, z: p.z, cause: 'crash', hasOrdnance: p.ordnance, attacker: null });
+  }
+  world.events.push({ type: 'planeCrash', plane: p, x: p.x, y: gh, z: p.z, water: false, land: true, ship: null, speed: p.speed, ordnance: p.bomb ?? p.ordnance });
+  spawnScrap(world, p.x, gh + 1, p.z, 7, 14, p.vx * 0.2, p.vz * 0.2, 0.9);
+}
 const _prev = [0, 0, 0];
 
 function dropBomb(world, p, tgt) {
@@ -922,6 +944,7 @@ function stepDying(world, p, dt) {
     p.heading += p.bank * 0.1 * dt;
     setVel(p);
     p.x += p.vx * dt; p.y += p.vy * dt; p.z += p.vz * dt;
+    if (world.terrain) { const gh = world.terrain.heightAt(p.x, p.z); if (gh > 0 && p.y <= gh + 1) { landCrash(world, p, gh); return false; } }
     if (p.y <= 1.5) { ditch(world, p, true); return true; }
     return collideShips(world, p, prev);
   }
@@ -945,6 +968,8 @@ function stepDying(world, p, dt) {
     p.bank += (Math.sin(p.dyingT * 1.3) * 0.5 - p.bank) * dt;
     if (Math.hypot(p.vx, p.vz) > 4) p.heading += wrapPi(Math.atan2(p.vx, -p.vz) - p.heading) * Math.min(1, dt * 0.6);
   }
+  const T = world.terrain;
+  if (T) { const gh = T.heightAt(p.x, p.z); if (gh > 0 && p.y <= gh + 0.8) { landCrash(world, p, gh); return false; } }
   if (p.y <= 0.8) { crash(world, p, null); return false; }
   const ok = collideShips(world, p, prev);
   return ok;

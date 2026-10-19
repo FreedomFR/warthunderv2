@@ -69,6 +69,14 @@ struct VOut {
     let dzdu = (cos(ph) * (-6.5) + 0.35 * cos(ph * 2.3 + 1.7) * (-6.5 * 2.3)) * amp + (sin(ph) + 0.35 * sin(ph * 2.3 + 1.7)) * 0.11 * min(len, 6.0);
     lnrm = normalize(vec3f(dzdu / len * 1.0, 0.0, 1.0));
   }
+  if (vmat == 14u || vmat == 15u) {
+    // wind on the foliage: a gust travelling across the island (the phase follows the position), the amplitude baked in the vertex (metres / 0.6)
+    let amp = select(v.col.b, v.nrm.w, vmat == 15u) * 0.6;
+    let ph = F.camPos.w * 1.45 + v.misc.y * 40.0 + dot(v.pos.xz, vec2f(0.7, 0.55)) * 0.045;
+    let gust = sin(ph) + 0.42 * sin(ph * 2.7 + 1.3);
+    lpos.x += 0.8 * gust * amp; lpos.z += 0.6 * gust * amp; lpos.y -= abs(gust) * amp * 0.12;
+    if (vmat == 15u) { lpos += v.nrm.xyz * sin(F.camPos.w * 6.5 + dot(v.pos, vec3f(5.1, 7.3, 3.9))) * 0.035 * min(1.0, amp * 6.0); }
+  }
   let rel = (M * vec4f(lpos, 1.0)).xyz;
   var o: VOut;
   o.pos = F.viewProj * vec4f(rel, 1.0);
@@ -202,10 +210,90 @@ fn ggx(nh: f32, a: f32) -> f32 {
   return a2 / (PI * d * d + 1e-6);
 }
 
+// ---- vegetation ----
+// colour of a foliage family at shade t (0 dark .. 1 light), sRGB 0..1
+fn leafPal(fam: u32, t: f32) -> vec3f {
+  var a = vec3f(32.0, 64.0, 22.0); var b = vec3f(84.0, 112.0, 38.0);
+  switch (fam) {
+    case 1u: { a = vec3f(20.0, 46.0, 34.0); b = vec3f(44.0, 80.0, 56.0); }
+    case 2u: { a = vec3f(36.0, 80.0, 24.0); b = vec3f(92.0, 124.0, 42.0); }
+    case 3u: { a = vec3f(22.0, 62.0, 22.0); b = vec3f(58.0, 108.0, 36.0); }
+    case 4u: { a = vec3f(100.0, 116.0, 56.0); b = vec3f(152.0, 152.0, 84.0); }
+    case 5u: { a = vec3f(36.0, 60.0, 40.0); b = vec3f(64.0, 92.0, 58.0); }
+    case 6u: { a = vec3f(38.0, 70.0, 30.0); b = vec3f(76.0, 108.0, 44.0); }
+    case 7u: { a = vec3f(84.0, 64.0, 34.0); b = vec3f(122.0, 94.0, 48.0); }
+    case 8u: { a = vec3f(110.0, 102.0, 58.0); b = vec3f(164.0, 146.0, 86.0); }
+    default: {}
+  }
+  return mix(a, b, clamp(t, 0.0, 1.0)) / 255.0;
+}
+fn shapeFam(shape: u32) -> u32 {
+  switch (shape) { case 1u: { return 1u; } case 2u: { return 2u; } case 3u: { return 6u; } case 4u: { return 4u; } case 5u: { return 3u; } case 6u: { return 8u; } default: { return 0u; } }
+}
+// the cut-out of a card of leaves (uv: u across, v from the base to the tip): x = opacity (0 / 1), y = shade 0..1 (veins, individual leaflets)
+fn leafMask(shape: u32, uv: vec2f) -> vec2f {
+  let w = (uv.x - 0.5) * 2.0;
+  var m = 0.0; var sh = 0.5;
+  switch (shape) {
+    case 0u: {   // a twig of broad leaflets in opposite pairs, a leaflet at the tip
+      let y = uv.y * 5.2;
+      let side = select(-1.0, 1.0, w > 0.0);
+      let ys = y + select(0.0, 0.5, w > 0.0);
+      let cell = floor(ys); let fy = fract(ys) - 0.5;
+      let e = length(vec2f((abs(w) - 0.5) / 0.48, fy / 0.62 * (1.0 + 0.5 * abs(fy))));
+      let tip = length(vec2f(w / 0.4, (uv.y - 0.9) / 0.1));
+      let rib = select(0.0, 1.0, abs(w) < 0.045 && uv.y < 0.95);
+      m = max(max(1.0 - smoothstep(0.82, 1.0, e), 1.0 - smoothstep(0.85, 1.0, tip)), rib);
+      sh = 0.35 + 0.55 * hash21(vec2f(cell, side * 3.0)) + 0.2 * (1.0 - abs(abs(w) - 0.5) * 2.0);
+    }
+    case 1u: {   // a spray of needles fanning out from the base
+      let p = vec2f(w, uv.y + 0.04);
+      let ang = atan2(p.x, p.y);
+      let r = length(p);
+      let line = abs(fract(ang * 13.0) - 0.5) * 2.0;
+      m = select(0.0, 1.0, line > 0.58 && r < 1.0 && abs(ang) < 1.05) ;
+      sh = 0.4 + 0.5 * hash21(vec2f(floor(ang * 13.0), 2.0));
+    }
+    case 2u: {   // a palm frond: the rachis and the pinnate leaflets hanging on both sides
+      let k = fract(uv.y * 15.0 - abs(w) * 4.5);
+      let leaflet = k < 0.72 && abs(w) > 0.05 && abs(w) < 1.0 - 0.3 * uv.y;
+      let rib = abs(w) < 0.06;
+      m = select(0.0, 1.0, leaflet || rib);
+      sh = select(0.3 + 0.6 * k, 0.9, rib);
+    }
+    case 4u: {   // fine bipinnate leaves (acacia): rows of tiny leaflets
+      let k = abs(fract(uv.y * 8.0 - abs(w) * 1.6) - 0.5);
+      let fine = abs(fract(w * 5.0 + uv.y * 8.0) - 0.5);
+      m = select(0.0, 1.0, (k < 0.26 && fine < 0.4 && abs(w) > 0.06) || abs(w) < 0.05);
+      sh = 0.3 + 0.7 * hash21(vec2f(floor(uv.y * 8.0), floor(w * 5.0)));
+    }
+    case 5u: {   // a fan of simple pointed leaves (tropical canopy) with their veins
+      let p = vec2f(w * 0.5, uv.y);
+      for (var k = 0; k < 5; k++) {
+        let a = (f32(k) - 2.0) * 0.5;
+        let ca = cos(a); let sa = sin(a);
+        let q = vec2f(p.x * ca - p.y * sa, p.x * sa + p.y * ca);
+        let hw = 0.2 * sin(3.14159 * clamp(q.y / 0.98, 0.0, 1.0));
+        if (q.y > 0.0 && abs(q.x) < hw) { m = 1.0; sh = 0.6 + 0.25 * select(0.0, 1.0, abs(q.x) < 0.012) - 0.15 * smoothstep(0.7, 1.0, abs(fract(q.y * 8.0 - abs(q.x) * 14.0) - 0.5) * 2.0) + 0.1 * f32(k % 2); }
+      }
+    }
+    default: {   // 3 / 6: a tuft of small leaves (rounded, ragged)
+      let c = (uv - 0.5) * 2.0;
+      let n = gnoise(uv * 11.0 + 3.0);
+      let leaf = abs(fract(uv * 7.0 + n) - 0.5);
+      let r = length(c);
+      m = select(0.0, 1.0, r + n * 0.45 < 0.92 && (leaf.x < 0.32 || leaf.y < 0.26));
+      if (shape == 6u) { m = select(0.0, m, n > -0.18); }
+      sh = 0.3 + 0.6 * clamp(0.5 + 1.4 * n, 0.0, 1.0);
+    }
+  }
+  return vec2f(m, sh);
+}
+
 @fragment fn fs(in: VOut, @builtin(front_facing) ff: bool) -> @location(0) vec4f {
   if (in.misc.w != 0.0 && (in.local.x - in.misc.z) * in.misc.w < 0.0) { discard; }
   var N = normalize(in.nrm);
-  if (!ff) { N = -N; }
+  if (!ff && in.col.a * 255.0 < 14.5) { N = -N; }
   let Ng = N;                                              // geometric normal (shadow offset), before any bump
   let dist = length(in.rel);
   let V = -in.rel / dist;
@@ -216,6 +304,7 @@ fn ggx(nh: f32, a: f32) -> f32 {
   var rough = 0.74;
   var metal = 0.0;
   var emissive = vec3f(0.0);
+  var trans = 0.0;                                           // light let through foliage
   var f0 = vec3f(0.035);
   let lp = in.local;
   let fw = max(fwidth(lp.x) + fwidth(lp.y) + fwidth(lp.z), 1e-4);   // local-space pixel footprint
@@ -335,6 +424,72 @@ fn ggx(nh: f32, a: f32) -> f32 {
       albedo = vec3f(0.78, 0.78, 0.74);
       rough = 0.8;
     }
+    case 12u: {  // the ground of an island: the soil colour is in the vertex, the grain is added here
+      let tf = 1.0 - smoothstep(40.0, 420.0, dist);
+      let g1 = clamp(0.5 + 0.9 * gnoise(lp.xz * 0.21), 0.0, 1.0);
+      let g2 = clamp(0.5 + 0.9 * gnoise(lp.xz * 0.55 + 7.0), 0.0, 1.0);
+      let g3 = clamp(0.5 + 0.9 * gnoise(lp.xz * 2.1 + 3.0), 0.0, 1.0);
+      let steep = smoothstep(0.35, 0.75, 1.0 - up);
+      // strata and crumbled rock on the steep ground, tufts and patches on the gentle one
+      let strata = sin(lp.y * 0.9 + g1 * 5.0 + lp.x * 0.05) * 0.5 + 0.5;
+      albedo *= (0.78 + 0.4 * g1) * (0.9 + 0.2 * g2 * tf + 0.08 * g3 * tf);
+      albedo *= mix(1.0, 0.72 + 0.4 * strata, steep * 0.7);
+      // the sand next to the water is wet and darker
+      albedo *= mix(0.62, 1.0, smoothstep(0.0, 1.4, lp.y));
+      hgt = (0.16 * (g2 - 0.5) + 0.05 * (g3 - 0.5)) * tf;
+      rough = mix(0.93, 0.7, (1.0 - smoothstep(0.0, 0.8, lp.y)) * 0.7);
+      weather = 1.0;
+    }
+    case 13u: {  // bark: furrows running along the trunk
+      let fur = gnoise(vec2f((lp.x + lp.z * 0.7) * 7.0, lp.y * 0.55));
+      let fur2 = gnoise(vec2f((lp.x - lp.z * 0.8) * 15.0 + 3.0, lp.y * 1.8));
+      let nf = 1.0 - smoothstep(20.0, 160.0, dist);
+      albedo *= 0.74 + 0.55 * clamp(0.5 + fur + 0.4 * fur2, 0.0, 1.0);
+      hgt = (0.5 * fur + 0.25 * fur2) * 0.07 * nf;
+      rough = 0.93; weather = 1.0;
+    }
+    case 14u: {  // the crown of a tree: lumps of foliage worn into leaves at the edge, lit from behind
+      let rc = u32(in.col.r * 255.0 + 0.5);
+      let fam = rc >> 4u;
+      let shade = f32(rc & 15u) / 15.0;
+      let nw = abs(in.lnrm) + vec3f(0.05);
+      let f1 = 2.7;
+      let nA = gnoise(lp.yz * f1 + 1.0); let nB = gnoise(lp.xz * f1 + 5.0); let nC = gnoise(lp.xy * f1 + 9.0);
+      let leafN = (nA * nw.x + nB * nw.y + nC * nw.z) / (nw.x + nw.y + nw.z);
+      let nA2 = gnoise(lp.yz * 8.5 + 2.0); let nB2 = gnoise(lp.xz * 8.5 + 7.0); let nC2 = gnoise(lp.xy * 8.5 + 4.0);
+      let fineN = (nA2 * nw.x + nB2 * nw.y + nC2 * nw.z) / (nw.x + nw.y + nw.z);
+      let big = gnoise(lp.xz * 0.45 + lp.y * 0.2);
+      let res = 1.0 - smoothstep(0.05, 0.4, fw);                    // leaf scale is only resolved close up
+      let facing = abs(dot(normalize(in.nrm), V));
+      let rim = 1.0 - facing;
+      // the edge of the crown is ragged: leaves missing where the surface turns away
+      let hole = 0.5 + 0.8 * leafN + 0.35 * fineN;
+      if (hole < (rim * 1.5 + 0.06) * (0.25 + 0.75 * res)) { discard; }
+      let t = clamp(shade * 0.7 + 0.15 + 0.6 * leafN + 0.2 * big + 0.15 * fineN * res, 0.0, 1.0) * (0.78 + 0.5 * in.col.g);
+      albedo = srgb2lin(leafPal(fam, t) * mix(vec3f(1.0), vec3f(1.15, 1.1, 0.8), clamp(0.5 + 0.9 * big, 0.0, 1.0) * 0.5)) * (0.78 + 0.5 * in.col.g);
+      albedo *= in.tint.rgb * 2.0;
+      hgt = (0.5 * leafN + 0.25 * fineN) * 0.16 * (1.0 - smoothstep(25.0, 200.0, dist));
+      rough = 0.7; f0 = vec3f(0.02); trans = 0.55; weather = 1.0;
+    }
+    case 15u: {  // a card of leaves with a cut-out
+      let shape = u32(in.col.b * 255.0 + 0.5) >> 4u;
+      let m = leafMask(shape, in.col.rg);
+      if (m.x < 0.5) { discard; }
+      let big = gnoise(lp.xz * 0.6 + lp.y * 0.3);
+      let t = clamp(m.y * 0.8 + 0.25 * big + 0.1, 0.0, 1.0);
+      albedo = srgb2lin(leafPal(shapeFam(shape), t)) * (0.85 + 0.3 * hash21(vec2f(floor(lp.x * 2.0) + floor(lp.y * 2.0), floor(lp.z * 2.0))));
+      albedo *= in.tint.rgb * 2.0;
+      rough = 0.55; f0 = vec3f(0.03); trans = 0.7; weather = 1.0;
+    }
+    case 16u: {  // boulders: speckled stone, moss on the top
+      let g1 = gnoise(lp.xz * 4.2 + lp.y * 2.5); let g2 = gnoise(lp.xy * 11.0 + 3.0);
+      let g3 = gnoise(lp.xz * 0.8 + 11.0);
+      albedo *= (0.72 + 0.5 * clamp(0.5 + g1 + 0.5 * g2, 0.0, 1.0)) * in.tint.rgb * 2.0;
+      let moss = smoothstep(0.35, 0.8, in.lnrm.y) * smoothstep(-0.25, 0.35, g3);
+      albedo = mix(albedo, vec3f(0.05, 0.1, 0.03) * (0.7 + 0.6 * clamp(0.5 + g2, 0.0, 1.0)), moss * 0.6);
+      hgt = (0.5 * g1 + 0.3 * g2) * 0.1 * (1.0 - smoothstep(20.0, 150.0, dist));
+      rough = mix(0.9, 0.97, moss); weather = 1.0;
+    }
     default: { rough = 0.74; }
   }
   N = bumpNormal(N, in.rel, hgt);
@@ -379,6 +534,8 @@ fn ggx(nh: f32, a: f32) -> f32 {
   let heightAO = mix(0.72, 1.0, smoothstep(-1.5, 7.0, lp.y));
   let ao = in.ao * heightAO;
   var col = albedo * (diffSun + amb * ao * 1.15);
+  // leaves let the sun through: the side facing away from it glows yellow-green
+  col += albedo * vec3f(1.0, 0.93, 0.5) * sunE * max(-NdL, 0.0) * trans * 0.5 / PI * step(-0.02, Ld.y);
 
   // specular: sun GGX + environment reflection
   let H = normalize(V + Ld);

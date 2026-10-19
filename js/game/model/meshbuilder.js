@@ -20,6 +20,11 @@ export const MAT = {
   AIRCRAFT: 9,  // aircraft skins (slightly glossy)
   ENSIGN: 10,   // national ensign: rgb = (u, v, length) of the cloth, drawn and waved by the shader
   GLYPH: 11,    // hull number glyph: rgb = (glyph index, u, v) inside the glyph box
+  TERRAIN: 12,  // the ground of an island: rgb is the colour of the soil, the shader adds the grain
+  BARK: 13,     // trunks and branches: rgb is the bark, the shader adds the furrows
+  LEAF: 14,     // the crown of a tree (lumps of foliage): r = family * 16 + shade, g = tone, b = how much the wind moves it; the shader erodes the edge into leaves
+  CARD: 15,     // a card of leaves with a cut-out: r, g = position on the card, b = leaf shape; the vertex ambient occlusion is the wind amplitude
+  ROCK: 16,     // boulders: rgb is the stone, the shader adds the speckle and the moss
 };
 
 import { bakeAO } from './ao.js';

@@ -4,7 +4,7 @@ import { SHIP, SHIP_SHADOW } from '../../wgsl/ship.js';
 import { VERTEX_STRIDE } from '../model/meshbuilder.js';
 
 const INST_FLOATS = 28;          // 4 x vec4 matrix + tint + misc + paint
-const MAX_INSTANCES = 8192;
+const MAX_INSTANCES = 32768;
 const GU = GPUBufferUsage;
 
 export class ShipRenderer {
@@ -93,6 +93,13 @@ export class ShipRenderer {
     const mesh = { id: this.meshes.length, vbuf, ibuf, indexCount: built.indexCount, aabb: built.aabb, label, first: 0, n: 0, n2: 0, cpu: null, cpu2: null };
     this.meshes.push(mesh);
     return mesh;
+  }
+
+  /** Free a mesh made by createMesh() (islands are rebuilt for every battle). */
+  releaseMesh(mesh) {
+    const k = this.meshes.indexOf(mesh);
+    if (k >= 0) this.meshes.splice(k, 1);
+    mesh.vbuf.destroy(); mesh.ibuf.destroy();
   }
 
   /** Do the instances added from now on cast sun shadows? (default yes) */

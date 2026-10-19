@@ -5,6 +5,9 @@ import { spawnFleet, teamStart } from './sim/formation.js';
 import { getModel } from './model/cache.js';
 import { ShipRenderer } from './render/shipRenderer.js';
 import { ShipVisuals } from './render/shipVisual.js';
+import { IslandVisuals } from './render/islandVisual.js';
+import { VegetationVisuals } from './render/vegetationVisual.js';
+import { Terrain } from './sim/terrain.js';
 import { PlaneVisuals } from './render/aircraftVisual.js';
 import { Particles, K } from './render/particles.js';
 import { Effects } from './render/effects.js';
@@ -33,7 +36,7 @@ export class Game {
     this.state = 'setup';            // setup | ready | running | finished
     this.paused = false;
     this.timeScale = 1;
-    this.config = { teams: [], sep: 12000, seed: opts.seed || 1 };
+    this.config = { teams: [], sep: 12000, seed: opts.seed || 1, islands: opts.islands ?? 1 };      // islands: 0 none, 1 a few, 2 an archipelago
     this.renderModels = new Map();
     this.ui = null;
     this.shakeT = 0;
@@ -73,6 +76,7 @@ export class Game {
     if (this.canAuto) this.engine.setRenderScale(q.scale);
     this.shadowsOn = this.userShadows && q.shadows;
     this.ui?.onRenderScale?.(this.engine.getRenderScale());
+    this.vegetation?.setQuality(this.qLevel);
   }
 
   async init() {
@@ -86,6 +90,10 @@ export class Game {
     this.shipVisuals = new ShipVisuals(this.shipRenderer);
     this.planeVisuals = new PlaneVisuals(this.shipRenderer);
     this.shipVisuals.planes = this.planeVisuals;
+    this.islandVisuals = new IslandVisuals(this.shipRenderer, e);
+    this.vegetation = new VegetationVisuals(this.shipRenderer, e);
+    this.vegetation.enabled = new URLSearchParams(location.search).get('trees') !== '0';
+    this.vegetation.setQuality(this.qLevel);
 
     e.hooks.update = (dt, now) => this.update(dt, now);
     e.hooks.prepare = () => this.prepare();
@@ -108,6 +116,15 @@ export class Game {
       const s = teamStart(i, teams.length, this.config.sep);
       spawnFleet(w, i, t.entries.filter((x) => x.count > 0), s.x, s.z, s.heading);
     });
+    // the islands of this battle: the same seed gives the same sea; the fleets and the axis between them are kept clear
+    {
+      const starts = teams.map((_, i) => teamStart(i, teams.length, this.config.sep));
+      const keep = starts.map((q) => ({ x: q.x, z: q.z, r: 4800 }));
+      const axis = starts.length >= 2 ? [starts[0].x, starts[0].z, starts[1].x, starts[1].z] : null;
+      w.terrain = Terrain.generate(this.config.seed, this.config.islands, keep, axis, clamp(this.config.sep * 0.9 + 5000, 9000, 21000));
+      this.islandVisuals.set(w.terrain);
+      this.vegetation.set(w.terrain);
+    }
     this.state = 'ready';
     this.paused = false;
     // show the first fleet from a pleasant angle (unless the player is just editing the fleets)
@@ -132,6 +149,8 @@ export class Game {
 
   reset() {
     this.world.clear();
+    this.islandVisuals.set(null);
+    this.vegetation.set(null);
     this.particles.n = 0;
     this.camera.target = null;
     this.camera.setMode('free');
@@ -233,6 +252,8 @@ export class Game {
     const r = this.shipRenderer, cam = this.engine.cam, w = this.world;
     r.begin();
     this.particles.beginFrame();
+    this.islandVisuals.add(cam);
+    this.vegetation.add(cam);
     for (const s of w.ships) {
       if (s.state === 'sunk') continue;
       const team = w.teams[s.team];
