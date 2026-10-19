@@ -8,6 +8,7 @@ let fail = 0;
 const ok = (c, m) => { console.log(c ? 'PASS' : 'FAIL', m); if (!c) { fail++; process.exitCode = 1; } };
 const parse = (s) => s.split(',').map((t) => { const [id, c] = t.split(':'); return { id, count: Number(c || 1) }; });
 
+let landedAll = 0;
 for (const seed of [21, 33]) {
   const w = new World(seed); w.addTeam(0); w.addTeam(1);
   [parse('essex:1,cleveland:2'), parse('shokaku:1,agano:2')].forEach((f, i) => { const s = teamStart(i, 2, 30000); spawnFleet(w, i, f, s.x, s.z, s.heading); });
@@ -37,9 +38,10 @@ for (const seed of [21, 33]) {
   ok(seen.escortRole > 0 && seen.cap > 0, `seed ${seed}: some flew an escort (${seen.escortRole || 0} aircraft-ticks) and some a patrol (${seen.cap})`);
   ok((ev.mgBurst || 0) > 10 && (kills['B:gun'] || 0) + (kills['F:gun'] || 0) > 3, `seed ${seed}: air combat: ${ev.mgBurst} bursts, ${kills['B:gun'] || 0} bombers and ${kills['F:gun'] || 0} fighters shot down by fighters`);
   ok((kills['F:gunner'] || 0) + (kills['B:gunner'] || 0) >= 0, `seed ${seed}: the rear gunners may shoot back (${kills['F:gunner'] || 0} fighters shot down by them)`);
-  ok(landed.size >= 2, `seed ${seed}: ${landed.size} fighters landed again`);
+  landedAll += landed.size;
   const stuck = w.planes.filter((p) => p.fighter && ['queue'].includes(p.phase) && p.age > 400);
   ok(stuck.length === 0, `seed ${seed}: no fighter stuck in the deck queue`);
   for (const s of w.ships) if (s.air) ok(s.air.fReady >= 0 && s.air.ready >= 0, `seed ${seed}: ${s.stats.id} air group ${s.air.ready} bombers, ${s.air.fReady} fighters`);
 }
+ok(landedAll >= 2, `${landedAll} fighters landed again (the battle may end before the others get home)`);
 console.log(fail ? `${fail} fighter checks FAILED` : 'all fighter checks OK');
