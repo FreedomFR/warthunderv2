@@ -18,6 +18,14 @@
 - **Bigger strikes**: a wave is about an eighth to a quarter of the air group (Essex 13-23 bombers, Shokaku 11-19, Illustrious 7-13, Béarn 6-9, Aquila 9-15; it used to be 6-11 whatever the carrier), with an escort of a
   third of that (2-7 fighters), so that more of the strike gets through to its target; the AA is unchanged. The torpedo sections' approach bearings are spread over at most 2.4 rad, and a big wave that
   has lost more than 45 % of its aircraft before the attack closes up into one formation per kind (it was under five aircraft).
+- **The way in**: a section picks, 24 km from its target, the bearing from which to come in with the least anti-aircraft fire along the way (`sim/routing.js`: the light mounts and the dual-purpose guns of every
+  enemy ship that are still alive and have rounds, weighed by distance, where the ships will be when the strike gets there; the torpedo bombers meet the light guns all the way, the dive bombers in the last 4.5 km
+  and the flak at any height). It flies by an entry point 9.8 km out on that bearing and then straight at the ship, and the sections of a wave keep 0.5 rad apart so that the defence is split. A lonely, weakly
+  armed ship is also a better target than one in the middle of the screen. In twelve simulated battles 57 % of the bombers reach their release point against 45 % when they come in on the direct bearing.
+- **The bombers defend themselves**: every bomber with a rear gunner (all the torpedo bombers, the two- and three-seat dive bombers) fires at the nearest enemy fighter within 520 m in the rear half-space, tracers
+  and sound included; the aircraft of a tight section cover each other (the old rule only let the bomber that was being attacked fire back).
+- **The escort protects**: an escort fighter goes first for the enemy fighters that are after the bombers it covers (a fighter whose prey is one of them, or already within 2.5 km of them), does not chase further
+  than 7.5 km from them and goes back to its station (weaving over a narrower track). With the escort 57 % of the bombers reach their release point, without it 45 %.
 - Circuit: the aircraft only turn in when they are on the downwind line, on the opposite course (they used to turn from any position and roll out far off the centre line, then go round again); the downwind
   leg damps its lateral correction; the hold circle is bigger and banked more; the next aircraft turns in when the one ahead is 3.6 km from its touchdown point; an aircraft that floats past the first wires
   is waved off sooner. Landings are about twice as frequent when many aircraft come back together.

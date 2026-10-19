@@ -4,7 +4,9 @@
 // returns and lands on the carrier. Bombs and torpedoes are simulated bodies, so where they hit decides the damage.
 import { clamp, wrapPi, approach, D2R, G } from '../math.js';
 import { planeTypeFor, PLANES, groundY, GROUND_PITCH, hookBack } from '../model/planes.js';
-import { fighterSteer, fighterFields, FIGHT_PHASES } from './fighters.js';
+import { AA, FLAK_RANGE } from './aadata.js';
+import { chooseApproach, aaSources, density } from './routing.js';
+import { fighterSteer, fighterFields, bomberDefense, FIGHT_PHASES } from './fighters.js';
 import { deckOf, planLaunch, settleService, beginRecovery, launching, stepDeck, stepDeckShip, touchdown, clearToLand, deckClearFor, DECK_PHASES } from './deck.js';
 import { segmentNearShip, segmentHit, resolveBombHit, resolveNearMiss, resolveCrashHit } from './damage.js';
 import { spawnPlaneDebris, spawnScrap } from './debris.js';
@@ -15,13 +17,6 @@ let nextBomb = 1;
 const V_CRUISE = 84;           // m/s (~165 kn)
 const V_TORP = 72;
 
-/** Range, rate and damage of a light AA calibre (per mount, per barrel). */
-const AA = {
-  oerlikon: { range: 1900, rps: 6.5, dps: 0.0068, hit: 0.34, turn: 75 },
-  iijn25: { range: 2600, rps: 3.4, dps: 0.0058, hit: 0.4, turn: 60 },
-  bofors: { range: 4200, rps: 1.9, dps: 0.0105, hit: 0.9, turn: 55 },
-};
-const FLAK_RANGE = 7500;
 
 const rn = (world, a, b) => a + (b - a) * world.rng();
 
@@ -84,12 +79,13 @@ const SECTION_SPREAD = 0.72;            // rad between the approach bearings of 
 
 function bestTarget(world, team, fromX, fromZ) {
   let best = null, bs = -1e9;
+  const srcs = aaSources(world, team);
   for (const s of world.ships) {
     if (s.team === team || !s.alive) continue;
     const d = Math.hypot(s.x - fromX, s.z - fromZ);
     if (d > 90000) continue;
     // prefer valuable ships, then near ones
-    const sc = s.stats.score * 6000 - d + (s.hpFrac < 0.6 ? 3000 : 0) + world.rng() * 2500;
+    const sc = s.stats.score * 6000 - d + (s.hpFrac < 0.6 ? 3000 : 0) + world.rng() * 2500 - density(srcs, s) * 2200;
     if (sc > bs) { bs = sc; best = s; }
   }
   return best;
@@ -97,12 +93,12 @@ function bestTarget(world, team, fromX, fromZ) {
 
 /** the `n` most attractive enemy ships, best first */
 function bestTargets(world, team, fromX, fromZ, n) {
-  const out = [];
+  const out = [], srcs = aaSources(world, team);
   for (const sh of world.ships) {
     if (sh.team === team || !sh.alive) continue;
     const d = Math.hypot(sh.x - fromX, sh.z - fromZ);
     if (d > 90000) continue;
-    out.push({ sh, sc: sh.stats.score * 6000 - d + (sh.hpFrac < 0.6 ? 3000 : 0) + world.rng() * 2500 });
+    out.push({ sh, sc: sh.stats.score * 6000 - d + (sh.hpFrac < 0.6 ? 3000 : 0) + world.rng() * 2500 - density(srcs, sh) * 2200 });
   }
   out.sort((a, b) => b.sc - a.sc);
   return out.slice(0, n).map((q) => q.sh);
@@ -112,6 +108,7 @@ export function updateAir(world, dt) {
   launches(world, dt);
   for (const ship of world.ships) if (ship.air && ship.alive) stepDeckShip(world, ship, dt);
   flight(world, dt);
+  bomberDefense(world, dt, FIGHT_CTX);
   updateAA(world, dt);
   stepBombs(world, dt);
 }
@@ -284,7 +281,7 @@ function assessWave(world, wave) {
     for (const kind of ['dive', 'torp']) {
       const members = strike.filter((q) => q.kind === kind).sort((a, b) => a.id - b.id);
       if (!members.length) continue;
-      const sec = { id: wave.sections.length, kind, members, wave, target: members[0].target, spread: 0, dLat: 0, state: 'form', rollT: null };
+      const sec = { id: wave.sections.length, kind, members, wave, target: members[0].target, spread: 0, dLat: 0, state: 'form', rollT: null, apAng: members[0].sec ? members[0].sec.apAng : null };
       wave.sections.push(sec);
       for (const m of members) m.sec = sec;
     }
@@ -304,7 +301,7 @@ function stepPlane(world, p, dt) {
     // the section keeps one target: the first of its aircraft to notice that it is gone picks the next
     const st = p.sec && p.sec.target;
     p.target = tgt = st && st.alive ? st : bestTarget(world, p.team, p.x, p.z);
-    if (p.sec && tgt) p.sec.target = tgt;
+    if (p.sec && tgt) { p.sec.target = tgt; p.sec.apAng = null; }
     if (!tgt) p.phase = 'return';
   }
   if (p.fuel < 0 && p.phase !== 'ditch' && p.phase !== 'floating' && p.phase !== 'final' && p.phase !== 'pattern' && p.phase !== 'waveoff' && p.phase !== 'return') p.phase = 'return';
@@ -347,7 +344,7 @@ function stepPlane(world, p, dt) {
       if (sec && lead && lead !== p && sec.state !== 'form') {
         if (p.kind === 'torp' && sec.state === 'ip') {
           const pl = placeOf(p);
-          p.phase = 'ip'; p.t = 0; p.ipAngle = sec.ang0 + sec.spread; p.lat = (pl.pos === 0 ? 0 : pl.pos === 1 ? 1 : -1) * 135; p.row = pl.row;
+          p.phase = 'ip'; p.t = 0; p.ipAngle = sec.apAng ?? sec.ang0; p.lat = (pl.pos === 0 ? 0 : pl.pos === 1 ? 1 : -1) * 135; p.row = pl.row;
           break;
         }
         if (p.kind === 'dive' && sec.rollT != null && world.time - sec.rollT >= placeOf(p).rank * 3.1) {
@@ -355,11 +352,16 @@ function stepPlane(world, p, dt) {
         }
       }
       // ---- the leader (or an aircraft on its own): to the target ----
+      // the way in: the section picks, 24 km out, the bearing from which to come in with the least anti-aircraft fire on the way, apart from the other
+      // sections; it flies by the entry point on that bearing (9.8 km out) and then straight at the ship
+      if (sec && sec.apAng == null && range < 24000) {
+        const taken = sec.wave.sections.filter((q) => q !== sec && q.apAng != null).map((q) => q.apAng);
+        sec.apAng = chooseApproach(world, p.team, p, tgt, p.kind, taken);
+      }
       let hx = dx, hz = dz;
-      if (p.kind === 'dive' && sec) {
-        // the sections come in from different sides: the line to the target bends away at long range
-        const lat = sec.dLat * clamp((range - 2500) / 7000, 0, 1);
-        hx += Math.cos(Math.atan2(dx, -dz)) * lat; hz += Math.sin(Math.atan2(dx, -dz)) * lat;
+      if (sec && sec.apAng != null && range > 9900) {
+        const wx = tgt.x + tgt.vx * 30 + Math.sin(sec.apAng) * 9800 - p.x, wz = tgt.z + tgt.vz * 30 - Math.cos(sec.apAng) * 9800 - p.z;
+        if (Math.hypot(wx, wz) > 1700) { hx = wx; hz = wz; }
       }
       hdg = Math.atan2(hx, -hz);
       // not yet formed up: the leader goes easy so that the section can join
@@ -388,8 +390,8 @@ function stepPlane(world, p, dt) {
           p.phase = 'ip'; p.t = 0;
           const a0 = Math.atan2(p.x - tgt.x, -(p.z - tgt.z));
           const pl = sec ? placeOf(p) : { pos: 0, row: 0 };
-          if (sec && sec.state === 'form') { sec.state = 'ip'; sec.ang0 = a0; }
-          p.ipAngle = (sec ? sec.ang0 : a0) + (sec ? sec.spread : 0);
+          if (sec && sec.state === 'form') { sec.state = 'ip'; sec.ang0 = sec.apAng ?? a0; }
+          p.ipAngle = sec ? sec.ang0 : a0;
           p.lat = (pl.pos === 0 ? 0 : pl.pos === 1 ? 1 : -1) * 135; p.row = pl.row;
         }
         spd = (formed ? V_TORP + 8 : V_TORP - 4);

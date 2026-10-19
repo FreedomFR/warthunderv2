@@ -73,6 +73,35 @@ const run = (w, secs, f) => { const n = Math.round(secs / 0.1); for (let i = 0; 
   const none = cut(2, 24); ok(none.events.includes('strikeAbort'), 'two survivors of a big wave turn back');
 }
 
+// ---- the way in: the strike keeps away from the screen's guns ----
+{
+  const { chooseApproach, aaSources, exposure } = await import('../js/game/sim/routing.js');
+  const w = new World(5); w.addTeam(0); w.addTeam(1);
+  // the enemy: a battleship with two cruisers 3 km to the west of it, on the side the strike comes from
+  const bb = w.addShip('yamato', 1, 0, 0, 0, { speed: 0, throttle: 0 });
+  w.addShip('cleveland', 1, -3000, -600, 0, { speed: 0, throttle: 0 });
+  w.addShip('cleveland', 1, -3200, 700, 0, { speed: 0, throttle: 0 });
+  w.addShip('fletcher', 0, -40000, 0, 0, { speed: 0, throttle: 0 });
+  const from = { x: -22000, z: 0 };
+  const a = chooseApproach(w, 0, from, bb, 'torp', []);
+  const a0 = Math.atan2(from.x - bb.x, -(from.z - bb.z));
+  const srcs = aaSources(w, 0, 0);
+  const path = (ang) => { let e = 0; for (const [x0, z0, x1, z1] of [[from.x, from.z, Math.sin(ang) * 9800, -Math.cos(ang) * 9800], [Math.sin(ang) * 9800, -Math.cos(ang) * 9800, 0, 0]]) { for (let i = 0; i <= 40; i++) e += exposure(srcs, x0 + (x1 - x0) * i / 40, z0 + (z1 - z0) * i / 40, true, bb); } return e; };
+  ok(Math.abs(Math.atan2(Math.sin(a - a0), Math.cos(a - a0))) > 0.5, `the torpedo bombers come in ${(Math.abs(a - a0) * 57.3).toFixed(0)} degrees away from the direct bearing, round the screen`);
+  ok(path(a) < path(a0) * 0.6, `with ${(path(a) / path(a0) * 100).toFixed(0)} % of the fire along the direct way in`);
+  const taken = chooseApproach(w, 0, from, bb, 'torp', [a]);
+  ok(Math.abs(Math.atan2(Math.sin(taken - a), Math.cos(taken - a))) > 0.3, 'a second section takes a bearing of its own');
+}
+
+// ---- the bombers with a gunner shoot back, and the fighters protect the strike ----
+{
+  const w = setup('essex:1,cleveland:2,fletcher:2', 'shokaku:1,agano:2,kagero:2', 33, 30000);
+  let burstsByBombers = 0, fromGunners = 0, escortKills = 0;
+  run(w, 600, () => { for (const e of w.drainEvents()) { if (e.type === 'mgFire' && !e.plane.fighter) burstsByBombers++; if (e.type === 'planeDown' && e.cause === 'gunner') fromGunners++; if (e.type === 'planeDown' && e.cause === 'gun' && e.plane.fighter && e.attacker && e.plane.owner !== e.attacker) escortKills++; } });
+  ok(burstsByBombers > 0, `the bombers' gunners fired ${burstsByBombers} times at the fighters round them`);
+  ok(escortKills + fromGunners > 0, `fighters shot down by fighters (${escortKills}) or by gunners (${fromGunners})`);
+}
+
 // ---- light AA spends its rounds ----
 {
   const w = setup('essex:1,cleveland:2,fletcher:2', 'shokaku:1,agano:2,kagero:2', 25, 14000);

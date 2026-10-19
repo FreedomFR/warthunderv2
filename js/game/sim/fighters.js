@@ -30,6 +30,11 @@ function value(world, p, q, d, anchor) {
   if (q.ordnance) sc += 1;
   sc -= d / 3500;
   if (anchor) sc -= Math.hypot(q.x - anchor.x, q.z - anchor.z) / 9000;
+  // an escort's first duty: the enemy that is going for the bombers it covers (a fighter whose prey is one of them), or is already among them
+  if (p.role === 'escort' && q.fighter) {
+    if (q.prey && q.prey.wave === p.wave) sc += 5;
+    else if (anchor && Math.hypot(q.x - anchor.x, q.z - anchor.z) < 2500) sc += 2.5;
+  }
   for (const f of world.planes) if (f !== p && f.fighter && f.prey === q && !f.dying) sc -= 1.8;      // two on one is enough
   return sc;
 }
@@ -86,7 +91,7 @@ export function fighterSteer(world, p, dt, ctx) {
   if (p.phase === 'escort') {
     // above and a little ahead of the bombers, weaving so as to stay with them
     const sp = Math.hypot(anchor.vx, anchor.vz) || 80, fx = anchor.vx / sp, fz = anchor.vz / sp;
-    const wv = Math.sin(world.time * 0.25 + p.id) * 500;
+    const wv = Math.sin(world.time * 0.25 + p.id) * 380;
     const sx = anchor.x + fx * 250 - fz * wv, sz = anchor.z + fz * 250 + fx * wv, sy = anchor.y + 260 + (p.id % 3) * 50;
     const dx = sx - p.x, dz = sz - p.z, d = Math.hypot(dx, dz);
     out.hdg = d > 160 ? Math.atan2(dx, -dz) : Math.atan2(anchor.vx, -anchor.vz);
@@ -139,12 +144,6 @@ export function fighterSteer(world, p, dt, ctx) {
     if (world.rng() < pHit * BURST_RATE * dt) ctx.hit(world, ship, q, 0.3 + world.rng() * 0.15, 12.7);
   }
   p.wasFiring = p.firing;
-  // the rear gunner of a bomber shoots back at a fighter on its tail
-  if (!q.fighter && q.spec && q.spec.canopy && q.spec.canopy.length > 1 && d < 520) {
-    const qf = [Math.sin(q.heading), -Math.cos(q.heading)];
-    const behind = (-(dx0) * qf[0] - dz0 * qf[1]) / Math.max(1, Math.hypot(dx0, dz0));       // 1: the fighter is right astern of the bomber
-    if (behind > 0.6 && world.rng() < dt * 7 * clamp(0.65 - d / 800, 0, 0.6)) ctx.hit(world, q.owner, p, 0.22, 7.7, 'gunner');
-  }
   // an enemy fighter on our tail: break away
   p.evade = Math.max(0, (p.evade ?? 0) - dt);
   const chaser = q.fighter && q.prey === p && d < 600;
@@ -155,12 +154,45 @@ export function fighterSteer(world, p, dt, ctx) {
     out.spd = vC;
     out.o = { bankMax: 80 * D2R, pitchRate: 0.9 };
   }
-  // a long chase or no way to close: give up and go back to the station
-  if (d > 9500) { p.prey = null; p.phase = p.role === 'escort' ? 'escort' : 'cap'; }
+  // a long chase or no way to close: give up and go back to the station (an escort does not leave the bombers it covers alone for long)
+  if (d > 9500 || (p.role === 'escort' && anchor && Math.hypot(p.x - anchor.x, p.z - anchor.z) > 7500)) { p.prey = null; p.phase = p.role === 'escort' ? 'escort' : 'cap'; }
   return out;
 }
 
 /** The fields of a fighter (see launches() in sim/aircraft.js). */
 export function fighterFields(spec) {
   return { fighter: true, role: 'escort', prey: null, preyT: 0, ammo: AMMO, firing: false, evade: 0, ordnance: false };
+}
+
+// ---- the bombers defend themselves -----------------------------------------------------------------------------------------------------
+/** Types with a gunner at the back (the torpedo bombers and the two- and three-seat dive bombers). */
+const GUNNERS = new Set(['sbd', 'tbf', 'd3a', 'b5n', 'swordfish', 'skua', 'ju87', 'fi167', 'pl10']);
+
+/**
+ * Every bomber with a rear gunner fires at the nearest enemy fighter that is within reach and in the gun's field (the rear half-space): the closer it
+ * comes, the likelier the hit. Aircraft of a tight formation cover each other. ctx.hit applies the damage.
+ */
+export function bomberDefense(world, dt, ctx) {
+  let fighters = null;
+  for (const b of world.planes) {
+    if (b.fighter || b.dying || b.hidden || b.gone || b.y < 30 || !GUNNERS.has(b.typeKey)) continue;
+    if (!fighters) { fighters = world.planes.filter((q) => q.fighter && !q.dying && !q.hidden && q.y > 30); if (!fighters.length) return; }
+    let best = null, bd = 520;
+    const fx = Math.sin(b.heading), fz = -Math.cos(b.heading);
+    for (const f of fighters) {
+      if (f.team === b.team) continue;
+      const dx = f.x - b.x, dy = f.y - b.y, dz = f.z - b.z, d = Math.hypot(dx, dy, dz);
+      if (d > bd) continue;
+      const behind = -(dx * fx + dz * fz) / Math.max(1, d);          // 1: right astern, 0: abeam
+      if (behind < 0.15) continue;
+      best = f; bd = d;
+    }
+    if (!best) { b.gunFiring = false; continue; }
+    const f = best, dx = f.x - b.x, dy = f.y - b.y, dz = f.z - b.z;
+    if (!b.gunFiring) world.events.push({ type: 'mgBurst', plane: b, x: b.x, y: b.y, z: b.z });
+    b.gunFiring = true;
+    world.events.push({ type: 'mgFire', plane: b, target: f, x: b.x - fx * 3, y: b.y + 0.9, z: b.z - fz * 3, dx: dx / bd, dy: dy / bd, dz: dz / bd, range: bd });
+    const pHit = clamp(0.42 - bd / 1300, 0.02, 0.4) * (f.evade > 0 ? 0.6 : 1);
+    if (world.rng() < dt * 2.4 * pHit) ctx.hit(world, b.owner, f, 0.2 + world.rng() * 0.1, 7.7, 'gunner');
+  }
 }
