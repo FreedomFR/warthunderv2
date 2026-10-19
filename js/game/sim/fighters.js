@@ -4,13 +4,12 @@
 // is badly hurt or short of fuel it goes home and lands like the others (sim/aircraft.js, sim/deck.js).
 import { clamp, wrapPi, D2R } from '../math.js';
 import { aaSources, exposure } from './routing.js';
+import { perfOf } from './airperf.js';
 
 export const FIGHT_PHASES = new Set(['escort', 'cap', 'engage']);
-const STRIKE = new Set(['cruise', 'ip', 'run', 'rollin', 'dive', 'pullout', 'break', 'egress']);
+const STRIKE = new Set(['assemble', 'cruise', 'ip', 'run', 'rollin', 'dive', 'pullout', 'break', 'egress']);
 const AMMO = 520;                       // bursts of 1/14 s: about 37 s of fire
 const BURST_RATE = 14;
-const V_COMBAT = { f6f: 150, a6m: 142, fulmar: 126, bf109t: 150, d520: 146, mc202: 150 };
-const V_CRUISE_F = 108;
 
 /** Enemy aircraft that are flying (not on a deck, not already falling). */
 function hostiles(world, p) {
@@ -59,8 +58,8 @@ function escorted(world, p) {
  */
 export function fighterSteer(world, p, dt, ctx) {
   const ship = p.owner;
-  const vC = V_COMBAT[p.typeKey] || 145;
-  const out = { hdg: p.heading, gam: 0, spd: V_CRUISE_F, o: { bankMax: 70 * D2R, pitchRate: 0.7 } };
+  const pf = perfOf(p), vC = pf.vcomb || 145, vCruiseF = pf.vc * 1.25;
+  const out = { hdg: p.heading, gam: 0, spd: vCruiseF, o: { bankMax: 70 * D2R, pitchRate: 0.7 } };
   // ---- going home: out of ammunition, hurt, or short of fuel ----
   if (p.ammo <= 0 || p.hp < p.maxHp * 0.3 || p.fuel < 260) { p.phase = 'return'; p.prey = null; return out; }
   if (!ship || !ship.alive || ship.deckWrecked) { p.phase = 'return'; p.prey = null; return out; }
@@ -99,7 +98,7 @@ export function fighterSteer(world, p, dt, ctx) {
     const sx = anchor.x + fx * 250 - fz * wv, sz = anchor.z + fz * 250 + fx * wv, sy = anchor.y + 260 + (p.id % 3) * 50;
     const dx = sx - p.x, dz = sz - p.z, d = Math.hypot(dx, dz);
     out.hdg = d > 160 ? Math.atan2(dx, -dz) : Math.atan2(anchor.vx, -anchor.vz);
-    out.spd = clamp(sp * 1.25 + d * 0.12, 70, vC);
+    out.spd = clamp(sp * 1.25 + d * 0.12, pf.vc * 0.8, vC);
     out.gam = clamp((sy - p.y) / 700, -0.12, 0.14);
     return out;
   }
@@ -110,7 +109,7 @@ export function fighterSteer(world, p, dt, ctx) {
     const ta = ang + dir * 0.5;
     const tx = ship.x + Math.sin(ta) * R, tz = ship.z - Math.cos(ta) * R;
     out.hdg = Math.atan2(tx - p.x, -(tz - p.z));
-    out.spd = V_CRUISE_F;
+    out.spd = vCruiseF;
     out.gam = clamp((1400 - p.y) / 600, -0.1, 0.12);
     // a patrol that has seen no enemy for a long while, or has been up long enough, goes home
     if ((p.age - p.t0Air) > 900 || (world.time - (p.lastSeen ?? world.time) > 240)) p.phase = 'return';
