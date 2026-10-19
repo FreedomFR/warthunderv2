@@ -151,8 +151,10 @@ function plateAt(ship, hit, d, w, inCitadel) {
         const side = hit.lz >= 0 ? 1 : -1;
         return { plates: [Math.max(a.belt, a.skin)], cosA: clamp(-ldz * side * ci - ldy * si, 0, 1), kind: 'belt' };
       }
-      if (hit.ly <= -2.5) return { plates: [inCitadel ? Math.max(a.lower, a.skin) : a.skin], cosA: Math.abs(ldz), kind: 'lower' };
-      return { plates: [a.skin], cosA: Math.abs(ldz), kind: 'skin' };
+      // elsewhere on the hull the plate is struck at the angle to the local surface (the flared bow takes a shell coming from ahead at an angle)
+      const cosA = faceCos(ship, hit, ldx, ldy, ldz);
+      if (hit.ly <= -2.5) return { plates: [inCitadel ? Math.max(a.lower, a.skin) : a.skin], cosA, kind: 'lower' };
+      return { plates: [a.skin], cosA, kind: 'skin' };
     }
     case 'deck': {
       const cosA = Math.abs(ldy);

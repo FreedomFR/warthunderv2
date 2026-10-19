@@ -26,7 +26,7 @@ export function obliquityExponent(angleDeg) {
 /** Effective thickness of a plate of `T` mm met at `angleDeg` from its normal. */
 export function effectiveThickness(T, angleDeg) {
   if (T <= 0) return 0;
-  const c = Math.max(Math.cos(angleDeg * Math.PI / 180), 0.12);
+  const c = Math.max(Math.cos(angleDeg * Math.PI / 180), 0.17);
   return T / Math.pow(c, obliquityExponent(angleDeg));
 }
 

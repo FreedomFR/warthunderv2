@@ -269,7 +269,10 @@ export class Ship {
     if (this.air) { this.air.ready = Math.floor(this.air.ready * 0.4); this.air.fReady = Math.floor(this.air.fReady * 0.4); }
     this.addFire(m.x, this.model.fdY ? this.model.fdY - 1 : 3, m.z, 1.2);
     this.addFire(m.x + 12, this.model.fdY ? this.model.fdY - 1 : 3, m.z + 3, 1.2);
-    if (world.rng() < (m.kind === 'avgas' ? 0.45 : 0.25)) {
+    // fuelled and armed aircraft, fuel lines and bombs in the hangar: the American carriers kept their lines filled with inert gas and foamed the
+    // hangars; at Midway the Japanese hangars were full of unstowed ordnance and three carriers were lost in minutes
+    const hazard = (m.kind === 'avgas' ? 0.45 : 0.25) * (this.stats.avgas === 'closed' ? 0.65 : 1) * (1.35 - 0.45 * this.stats.navy.dc);
+    if (world.rng() < hazard) {
       const w = this.toWorld(m.x, m.y, m.z, [0, 0, 0]);
       world.events.push({ type: 'explosion', x: w[0], y: w[1], z: w[2], size: 1.2, ship: this, stage: 'secondary' });
       this.applyDamage(this.stats.maxHp * 0.1, owner, 'bomb');
