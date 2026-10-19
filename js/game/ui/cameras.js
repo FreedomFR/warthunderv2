@@ -305,6 +305,7 @@ export class CameraRig {
       if (p.hidden) continue;
       let sc = Math.random() * 1.2;
       if (ATTACK.has(p.phase)) sc += 5;
+      if (p.phase === 'engage') sc += p.firing ? 6 : 3;
       if (p.dying) sc += 6;
       if (p.phase === 'final' || p.phase === 'takeoff' || p.phase === 'rollout') sc += 1.5;
       if (p.ordnance) sc += 1;

@@ -69,6 +69,7 @@ export class Effects {
         case 'explosion': this.explosion(e); break;
         case 'torpedoLaunch': this.torpedoLaunch(e); break;
         case 'aaFire': this.aaFire(e); break;
+        case 'mgFire': this.mgFire(e); break;
         case 'flak': this.flak(e); break;
         case 'planeHit': this.planeHit(e); break;
         case 'planeDown': this.planeDown(e); break;
@@ -435,6 +436,19 @@ export class Effects {
   torpedoLaunch(e) {
     if (this.distToCam(e.x, e.z) > 6000) return;
     for (let i = 0; i < 6; i++) this.p.add({ kind: K.SPRAY, x: e.x, y: 0.5, z: e.z, vx: rr(-3, 3), vy: rr(4, 9), vz: rr(-3, 3), s0: 1.2, s1: 4, life: rr(0.8, 1.6), r: 0.95, g: 0.97, b: 1, a0: 0.8, a1: 0, grav: 12 });
+  }
+
+  /** A fighter's guns: a stream of tracers along the line to its target, a little muzzle flash. */
+  mgFire(e) {
+    const d = this.distToCam(e.x, e.z);
+    if (d > 6000) return;
+    const sp = 760, life = Math.min(e.range / sp + 0.05, 1.1);
+    for (let i = 0; i < 2; i++) {
+      const j = 0.02;
+      const ux = e.dx + rr(-j, j), uy = e.dy + rr(-j, j), uz = e.dz + rr(-j, j), l = Math.hypot(ux, uy, uz) || 1;
+      this.p.add({ kind: K.TRACER, x: e.x + rr(-1.6, 1.6), y: e.y + rr(-0.3, 0.3), z: e.z + rr(-1.6, 1.6), vx: ux / l * sp + e.plane.vx * 0.2, vy: uy / l * sp, vz: uz / l * sp + e.plane.vz * 0.2, s0: 0.3, life, r: 1, g: 0.85, b: 0.4, a0: 4, a1: 4, stretch: 13 });
+    }
+    if (rnd() < 0.5) this.p.add({ kind: K.FLASH, x: e.x, y: e.y, z: e.z, s0: 0.8, s1: 1.6, life: 0.05, r: 1, g: 0.8, b: 0.4, a0: 3, a1: 0 });
   }
 
   aaFire(e) {

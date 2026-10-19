@@ -310,6 +310,31 @@ export const SCENES = {
     }
   },
 
+  // ---- dogfight: the escorts and the patrols meet the strikes ----------------------------------------------------------------------------------
+  async dogfight(T) {
+    T.reset(21, 'noon', { clouds: 0.25 });
+    const us = T.fleet(0, [{ id: 'essex' }, { id: 'cleveland' }, { id: 'fletcher', count: 2 }], -9000, 0, 90, { knots: 20 });
+    const jp = T.fleet(1, [{ id: 'shokaku' }, { id: 'agano' }, { id: 'kagero', count: 2 }], 9000, 100, 270, { knots: 20 });
+    quiet(us); quiet(jp);
+    T.go();
+    const firing = () => T.w.planes.find((p) => p.fighter && p.firing && p.prey && !p.prey.dying && p.y > 150);
+    let n = 0;
+    for (const [name, mk] of [
+      ['chase', (f) => chaseCam(() => (T.w.planes.includes(f) ? f : null), 38, 9, 12, 50, 52, 9)],
+      ['over', (f) => followCam(() => (T.w.planes.includes(f) ? f : null), () => (f.prey ? [f.prey.x, f.prey.y, f.prey.z] : [f.x, f.y, f.z]), 55, 14, 25, 46, 8)],
+      ['wide', (f) => (t) => { const q = f.prey || f; const mx = (f.x + q.x) / 2, my = (f.y + q.y) / 2, mz = (f.z + q.z) / 2; return { p: [mx + 260, my + 60, mz + 200], l: [mx, my, mz], fov: 42 }; }],
+    ]) {
+      const ok = await T.until(() => firing(), { max: 900, dt: 1 / 12 });
+      const f = firing();
+      if (!ok || !f) { T.log('dogfight: no fight for', name); continue; }
+      T.log('dogfight', name, f.typeKey, 'on', f.prey.typeKey, 'at', T.now.toFixed(0), 'alt', f.y.toFixed(0));
+      await T.shot('dog_' + name, 5, mk(f));
+      n++;
+      await T.wait(8);
+    }
+    T.log('dogfight shots', n, 'bursts', T.count('mgBurst'));
+  },
+
   // ---- dive: dive bombers on a cruiser -----------------------------------------------------------------------------------
   async dive(T) {
     T.reset(33, 'noon', { clouds: 0.22, veil: 0.2 });

@@ -42,6 +42,13 @@ export function deckOf(ship) {
   return ship._deck;
 }
 
+const SERVICE_TIME = 300;           // seconds a landed aircraft spends being refuelled and rearmed before it can fly again
+
+/** An aircraft that has come down to the hangar is serviced (refuelled, rearmed, a crew rested) before it counts as ready. */
+function recover(world, ship, p) {
+  ship.air.servicing.push({ at: world.time + SERVICE_TIME * (0.8 + 0.4 * world.rng()), fighter: !!p.fighter });
+}
+
 /** Is any aircraft of the ship still waiting for, or on, its take-off run? */
 export function launching(world, ship) {
   for (const p of world.planes) if (p.owner === ship && !p.service && (p.phase === 'queue' || p.phase === 'takeoff') && !p.gone) return true;
@@ -76,7 +83,7 @@ export function planLaunch(world, ship, planes) {
   const startX = dp.x1 - TAKEOFF_RUN;
   const usable = D.lifts.filter((l) => l.x + l.hl < startX - 4);
   const parkedBefore = ship.parked;
-  const nPark = clamp(parkedBefore, 0, planes.length);
+  const nPark = clamp(parkedBefore, 0, planes.filter((q) => !q.fighter).length);       // the fighters come up on the lifts
   ship.parked = parkedBefore - nPark;
   planes.forEach((p, j) => {
     p.group = j;
@@ -158,6 +165,10 @@ export function stepDeckShip(world, ship, dt) {
     if (q.phase === 'pattern' || q.phase === 'final' || q.phase === 'waveoff' || (q.phase === 'return' && Math.hypot(q.x - ship.x, q.z - ship.z) < 14000)) circuit++;
   }
   D.recovering = rec; D.circuit = circuit;
+  if (ship.air && ship.air.servicing.length) {
+    const sv = ship.air.servicing;
+    for (let i = sv.length - 1; i >= 0; i--) if (sv[i].at <= world.time) { if (sv[i].fighter) ship.air.fReady++; else ship.air.ready++; sv.splice(i, 1); }
+  }
   if (D.wire) D.wire.t += dt;
 
   // ---- the deck park: struck below when aircraft are coming back, spotted again from the hangar afterwards ----
@@ -373,7 +384,7 @@ function stepDeckInner(world, p, dt) {
     p.lz += (0 - p.lz) * Math.min(1, dt * 2); p.yaw += (0 - p.yaw) * Math.min(1, dt * 3);
     place(p, ship, lx, p.lz, Math.max(0, p.u - 21) * 0.18);
     if (p.u >= 25 || lx > dp.x1 - 2) {
-      p.phase = 'cruise'; p.ds = null; p.t = 0; p.t0Air = p.age; p.eng = null;
+      p.phase = p.fighter ? p.role : 'cruise'; p.ds = null; p.t = 0; p.t0Air = p.age; p.eng = null;
       p.speed = Math.max(40, ship.speed + p.u);
       p.pitch = 0.12; p.bank = 0; p.roll = 0; p.gp = 0;
       p.vx = Math.sin(p.heading) * p.speed; p.vz = -Math.cos(p.heading) * p.speed; p.vy = 0;
@@ -474,7 +485,7 @@ function stepDeckInner(world, p, dt) {
       }
       if (!best) {
         p.u = 0;
-        if (p.ts > 6) { if (!p.counted && ship.air) ship.air.ready++; world.events.push({ type: 'planeLand', plane: p, ship }); return false; }
+        if (p.ts > 6) { if (!p.counted && ship.air) recover(world, ship, p); world.events.push({ type: 'planeLand', plane: p, ship }); return false; }
         place(p, ship, p.lx, p.lz);
         return true;
       }
@@ -497,7 +508,7 @@ function stepDeckInner(world, p, dt) {
       idleSpin(p, dt, 0);
       place(p, ship, l.x, l.z, -LIFT_DEPTH * (1 - l.h));
       if (l.h <= 0.02) {
-        if (!p.counted && ship.air) ship.air.ready++;
+        if (!p.counted && ship.air) recover(world, ship, p);
         if (!p.service) world.events.push({ type: 'planeLand', plane: p, ship });
         l.user = null; l.tgt = 1; p.lift = null;
         return false;

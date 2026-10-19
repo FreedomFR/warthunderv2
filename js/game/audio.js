@@ -228,6 +228,7 @@ export class GameAudio {
         }
         case 'flak': this.play('flak_burst', e.x, e.y, e.z, { gain: 0.95, ref: 1100, pri: 2, wet: 0.3, rate: R(0.9, 1.1) }); break;
         // ---- aircraft ----
+        case 'mgBurst': this.play('mg_burst', e.x, e.y, e.z, { gain: 0.42, ref: 380, pri: 1, wet: 0.1, rate: R(0.9, 1.12) }); break;
         case 'planeHit': this.play('ricochet', e.x, e.y, e.z, { gain: 0.4, ref: 300, pri: 1, rate: R(1.3, 1.9) }); break;
         case 'planeDown': {
           if (e.mode !== 'explode') this.play('plane_fall', e.x, e.y, e.z, { gain: 0.9, ref: 2000, pri: 2, wet: 0.2, rate: R(0.9, 1.1) });

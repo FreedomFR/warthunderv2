@@ -28,7 +28,8 @@ const run = (w, secs, f) => { const n = Math.round(secs / 0.1); for (let i = 0; 
   run(w, 200, () => {
     for (const sec of secs) {
       const live = sec.members.filter((m) => !m.dying && !m.gone && m.phase === 'cruise');
-      if (live.length < 3) continue;
+      // (a big section takes a while to join up: judged once its last aircraft has been flying for some time)
+      if (live.length < 3 || !live.every((m) => m.age - m.t0Air > 60)) continue;
       const L = live[0];
       for (const m of live.slice(1)) { const d = Math.hypot(m.x - L.x, m.z - L.z); checked++; worst = Math.max(worst, d); }
     }
@@ -55,7 +56,7 @@ const run = (w, secs, f) => { const n = Math.round(secs / 0.1); for (let i = 0; 
 // ---- a wave that has lost most of its aircraft closes up, or turns back when too few are left ----
 {
   const cut = (survivors, seed) => {
-    const w = setup('essex:1,cleveland:2', 'shokaku:1,agano:2', seed, 26000);
+    const w = setup('essex:1,cleveland:2', 'shokaku:1,agano:2', seed, 40000);
     let wave = null, done = false; const events = [];
     run(w, 600, () => {
       for (const e of w.drainEvents()) events.push(e.type);
@@ -68,8 +69,53 @@ const run = (w, secs, f) => { const n = Math.round(secs / 0.1); for (let i = 0; 
     });
     return { wave, events };
   };
-  const few = cut(4, 23); ok(few.events.includes('strikeMerged') && !few.events.includes('strikeAbort'), 'four survivors close up into one formation per kind');
+  const few = cut(8, 23); ok(few.events.includes('strikeMerged') && !few.events.includes('strikeAbort'), 'eight survivors of twenty close up into one formation per kind');
   const none = cut(2, 24); ok(none.events.includes('strikeAbort'), 'two survivors of a big wave turn back');
+}
+
+// ---- the way in: the strike keeps away from the screen's guns ----
+{
+  const { chooseApproach, aaSources, exposure } = await import('../js/game/sim/routing.js');
+  const w = new World(5); w.addTeam(0); w.addTeam(1);
+  // the enemy: a battleship with two cruisers 3 km to the west of it, on the side the strike comes from
+  const bb = w.addShip('yamato', 1, 0, 0, 0, { speed: 0, throttle: 0 });
+  w.addShip('cleveland', 1, -3000, -600, 0, { speed: 0, throttle: 0 });
+  w.addShip('cleveland', 1, -3200, 700, 0, { speed: 0, throttle: 0 });
+  w.addShip('fletcher', 0, -40000, 0, 0, { speed: 0, throttle: 0 });
+  const from = { x: -22000, z: 0 };
+  const a = chooseApproach(w, 0, from, bb, 'torp', []);
+  const a0 = Math.atan2(from.x - bb.x, -(from.z - bb.z));
+  const srcs = aaSources(w, 0, 0);
+  const path = (ang) => { let e = 0; for (const [x0, z0, x1, z1] of [[from.x, from.z, Math.sin(ang) * 9800, -Math.cos(ang) * 9800], [Math.sin(ang) * 9800, -Math.cos(ang) * 9800, 0, 0]]) { for (let i = 0; i <= 40; i++) e += exposure(srcs, x0 + (x1 - x0) * i / 40, z0 + (z1 - z0) * i / 40, true, bb); } return e; };
+  ok(Math.abs(Math.atan2(Math.sin(a - a0), Math.cos(a - a0))) > 0.5, `the torpedo bombers come in ${(Math.abs(a - a0) * 57.3).toFixed(0)} degrees away from the direct bearing, round the screen`);
+  ok(path(a) < path(a0) * 0.6, `with ${(path(a) / path(a0) * 100).toFixed(0)} % of the fire along the direct way in`);
+  const taken = chooseApproach(w, 0, from, bb, 'torp', [a]);
+  ok(Math.abs(Math.atan2(Math.sin(taken - a), Math.cos(taken - a))) > 0.3, 'a second section takes a bearing of its own');
+}
+
+// ---- the bombers with a gunner shoot back, and the fighters protect the strike ----
+{
+  const w = setup('essex:1,cleveland:2,fletcher:2', 'shokaku:1,agano:2,kagero:2', 33, 30000);
+  let burstsByBombers = 0, fromGunners = 0, escortKills = 0;
+  run(w, 600, () => { for (const e of w.drainEvents()) { if (e.type === 'mgFire' && !e.plane.fighter) burstsByBombers++; if (e.type === 'planeDown' && e.cause === 'gunner') fromGunners++; if (e.type === 'planeDown' && e.cause === 'gun' && e.plane.fighter && e.attacker && e.plane.owner !== e.attacker) escortKills++; } });
+  ok(burstsByBombers > 0, `the bombers' gunners fired ${burstsByBombers} times at the fighters round them`);
+  ok(escortKills + fromGunners > 0, `fighters shot down by fighters (${escortKills}) or by gunners (${fromGunners})`);
+}
+
+// ---- a bomber that fighters are hunting takes shelter under the guns of the friendly ships ----
+{
+  const w = setup('essex:1,cleveland:2,fletcher:2', 'shokaku:1,agano:2', 21, 60000);
+  let b = null;
+  run(w, 300, () => { b = w.planes.find((q) => !q.fighter && q.phase === 'cruise' && q.y > 100); if (b) return false; });
+  ok(!!b, 'a bomber is in the air');
+  if (b) {
+    b.phase = 'return'; b.ordnance = false;
+    let refuge = false, near = 1e9;
+    run(w, 40, () => { b.hunted = 3; if (b.phase === 'refuge') { refuge = true; for (const s of w.ships) if (s.team === b.team) near = Math.min(near, Math.hypot(s.x - b.x, s.z - b.z)); } });
+    ok(refuge && near < 2500, `hunted, it circles round a friendly ship (${near.toFixed(0)} m from the nearest)`);
+    run(w, 40);
+    ok(b.phase !== 'refuge' || b.gone, `and goes home when the fighters have gone (${b.phase})`);
+  }
 }
 
 // ---- light AA spends its rounds ----
@@ -84,3 +130,23 @@ const run = (w, secs, f) => { const n = Math.round(secs / 0.1); for (let i = 0; 
   ok(spent > 0 && fr < 1, `the AA guns have fired ${Math.round(spent)} rounds in the raids (the emptiest ship is down to ${Math.round(fr * 100)} %)`);
 }
 console.log(fail ? `${fail} check(s) failed` : 'all air operation checks OK');
+
+// ---- a section with fighters on it closes up, and opens out again afterwards ----
+{
+  const w = setup('essex:1,cleveland:2,fletcher:2', 'shokaku:1,agano:2', 21, 70000);
+  let sec = null;
+  const spread = (s) => { const m = s.members.filter((q) => q.phase === 'cruise' && !q.dying && !q.gone); const l = m[0]; return m.length < 3 ? 1e9 : m.slice(1).reduce((a, q) => a + Math.hypot(q.x - l.x, q.z - l.z), 0) / (m.length - 1); };
+  run(w, 400, () => {
+    for (const p of w.planes) if (p.sec && !p.fighter && p.phase === 'cruise' && spread(p.sec) < 120 && w.time - (p.sec.t0 ?? w.time) > 20) { sec = p.sec; return false; }
+  });
+  ok(!!sec, 'a section is formed up and flying');
+  if (sec) {
+    const before = spread(sec);
+    run(w, 40, () => { for (const m of sec.members) m.hunted = 3; });
+    const tight = spread(sec);
+    run(w, 40);
+    const after = spread(sec);
+    ok(tight < before * 0.8, `hunted, the section closes up (${before.toFixed(0)} m -> ${tight.toFixed(0)} m mean distance to the leader)`);
+    ok(after > tight * 1.2 || after === 1e9, `and opens out again when the fighters have gone (${after === 1e9 ? 'attack' : after.toFixed(0) + ' m'})`);
+  }
+}
