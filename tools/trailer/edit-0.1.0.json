@@ -1,14 +1,14 @@
 {
- "frames": "out/frames_cmp",
+ "frames": "out/frames60",
  "out": "docs/trailer-v0.1.0.mp4",
  "music": "out/music_010/music.wav",
- "fps": 24,
- "w": 1280,
- "h": 720,
+ "fps": 60,
+ "w": 1920,
+ "h": 1080,
  "musicDb": -1,
  "sfxDb": -7,
  "grain": 2,
- "crf": 24,
+ "crf": 28,
  "clips": [
   {
    "scene": "open",
@@ -75,6 +75,86 @@
    "scene": "roster2",
    "shot": "roster2_fantasque",
    "dur": 1.2
+  },
+  {
+   "scene": "roster3",
+   "shot": "roster3_iowa",
+   "dur": 0.9
+  },
+  {
+   "scene": "roster3",
+   "shot": "roster3_essex",
+   "dur": 0.9
+  },
+  {
+   "scene": "roster3",
+   "shot": "roster3_kgv",
+   "dur": 0.9
+  },
+  {
+   "scene": "roster3",
+   "shot": "roster3_graf_zeppelin",
+   "dur": 0.9
+  },
+  {
+   "scene": "roster3",
+   "shot": "roster3_richelieu",
+   "dur": 0.9
+  },
+  {
+   "scene": "roster3",
+   "shot": "roster3_admiral_hipper",
+   "dur": 0.9
+  },
+  {
+   "scene": "roster3",
+   "shot": "roster3_kagero",
+   "dur": 0.9
+  },
+  {
+   "scene": "roster3",
+   "shot": "roster3_soldati",
+   "dur": 0.9
+  },
+  {
+   "scene": "fleets",
+   "shot": "fleets_a",
+   "dur": 2.6
+  },
+  {
+   "scene": "fleets",
+   "shot": "fleets_b",
+   "dur": 2.6
+  },
+  {
+   "scene": "fleets",
+   "shot": "fleets_c",
+   "dur": 2.6
+  },
+  {
+   "scene": "fleets",
+   "shot": "fleets_d",
+   "dur": 2.4
+  },
+  {
+   "scene": "med",
+   "shot": "med_a",
+   "dur": 2.6
+  },
+  {
+   "scene": "med",
+   "shot": "med_b",
+   "dur": 2.6
+  },
+  {
+   "scene": "med",
+   "shot": "med_c",
+   "dur": 2.6
+  },
+  {
+   "scene": "med",
+   "shot": "med_d",
+   "dur": 2.4
   },
   {
    "scene": "carrier",
@@ -159,130 +239,152 @@
    "at": 0.9,
    "dur": 2.7,
    "text": "1939 – 1945",
-   "size": 58,
+   "size": 87,
    "sub": "Six marines. Trente navires. Le combat s'engage seul.",
-   "subSize": 26,
+   "subSize": 39,
    "y": "h*0.15",
-   "subY": "h*0.15+82"
+   "subY": "h*0.15+123"
   },
   {
-   "at": 8.7,
-   "dur": 5.4,
+   "at": 8.700000000000001,
+   "dur": 5.0,
    "text": "30 NAVIRES HISTORIQUES",
-   "size": 40,
+   "size": 60,
    "y": "h*0.80",
    "sub": "Cuirassés · croiseurs · destroyers · porte-avions · 6 nations",
-   "subSize": 22,
-   "subY": "h*0.80+58",
+   "subSize": 33,
+   "subY": "h*0.80+87",
    "box": true
   },
   {
-   "at": 14.7,
-   "dur": 6.6,
+   "at": 14.700000000000001,
+   "dur": 13.5,
    "text": "RELEVÉS SUR PLANS D'ÉPOQUE",
-   "size": 40,
+   "size": 60,
    "y": "h*0.80",
    "sub": "Tourelles, cheminées, mâts : chaque navire comparé à ses dessins",
-   "subSize": 22,
-   "subY": "h*0.80+58",
+   "subSize": 33,
+   "subY": "h*0.80+87",
    "box": true
   },
   {
-   "at": 21.9,
+   "at": 29.1,
+   "dur": 9.6,
+   "text": "BATAILLES DE FLOTTES",
+   "size": 60,
+   "y": "h*0.80",
+   "sub": "Cuirassés, croiseurs, destroyers : l'IA mène le combat",
+   "subSize": 33,
+   "subY": "h*0.80+87",
+   "box": true
+  },
+  {
+   "at": 39.3,
+   "dur": 9.6,
+   "text": "6 NATIONS, DES CENTAINES DE MODULES",
+   "size": 60,
+   "y": "h*0.80",
+   "sub": "Soutes, chaudières, tourelles, gouvernails : tout peut être détruit",
+   "subSize": 33,
+   "subY": "h*0.80+87",
+   "box": true
+  },
+  {
+   "at": 49.5,
    "dur": 3.0,
    "text": "AVIATION EMBARQUÉE",
-   "size": 40,
+   "size": 60,
    "y": "h*0.80",
    "sub": "Décollage, piqué, torpillage",
-   "subSize": 22,
-   "subY": "h*0.80+58",
+   "subSize": 33,
+   "subY": "h*0.80+87",
    "box": true
   },
   {
-   "at": 25.5,
+   "at": 53.099999999999994,
    "dur": 3.2,
    "text": "BOMBES",
-   "size": 40,
+   "size": 60,
    "y": "h*0.80",
    "sub": "Les dégâts se calculent module par module",
-   "subSize": 22,
-   "subY": "h*0.80+58",
+   "subSize": 33,
+   "subY": "h*0.80+87",
    "box": true
   },
   {
-   "at": 32.4,
+   "at": 60.0,
    "dur": 3.0,
    "text": "TORPILLES",
-   "size": 40,
+   "size": 60,
    "y": "h*0.80",
    "sub": "Inondation, gîte, colonne d'eau",
-   "subSize": 22,
-   "subY": "h*0.80+58",
+   "subSize": 33,
+   "subY": "h*0.80+87",
    "box": true
   },
   {
-   "at": 38.8,
+   "at": 66.4,
    "dur": 3.4,
    "text": "ARTILLERIE",
-   "size": 40,
+   "size": 60,
    "y": "h*0.80",
    "sub": "Balistique, blindage, pénétration",
-   "subSize": 22,
-   "subY": "h*0.80+58",
+   "subSize": 33,
+   "subY": "h*0.80+87",
    "box": true
   },
   {
-   "at": 44.9,
-   "dur": 6.0,
+   "at": 72.7,
+   "dur": 5.9,
    "text": "TOURELLES ET CANONS",
-   "size": 40,
+   "size": 60,
    "y": "h*0.80",
    "sub": "Du 120 au 460 mm · 17 nouvelles familles relevées sur plans",
-   "subSize": 22,
-   "subY": "h*0.80+58",
+   "subSize": 33,
+   "subY": "h*0.80+87",
    "box": true
   },
   {
-   "at": 51.7,
+   "at": 79.30000000000001,
    "dur": 3.2,
    "text": "EXPLOSIONS ET NAUFRAGES",
-   "size": 40,
+   "size": 60,
    "y": "h*0.80",
    "sub": "Soutes, incendies, avaries",
-   "subSize": 22,
-   "subY": "h*0.80+58",
+   "subSize": 33,
+   "subY": "h*0.80+87",
    "box": true
   },
   {
-   "at": 57.8,
+   "at": 85.4,
    "dur": 3.5,
    "text": "COMBAT NAVAL",
-   "size": 84,
+   "size": 126,
    "y": "h*0.22",
    "fade": 0.6
   },
   {
-   "at": 58.0,
+   "at": 85.6,
    "dur": 3.3,
    "text": "Simulation de la Seconde Guerre mondiale · version 0.1.0",
-   "size": 28,
+   "size": 42,
    "weight": "Inter-Medium",
-   "y": "h*0.22+104",
+   "y": "h*0.22+156",
    "fade": 0.6
   },
   {
-   "at": 58.3,
+   "at": 85.9,
    "dur": 3.0,
    "text": "github.com/FreedomFR/warthunderv2",
-   "size": 24,
+   "size": 36,
    "weight": "Inter-Medium",
-   "y": "h*0.22+148",
+   "y": "h*0.22+222",
    "fade": 0.6
   }
  ],
  "musicEnv": [
   [
-   0.0,
+   0,
    -26
   ],
   [
@@ -294,39 +396,47 @@
    -8
   ],
   [
-   9.72,
+   9.7,
    -7
   ],
   [
-   21.03,
+   28.8,
    -6
   ],
   [
-   38.4,
+   49.2,
+   -5
+  ],
+  [
+   66.0,
    -4
   ],
   [
-   50.9,
+   72.4,
    -2
   ],
   [
-   51.3,
+   78.5,
+   -2
+  ],
+  [
+   78.9,
    2
   ],
   [
-   57.1,
+   84.7,
    2
   ],
   [
-   57.5,
+   85.10000000000001,
    -3
   ],
   [
-   59.7,
+   87.1,
    -6
   ],
   [
-   61.5,
+   89.1,
    -14
   ]
  ],
@@ -336,15 +446,15 @@
    0
   ],
   [
-   50.7,
+   78.30000000000001,
    0
   ],
   [
-   51.3,
+   78.9,
    3
   ],
   [
-   57.3,
+   84.9,
    0
   ]
  ]
