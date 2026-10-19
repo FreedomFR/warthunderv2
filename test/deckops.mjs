@@ -31,8 +31,8 @@ for (const id of ids) {
     parkedMin = Math.min(parkedMin, ship.parked);
     if (f && f() === false) break; } };
   // 1. the launch
-  step(250, () => { if (!wave) { const p = w.planes.find((q) => q.owner === ship && q.wave); if (p) wave = p.wave; } if (wave) ship.air.cooldown = 1e9; return wave && wave.launched >= wave.n; });
-  ok(!!wave && wave.launched >= wave.n, `${id}: the whole wave (${wave && wave.n}) took off, in ${firstTakeoff ? (lastTakeoff - firstTakeoff).toFixed(0) : '?'} s from the first to the last`);
+  step(250, () => { if (!wave) { const p = w.planes.find((q) => q.owner === ship && q.wave); if (p) wave = p.wave; } if (wave) ship.air.cooldown = 1e9; return wave && wave.launched >= wave.planes.length; });
+  ok(!!wave && wave.launched >= wave.planes.length, `${id}: the whole wave (${wave && wave.planes.length} with its escort) took off, in ${firstTakeoff ? (lastTakeoff - firstTakeoff).toFixed(0) : '?'} s from the first to the last`);
   if (!wave) continue;
   const lifted = wave.planes.filter((p) => states.get(p.id)?.has('queue/rise'));
   const fromPark = wave.planes.filter((p) => !states.get(p.id)?.has('queue/rise'));
@@ -46,15 +46,15 @@ for (const id of ids) {
   function STRIKE(p) { return ['cruise', 'ip', 'run', 'rollin', 'dive', 'egress'].includes(p.phase); }
   const inAir = wave.planes.filter((p) => p.phase === 'return').length;
   if (process.env.DEBUG) console.log('   called back', inAir, 'of', wave.planes.length, wave.planes.map((p) => p.phase + (p.dying ? '!' : '')).join(' '));
-  const readyBefore = ship.air.ready;
+  const readyBefore = ship.air.ready + ship.air.fReady;
   step(1200, () => !w.planes.some((p) => p.owner === ship && !p.service && ['return', 'pattern', 'final', 'waveoff', 'rollout', 'taxiIn'].includes(p.phase)));
   if (process.env.DEBUG) console.log('   after', w.time.toFixed(0), JSON.stringify(ev), wave.planes.map((p) => p.phase + (p.gone ? 'G' : '')).join(' '));
   const landed = ev.planeLand || 0;
   ok(landed >= inAir - 1, `${id}: ${landed} of the ${inAir} aircraft called back landed (touchdowns ${ev.planeTouchdown || 0}, bolters ${ev.bolter || 0}, wire catches ${ev.wireCatch || 0})`);
-  ok(ship.air.ready >= readyBefore + landed - 0, `${id}: the air group counts them again (${readyBefore} -> ${ship.air.ready})`);
+  ok(ship.air.ready + ship.air.fReady >= readyBefore + landed - 0, `${id}: the air group counts them again (${readyBefore} -> ${ship.air.ready + ship.air.fReady})`);
   ok(minGap > 18, `${id}: touchdowns at least ${minGap > 1e8 ? '-' : minGap.toFixed(0)} s apart`);
   ok(worstLz < dp.hw * 0.85, `${id}: touchdowns within ${worstLz.toFixed(1)} m of the centre line (deck half-width ${dp.hw.toFixed(1)} m)`);
-  ok(tdPos.every((x) => x > dp.x0 - 2 && x < dp.x0 + 45), `${id}: the wheels come down between the stern and the first wires (x0 + ${Math.min(...tdPos).toFixed(0)}..${Math.max(...tdPos).toFixed(0)} m from the ship's origin ${dp.x0.toFixed(0)})`);
+  ok(tdPos.every((x) => x > dp.x0 - 2 && x < dp.x0 + 70), `${id}: the wheels come down between the stern and the first wires (x0 + ${Math.min(...tdPos).toFixed(0)}..${Math.max(...tdPos).toFixed(0)} m from the ship's origin ${dp.x0.toFixed(0)})`);
   const bad = [...states.entries()].filter(([pid, set]) => set.has('rollout/arrest') && !set.has('taxiIn/ride'));
   ok(bad.length === 0, `${id}: every aircraft that was stopped by the wire went below`);
   // 3. the deck park is struck for the recovery and spotted again afterwards

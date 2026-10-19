@@ -299,9 +299,10 @@ export function createUI(game) {
   ui.onEvents = (events) => {
     for (const e of events) {
       if (e.type === 'shellHit') { addHit(e); continue; }
-      if (e.type === 'planeDown' && e.attacker && e.cause === 'aa') {
+      if (e.type === 'planeDown' && e.attacker && (e.cause === 'aa' || e.cause === 'gun' || e.cause === 'gunner')) {
         const pc = world.teams[e.plane.team];
-        state.killFeed.push({ t: performance.now(), text: `${e.attacker.name} abat un ${e.plane.spec.name}`, c1: '#ccc', c2: pc ? css(pc.rgb) : '#ccc', v: { name: '' }, killer: e.attacker, plane: true });
+        const who = e.cause === 'gun' ? `Les chasseurs de ${e.attacker.name} abattent` : e.cause === 'gunner' ? `Un mitrailleur de ${e.attacker.name} abat` : `${e.attacker.name} abat`;
+        state.killFeed.push({ t: performance.now(), text: `${who} un ${e.plane.spec.name}`, c1: '#ccc', c2: pc ? css(pc.rgb) : '#ccc', v: { name: '' }, killer: e.attacker, plane: true });
         if (state.killFeed.length > 6) state.killFeed.shift();
         continue;
       }
@@ -562,7 +563,7 @@ export function createUI(game) {
         h('span', {}, 'Tirs / touches'), h('b', {}, `${s.shotsFired} / ${s.shotsHit} (${acc}%)`),
         h('span', {}, 'Coulés / avions'), h('b', {}, `${s.kills} / ${s.planeKills || 0}`),
       ),
-      s.air ? h('div', { class: 'iline' }, `Groupe aérien : ${s.air.ready} au pont${s.deckWrecked ? ' — pont d\'envol détruit' : ''}`) : null,
+      s.air ? h('div', { class: 'iline' }, `Groupe aérien : ${s.air.ready} bombardiers, ${s.air.fReady} chasseurs${s.deckWrecked ? ' — pont d\'envol détruit' : ''}`) : null,
       s.state !== 'afloat' ? h('div', { class: 'si-state' }, SINK_LABEL[s.split ? 'split' : s.sinkMode] || 'NAVIRE COULÉ') : null,
     ];
     shipInfo.replaceChildren(...lines.filter(Boolean));
@@ -621,7 +622,7 @@ export function createUI(game) {
       seen.add(p.id);
       el.style.display = '';
       el.style.transform = `translate(${out[0].toFixed(0)}px, ${out[1].toFixed(0)}px) translate(-50%, -120%)`;
-      el.classList.toggle('hot', ['rollin', 'dive', 'run', 'pullout', 'break'].includes(p.phase) || p.dying);
+      el.classList.toggle('hot', ['rollin', 'dive', 'run', 'pullout', 'break', 'engage'].includes(p.phase) || p.dying);
       el.classList.toggle('sel', game.camera.plane === p && (game.camera.mode === 'plane' || game.camera.mode === 'cockpit'));
       el.style.opacity = dist > 6000 ? '0.55' : '1';
     }

@@ -152,6 +152,10 @@ Les croiseurs et cuirassés ont aussi leur hydravion sur la catapulte (Kingfishe
   touchent le pont derrière les brins, la **crosse accroche un brin** qui se dévide et arrête l'avion en 30 à 40 m (nez qui plonge, étincelles) ; une crosse qui
   rate les brins donne un *bolter* : plein gaz et nouveau tour. Ailes repliées, l'avion roule jusqu'à un ascenseur qui le redescend. Un porte-avions dont le
   pont est détruit ne peut plus lancer ni récupérer ses avions (ils amerrissent). Sons : démarrage du moteur, moteur d'ascenseur, impact des roues, brin.
+- **Chasseurs** : un quart du groupe aérien (Hellcat, Zéro, Fulmar, Bf 109 T, D.520, MC.202). Chaque raid part avec 2 à 4 chasseurs d'**escorte** (au-dessus et en avant des bombardiers) ; quand des
+  avions ennemis approchent de la flotte, une **patrouille** décolle et tourne au-dessus des navires. Le chasseur choisit la cible la plus menaçante (les bombardiers qui vont larguer, les chasseurs adverses),
+  la poursuit avec anticipation et tire en rafales (traçantes, impacts, bruit des mitrailleuses) ; il se dégage quand un chasseur ennemi est sur sa queue ; le mitrailleur arrière des bombardiers biplaces
+  riposte. Un chasseur blessé, sans munitions ou à court d'essence rentre et apponte comme les autres.
 - **Bombardiers en piqué** : montée vers l'objectif, mise en piqué sur le dos, piqué à environ 60°, largage vers 500 m, ressource à 4,5 g puis
   retrait à basse altitude. La bombe est un vrai corps balistique : c'est l'endroit où elle tombe qui décide des dégâts.
 - **Torpilleurs** : descente progressive jusqu'à 50 m, approche par des azimuts différents autour de la cible (tenaille), passe rectiligne,

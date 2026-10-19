@@ -629,6 +629,19 @@ const BUILDERS = {
     });
     return normalize(d, 0.7);
   },
+  /** A fighter's machine guns: a burst of sharp reports at about 15 a second, with the rattle of the breeches. */
+  mg_burst(sr, seed = 37) {
+    const r = prng(seed);
+    const d = mk(sr, 1.1, (d, n) => {
+      const a = new SVF(sr), b = new SVF(sr);
+      for (let i = 0; i < n; i++) {
+        const t = i / sr, nz = r() * 2 - 1;
+        const ph = (t * 15.5) % 1, pulse = Math.exp(-ph * 14), shape = Math.min(1, t / 0.03) * Math.max(0, 1 - Math.max(0, t - 0.8) / 0.25);
+        d[i] = softclip((a.step(nz, 2400, 1.1).bp * 0.9 + b.step(nz, 520, 0.8).lp * 0.7) * pulse * shape);
+      }
+    });
+    return normalize(d, 0.7);
+  },
   /** Aircraft falling: engine howl dropping in pitch (one shot). */
   plane_fall(sr, seed = 33) {
     const r = prng(seed);

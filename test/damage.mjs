@@ -175,6 +175,6 @@ for (const spec of ALL_SHIPS) {
 // ---- aircraft models ----
 for (const k of Object.keys(PLANES)) {
   const m = getPlaneModel(k);
-  ok(m.meshes.whole.indexCount > 300 && m.meshes.prop && m.meshes.ordnance && m.meshes.wingL && m.meshes.tail, `plane ${k} (${PLANES[k].name}): ${m.meshes.whole.indexCount / 3} triangles`);
+  ok(m.meshes.whole.indexCount > 300 && m.meshes.prop && (m.meshes.ordnance || PLANES[k].role === "fighter") && m.meshes.wingL && m.meshes.tail, `plane ${k} (${PLANES[k].name}): ${m.meshes.whole.indexCount / 3} triangles`);
 }
 console.log(fail ? `${fail} check(s) failed` : 'all damage checks OK');

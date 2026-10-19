@@ -4,6 +4,7 @@
 // returns and lands on the carrier. Bombs and torpedoes are simulated bodies, so where they hit decides the damage.
 import { clamp, wrapPi, approach, D2R, G } from '../math.js';
 import { planeTypeFor, PLANES, groundY, GROUND_PITCH, hookBack } from '../model/planes.js';
+import { fighterSteer, fighterFields, FIGHT_PHASES } from './fighters.js';
 import { deckOf, planLaunch, settleService, beginRecovery, launching, stepDeck, stepDeckShip, touchdown, clearToLand, deckClearFor, DECK_PHASES } from './deck.js';
 import { segmentNearShip, segmentHit, resolveBombHit, resolveNearMiss, resolveCrashHit } from './damage.js';
 import { spawnPlaneDebris, spawnScrap } from './debris.js';
@@ -27,7 +28,7 @@ const rn = (world, a, b) => a + (b - a) * world.rng();
 // ---- the circuit round a carrier ---------------------------------------------------------------------------------------
 // Opposite course past the ship on the side away from the island, a 180-degree turn at a steady bank that ends on the ship's course about 1.5 km
 // astern, then the groove down to the wires. All in the ship's frame (x forward, z to starboard).
-const GROOVE_GATE = 2000;                 // the next aircraft turns in when the one ahead is this close behind its touchdown point (m)
+const GROOVE_GATE = 3600;                 // the next aircraft turns in when the one ahead is this close behind its touchdown point (m)
 function circuit(ship) {
   const dp = ship.model.deckPoints, isl = ship.model.island;
   const side = isl && isl.z < 0 ? 1 : -1;       // the circuit is on the side away from the island
@@ -115,6 +116,35 @@ export function updateAir(world, dt) {
   stepBombs(world, dt);
 }
 
+// ---- fighters ----------------------------------------------------------------------------------------------------
+/** The fighters of a launch: n aircraft, in the order of the deck queue after the ones already in wave.planes. */
+function spawnFighters(world, ship, wave, n, role) {
+  const typeKey = planeTypeFor(ship.stats.nation, 'fighter'), spec = PLANES[typeKey];
+  for (let j = 0; j < n; j++) {
+    const p = {
+      id: nextPlane++, owner: ship, team: ship.team, kind: 'fighter', typeKey, spec, wave, sec: null,
+      x: ship.x, y: ship.y, z: ship.z, vx: 0, vy: 0, vz: 0, heading: ship.heading, pitch: 0, roll: 0, bank: 0, speed: 0,
+      phase: 'queue', ds: 'pending', t: 0, ts: 0, age: 0, target: null, hp: spec.hp, maxHp: spec.hp, ordnance: false,
+      spin: 0, gearDown: true, lost: { wingL: false, wingR: false, tail: false, engine: false }, dying: false, smoke: 0, fire: 0, harass: 0,
+      lx: 0, lz: 0, u: 0, apOff: 0, jitter: (world.rng() - 0.5) * 2, fold: 1, hook: 0, eng: 0, aoa: 0, gp: GROUND_PITCH, yaw: 0, hidden: true, lift: null,
+      t0Air: 0, cruiseAlt: 0, relAlt: 0, fuel: 1000 + world.rng() * 200, aimErr: [0, 0], diveAng: 0, group: wave.planes.length,
+      ...fighterFields(spec), role,
+    };
+    wave.planes.push(p);
+    world.planes.push(p);
+  }
+}
+
+/** Enemy aircraft on their way to the fleet: in the air, not yet over it, within 70 km of the carrier. */
+function inboundAircraft(world, ship) {
+  let n = 0;
+  for (const q of world.planes) {
+    if (q.team === ship.team || q.dying || q.hidden || q.y < 40 || DECK_PHASES.has(q.phase) || q.phase === 'return' || q.phase === 'floating') continue;
+    if (Math.hypot(q.x - ship.x, q.z - ship.z) < 70000) n++;
+  }
+  return n;
+}
+
 // ---- launch ------------------------------------------------------------------------------------------------------
 function launches(world, dt) {
   for (const ship of world.ships) {
@@ -123,10 +153,27 @@ function launches(world, dt) {
     air.cooldown -= dt;
     ship._parkT = (ship._parkT || 0) - dt;
     if (ship._parkT <= 0) { ship._parkT = 1; ship.updateParked(); }
-    if (!(ship.cmd.air.launch && air.cooldown <= 0 && air.ready >= 4) || ship.deckWrecked) continue;
+    air.capCooldown -= dt;
+    if (ship.deckWrecked) continue;
     // the deck is either launching or recovering: not both at once
     const D = deckOf(ship);
-    if (D.landing.length || D.recovering || D.striking || D.circuit > 0 || D.pending.some((q) => !q.service) || launching(world, ship)) continue;
+    const deckBusy = D.landing.length || D.recovering || D.striking || D.circuit > 0 || D.pending.some((q) => !q.service) || launching(world, ship);
+    // a patrol goes up when enemy aircraft come within reach of the fleet
+    if (!deckBusy && air.fReady >= 2 && air.capCooldown <= 0 && inboundAircraft(world, ship) > 0) {
+      let up = 0;
+      for (const q of world.planes) if (q.owner === ship && q.fighter && q.role === 'cap' && !q.dying) up++;
+      const n = Math.min(air.fReady, 4 - up);
+      if (n >= 2) {
+        settleService(world, ship);
+        air.fReady -= n; air.capCooldown = 100;
+        const cw = { ship, n: 0, id: ++air.wave, launched: 0, assessed: true, aborted: false, t0: world.time, planes: [], cap: true, sections: [] };
+        spawnFighters(world, ship, cw, n, 'cap');
+        planLaunch(world, ship, cw.planes);
+        world.events.push({ type: 'airLaunch', ship, count: n, fighters: true });
+        continue;
+      }
+    }
+    if (!(ship.cmd.air.launch && air.cooldown <= 0 && air.ready >= 4) || deckBusy) continue;
     const target = bestTarget(world, ship.team, ship.x, ship.z);
     if (!target) continue;
     const n = Math.min(air.ready, Math.round(6 + world.rng() * 5));
@@ -168,12 +215,16 @@ function launches(world, dt) {
         world.planes.push(p);
       }
     }
+    // the escort: fighters leave after the bombers (they are faster and catch up)
+    const nF = air.fReady >= 2 ? Math.min(air.fReady, n >= 9 ? 4 : n >= 6 ? 3 : 2) : 0;
+    if (nF) { air.fReady -= nF; spawnFighters(world, ship, wave, nF, 'escort'); }
     planLaunch(world, ship, order);
     ship.updateParked();
     world.events.push({ type: 'airLaunch', ship, count: n });
   }
 }
 const _w = [0, 0, 0];
+const FIGHT_CTX = { hit: (world, shooter, target, dmg, cal, cause = 'gun') => hitPlane(world, shooter, target, dmg, cal, cause) };
 
 // ---- flight ------------------------------------------------------------------------------------------------------
 function flight(world, dt) {
@@ -265,6 +316,11 @@ function stepPlane(world, p, dt) {
 
   let hdg = p.heading, gam = 0, spd = V_CRUISE, o = {};
   switch (p.phase) {
+    case 'escort': case 'cap': case 'engage': {
+      const r = fighterSteer(world, p, dt, FIGHT_CTX);
+      hdg = r.hdg; gam = r.gam; spd = r.spd; o = r.o;
+      break;
+    }
     case 'cruise': {
       const sec = p.sec, lead = sec ? leaderOf(sec) : null;
       const dx = tgt.x + tgt.vx * 30 - p.x, dz = tgt.z + tgt.vz * 30 - p.z;
@@ -441,20 +497,23 @@ function stepPlane(world, p, dt) {
       p.gearDown = true;
       if (p.leg === 1) {
         // abeam the carrier on the opposite course, a little lower on the way
-        const rz = clamp((cc.zDown - lz) * 0.0011, -0.45, 0.45);
+        // (a lateral correction with damping, so that it settles on the line instead of swinging across it)
+        const vl = p.vx * Math.cos(ship.heading) + p.vz * Math.sin(ship.heading);
+        const rz = clamp((cc.zDown - lz) * 0.0009 - vl * 0.011, -0.4, 0.4);
         hdg = relHeading(ship, -1, rz);
         gam = clamp((ship.y + cc.altDown - p.y) / 500, -0.05, 0.05);
         spd = 62;
-        o = { bankMax: 20 * D2R };
+        o = { bankMax: 28 * D2R };
         // abeam the turning point: turn in if the groove is free, else hold in a circle away from the ship
-        if (lx < cc.turnX) {
+        // (on the opposite course and near the downwind line, or it would roll out of the turn far from the centre line)
+        if (lx < cc.turnX && Math.abs(wrapPi(p.heading - (ship.heading + Math.PI))) < 0.45 && Math.abs(lz - cc.zDown) < 450) {
           if (mayTurnIn(world, ship, p) || p.holdT > 420) { p.leg = 2; p.t = 0; clearToLand(world, ship, p); }
           else { p.leg = 3; p.holdAng = 0; p.holdPrev = null; }
         }
       } else if (p.leg === 3) {
         // holding: a circle in the ship's frame on the far side of the downwind leg (the ship's own motion is allowed for), until it is the aircraft's turn
         p.holdT += dt;
-        const R = 380, vc = 48, hx = cc.turnX, hz = cc.zDown + cc.side * R;
+        const R = 520, vc = 58, hx = cc.turnX, hz = cc.zDown + cc.side * R;
         const rx = lx - hx, rz = lz - hz, rl = Math.hypot(rx, rz) || 1;
         const k = clamp((R - rl) / R * 2.2, -1.2, 1.2);
         let vx = cc.side * rz / rl + rx / rl * k, vz = -cc.side * rx / rl + rz / rl * k;
@@ -463,7 +522,7 @@ function stepPlane(world, p, dt) {
         hdg = relHeading(ship, vx, vz);
         spd = Math.hypot(vx, vz);
         gam = clamp((ship.y + cc.altDown - p.y) / 500, -0.05, 0.05);
-        o = { bankMax: 36 * D2R };
+        o = { bankMax: 45 * D2R };
         const th = Math.atan2(rz, rx);
         if (p.holdPrev != null) p.holdAng += wrapPi(th - p.holdPrev);
         p.holdPrev = th;
@@ -510,7 +569,7 @@ function stepPlane(world, p, dt) {
         touchdown(world, ship, p, lx, lz);
         return true;
       }
-      if (behind < -90 || (behind < 40 && p.y < deckY + 0.9)) { p.phase = 'waveoff'; p.t = 0; }
+      if (behind < -35 || (behind < 40 && p.y < deckY + 0.9)) { p.phase = 'waveoff'; p.t = 0; }
       if (behind > 9000) p.phase = 'return';
       break;
     }
@@ -728,18 +787,18 @@ function updateAA(world, dt) {
 }
 
 /** The AA shot connects: damage, smoke, fire, or the aircraft is lost. */
-function hitPlane(world, ship, p, dmg, cal) {
+function hitPlane(world, ship, p, dmg, cal, cause = 'aa') {
   if (p.dying || p.phase === 'floating') return;
   p.hp -= dmg;
   world.events.push({ type: 'planeHit', plane: p, ship, x: p.x, y: p.y, z: p.z, cal, dmg });
   const frac = p.hp / p.maxHp;
   if (frac < 0.65 && p.smoke < 0.4) p.smoke = 0.4 + world.rng() * 0.3;
   if (frac < 0.4 && p.fire < 0.3) p.fire = 0.4;
-  if (p.hp <= 0) { if (ship) { ship.aaKills++; } killPlane(world, p, 'aa', ship); return; }
+  if (p.hp <= 0) { if (ship && cause === 'aa') ship.aaKills++; killPlane(world, p, cause, ship); return; }
   // a lucky hit: engine, pilot, wing
   const r = world.rng();
   if (r < 0.06 * dmg + 0.01) { p.lost.engine = true; p.smoke = 1; world.events.push({ type: 'planeEngineOut', plane: p }); }
-  else if (r < 0.1 * dmg + 0.02 && dmg > 0.8) killPlane(world, p, 'aa', ship);
+  else if (r < 0.1 * dmg + 0.02 && dmg > 0.8) killPlane(world, p, cause, ship);
 }
 
 /** Start the death throes of an aircraft: it falls and burns, and the crash is seen to the end. */

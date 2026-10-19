@@ -111,6 +111,49 @@ export const PLANES = {
     tail: { x: -4.0, chord: 1.4, span: 3.6, fin: 1.5, finChord: 2.0, y: 0.1 }, canopy: [{ x0: -0.1, x1: 1.5, tx1: 1.15, h: 0.52 }],
     gear: 'retract', ordnance: 'torp',
   },
+  // ---- fighters (the dimensions are the real ones, the rest estimated like the other aircraft) ----
+  f6f: {
+    name: 'Grumman F6F-3 Hellcat', nation: 'USA', role: 'fighter', kind: 'mono', L: 10.2, span: 13.1, mass: 5.6, hp: 4.2,
+    fus: { r: 0.7, ar: 1.1, x: -0.6 }, engine: { type: 'radial', r: 0.88, len: 1.4 }, prop: { r: 1.75, n: 3, x: 0 },
+    wing: { cr: 3.0, ct: 1.4, x: 0.3, y: -0.38, dih: 0.3, sweep: 0.4, t: 0.38 },
+    tail: { x: -4.6, chord: 1.5, span: 4.3, fin: 1.6, finChord: 1.9, y: 0.2 }, canopy: [{ x0: 0.1, x1: 1.9, tx1: 1.4, h: 0.55 }],
+    gear: 'retract', ordnance: null,
+  },
+  a6m: {
+    name: 'Mitsubishi A6M2 Zero', nation: 'Japan', role: 'fighter', kind: 'mono', L: 9.1, span: 12.0, mass: 2.8, hp: 2.4,
+    fus: { r: 0.55, ar: 1.12, x: -0.4 }, engine: { type: 'radial', r: 0.62, len: 1.1 }, prop: { r: 1.5, n: 3, x: 0 },
+    wing: { cr: 2.5, ct: 1.0, x: 0.35, y: -0.3, dih: 0.25, sweep: 0.3, t: 0.28 },
+    tail: { x: -3.9, chord: 1.3, span: 3.9, fin: 1.3, finChord: 1.6, y: 0.1 }, canopy: [{ x0: -0.1, x1: 1.8, tx1: 1.3, h: 0.5 }],
+    gear: 'retract', ordnance: null,
+  },
+  fulmar: {
+    name: 'Fairey Fulmar', nation: 'UK', role: 'fighter', kind: 'mono', L: 12.2, span: 14.1, mass: 4.6, hp: 3.6,
+    fus: { r: 0.62, ar: 1.15, x: -0.5 }, engine: { type: 'inline', r: 0.55, len: 1.9 }, prop: { r: 1.75, n: 3, x: 0 },
+    wing: { cr: 3.0, ct: 1.5, x: 0.3, y: -0.35, dih: 0.3, sweep: 0.4, t: 0.34 },
+    tail: { x: -5.4, chord: 1.6, span: 4.7, fin: 1.6, finChord: 2.0, y: 0.2 }, canopy: [{ x0: 0.1, x1: 1.5, tx1: 1.1, h: 0.55 }, { x0: -1.9, x1: -0.7, tx1: -0.9, h: 0.5 }],
+    gear: 'retract', ordnance: null,
+  },
+  bf109t: {
+    name: 'Messerschmitt Bf 109 T', nation: 'Germany', role: 'fighter', kind: 'mono', L: 8.9, span: 11.1, mass: 2.9, hp: 2.6,
+    fus: { r: 0.5, ar: 1.15, x: -0.3 }, engine: { type: 'inline', r: 0.42, len: 1.8 }, prop: { r: 1.5, n: 3, x: 0 },
+    wing: { cr: 2.0, ct: 0.9, x: 0.4, y: -0.3, dih: 0.3, sweep: 0.2, t: 0.26 },
+    tail: { x: -4.0, chord: 1.3, span: 3.6, fin: 1.4, finChord: 1.8, y: 0.15 }, canopy: [{ x0: -0.1, x1: 1.4, tx1: 1.0, h: 0.5 }],
+    gear: 'retract', ordnance: null,
+  },
+  d520: {
+    name: 'Dewoitine D.520 (navalised)', nation: 'France', role: 'fighter', kind: 'mono', L: 8.76, span: 10.2, mass: 2.8, hp: 2.5,
+    fus: { r: 0.5, ar: 1.15, x: -0.3 }, engine: { type: 'inline', r: 0.43, len: 1.8 }, prop: { r: 1.5, n: 3, x: 0 },
+    wing: { cr: 2.2, ct: 1.0, x: 0.4, y: -0.3, dih: 0.3, sweep: 0.2, t: 0.26 },
+    tail: { x: -4.0, chord: 1.3, span: 3.6, fin: 1.4, finChord: 1.8, y: 0.15 }, canopy: [{ x0: -0.1, x1: 1.6, tx1: 1.2, h: 0.5 }],
+    gear: 'retract', ordnance: null,
+  },
+  mc202: {
+    name: 'Macchi C.202 Folgore', nation: 'Italy', role: 'fighter', kind: 'mono', L: 8.85, span: 10.6, mass: 2.9, hp: 2.6,
+    fus: { r: 0.5, ar: 1.15, x: -0.3 }, engine: { type: 'inline', r: 0.43, len: 1.8 }, prop: { r: 1.5, n: 3, x: 0 },
+    wing: { cr: 2.2, ct: 1.0, x: 0.4, y: -0.3, dih: 0.3, sweep: 0.2, t: 0.26 },
+    tail: { x: -4.0, chord: 1.3, span: 3.7, fin: 1.4, finChord: 1.8, y: 0.15 }, canopy: [{ x0: -0.1, x1: 1.6, tx1: 1.2, h: 0.5 }],
+    gear: 'retract', ordnance: null,
+  },
 };
 
 /** Floatplane carried on a catapult (Kingfisher, Jake, Walrus, Arado 196, Loire 130, Ro.43 style). */
@@ -127,12 +170,12 @@ export function groundY(spec) { return spec.fus.r * spec.fus.ar + (spec.gear ===
 
 export function floatplaneSpec(nation) { return FLOATPLANES[nation] || FLOATPLANES.USA; }
 
-/** Which aircraft a nation's carriers fly for a role ('dive' | 'torp'). */
+/** Which aircraft a nation's carriers fly for a role ('dive' | 'torp' | 'fighter'). */
 export function planeTypeFor(nation, role) {
   const t = {
-    USA: { dive: 'sbd', torp: 'tbf' }, Japan: { dive: 'd3a', torp: 'b5n' }, UK: { dive: 'skua', torp: 'swordfish' },
-    Germany: { dive: 'ju87', torp: 'fi167' }, France: { dive: 'ln401', torp: 'pl10' }, Italy: { dive: 're2001', torp: 're2001t' },
-  }[nation] || { dive: 'sbd', torp: 'tbf' };
+    USA: { dive: 'sbd', torp: 'tbf', fighter: 'f6f' }, Japan: { dive: 'd3a', torp: 'b5n', fighter: 'a6m' }, UK: { dive: 'skua', torp: 'swordfish', fighter: 'fulmar' },
+    Germany: { dive: 'ju87', torp: 'fi167', fighter: 'bf109t' }, France: { dive: 'ln401', torp: 'pl10', fighter: 'd520' }, Italy: { dive: 're2001', torp: 're2001t', fighter: 'mc202' },
+  }[nation] || { dive: 'sbd', torp: 'tbf', fighter: 'f6f' };
   return t[role];
 }
 

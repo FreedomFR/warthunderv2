@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased — fighters
+
+- **Fighters** for each nation (F6F Hellcat, A6M Zero, Fulmar, Bf 109 T, D.520, MC.202: the dimensions of the real aircraft, the rest estimated): about a quarter of every air group (`air.fReady`; the
+  bombers are `air.ready`). They come up on the lifts, never from the deck park.
+- **Escort**: every strike leaves with two to four fighters (after the bombers; they are faster and catch up), flying above and ahead of the bombers and weaving. **Patrol**: when enemy aircraft come within 70 km
+  of the carrier and the deck is free, two to four fighters go up and circle over the fleet at 1 400 m (a patrol goes home after 15 minutes or four minutes without an enemy).
+- **Combat**: a fighter picks the enemy aircraft that threatens most (those about to drop their ordnance first, enemy fighters when escorting, two fighters on one target at most), closes on it by lead pursuit,
+  fires short bursts (about 37 s of ammunition; hits are likelier near, on a bomber, on a target that does not break away) and breaks away when an enemy fighter sits on its tail. The **rear gunner** of the
+  two-seat bombers shoots back at a fighter astern. A fighter that is hurt (under 30 %), out of ammunition or short of fuel goes home; it lands like the other aircraft (and counts as a fighter again).
+- **Visible and heard**: tracers along the line of fire, a flash, the hits, the machine-gun burst (`mg_burst`); kill-feed lines for the fighters' and the gunners' kills; the camera director likes a fighter that fires.
+  The ship panel shows the bombers and the fighters left. `dogfight` trailer scene; `test/fighters.mjs`.
+- Circuit: the aircraft only turn in when they are on the downwind line, on the opposite course (they used to turn from any position and roll out far off the centre line, then go round again); the downwind
+  leg damps its lateral correction; the hold circle is bigger and banked more; the next aircraft turns in when the one ahead is 3.6 km from its touchdown point; an aircraft that floats past the first wires
+  is waved off sooner. Landings are about twice as frequent when many aircraft come back together.
+
 ## Unreleased — cameras
 
 - **Bridge view**: the eye used to sit 5 m ahead of the centre of the tower, on the centre line, where the foremast, its stays or a wall were in the way on most ships (and inside a block on the King George V, the

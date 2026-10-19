@@ -101,7 +101,9 @@ export class Ship {
     this.tubes = model.tubes.map((t) => ({ ...t, ready: 0, left: t.n }));
     this.torpReload = 0; this.torpLeft = stats.torpedo ? stats.torpedo.tubes : 0;
     // carrier air group
-    this.air = stats.air ? { ready: stats.air.capacity, cooldown: world.rng.range(5, 25), wave: 0 } : null;
+    // a quarter of the air group are fighters (escort and patrol), the rest bombers
+    const nFight = stats.air ? Math.round(stats.air.capacity * 0.26) : 0;
+    this.air = stats.air ? { ready: stats.air.capacity - nFight, fReady: nFight, cooldown: world.rng.range(5, 25), capCooldown: 30, wave: 0 } : null;
     this.parkType = this.air ? planeTypeFor(stats.nation, 'dive') : null;
     this.parked = 0;
     // fire control
@@ -255,7 +257,7 @@ export class Ship {
 
   /** Hangar or aviation-fuel store destroyed: the aircraft below burn, fuel fires. */
   hangarLost(m, world, owner) {
-    if (this.air) this.air.ready = Math.floor(this.air.ready * 0.4);
+    if (this.air) { this.air.ready = Math.floor(this.air.ready * 0.4); this.air.fReady = Math.floor(this.air.fReady * 0.4); }
     this.addFire(m.x, this.model.fdY ? this.model.fdY - 1 : 3, m.z, 1.2);
     this.addFire(m.x + 12, this.model.fdY ? this.model.fdY - 1 : 3, m.z + 3, 1.2);
     if (world.rng() < (m.kind === 'avgas' ? 0.45 : 0.25)) {
