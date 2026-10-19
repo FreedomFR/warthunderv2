@@ -502,7 +502,7 @@ export class Effects {
 
       // ---- sinking: steam, bubbles, heavy smoke ----
       if (s.state === 'sinking' && d < 22000) {
-        fxs.steam += dt * (s.exploded ? 7 : 16) * this.emitScale;
+        fxs.steam += dt * ({ burn: 14, roll: 5, level: 6, bow: 8, stern: 8, blast: 7 }[s.sinkMode] ?? (s.exploded ? 7 : 12)) * this.emitScale;   // a capsized or settling ship smokes less than a burning one
         while (fxs.steam >= 1) {
           fxs.steam -= 1;
           const lx = rr(-st.L * 0.4, st.L * 0.4), lz = rr(-st.B * 0.3, st.B * 0.3);

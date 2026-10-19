@@ -38,6 +38,12 @@ function describe(spec) {
   return parts;
 }
 
+/** how a lost ship is described in the ship panel */
+const SINK_LABEL = {
+  split: 'NAVIRE BRISÉ EN DEUX', roll: 'NAVIRE CHAVIRÉ', bow: 'COULE PAR L\'AVANT', stern: 'COULE PAR L\'ARRIÈRE', level: 'NAVIRE ENVAHI PAR LES EAUX',
+  burn: 'NAVIRE CONSUMÉ PAR L\'INCENDIE', blast: 'NAVIRE DÉTRUIT PAR EXPLOSION',
+};
+
 export function createUI(game) {
   const engine = game.engine, world = game.world;
   const root = document.getElementById('ui');
@@ -430,7 +436,7 @@ export function createUI(game) {
         h('span', {}, 'Coulés / avions'), h('b', {}, `${s.kills} / ${s.planeKills || 0}`),
       ),
       s.air ? h('div', { class: 'iline' }, `Groupe aérien : ${s.air.ready} au pont${s.deckWrecked ? ' — pont d\'envol détruit' : ''}`) : null,
-      s.state !== 'afloat' ? h('div', { class: 'si-state' }, s.split ? 'NAVIRE BRISÉ EN DEUX' : 'NAVIRE COULÉ') : null,
+      s.state !== 'afloat' ? h('div', { class: 'si-state' }, SINK_LABEL[s.split ? 'split' : s.sinkMode] || 'NAVIRE COULÉ') : null,
     ];
     shipInfo.replaceChildren(...lines.filter(Boolean));
     drawDamage(dmgCanvas, s);
