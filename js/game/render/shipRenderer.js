@@ -4,7 +4,7 @@ import { SHIP, SHIP_SHADOW } from '../../wgsl/ship.js';
 import { VERTEX_STRIDE } from '../model/meshbuilder.js';
 
 const INST_FLOATS = 28;          // 4 x vec4 matrix + tint + misc + paint
-const MAX_INSTANCES = 8192;
+const MAX_INSTANCES = 32768;
 const GU = GPUBufferUsage;
 
 export class ShipRenderer {

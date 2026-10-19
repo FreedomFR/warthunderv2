@@ -6,6 +6,7 @@ import { getModel } from './model/cache.js';
 import { ShipRenderer } from './render/shipRenderer.js';
 import { ShipVisuals } from './render/shipVisual.js';
 import { IslandVisuals } from './render/islandVisual.js';
+import { VegetationVisuals } from './render/vegetationVisual.js';
 import { Terrain } from './sim/terrain.js';
 import { PlaneVisuals } from './render/aircraftVisual.js';
 import { Particles, K } from './render/particles.js';
@@ -75,6 +76,7 @@ export class Game {
     if (this.canAuto) this.engine.setRenderScale(q.scale);
     this.shadowsOn = this.userShadows && q.shadows;
     this.ui?.onRenderScale?.(this.engine.getRenderScale());
+    this.vegetation?.setQuality(this.qLevel);
   }
 
   async init() {
@@ -89,6 +91,9 @@ export class Game {
     this.planeVisuals = new PlaneVisuals(this.shipRenderer);
     this.shipVisuals.planes = this.planeVisuals;
     this.islandVisuals = new IslandVisuals(this.shipRenderer, e);
+    this.vegetation = new VegetationVisuals(this.shipRenderer, e);
+    this.vegetation.enabled = new URLSearchParams(location.search).get('trees') !== '0';
+    this.vegetation.setQuality(this.qLevel);
 
     e.hooks.update = (dt, now) => this.update(dt, now);
     e.hooks.prepare = () => this.prepare();
@@ -118,6 +123,7 @@ export class Game {
       const axis = starts.length >= 2 ? [starts[0].x, starts[0].z, starts[1].x, starts[1].z] : null;
       w.terrain = Terrain.generate(this.config.seed, this.config.islands, keep, axis, clamp(this.config.sep * 0.9 + 5000, 9000, 21000));
       this.islandVisuals.set(w.terrain);
+      this.vegetation.set(w.terrain);
     }
     this.state = 'ready';
     this.paused = false;
@@ -144,6 +150,7 @@ export class Game {
   reset() {
     this.world.clear();
     this.islandVisuals.set(null);
+    this.vegetation.set(null);
     this.particles.n = 0;
     this.camera.target = null;
     this.camera.setMode('free');
@@ -246,6 +253,7 @@ export class Game {
     r.begin();
     this.particles.beginFrame();
     this.islandVisuals.add(cam);
+    this.vegetation.add(cam);
     for (const s of w.ships) {
       if (s.state === 'sunk') continue;
       const team = w.teams[s.team];

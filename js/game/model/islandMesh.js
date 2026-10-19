@@ -3,6 +3,7 @@
 // the underwater shelf is only kept for the first metres (the sea hides the rest).
 import { MeshBuilder, MAT } from './meshbuilder.js';
 import { clamp } from '../math.js';
+import { cover, climateOf } from './vegetation.js';
 
 function ihash(x, z, s) {
   let h = (Math.imul(x | 0, 374761393) + Math.imul(z | 0, 668265263) + Math.imul(s | 0, 1274126177)) | 0;
@@ -17,6 +18,7 @@ function vn(x, z, s) {
 }
 
 const mix = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
+const FLOOR = { temperate: [30, 46, 24], tropical: [26, 44, 20], arid: [124, 106, 66], alpine: [84, 90, 66], volcanic: [48, 50, 40] };
 const PAL = {
   green: { sand: [216, 198, 152], low: [84, 118, 52], forest: [38, 74, 36], high: [112, 108, 84], rock: [118, 108, 98], peak: [150, 146, 138] },
   arid: { sand: [222, 200, 148], low: [168, 148, 92], forest: [138, 120, 76], high: [150, 118, 84], rock: [132, 104, 80], peak: [168, 140, 108] },
@@ -25,7 +27,7 @@ const PAL = {
 };
 
 /** The colour of the ground: h metres above the sea, slope = rise over run, rel = height as a fraction of the top of the island, n = a grain in 0..1. */
-export function groundColour(biome, h, slope, rel, n, n2) {
+export function groundColour(biome, h, slope, rel, n, n2, cov = 0, climate = 'temperate') {
   const P = PAL[biome] || PAL.green;
   let c;
   if (h < 2.4) c = mix(P.sand, P.low, clamp((h - 0.4) / 2.0, 0, 1));
@@ -37,6 +39,8 @@ export function groundColour(biome, h, slope, rel, n, n2) {
     c = mix(c, P.high, clamp((rel - 0.5) * 3.2, 0, 1));
     c = mix(c, P.peak, clamp((rel - 0.82) * 5, 0, 1));
   }
+  // under the trees the ground is dark leaf litter and undergrowth; where nothing grows, grass or dry soil
+  if (cov > 0) c = mix(c, FLOOR[climate] || FLOOR.temperate, clamp(cov * 0.85, 0, 0.82));
   // steep ground is bare rock, whatever grows below
   c = mix(c, P.rock, clamp((slope - 0.5) * 2.4, 0, 0.95));
   const g = 0.86 + 0.28 * n;
@@ -73,7 +77,7 @@ export function buildIslandMesh(island) {
     const x = x0 + i * rc, z = z0 + j * rc;
     const n = vn(x / 14, z / 14, seed) * 0.6 + vn(x / 3.7, z / 3.7, seed + 5) * 0.4;
     const n2 = vn(x / 90, z / 90, seed + 9);
-    const col = groundColour(island.biome, h, slope, h / top, n, n2);
+    const col = groundColour(island.biome, h, slope, h / top, n, n2, cover(island, island.x + x, island.z + z, h, slope), climateOf(island));
     // hollows are darker: the ground round a vertex higher than it is
     const lap = (at(i - 1, j) + at(i + 1, j) + at(i, j - 1) + at(i, j + 1)) / 4 - h;
     const ao = clamp(1 - lap / (rc * 1.2), 0.5, 1);
