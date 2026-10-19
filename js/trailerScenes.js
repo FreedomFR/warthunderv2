@@ -399,6 +399,30 @@ export const SCENES = {
     await T.shot('hit', 3.2, (t) => ({ p: camAt, l: [w0[0], w0[1] + 1.5, w0[2]], fov: 46 }));
   },
 
+  // ---- strike: a development scene for the strike formations (a wave in formation, then the attack) ------------------------------------------------------
+  async strike(T) {
+    T.reset(23, 'morning', { clouds: 0.3 });
+    const us = T.fleet(0, [{ id: 'essex' }, { id: 'cleveland' }, { id: 'fletcher', count: 2 }], -9000, 0, 90, { knots: 20 });
+    const jp = T.fleet(1, [{ id: 'takao' }, { id: 'agano' }, { id: 'kagero', count: 2 }], 9000, 100, 270, { knots: 14 });
+    quiet(us); quiet(jp);
+    T.go();
+    const essex = us.find((s) => s.stats.id === 'essex');
+    await T.until(() => T.w.planes.some((p) => p.owner === essex && p.wave.launched >= p.wave.n), { max: 300, dt: 1 / 8 });
+    const wave = T.w.planes.find((p) => p.owner === essex).wave;
+    await T.wait(28);
+    const leaders = () => wave.sections.map((q) => q.members.find((m) => !m.dying && !m.gone && m.phase !== 'queue' && m.phase !== 'takeoff')).filter(Boolean);
+    const centre = () => { const l = leaders(); if (!l.length) return [0, 600, 0]; return [l.reduce((a, m) => a + m.x, 0) / l.length, l.reduce((a, m) => a + m.y, 0) / l.length, l.reduce((a, m) => a + m.z, 0) / l.length]; };
+    // A: a section in formation, from the side and a little above
+    const sideCam = (k, d) => (t) => { const l = leaders()[k]; if (!l) return { p: [0, 50, 0], l: [0, 50, -100], fov: 50 }; const h = l.heading; return { p: [l.x + Math.cos(h) * d - Math.sin(h) * 30, l.y + d * 0.28, l.z + Math.sin(h) * d + Math.cos(h) * 30], l: [l.x - Math.sin(h) * 25, l.y - 5, l.z + Math.cos(h) * 25], fov: 48 }; };
+    await T.shot('form_a', 3.0, sideCam(0, 150));
+    // B: close behind the leader of the first section
+    await T.shot('form_b', 3.0, (t) => { const l = leaders()[0]; if (!l) return { p: [0, 50, 0], l: [0, 50, -100], fov: 50 }; return { p: [l.x - Math.sin(l.heading) * 90 + Math.cos(l.heading) * 25, l.y + 18, l.z + Math.cos(l.heading) * 90 + Math.sin(l.heading) * 25], l: [l.x + Math.sin(l.heading) * 40, l.y, l.z - Math.cos(l.heading) * 40], fov: 55 }; });
+    // C: the torpedo sections coming in, seen from the target
+    const tgt = jp[0];
+    await T.until(() => T.w.planes.some((p) => p.wave === wave && p.phase === 'run'), { max: 240, dt: 1 / 12 });
+    await T.shot('torp_a', 4.0, (t) => ({ p: [tgt.x + 380, 22, tgt.z - 120], l: [tgt.x - 2300, 30, tgt.z + 300], fov: 55 }));
+  },
+
   // ---- sinktest: a development scene for the ways of sinking (?ship=cleveland&mode=roll|bow|stern|level|burn|blast|split) ------------------------------
   async sinktest(T) {
     const qs = new URLSearchParams(location.search), id = qs.get('ship') || 'cleveland', mode = qs.get('mode') || 'roll', secs = Number(qs.get('secs')) || 30;

@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased — air operations
+
+- **Strike formations**: a wave leaves in sections of three or four aircraft of one kind (dive bombers off the deck first), and each section flies to the enemy in formation behind its leader (a vee, the fourth aircraft in
+  the middle astern, the leader going easy until the section has joined). The torpedo sections come in on **approach bearings of their own** (about 40 degrees apart) and each section attacks **line abreast**; the dive
+  bombers of a section **peel off one after the other** (3 s apart) and the sections come in from different sides. A wave of three sections or more splits its targets between the two best enemy ships.
+  If a leader falls the next aircraft leads.
+- **A weak strike**: once the wave is airborne, and 16 km from the target, it is looked over once: under three aircraft left (two for a wave of fewer than six, or under a third of the wave) the strike **turns back**
+  (feed message); under five, the sections **close up** into one formation per kind, the survivors attacking on a single axis (in trail for the dive bombers).
+- **Light AA magazines**: every mount holds rounds per barrel (3 600 for 20 mm, 2 700 for 25 mm, 1 400 for 40 mm); a gun spends them as it fires; an empty mount is silent; a ship down to 20 % keeps what is left for
+  the aircraft that are after her. The flak of the heavy dual-purpose guns now spends HE from their own magazines. The ship panel shows the AA ammunition.
+- **AA targeting**: the aircraft in their attack run or dive, and those going for the ship, come first; the dying ones last.
+- `strike` trailer scene to film a wave in formation and the torpedo sections coming in; `test/airops.mjs`.
+
 ## Unreleased — gunnery
 
 - **The shell is chosen against the target** (`shellChoice`): the expected damage per round of AP and of HE against where the target will be hit (belt, deck, upperworks), from the impact speed and fall angle at that range and

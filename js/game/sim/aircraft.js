@@ -24,6 +24,32 @@ const FLAK_RANGE = 7500;
 
 const rn = (world, a, b) => a + (b - a) * world.rng();
 
+// ---- strike formations ---------------------------------------------------------------------------------------------
+// A wave is split into sections of up to four aircraft of one kind (torpedo bombers, dive bombers). A section flies to the enemy in formation
+// behind its leader (a vee, the fourth aircraft in the middle astern), then attacks together: the torpedo bombers on an approach bearing of their
+// own, line abreast, the dive bombers peeling off one after the other at intervals. The sections of a strong wave come in from different bearings.
+// A wave that has lost most of its aircraft before the attack closes up into one formation per kind and attacks on one axis; when too few
+// are left to be worth the risk, it turns back.
+const STRIKE_PHASES = new Set(['cruise', 'ip', 'run', 'rollin', 'dive', 'pullout', 'break', 'egress']);
+const ATTACK_PHASES = new Set(['ip', 'run', 'rollin', 'dive']);
+const live = (m) => !m.dying && !m.gone && (STRIKE_PHASES.has(m.phase) || m.phase === 'queue' || m.phase === 'takeoff');
+const airborne = (m) => live(m) && m.phase !== 'queue' && m.phase !== 'takeoff';
+/** the first aircraft of the section that is still flying the strike: the leader */
+function leaderOf(sec) { for (const m of sec.members) if (live(m)) return m; return null; }
+/** place of an aircraft in its section, by order among the living (0 = leader): { rank, pos (0 centre, 1 right, 2 left), row } */
+function placeOf(p) {
+  let rank = 0;
+  for (const m of p.sec.members) { if (m === p) break; if (live(m)) rank++; }
+  return { rank, pos: rank % 3, row: Math.floor(rank / 3) };
+}
+/** where a follower holds in the leader's frame: [metres astern, metres to starboard, metres of height] */
+function slotOffset(kind, pl) {
+  const side = pl.pos === 0 ? 0 : pl.pos === 1 ? 1 : -1;
+  const sp = kind === 'torp' ? 52 : 40;
+  return [-(pl.row * 90 + (pl.pos ? 38 : 0)), side * sp, pl.pos === 0 ? 0 : -6 * pl.pos];
+}
+const SECTION_SPREAD = 0.72;            // rad between the approach bearings of the torpedo sections
+
 function bestTarget(world, team, fromX, fromZ) {
   let best = null, bs = -1e9;
   for (const s of world.ships) {
@@ -35,6 +61,19 @@ function bestTarget(world, team, fromX, fromZ) {
     if (sc > bs) { bs = sc; best = s; }
   }
   return best;
+}
+
+/** the `n` most attractive enemy ships, best first */
+function bestTargets(world, team, fromX, fromZ, n) {
+  const out = [];
+  for (const sh of world.ships) {
+    if (sh.team === team || !sh.alive) continue;
+    const d = Math.hypot(sh.x - fromX, sh.z - fromZ);
+    if (d > 90000) continue;
+    out.push({ sh, sc: sh.stats.score * 6000 - d + (sh.hpFrac < 0.6 ? 3000 : 0) + world.rng() * 2500 });
+  }
+  out.sort((a, b) => b.sc - a.sc);
+  return out.slice(0, n).map((q) => q.sh);
 }
 
 export function updateAir(world, dt) {
@@ -60,27 +99,38 @@ function launches(world, dt) {
     air.cooldown = 120 + n * 3.4 + world.rng() * 60;
     air.wave++;
     const dp = ship.model.deckPoints;
-    const wave = { ship, n, id: air.wave, launched: 0 };
+    const wave = { ship, n, id: air.wave, launched: 0, assessed: false, aborted: false, t0: world.time };
     const dive = planeTypeFor(ship.stats.nation, 'dive'), torp = planeTypeFor(ship.stats.nation, 'torp');
-    const offs = [0, -0.7, 0.7, -0.35, 0.35, -1.0, 1.0, -0.5, 0.5, -0.15, 0.15];
-    let ti = 0;
-    for (let i = 0; i < n; i++) {
-      const kind = i % 5 < 3 ? 'torp' : 'dive';
-      const typeKey = kind === 'torp' ? torp : dive;
-      const spec = PLANES[typeKey];
-      const lx = dp.x1 - TAKEOFF_RUN - i * 9.5;
-      const p = {
-        id: nextPlane++, owner: ship, team: ship.team, kind, typeKey, spec, wave,
-        x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, heading: ship.heading, pitch: 0, roll: 0, bank: 0, speed: 0,
-        phase: 'queue', t: -(2 + i * 3.3), age: 0, target, hp: spec.hp, maxHp: spec.hp, ordnance: true,
-        spin: 0, gearDown: true, lost: { wingL: false, wingR: false, tail: false, engine: false }, dying: false, smoke: 0, fire: 0, harass: 0,
-        lx, lz: 0, u: 0, apOff: kind === 'torp' ? offs[ti++ % offs.length] : 0, jitter: (world.rng() - 0.5) * 2,
-        t0Air: 0, cruiseAlt: kind === 'dive' ? rn(world, 1500, 2000) : rn(world, 420, 650), relAlt: rn(world, 480, 620), fuel: 700 + world.rng() * 200,
-        aimErr: [world.rng.normal(), world.rng.normal()], diveAng: rn(world, 58, 70) * D2R, group: i,
-      };
-      ship.toWorld(p.lx, ship.model.fdY + groundY(spec), 0, _w);
-      p.x = _w[0]; p.y = _w[1]; p.z = _w[2];
-      world.planes.push(p);
+    // the composition: a little over half torpedo bombers; sections of three (a leftover pair, or a fourth aircraft in a section); dive bombers off the deck first
+    const nT = Math.round(n * 0.55), nD = n - nT;
+    const split = (c) => { const out = []; let r = c; while (r > 0) { const k = r === 4 ? 4 : Math.min(3, r); out.push(k); r -= k; } if (out.length > 1 && out[out.length - 1] === 1) { out.pop(); out[out.length - 1]++; } return out; };
+    const plan = [...split(nD).map((k) => ['dive', k]), ...split(nT).map((k) => ['torp', k])];
+    const targets = bestTargets(world, ship.team, ship.x, ship.z, 2);
+    const torpSections = plan.filter((q) => q[0] === 'torp').length;
+    wave.sections = [];
+    let i = 0, tIdx = 0;
+    for (const [kind, k] of plan) {
+      const idx = kind === 'torp' ? tIdx++ : wave.sections.filter((q) => q.kind === 'dive').length;
+      const sec = { id: wave.sections.length, kind, members: [], wave, target: targets[(wave.sections.length >= 2 && targets.length > 1 && wave.sections.length % 3 === 2) ? 1 : 0] || target, spread: kind === 'torp' ? (idx - (torpSections - 1) / 2) * SECTION_SPREAD : 0, dLat: (idx - 0.5) * 900, state: 'form', rollT: null };
+      wave.sections.push(sec);
+      for (let j = 0; j < k; j++, i++) {
+        const typeKey = kind === 'torp' ? torp : dive;
+        const spec = PLANES[typeKey];
+        const lx = dp.x1 - TAKEOFF_RUN - i * 9.5;
+        const p = {
+          id: nextPlane++, owner: ship, team: ship.team, kind, typeKey, spec, wave, sec,
+          x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, heading: ship.heading, pitch: 0, roll: 0, bank: 0, speed: 0,
+          phase: 'queue', t: -(2 + i * 3.3), age: 0, target: sec.target, hp: spec.hp, maxHp: spec.hp, ordnance: true,
+          spin: 0, gearDown: true, lost: { wingL: false, wingR: false, tail: false, engine: false }, dying: false, smoke: 0, fire: 0, harass: 0,
+          lx, lz: 0, u: 0, apOff: 0, jitter: (world.rng() - 0.5) * 2,
+          t0Air: 0, cruiseAlt: kind === 'dive' ? rn(world, 1500, 2000) : rn(world, 420, 650), relAlt: rn(world, 480, 620), fuel: 700 + world.rng() * 200,
+          aimErr: [world.rng.normal(), world.rng.normal()], diveAng: rn(world, 58, 70) * D2R, group: i,
+        };
+        ship.toWorld(p.lx, ship.model.fdY + groundY(spec), 0, _w);
+        p.x = _w[0]; p.y = _w[1]; p.z = _w[2];
+        sec.members.push(p);
+        world.planes.push(p);
+      }
     }
     world.events.push({ type: 'airLaunch', ship, count: n });
   }
@@ -97,7 +147,7 @@ function flight(world, dt) {
     p.spin += dt * (p.lost.engine ? 0 : (p.phase === 'queue' && p.t < 0 ? 4 : 62 + (p.speed - 60) * 0.3));
     p.harass = Math.max(0, p.harass - dt * 0.35);
     const keep = p.dying ? stepDying(world, p, dt) : stepPlane(world, p, dt);
-    if (!keep) arr.splice(i, 1);
+    if (!keep) { p.gone = true; arr.splice(i, 1); }
   }
 }
 
@@ -123,6 +173,33 @@ function guide(p, dt, hdgT, gamT, spdT, o = {}) {
   setVel(p);
 }
 
+/**
+ * The look at the strike, once, when the first aircraft is 16 km from its target. Too few aircraft left to be worth the risk (a wave of six or
+ * more under three, a smaller one under two, or under a third of the wave): the strike turns back. Few left (under five): the sections close up
+ * into one formation per kind so that the survivors attack together on one axis, in trail for the dive bombers.
+ */
+function assessWave(world, wave) {
+  wave.assessed = true;
+  const strike = world.planes.filter((q) => q.wave === wave && live(q) && q.ordnance && q.phase !== 'queue' && q.phase !== 'takeoff');
+  const need = wave.n >= 6 ? 3 : 2;
+  if (strike.length < need || strike.length < wave.n * 0.3) {
+    wave.aborted = true;
+    world.events.push({ type: 'strikeAbort', ship: wave.ship, left: strike.length, planned: wave.n });
+    return;
+  }
+  if (strike.length < 5) {
+    wave.sections = [];
+    for (const kind of ['dive', 'torp']) {
+      const members = strike.filter((q) => q.kind === kind).sort((a, b) => a.id - b.id);
+      if (!members.length) continue;
+      const sec = { id: wave.sections.length, kind, members, wave, target: members[0].target, spread: 0, dLat: 0, state: 'form', rollT: null };
+      wave.sections.push(sec);
+      for (const m of members) m.sec = sec;
+    }
+    world.events.push({ type: 'strikeMerged', ship: wave.ship, left: strike.length, planned: wave.n });
+  }
+}
+
 function stepPlane(world, p, dt) {
   const ship = p.owner;
   const spec = p.spec;
@@ -132,7 +209,10 @@ function stepPlane(world, p, dt) {
   p.fuel -= dt;
   let tgt = p.target;
   if (p.kind && (!tgt || !tgt.alive) && (p.phase === 'cruise' || p.phase === 'ip' || p.phase === 'run' || p.phase === 'dive')) {
-    p.target = tgt = bestTarget(world, p.team, p.x, p.z);
+    // the section keeps one target: the first of its aircraft to notice that it is gone picks the next
+    const st = p.sec && p.sec.target;
+    p.target = tgt = st && st.alive ? st : bestTarget(world, p.team, p.x, p.z);
+    if (p.sec && tgt) p.sec.target = tgt;
     if (!tgt) p.phase = 'return';
   }
   if (p.fuel < 0 && p.phase !== 'ditch' && p.phase !== 'floating' && p.phase !== 'final') p.phase = 'return';
@@ -142,9 +222,50 @@ function stepPlane(world, p, dt) {
   let hdg = p.heading, gam = 0, spd = V_CRUISE, o = {};
   switch (p.phase) {
     case 'cruise': {
+      const sec = p.sec, lead = sec ? leaderOf(sec) : null;
       const dx = tgt.x + tgt.vx * 30 - p.x, dz = tgt.z + tgt.vz * 30 - p.z;
       const range = Math.hypot(dx, dz);
-      hdg = Math.atan2(dx, -dz);
+      // the strike is looked over once, 16 km from the target: too few left and it turns back, few left and it closes up
+      if (range < 16000 && !p.wave.assessed && (p.wave.launched >= p.wave.n || world.time - p.wave.t0 > 55)) assessWave(world, p.wave);
+      if (p.wave.aborted) { p.phase = 'return'; break; }
+      // ---- in formation behind the leader ----
+      if (sec && lead && lead !== p && airborne(lead) && lead.phase === 'cruise') {
+        const pl = placeOf(p), so = slotOffset(p.kind, pl);
+        const fx = Math.sin(lead.heading), fz = -Math.cos(lead.heading), rx = Math.cos(lead.heading), rz = Math.sin(lead.heading);
+        const sx = lead.x + fx * so[0] + rx * so[1], sz = lead.z + fz * so[0] + rz * so[1];
+        const ex = sx + lead.vx * 1.2 - p.x, ez = sz + lead.vz * 1.2 - p.z;
+        const dS = Math.hypot(ex, ez);
+        // far from the slot steer for it, near it fly the leader's heading
+        hdg = lead.heading + wrapPi(Math.atan2(ex, -ez) - lead.heading) * clamp(dS / 70, 0, 1);
+        const along = (p.x - sx) * fx + (p.z - sz) * fz;
+        spd = clamp(lead.speed - along * 0.16, 40, V_CRUISE + 28);
+        gam = clamp((lead.y + so[2] - p.y) / 260, -0.09, 0.12);
+        break;
+      }
+      // ---- a follower whose leader has gone into the attack goes in on the section's order ----
+      if (sec && lead && lead !== p && sec.state !== 'form') {
+        if (p.kind === 'torp' && sec.state === 'ip') {
+          const pl = placeOf(p);
+          p.phase = 'ip'; p.t = 0; p.ipAngle = sec.ang0 + sec.spread; p.lat = (pl.pos === 0 ? 0 : pl.pos === 1 ? 1 : -1) * 135; p.row = pl.row;
+          break;
+        }
+        if (p.kind === 'dive' && sec.rollT != null && world.time - sec.rollT >= placeOf(p).rank * 3.1) {
+          p.phase = 'rollin'; p.t = 0; p.rollSide = placeOf(p).pos === 2 ? -1 : 1; p.diveAlt = p.y; break;
+        }
+      }
+      // ---- the leader (or an aircraft on its own): to the target ----
+      let hx = dx, hz = dz;
+      if (p.kind === 'dive' && sec) {
+        // the sections come in from different sides: the line to the target bends away at long range
+        const lat = sec.dLat * clamp((range - 2500) / 7000, 0, 1);
+        hx += Math.cos(Math.atan2(dx, -dz)) * lat; hz += Math.sin(Math.atan2(dx, -dz)) * lat;
+      }
+      hdg = Math.atan2(hx, -hz);
+      // not yet formed up: the leader goes easy so that the section can join
+      let formed = true;
+      if (sec && lead === p && sec.state === 'form' && world.time - (sec.t0 ?? (sec.t0 = world.time)) < 75) {
+        for (const m of sec.members) if (m !== p && live(m) && (!airborne(m) || Math.hypot(m.x - p.x, m.z - p.z) > 380)) { formed = false; break; }
+      }
       if (p.kind === 'dive') {
         // climb to the attack altitude on the way
         gam = clamp((p.cruiseAlt - p.y) / 700, -0.1, 0.1);
@@ -152,22 +273,31 @@ function stepPlane(world, p, dt) {
         // pushing over (~2.4 s) plus the descent from here to the release altitude
         const alt = Math.max(p.y, 600);
         const diveRange = (alt - p.relAlt) / Math.tan(p.diveAng) + p.relAlt / Math.tan(p.diveAng) * 0.55 + 330 + p.speed * 1.5;
-        if (range < diveRange && (p.y > 650 || range < 1300)) {
+        if (p.wave.assessed && range < diveRange && (p.y > 650 || range < 1300)) {
           p.phase = 'rollin'; p.t = 0; p.rollSide = p.jitter > 0 ? 1 : -1;
           p.diveAlt = p.y;
+          if (sec && sec.state === 'form') { sec.state = 'roll'; sec.rollT = world.time; }
         }
-        spd = V_CRUISE;
+        spd = formed ? V_CRUISE : V_CRUISE * 0.86;
       } else {
         const height = range > 15000 ? p.cruiseAlt : 55 + clamp((range - 5000) / 10000, 0, 1) * (p.cruiseAlt - 55);
         gam = clamp((height - p.y) / 500, -0.07, 0.09);
-        // take position on an approach bearing around the target, so that the torpedo bombers arrive from different directions
-        if (range < 9500) { p.phase = 'ip'; p.t = 0; const a = Math.atan2(p.x - tgt.x, -(p.z - tgt.z)); p.ipAngle = a + p.apOff * 0.9; }
-        spd = V_TORP + 8;
+        // take position on an approach bearing around the target: each section has its own, the aircraft of a section line abreast
+        if (range < 9500 && p.wave.assessed) {
+          p.phase = 'ip'; p.t = 0;
+          const a0 = Math.atan2(p.x - tgt.x, -(p.z - tgt.z));
+          const pl = sec ? placeOf(p) : { pos: 0, row: 0 };
+          if (sec && sec.state === 'form') { sec.state = 'ip'; sec.ang0 = a0; }
+          p.ipAngle = (sec ? sec.ang0 : a0) + (sec ? sec.spread : 0);
+          p.lat = (pl.pos === 0 ? 0 : pl.pos === 1 ? 1 : -1) * 135; p.row = pl.row;
+        }
+        spd = (formed ? V_TORP + 8 : V_TORP - 4);
       }
       break;
     }
     case 'ip': {      // torpedo bombers: fly to a point on their approach bearing, dropping to wave height
-      const ipx = tgt.x + tgt.vx * 40 + Math.sin(p.ipAngle) * 4200, ipz = tgt.z + tgt.vz * 40 - Math.cos(p.ipAngle) * 4200;
+      const D = 4200 + (p.row || 0) * 380, lat = p.lat || 0;
+      const ipx = tgt.x + tgt.vx * 40 + Math.sin(p.ipAngle) * D + Math.cos(p.ipAngle) * lat, ipz = tgt.z + tgt.vz * 40 - Math.cos(p.ipAngle) * D + Math.sin(p.ipAngle) * lat;
       const dIp = Math.hypot(ipx - p.x, ipz - p.z);
       const rangeT = Math.hypot(tgt.x - p.x, tgt.z - p.z);
       hdg = Math.atan2(ipx - p.x, -(ipz - p.z));
@@ -449,10 +579,12 @@ function updateAA(world, dt) {
   for (const ship of world.ships) {
     if (ship.state !== 'afloat') continue;
     const threats = planeThreats(world, ship);
+    const lowAmmo = ship.aaAmmo().frac < 0.2;
     // light AA mounts
     for (const a of ship.aaMounts) {
       a.flash = Math.max(0, a.flash - dt * 6); a.recoil = Math.max(0, a.recoil - dt * 4);
       if (!a.alive) continue;
+      if (a.ammo <= 0) { a.target = null; continue; }
       const cfg = AA[a.rec.variant];
       a.retarget -= dt;
       if (a.retarget <= 0 || !a.target || a.target.dying || !world.planes.includes(a.target)) {
@@ -462,7 +594,11 @@ function updateAA(world, dt) {
         let best = null, bs = 1e9;
         for (const { p, d } of threats) {
           if (d > cfg.range * 1.05 || p.y > 3400) continue;
-          const s = d * (p.target === ship ? 0.6 : 1) * (p.dying ? 2 : 1);
+          // the aircraft that are going for this ship, and those already in their attack, come first; the dying ones last
+          const attacking = ATTACK_PHASES.has(p.phase);
+          // low on rounds a gun keeps them for the aircraft that are after its own ship
+          if (lowAmmo && !(p.target === ship && attacking)) continue;
+          const s = d * (p.target === ship ? 0.6 : 1) * (attacking ? 0.6 : 1) * (p.dying ? 2.5 : 1);
           if (s < bs) { bs = s; best = p; }
         }
         a.target = best;
@@ -484,6 +620,7 @@ function updateAA(world, dt) {
       // the rounds that reach the aircraft
       const fall = Math.pow(1 - dist / cfg.range, 1.5);
       const motion = 0.6 + 0.4 / (1 + (Math.hypot(p.vx, p.vz) * 0.002));
+      a.ammo = Math.max(0, a.ammo - cfg.rps * a.rec.n * dt * 0.6);      // every barrel fires at its rate while it has the aircraft in sight
       const rate = cfg.dps / cfg.hit * a.rec.n / 2 * fall * motion * (a.rec.n >= 3 ? 1.1 : 1);
       if (rng() < rate * dt) hitPlane(world, ship, p, cfg.hit * (0.7 + 0.6 * rng()), a.rec.cal);
       // visible fire
@@ -524,6 +661,9 @@ function updateAA(world, dt) {
       m.elev += clamp(Math.min(Math.atan2(dy, hd), 1.45) - m.elev, -rate, rate);
       if (!inArc || m.reload > 0 || dist > FLAK_RANGE) continue;
       if (Math.abs(rel - m.trainRel) > 0.07) continue;
+      // flak is high-explosive from the mount's own magazine
+      if (m.ammo.HE < m.n) { if (m.ammo.HE + m.ammo.AP <= 0) m.noAmmo = true; continue; }
+      m.ammo.HE -= m.n; m.loaded = 'HE';
       m.reload = m.gun.reload * (0.9 + rng() * 0.2) * 1.15;
       m.recoil = 0; m.fireT = 0; m.flash = 1;
       // fuze setting error grows with distance; the burst is lethal within ~20 m
