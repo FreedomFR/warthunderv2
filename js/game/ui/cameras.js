@@ -21,6 +21,7 @@ export const PLANE_VIEWS = [
 ];
 
 const FOV_DEFAULT = 58 * D2R;
+const _dk = [0, 0, 0], _dk2 = [0, 0, 0];
 
 export class CameraRig {
   constructor(engine, canvas, game) {
@@ -37,7 +38,7 @@ export class CameraRig {
     this.shell = { shell: null, hold: 0, x: 0, y: 0, z: 0, dx: 0, dz: 0, lastImpact: null };
     this.auto = { t: 0, sub: 'follow', hold: 0 };
     this.plane = null;               // followed aircraft
-    this.planeCam = { yaw: 0, pitch: 0, zoom: 1, view: 'chase', t: 0, fix: null, hold: 0, crash: null, look: { yaw: 0, pitch: 0 } };
+    this.planeCam = { yaw: 0, pitch: 0, zoom: 1, view: 'chase', t: 0, fix: null, hold: 0, crash: null, deck: false, look: { yaw: 0, pitch: 0 } };
     this.smooth = { x: 0, y: 0, z: 0, yaw: 0, pitch: 0, init: false, fov: FOV_DEFAULT };
     this.fovWant = FOV_DEFAULT;
     this.dragging = false;
@@ -337,7 +338,7 @@ export class CameraRig {
     i = (i + dir + list.length) % list.length;
     this.setPlane(list[i]);
   }
-  setPlane(p) { this.plane = p; this.planeCam.fix = null; this.planeCam.t = 0; this.smooth.init = false; this.game.ui?.onPlane?.(p); }
+  setPlane(p) { this.plane = p; this.planeCam.deck = false; this.planeCam.fix = null; this.planeCam.t = 0; this.smooth.init = false; this.game.ui?.onPlane?.(p); }
   nextPlaneView() {
     const pc = this.planeCam;
     const i = PLANE_VIEWS.findIndex((v) => v.id === pc.view);
@@ -391,6 +392,7 @@ export class CameraRig {
       const f2 = [sh * cpA, spA, -ch * cpA];
       return { x: p.x + f2[0] * ex + ux * ey, y: p.y + f2[1] * ex + uy * ey, z: p.z + f2[2] * ex + uz * ey, yaw, pitch, roll: bank };
     }
+    if (pc.view !== 'victim') { const d = this.deckLanding(p); if (d) return d; }
     pc.t += dt;
     const zoom = pc.zoom;
     if (pc.view === 'chase') {
@@ -436,6 +438,28 @@ export class CameraRig {
     }
     pc.view = 'chase';
     return null;
+  }
+
+  /**
+   * An aircraft landing on a carrier is followed from the deck, beside the wires on the side away from the island (where the landing signal officer stands):
+   * from the turn into the groove until it has stopped and taxied clear. The camera is fixed to the ship, so that the pitching of the deck and the stop on the
+   * wire are seen as they are. Returns null when the aircraft is not landing (the usual chase view applies).
+   */
+  deckLanding(p) {
+    const pc = this.planeCam, ship = p.owner, dp = ship && ship.model && ship.model.deckPoints;
+    if (!ship || !ship.alive || !dp || !dp.x1 || !(p.phase === 'final' || p.phase === 'rollout' || p.phase === 'taxiIn')) { if (pc.deck) { pc.deck = false; this.smooth.init = false; } return null; }
+    ship.toLocal(p.x, p.y, p.z, _dk);
+    const lx = _dk[0];
+    if (!pc.deck) {
+      if (!((p.phase === 'final' && lx >= dp.x0 - 480) || p.phase === 'rollout')) return null;
+      pc.deck = true; this.smooth.init = false;
+    }
+    if (p.phase === 'taxiIn' && lx > dp.x0 + 190) { pc.deck = false; this.smooth.init = false; return null; }
+    const isl = ship.model.island, side = isl && isl.z < 0 ? 1 : -1;
+    ship.toWorld(dp.x0 + 46, ship.model.fdY + 4.2, side * (dp.hw + 10), _dk2);
+    const dist = Math.hypot(p.x - _dk2[0], p.y - _dk2[1], p.z - _dk2[2]);
+    this.fovWant = clamp(2 * Math.atan(46 / Math.max(dist, 1)), 14 * D2R, 62 * D2R);
+    return this.lookAt(_dk2[0], _dk2[1], _dk2[2], p.x, p.y + 0.8, p.z);
   }
 
   /** Nothing in the air: look at the flight deck of a carrier that is about to launch (or the nearest one). */

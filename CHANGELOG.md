@@ -5,6 +5,37 @@
 - **A ship that was listing, trimmed or sagging stood up and rose out of the water when a torpedo finished her**: the trim (up to 12 degrees by the bow or stern) and the sag of a flooded hull (2-3 m) were applied only while she was afloat, so both vanished in one frame at the moment she was lost, and the sinking then started from an upright ship. They now ease out (a few seconds for the trim, about ten for the sag) while the sinking motion takes over. Two related jumps are gone too: a hit on the other side no longer reverses the way she capsizes (`listSide` is kept once she is lost, and she goes over to the side she was already leaning to), and a hull that breaks in two while it sinks goes on from the depth it had instead of coming back to the surface. `test/damage.mjs` finishes three flooded ships with a torpedo from the other side and checks that the pose changes by no more than a few centimetres a tick and that the roll keeps its direction.
 - **Camera swept through the hull when the ship under it was lost just after a cut to her bridge**: the automatic director cuts to the bridge of a ship and, a moment later, she blows up or capsizes; the bridge view then turned into the outside view without a cut and the camera flew from the bridge to 450 m out through the hull and the fireball, swinging round by 160 degrees. A change between the bridge view and any other, whatever the cause, is now a cut.
 
+## Unreleased — carrier air operations
+
+- **Take-off and assembly**: an aircraft used to turn towards the target as soon as its wheels left the deck, still a few metres over the flight deck. It now flies straight ahead and climbs until it is clear of the bow (150 m past it and 60 m above the deck), then flies a circle over the sea ahead of the carrier (on the side away from the landing circuit, a radius that follows the speed of the type, a different height for each section) until the last aircraft of the wave, escort included, has taken off and is in the circle; then the strike forms up behind its leaders and sets off. A patrol (CAP) climbs straight ahead and goes to its station. Assembly takes one to three minutes of a launch (real strikes took far longer: 15 minutes for the *Yorktown*'s group at Midway, an hour and a half for the *Enterprise* and *Hornet*).
+- **Arrester wire**: the wire used to grab the aircraft with a constant deceleration from the first instant (a jolt, then about 10 m/s2) and the nose dipped sharply. The pull now builds up and fades again (half a sine: jerk under 15 m/s3), peaks at 0.7-1 g and pays out over 20-70 m, in 2.5-4 s; the nose dips less. `test/deckops.mjs` checks the peak deceleration, the duration and the jerk.
+- **Camera on a landing aircraft**: from the turn into the groove (480 m astern) to the end of the roll-out the plane camera is on the deck, beside the wires, on the side away from the island, fixed to the ship and looking at the aircraft with a field of view that narrows with the distance. The chase view stays for the rest of the flight.
+- **Speeds**: all aircraft used to share one cruise speed (84 m/s), one torpedo speed, one approach speed and one circuit. Each type now has its own (`sim/airperf.js`): top speed, strike cruise, torpedo release or dive speed, climb, circuit and approach speeds, lift-off speed, the steepest bank and how fast the nose moves, from the published performance (Wikipedia pages of each type and the sources they cite). The Swordfish and the PL.10 cruise at 42-46 m/s (about 165 km/h), the Dauntless and Avenger at 78, the Skua and the Val at 82-84, a Hellcat fights at 125 and a Folgore at 140. The circuit (radius of the turn, distance of the downwind leg and where the turn starts) follows the speed of each aircraft, and the aircraft leave the deck at their own lift-off speed (the Swordfish 26 m/s, the D.520 39 m/s). The landing speed relative to the deck, and so the wire, follows the approach speed of the type.
+
+| id | top | cruise | torpedo / dive | climb | circuit | approach | lift-off |
+|---|---|---|---|---|---|---|---|
+| SBD-3 | 112 | 78 | - / 112 | 49 | 46 | 37.5 | 36 |
+| TBF-1 | 124 | 78 | 57 / - | 50 | 47 | 41 | 37 |
+| F6F | 170 | 90 | combat 125 | 60 | 52 | 38.6 | 36 |
+| D3A1 | 108 | 82 | - / 103 | 47 | 43 | 36 | 31 |
+| B5N2 | 105 | 72 | 90 / - | 46 | 42 | 35 | 31 |
+| A6M | 148 | 92 | combat 110 | 56 | 50 | 37 | 31 |
+| Skua | 100 | 84 | - / 118 | 46 | 45 | 36 | 33 |
+| Swordfish | 64 | 46 | 48 / - | 33 | 36 | 29 | 26 |
+| Fulmar | 122 | 105 | combat 105 | 50 | 52 | 37.5 | 32 |
+| Ju 87 | 104 | 80 | - / 140 | 50 | 48 | 36 | 37 |
+| Fi 167 | 90 | 69 | 45 / - | 40 | 38 | 28 | 26 |
+| Bf 109 T | 156 | 110 | combat 125 | 62 | 56 | 41.5 | 38 |
+| LN.401 | 105 | 83 | - / 125 | 48 | 44 | 35 | 33 |
+| PL.10 | 61 | 42 | 38 / - | 33 | 34 | 28 | 27 |
+| D.520 | 152 | 105 | combat 125 | 62 | 55 | 41.5 | 39 |
+| Re.2001 | 150 | 115 | - / 125 | 56 | 52 | 41.5 | 41 |
+| Re.2001 G | 125 | 105 | 75 / - | 55 | 52 | 43 | 43 |
+| MC.202 | 167 | 117 | combat 140 | 66 | 57 | 40 | 39 |
+
+  (m/s. Top and cruise speeds, stall and take-off figures are those published; the approach, climb and circuit speeds are about 1.2 times the stall speed or estimates; the 360-degree turn time is published for none of the types, so the turn comes from the speed and the steepest bank. No published figures were found for the Ju 87 C and the Bf 109 T (the Ju 87 B and a secondary source stand in), nor for the arrester gear of the time: its stopping distance comes from the 20-35 m quoted for the Ju 87 C.)
+- Tests: `test/deckops.mjs` (straight climb, assembly, the wire), `test/airops.mjs` (speeds of the types, formation of Skuas and Swordfish) and the formation checks adapted to the assembly.
+
 ## Unreleased — islands
 
 - **Islands of every size and height**: rocks (45-150 m of radius, 7-38 m high), small hilly islands (260-760 m, up to 120 m) and large mountainous ones (1.1-2.3 km, up to 560 m, some with a crater), lobed and stretched coasts, a shelf that falls 12 m for every 100 m. They are generated from the seed (`sim/terrain.js`: one analytic height field per island, sampled on a grid for the simulation) with the fleets' start and the axis between them kept clear; the menu has a selector (none / a few / archipelago) and `?islands=0|1|2`. Each island has a biome (green, arid, rock, volcanic).
