@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased — camera on a lost ship
+
+- **Bridge camera on a ship that blows up or goes down**: the eye stayed on the bridge, in the fireball (a brown screen for ten seconds) or, on a capsizing ship, swung round the rolling hull while the horizon stayed level. The view now steps out to the outside (orbit) camera as soon as the ship is no longer afloat or has exploded; it goes back to the bridge of the next ship when the camera moves on.
+- **The white slab on the sea at a magazine explosion**: the foam of the blast (a disc and an expanding ring, both persistent) covered the whole window of the foam map with a hard edge; the disc is smaller and the ring thinner and shorter-lived.
+
 ## Unreleased — masts that floated
 
 - **Masts in the air** (seen on the *Belfast*: the legs of the aft tripod stopped short above the boat deck): the foot of every mast and of each leg of a tripod now stands on the roof under it (`lowerBase`, `shipbuilder.js`; `PT.tripod` takes the height of each foot). The same bug was on the *Norfolk* (aft tripod) and the *Algerie*. The *Fantasque* had its bridge tower, director and foremast 7 m too high (the tweak gave the height above the waterline where the code reads a height above the deck): `towerY0` and the foremast base are now 9.2.

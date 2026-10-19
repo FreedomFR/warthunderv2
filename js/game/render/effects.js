@@ -436,7 +436,7 @@ export class Effects {
       }
     });
     this.addShake(1.6 * s, e.x, e.z);
-    if (d < 1300) this.engine.foam.add(e.x, e.z, e.x, e.z, 110 * s, 0.9, 1, 1);
+    if (d < 1300) this.engine.foam.add(e.x, e.z, e.x, e.z, 70 * s, 0.5, 0.9, 0.7);       // the sea scoured under the blast (not a white slab filling the view)
   }
 
   torpedoLaunch(e) {
@@ -800,7 +800,7 @@ export class Effects {
       const n = 20;
       for (let k = 0; k < n; k++) {
         const a = k / n * 6.283;
-        this.engine.foam.add(r.x + Math.cos(a) * rad, r.z + Math.sin(a) * rad, r.x + Math.cos(a + 0.2) * rad, r.z + Math.sin(a + 0.2) * rad, 14 + 10 * r.size, 0.2 * fade, 0.9 * fade, 0.7 * fade);
+        this.engine.foam.add(r.x + Math.cos(a) * rad, r.z + Math.sin(a) * rad, r.x + Math.cos(a + 0.2) * rad, r.z + Math.sin(a + 0.2) * rad, 12 + 7 * r.size, 0, 0.8 * fade, 0.3 * fade);
       }
     }
   }

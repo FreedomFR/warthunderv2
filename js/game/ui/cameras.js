@@ -163,6 +163,9 @@ export class CameraRig {
     }
     let mode = this.mode;
     if (mode === 'auto') mode = this.updateAuto(dt);
+    // the ship that carries the camera is lost (blown up, capsizing, going down by the bow): the bridge goes with it, so the view steps out to an outside one
+    // instead of sitting in the fireball and then swinging round a hull that rolls while the horizon stays level
+    if (mode === 'bridge' && this.target && (this.target.state !== 'afloat' || this.target.exploded)) mode = 'orbit';
     let px, py, pz, yaw, pitch, roll = 0;
     const tgt = this.target;
     const sm = this.smooth;
