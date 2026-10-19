@@ -7,7 +7,7 @@
 // patter of a small splash. Print the table with `node tools/audiolab.mjs`.
 export const TARGET_DBA = {
   // guns
-  gun_big: -22, gun_med: -27, gun_small: -30, aa_burst: (cal) => (cal >= 37 ? -33 : cal >= 25 ? -35 : -37), flak_burst: -30, mg_burst: -35,
+  gun_big: -22, gun_med: -27, gun_small: -29, aa_burst: (cal) => (cal >= 37 ? -30 : cal >= 25 ? -32 : -34), flak_burst: -29, mg_burst: -33,
   shell_rush: -26, shell_crack: -24, bomb_whistle: -30,
   // water and steel
   splash_small: -37, splash_big: -29, impact_he: -29, impact_pen: -26, ricochet: -36, impact_through: -35, crash_metal: -30, zap: -37,

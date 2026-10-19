@@ -85,16 +85,16 @@ export class GameAudio {
     // sea ambience
     const src = ctx.createBufferSource(); src.buffer = this.lib.get('wind'); src.loop = true;
     const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 520;
-    const g = ctx.createGain(); g.gain.value = 0.05;
+    const g = ctx.createGain(); g.gain.value = 0.12;
     const lfo = ctx.createOscillator(); lfo.frequency.value = 0.11;
-    const lg = ctx.createGain(); lg.gain.value = 0.02;
+    const lg = ctx.createGain(); lg.gain.value = 0.048;
     lfo.connect(lg); lg.connect(g.gain);
     src.connect(lp); lp.connect(g); g.connect(this.master);
     src.start(); lfo.start();
     this.ambient = g;
     // the swell of the sea underneath: long washes with a deep pressure
     const sw = ctx.createBufferSource(); sw.buffer = this.lib.get('swell'); sw.loop = true;
-    const sg = ctx.createGain(); sg.gain.value = 0.16;
+    const sg = ctx.createGain(); sg.gain.value = 0.3;
     sw.connect(sg); sg.connect(this.master); sw.start(0, Math.random() * 12);
     this.swell = sg;
   }
