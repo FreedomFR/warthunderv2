@@ -5,11 +5,15 @@
 import { clamp, wrapPi, D2R } from '../math.js';
 import { aaSources, exposure } from './routing.js';
 import { perfOf } from './airperf.js';
+import { presentedArea, roundHitChance } from './airhit.js';
 
 export const FIGHT_PHASES = new Set(['escort', 'cap', 'engage']);
 const STRIKE = new Set(['assemble', 'cruise', 'ip', 'run', 'rollin', 'dive', 'pullout', 'break', 'egress']);
 const AMMO = 520;                       // bursts of 1/14 s: about 37 s of fire
 const BURST_RATE = 14;
+const MG_ROUNDS = 78;                   // rounds a second of the guns of a fighter (six of 12.7 mm)
+const MG_DMG = 0.17;
+const GUN_ROUNDS = 28, GUN_DMG = 0.035;           // the rear gunner: two guns of 7.7 mm at about 14 rounds a second each                    // what a round does to an aircraft (hp)
 
 /** Enemy aircraft that are flying (not on a deck, not already falling). */
 function hostiles(world, p) {
@@ -136,15 +140,23 @@ export function fighterSteer(world, p, dt, ctx) {
   const fx = Math.sin(p.heading) * Math.cos(p.pitch), fy = Math.sin(p.pitch), fz = -Math.cos(p.heading) * Math.cos(p.pitch);
   const al = Math.hypot(dx, dy, dz) || 1;
   const cone = Math.acos(clamp((fx * dx + fy * dy + fz * dz) / al, -1, 1));
-  p.firing = d < 680 && cone < 0.075 && p.ammo > 0;
+  p.firing = d < 680 && cone < 0.05 && p.ammo > 0;
   if (p.firing) {
     p.ammo -= BURST_RATE * dt;
     p.burstT = (p.burstT ?? 0) + dt;
     if (!p.wasFiring) world.events.push({ type: 'mgBurst', plane: p, x: p.x, y: p.y, z: p.z });
     world.events.push({ type: 'mgFire', plane: p, target: q, x: p.x + fx * 3, y: p.y + fy * 3 - 0.3, z: p.z + fz * 3, dx: dx / al, dy: dy / al, dz: dz / al, range: d });
-    // hits: more likely near, on a bomber, on an aircraft that does not break away
-    const pHit = clamp(0.72 - d / 900, 0.05, 0.72) * (q.fighter ? 0.4 : 0.55) * (q.evade > 0 ? 0.5 : 1);
-    if (world.rng() < pHit * BURST_RATE * dt) ctx.hit(world, ship, q, 0.3 + world.rng() * 0.15, 12.7);
+    // hits: the rounds fly along the nose and land in a pattern round it (the guns are fixed: the pilot lays them by flying the aircraft); the target is where it will be when
+    // they arrive, so a target that holds its course is hit and one that breaks away is not; what the pattern covers is the area the target shows
+    const tof = d / 800, rx = q.x - p.x + (q.vx - p.vx) * tof, ry = q.y - p.y + (q.vy - p.vy) * tof, rz = q.z - p.z + (q.vz - p.vz) * tof;
+    const rl = Math.hypot(rx, ry, rz) || 1, along = rx * fx + ry * fy + rz * fz;
+    const miss = Math.hypot(rx - fx * along, ry - fy * along, rz - fz * along);
+    // a target that is turning away is not where the straight line puts it
+    const sigma = 3.6 * 0.001 * rl + 1.0 + (q.evade > 0 ? 12 * tof * tof : 0);
+    const area = presentedArea(q, rx / rl, ry / rl, rz / rl);
+    const hits = MG_ROUNDS * dt * roundHitChance(area, miss, sigma);
+    const n = Math.floor(hits + world.rng());
+    if (n > 0) ctx.hit(world, ship, q, MG_DMG * n * (0.8 + 0.4 * world.rng()), 12.7);
   }
   p.wasFiring = p.firing;
   // an enemy fighter on our tail: break away
@@ -195,9 +207,18 @@ export function bomberDefense(world, dt, ctx) {
     if (!b.gunFiring) world.events.push({ type: 'mgBurst', plane: b, x: b.x, y: b.y, z: b.z });
     b.gunFiring = true;
     world.events.push({ type: 'mgFire', plane: b, target: f, x: b.x - fx * 3, y: b.y + 0.9, z: b.z - fz * 3, dx: dx / bd, dy: dy / bd, dz: dz / bd, range: bd });
-    // in a closed-up section the fields of fire overlap: every gunner has a neighbour covering the same sky
-    const pHit = clamp(0.42 - bd / 1300, 0.02, 0.4) * (f.evade > 0 ? 0.6 : 1) * (b.tight && b.phase === 'cruise' ? 1.4 : 1);
-    if (world.rng() < dt * 2.4 * pHit) ctx.hit(world, b.owner, f, 0.2 + world.rng() * 0.1, 7.7, 'gunner');
+    // the gunner lays his guns by eye: the lead is never quite right, so a fighter that crosses fast is harder to hit; in a closed-up section the fields of fire overlap
+    // (every gunner has a neighbour covering the same sky); two guns of 7.7 mm
+    const tof = bd / 700, rvx = f.vx - b.vx, rvy = f.vy - b.vy, rvz = f.vz - b.vz;
+    const rl = Math.hypot(dx, dy, dz) || 1, ux = dx / rl, uy = dy / rl, uz = dz / rl;
+    const vc = rvx * ux + rvy * uy + rvz * uz;
+    const vperp = Math.hypot(rvx - vc * ux, rvy - vc * uy, rvz - vc * uz);
+    const miss = vperp * tof * 0.4;
+    const sigma = 6 * 0.001 * rl + 1.2 + (f.evade > 0 ? 14 * tof * tof : 0);
+    const area = presentedArea(f, ux, uy, uz);
+    const hits = GUN_ROUNDS * dt * roundHitChance(area, miss, sigma) * (b.tight && b.phase === 'cruise' ? 1.4 : 1);
+    const n = Math.floor(hits + world.rng());
+    if (n > 0) ctx.hit(world, b.owner, f, GUN_DMG * n * (0.8 + 0.4 * world.rng()), 7.7, 'gunner');
   }
 }
 

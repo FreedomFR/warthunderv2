@@ -7,6 +7,7 @@ import { planeTypeFor, PLANES, groundY, GROUND_PITCH, hookBack } from '../model/
 import { AA, FLAK_RANGE } from './aadata.js';
 import { clearElev, clearMax, inArcRel } from '../model/clearance.js';
 import { perfOf } from './airperf.js';
+import { lightAAHitRate, extentToward } from './airhit.js';
 import { chooseApproach, aaSources, density, refugeShip } from './routing.js';
 import { fighterSteer, fighterFields, bomberDefense, markHunted, FIGHT_PHASES } from './fighters.js';
 import { deckOf, planLaunch, settleService, beginRecovery, launching, stepDeck, stepDeckShip, touchdown, clearToLand, deckClearFor, DECK_PHASES } from './deck.js';
@@ -854,12 +855,12 @@ function updateAA(world, dt) {
       if (!aaCan(a.rec, inArcRel(a.rec, wrapPi(want)), elevWant, cfg)) continue;        // it follows the aircraft as far as it can, but cannot fire
       const aligned = Math.abs(wrapPi(want - a.train)) < 0.12;
       if (!aligned) continue;
-      // the rounds that reach the aircraft
+      // the rounds that reach the aircraft: where the barrels point, against where the aircraft will be when the rounds get there; the pattern of the rounds is
+      // wider the longer the range (dispersion and laying error), and what it covers of the aircraft is the area the aircraft shows along the line of fire
       const fall = Math.pow(1 - dist / cfg.range, 1.5);
-      const motion = 0.6 + 0.4 / (1 + (Math.hypot(p.vx, p.vz) * 0.002));
       a.ammo = Math.max(0, a.ammo - cfg.rps * a.rec.n * dt * 0.6);      // every barrel fires at its rate while it has the aircraft in sight
-      const rate = cfg.dps / cfg.hit * a.rec.n / 2 * fall * motion * (a.rec.n >= 3 ? 1.1 : 1);
-      if (rng() < rate * dt) hitPlane(world, ship, p, cfg.hit * (0.7 + 0.6 * rng()), a.rec.cal);
+      const hitRate = lightAAHitRate(ship, a, p, cfg, w, dist);       // hits a second
+      if (rng() < hitRate * dt) hitPlane(world, ship, p, cfg.hit * (0.7 + 0.6 * rng()), a.rec.cal);
       // visible fire
       a.burstLeft -= dt;
       if (a.burstLeft <= 0) {
@@ -910,12 +911,14 @@ function updateAA(world, dt) {
       const sig = 12 + dist * 0.016 + 14 * p.harass;
       const ox = rng.normal() * sig, oy = rng.normal() * sig, oz = rng.normal() * sig;
       const off = Math.hypot(ox, oy, oz);
+      // the burst is judged from the outline of the aircraft, not from its centre: a wide aircraft is hit by a burst further from its middle
+      const offHull = Math.max(0, off - extentToward(p, ox / (off || 1), oy / (off || 1), oz / (off || 1)) * 0.45);
       const bx = p.x + p.vx * 0.2 + ox, by = p.y + oy, bz = p.z + p.vz * 0.2 + oz;
       world.events.push({ type: 'flak', ship, mount: m, x: bx, y: by, z: bz, cal: m.gun.cal, mx: w[0], my: w[1], mz: w[2], n: m.n });
       world.events.push({ type: 'muzzle', ship, mount: m, x: w[0] + Math.sin(ship.heading + m.rec.arcC + m.trainRel) * 4, y: w[1] + 2, z: w[2] - Math.cos(ship.heading + m.rec.arcC + m.trainRel) * 4, dx: 0, dy: 1, dz: 0, cal: m.gun.cal, n: m.n, group: 'aa' });
       p.harass = Math.min(2, p.harass + 0.25 * clamp(1 - off / 90, 0, 1));
       const lethal = 22 + m.gun.cal * 0.12;
-      if (off < lethal * 1.5) hitPlane(world, ship, p, 1.6 * clamp(1 - off / (lethal * 1.5), 0.2, 1) * m.n * 0.7, m.gun.cal);
+      if (offHull < lethal * 1.5) hitPlane(world, ship, p, 1.6 * clamp(1 - offHull / (lethal * 1.5), 0.2, 1) * m.n * 0.7, m.gun.cal);
     }
   }
 }
@@ -931,7 +934,7 @@ function hitPlane(world, ship, p, dmg, cal, cause = 'aa') {
   if (p.hp <= 0) { if (ship && cause === 'aa') ship.aaKills++; killPlane(world, p, cause, ship); return; }
   // a lucky hit: engine, pilot, wing
   const r = world.rng();
-  if (r < 0.06 * dmg + 0.01) { p.lost.engine = true; p.smoke = 1; world.events.push({ type: 'planeEngineOut', plane: p }); }
+  if (r < 0.06 * dmg + 0.03 * dmg) { p.lost.engine = true; p.smoke = 1; world.events.push({ type: 'planeEngineOut', plane: p }); }
   else if (r < 0.1 * dmg + 0.02 && dmg > 0.8) killPlane(world, p, cause, ship);
 }
 
