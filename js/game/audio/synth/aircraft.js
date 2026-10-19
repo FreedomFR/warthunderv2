@@ -1,42 +1,56 @@
 // Aircraft engines, falling aircraft and deck landings.
-import { TAU, prng, SVF, env, mk, normalize, addEcho, friedlander, softclip, ring } from './core.js';
+import { TAU, prng, SVF, env, mk, normalize, softclip, ring, jit, seamless } from './core.js';
+
+/**
+ * A piston engine and its propeller, built from the real frequencies. A four-stroke engine takes two crankshaft turns for a full
+ * cycle and each cylinder fires once per cycle, so the firing frequency is rpm * cylinders / 120. At the reference speed of 2400 rpm
+ * the cycle repeats at 20 Hz; the geared propeller turns at half the crank speed (20 Hz, three blades: 60 Hz blade-passing tone and
+ * its harmonics). Everything is a multiple of 20 Hz, so the two-second loop is exact; the playback rate then scales the whole sound
+ * with the engine speed. Radials fire unevenly (each cylinder breathes a little differently: the burble) and ring from the stacks;
+ * a V-12 fires smoothly with a crackle of short stacks.
+ */
+function pistonEngine(sr, seed, cyl, radial) {
+  const r = prng(seed), J = (x, f = 0.1) => jit(r, x, f);
+  const cycle = 20, dur = 2.0, x = 0.15;
+  // per-cylinder amplitude and timing error, repeated every cycle: the signature of the engine
+  const amp = Array.from({ length: cyl }, () => (radial ? 0.7 : 0.9) + (radial ? 0.45 : 0.2) * r());
+  const tim = Array.from({ length: cyl }, () => (r() - 0.5) * (radial ? 0.25 : 0.06));
+  const stackF = J(radial ? 520 : 800, 0.15), thumpF = J(radial ? 95 : 120, 0.1);
+  const blades = 3, propF = blades * cycle;
+  const d = mk(sr, dur + x, (d, n) => {
+    const st = new SVF(sr), cl = new SVF(sr), sw = new SVF(sr);
+    // the exhaust pulses
+    for (let c = 0; c < Math.ceil((dur + x) * cycle); c++) {
+      for (let k = 0; k < cyl; k++) {
+        const t0 = (c + (k + tim[k]) / cyl) / cycle, i0 = Math.floor(t0 * sr);
+        const len = Math.floor(sr * Math.min(0.03, 0.9 / (cyl * cycle)));
+        const a = amp[k] * (0.85 + 0.3 * r());
+        for (let i = 0; i < len && i0 + i < n; i++) {
+          const t = i / sr, nz = r() * 2 - 1;
+          d[i0 + i] += a * (st.step(nz, stackF, 1.3).bp * env(t, 0.0008, 0.004) * 1.6 + Math.sin(TAU * thumpF * t) * env(t, 0.001, 0.007) * 0.9);
+        }
+      }
+    }
+    for (let i = 0; i < n; i++) {
+      const t = i / sr, nz = r() * 2 - 1;
+      // blade-passing tone and harmonics, a swish of the tips, valve gear clatter (and the crackle of the short stacks of the V-12)
+      let p = 0;
+      for (let h = 1; h <= 5; h++) p += Math.sin(TAU * propF * h * t + h * 1.7) * 0.5 / Math.pow(h, 1.2);
+      const swish = sw.step(nz, 1600, 1.2).bp * (0.6 + 0.4 * Math.cos(TAU * propF * t)) * 0.25;
+      const clat = cl.step(nz, radial ? 3200 : 4600, 0.9).hp * (0.5 + 0.5 * Math.sin(TAU * cyl * cycle * t)) * (radial ? 0.06 : 0.11);
+      d[i] = softclip(d[i] * 0.55 + p * 0.45 + swish + clat);
+    }
+  });
+  return normalize(seamless(d, sr, x), 0.75, true);
+}
 
 export const AIRCRAFT = {
-  /** Radial engine drone (loops seamlessly): many harmonics of the firing frequency plus exhaust burble. */
-  engine_radial(sr, seed = 25) {
-    const r = prng(seed);
-    const dur = 2.0, f0 = 88;                 // 176 cycles in two seconds: the loop is exact
-    const d = mk(sr, dur, (d, n) => {
-      const a = new SVF(sr);
-      for (let i = 0; i < n; i++) {
-        const t = i / sr;
-        let s = 0;
-        for (let h = 1; h <= 14; h++) s += Math.sin(TAU * f0 * h * t + h * 0.7) * (1 / Math.pow(h, 0.85)) * (h % 2 ? 1 : 0.6);
-        // cylinder burble: slow amplitude modulation at integer cycles per loop
-        const mod = 0.78 + 0.22 * Math.sin(TAU * 3 * t) * Math.sin(TAU * 5 * t + 1);
-        const nz = r() * 2 - 1;
-        d[i] = (s * 0.32 * mod + a.step(nz, 900, 1.2).bp * 0.28 + Math.sin(TAU * 2 * f0 * 0.5 * t) * 0.25);
-      }
-    });
-    return normalize(d, 0.75);
-  },
-  engine_inline(sr, seed = 26) {
-    const r = prng(seed);
-    const dur = 2.0, f0 = 72;
-    const d = mk(sr, dur, (d, n) => {
-      const a = new SVF(sr);
-      for (let i = 0; i < n; i++) {
-        const t = i / sr;
-        let s = 0;
-        for (let h = 1; h <= 18; h++) s += Math.sin(TAU * f0 * h * t + h * 1.3) * (1 / Math.pow(h, 0.7));
-        const nz = r() * 2 - 1;
-        d[i] = s * 0.26 + a.step(nz, 1400, 1.0).bp * 0.2 + Math.sin(TAU * f0 * 18 * t) * 0.08;
-      }
-    });
-    return normalize(d, 0.75);
-  },
+  /** Radial engine (arg: number of cylinders, 9 by default; two-row radials have 14 or 18). Loops. */
+  engine_radial: (sr, seed, cyl = 9) => pistonEngine(sr, seed, cyl, true),
+  /** Liquid-cooled V-12 (loops). */
+  engine_inline: (sr, seed, cyl = 12) => pistonEngine(sr, seed, cyl, false),
   /** The Stuka's "Jericho trumpet": a howling siren (loops). */
-  siren(sr, seed = 27) {
+  siren(sr, seed) {
     const r = prng(seed);
     const dur = 1.5;
     const d = mk(sr, dur, (d, n) => {
@@ -48,11 +62,12 @@ export const AIRCRAFT = {
         d[i] = (s * 0.3 * trem + a.step(nz, 2200, 2.5).bp * 0.45);
       }
     });
-    return normalize(d, 0.7);
+    return normalize(d, 0.7, true);
   },
   /** A radial engine starting: the starter's whine, a few coughs, then a rough idle. */
-  engine_start(sr, seed = 35) {
-    const r = prng(seed);
+  engine_start(sr, seed) {
+    const r = prng(seed), J = (x, f = 0.1) => jit(r, x, f);
+    const catchT = J(0.9, 0.2);
     const d = mk(sr, 3.2, (d, n) => {
       const a = new SVF(sr), b = new SVF(sr); let ph = 0, pe = 0;
       for (let i = 0; i < n; i++) {
@@ -62,7 +77,7 @@ export const AIRCRAFT = {
         ph += TAU * f / sr;
         const starter = Math.sin(ph) * (0.5 + 0.5 * Math.sin(TAU * 11 * t)) * Math.min(1, t / 0.2) * (t < 1.6 ? 1 : Math.max(0, 1 - (t - 1.6) / 0.6)) * 0.28;
         // firing: pulses that come faster as it catches, then settle at idle
-        const rate = t < 0.9 ? 3 + 2 * t : t < 1.7 ? 5 + 9 * (t - 0.9) : 12 + 2 * Math.sin(TAU * 0.7 * t);
+        const rate = t < catchT ? 3 + 2 * t : t < catchT + 0.8 ? 5 + 9 * (t - catchT) : 12 + 2 * Math.sin(TAU * 0.7 * t);
         pe += rate / sr;
         const pulse = Math.pow(0.5 + 0.5 * Math.cos(TAU * pe), 5);
         const fire = b.step(nz, 330 + 160 * pulse, 0.9).lp * pulse * Math.min(1, Math.max(0, (t - 0.55) / 0.5)) * (0.9 + 0.3 * Math.sin(TAU * 1.3 * t));
@@ -72,13 +87,14 @@ export const AIRCRAFT = {
     return normalize(d, 0.75);
   },
   /** Aircraft falling: engine howl dropping in pitch (one shot). */
-  plane_fall(sr, seed = 33) {
-    const r = prng(seed);
+  plane_fall(sr, seed) {
+    const r = prng(seed), J = (x, f = 0.1) => jit(r, x, f);
+    const f0 = J(520, 0.15), k = J(0.28, 0.2);
     const d = mk(sr, 4.0, (d, n) => {
       const a = new SVF(sr); let ph = 0, ph2 = 0;
       for (let i = 0; i < n; i++) {
         const t = i / sr, nz = r() * 2 - 1;
-        const f = 520 * Math.exp(-t * 0.28) + 160;
+        const f = f0 * Math.exp(-t * k) + 160;
         ph += TAU * f / sr; ph2 += TAU * f * 2.01 / sr;
         d[i] = (Math.sin(ph) * 0.5 + Math.sin(ph2) * 0.22 + a.step(nz, 1500, 1.3).bp * 0.35) * Math.min(1, t / 0.15) * (1 - 0.3 * t / 4);
       }
@@ -86,29 +102,31 @@ export const AIRCRAFT = {
     return normalize(d, 0.7);
   },
   /** Main wheels hitting the deck: a thump and a short squeal of tyres. */
-  touchdown(sr, seed = 34) {
-    const r = prng(seed);
+  touchdown(sr, seed) {
+    const r = prng(seed), J = (x, f = 0.1) => jit(r, x, f);
+    const sf = J(2600, 0.15), tf = J(120, 0.15);
     const d = mk(sr, 0.9, (d, n) => {
       const a = new SVF(sr), b = new SVF(sr);
       for (let i = 0; i < n; i++) {
         const t = i / sr, nz = r() * 2 - 1;
-        const squeal = a.step(nz, 2600 - 900 * Math.min(1, t / 0.5), 3).bp * env(Math.max(0, t - 0.01), 0.02, 0.2) * 0.5;
-        const thump = Math.sin(TAU * (120 - 50 * Math.min(1, t / 0.15)) * t) * env(t, 0.002, 0.11) * 0.9 + b.step(nz, 320, 0.7).lp * env(t, 0.002, 0.07) * 0.8;
+        const squeal = a.step(nz, sf - 900 * Math.min(1, t / 0.5), 3).bp * env(Math.max(0, t - 0.01), 0.02, 0.2) * 0.5;
+        const thump = Math.sin(TAU * (tf - 50 * Math.min(1, t / 0.15)) * t) * env(t, 0.002, 0.11) * 0.9 + b.step(nz, 320, 0.7).lp * env(t, 0.002, 0.07) * 0.8;
         d[i] = softclip(squeal + thump);
       }
     });
     return normalize(d, 0.8);
   },
   /** Arrester wire catching an aircraft: tyre squeal, a metallic twang, rolling. */
-  arrest(sr, seed = 32) {
-    const r = prng(seed);
+  arrest(sr, seed) {
+    const r = prng(seed), J = (x, f = 0.1) => jit(r, x, f);
+    const sf = J(2000, 0.15), tw = J(300, 0.15);
     const d = mk(sr, 2.4, (d, n) => {
       const a = new SVF(sr), b = new SVF(sr);
       for (let i = 0; i < n; i++) {
         const t = i / sr, nz = r() * 2 - 1;
-        d[i] = a.step(nz, 2000, 2).bp * env(t, 0.01, 0.15) * 0.8 + Math.sin(TAU * (300 - 120 * Math.min(1, t / 1.6)) * t) * env(Math.max(0, t - 0.1), 0.05, 1.0) * 0.4 * (t > 0.1 ? 1 : 0) + b.step(nz, 240, 0.8).lp * env(t, 0.02, 0.5) * 0.7;
+        d[i] = a.step(nz, sf, 2).bp * env(t, 0.01, 0.15) * 0.8 + Math.sin(TAU * (tw - 120 * Math.min(1, t / 1.6)) * t) * env(Math.max(0, t - 0.1), 0.05, 1.0) * 0.4 * (t > 0.1 ? 1 : 0) + b.step(nz, 240, 0.8).lp * env(t, 0.02, 0.5) * 0.7;
       }
-      ring(d, sr, 0.08, 420, 0.2, 0.4);
+      ring(d, sr, 0.08, J(420, 0.15), 0.2, 0.4);
     });
     return normalize(d, 0.8);
   },

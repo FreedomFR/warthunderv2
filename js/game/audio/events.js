@@ -10,14 +10,21 @@ export const eventMethods = {
     for (const e of events) {
       switch (e.type) {
         case 'muzzle': {
-          const cal = e.cal, v = e.mount ? (e.mount.idx % 3) : 0, nb = Math.min(e.n || 1, 4);
+          const cal = e.cal, nb = Math.min(e.n || 1, 4);
+          // the bigger the gun, the deeper the report (a 460 mm a little lower than a 356, a 130 mm lower than a 100)
+          const cs = (ref) => Math.pow(ref / Math.max(40, cal), 0.3);
           const gm = 0.82 + 0.1 * nb;
           // a heavy gun fired a few hundred metres from the listener: the blast rings in the ears (the sound ducks, then comes back, dull at first)
           if (cal >= 190) { const dd = this.geo(e.x, e.y, e.z).d; this.shock = Math.max(this.shock, Math.min(1, (cal >= 300 ? 1 : 0.6) * Math.min(1, 220 / Math.max(60, dd)) * Math.min(1, 0.5 + 0.2 * nb)) * (dd < 600 ? 1 : 0)); }
-          if (cal >= 300) this.play('gun_big', e.x, e.y, e.z, { arg: v, gain: gm, ref: 2400, pri: 3, wet: 0.4, rate: R(0.97, 1.03) });
-          else if (cal >= 190) this.play('gun_med', e.x, e.y, e.z, { arg: v, gain: 0.95 * gm, ref: 1600, pri: 3, wet: 0.35, rate: R(0.96, 1.04) });
-          else if (cal >= 100) this.play('gun_small', e.x, e.y, e.z, { arg: v, gain: 0.9 * gm, ref: 1000, pri: 2, wet: 0.3, rate: R(0.94, 1.06) * (cal >= 140 ? 0.92 : 1) });
-          else this.play('gun_small', e.x, e.y, e.z, { arg: v, gain: 0.55, ref: 520, pri: 1, wet: 0.2, rate: R(1.25, 1.5) });
+          if (cal >= 300) {
+            this.play('gun_big', e.x, e.y, e.z, { gain: gm, ref: 2400, pri: 3, wet: 0.4, rate: R(0.97, 1.03) * cs(406) });
+            // the barrels of a turret do not go off at the same instant: a second report a few hundredths of a second later thickens the salvo
+            if (nb >= 2) this.play('gun_big', e.x, e.y, e.z, { gain: 0.5 * gm, ref: 2400, pri: 2, wet: 0.3, when: 0.012 + 0.03 * rnd(), rate: R(0.94, 1.06) * cs(406) });
+          } else if (cal >= 190) {
+            this.play('gun_med', e.x, e.y, e.z, { gain: 0.95 * gm, ref: 1600, pri: 3, wet: 0.35, rate: R(0.96, 1.04) * cs(240) });
+            if (nb >= 2 && rnd() < 0.5) this.play('gun_med', e.x, e.y, e.z, { gain: 0.45 * gm, ref: 1600, pri: 2, wet: 0.25, when: 0.01 + 0.025 * rnd(), rate: R(0.94, 1.06) * cs(240) });
+          } else if (cal >= 100) this.play('gun_small', e.x, e.y, e.z, { gain: 0.9 * gm, ref: 1000, pri: 2, wet: 0.3, rate: R(0.94, 1.06) * cs(130) });
+          else this.play('gun_small', e.x, e.y, e.z, { gain: 0.55, ref: 520, pri: 1, wet: 0.2, rate: R(1.25, 1.5) });
           break;
         }
         case 'splash': {
@@ -32,12 +39,12 @@ export const eventMethods = {
           if (k === 'penetrate' && e.shell === 'AP') {
             // armour-piercing: a ringing clang at the plate, then the dull burst inside a moment later
             this.play('impact_through', e.x, e.y, e.z, { gain: 0.7, ref: 900, pri: 2, wet: 0.2, rate: R(0.75, 0.95) });
-            this.play('impact_pen', e.x, e.y, e.z, { arg: (Math.random() * 3) | 0, gain: clampR(cal / 300, 0.45, 1.15), ref: 1500, pri: 3, wet: 0.45, when: 0.09, rate: R(0.8, 0.95) * (cal < 200 ? 1.15 : 1) });
+            this.play('impact_pen', e.x, e.y, e.z, { gain: clampR(cal / 300, 0.45, 1.15), ref: 1500, pri: 3, wet: 0.45, when: 0.09, rate: R(0.8, 0.95) * (cal < 200 ? 1.15 : 1) });
             if (cal >= 250) this.play('explosion_small', e.x, e.y, e.z, { gain: 0.5, ref: 1000, pri: 2, wet: 0.35, when: 0.17, rate: 0.7 });
           } else if (k === 'penetrate') {
-            this.play('impact_pen', e.x, e.y, e.z, { arg: (Math.random() * 3) | 0, gain: clampR(cal / 300, 0.45, 1.15), ref: 1500, pri: 3, wet: 0.35, rate: R(0.93, 1.08) * (cal < 200 ? 1.15 : 1) });
+            this.play('impact_pen', e.x, e.y, e.z, { gain: clampR(cal / 300, 0.45, 1.15), ref: 1500, pri: 3, wet: 0.35, rate: R(0.93, 1.08) * (cal < 200 ? 1.15 : 1) });
             if (cal >= 250) this.play('explosion_small', e.x, e.y, e.z, { gain: 0.45, ref: 1000, pri: 2, wet: 0.3, when: 0.08, rate: 0.8 });
-          } else if (k === 'explode') this.play('impact_he', e.x, e.y, e.z, { arg: (Math.random() * 3) | 0, gain: clampR(cal / 250, 0.4, 1.1), ref: 1000, pri: 2, wet: 0.25, rate: R(0.94, 1.08) * (cal < 150 ? 1.2 : 1) });
+          } else if (k === 'explode') this.play('impact_he', e.x, e.y, e.z, { gain: clampR(cal / 250, 0.4, 1.1), ref: 1000, pri: 2, wet: 0.25, rate: R(0.94, 1.08) * (cal < 150 ? 1.2 : 1) });
           else if (k === 'bounce') this.play('ricochet', e.x, e.y, e.z, { gain: 0.85, ref: 700, pri: 2, wet: 0.2, rate: R(0.8, 1.2) });
           else if (k === 'through') this.play('impact_through', e.x, e.y, e.z, { gain: 0.8, ref: 600, pri: 2, wet: 0.15, rate: R(0.9, 1.15) });
           else if (k === 'torpedo') this.play('torpedo_hit', e.x, 0, e.z, { gain: 1.15, ref: 2400, pri: 4, wet: 0.4 });
@@ -48,7 +55,7 @@ export const eventMethods = {
           const cal = e.cal || 150;
           if (e.torpedo) this.play('torpedo_hit', e.x, 0, e.z, { gain: 1.0, ref: 2200, pri: 3, wet: 0.4 });
           else if (e.shell === 'AP') this.play('impact_through', e.x, e.y, e.z, { gain: clampR(cal / 360, 0.35, 0.9), ref: 800, pri: 2, wet: 0.2, rate: R(0.7, 0.9) });
-          else this.play('impact_he', e.x, e.y, e.z, { arg: (Math.random() * 3) | 0, gain: clampR(cal / 250, 0.4, 1.1), ref: 1000, pri: 2, wet: 0.3, rate: R(0.85, 1) });
+          else this.play('impact_he', e.x, e.y, e.z, { gain: clampR(cal / 250, 0.4, 1.1), ref: 1000, pri: 2, wet: 0.3, rate: R(0.85, 1) });
           break;
         }
         case 'explosion': {
