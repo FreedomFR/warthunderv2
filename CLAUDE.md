@@ -5,7 +5,7 @@ spec sheets, AI-only combat, many cameras, modular damage, procedural sound. No 
 
 **The owner speaks French: answer in French** (code, comments, commit messages and CHANGELOG are in English; README and TODO in French).
 Read `TODO.md` for what is left to do and `CHANGELOG.md` for what changed. The owner asked to push to GitHub after every major change;
-work on a branch and open a pull request into `main`, and never push to `main` unless asked to.
+work on a feature branch and open the pull request into `dev` (not `main`); once the owner has validated what is in `dev` they ask for it to be put on `main` (a pull request `dev` -> `main`), and they tag the release themselves. Never push to `main` or `dev` directly unless asked to.
 
 ## Run and check
 
