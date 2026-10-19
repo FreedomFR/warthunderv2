@@ -6,11 +6,11 @@ import { SOUND_NAMES, renderSound } from '../js/game/audio/synth.js';
 
 // ---- minimal Web Audio stub ----
 const param = () => ({ value: 0, setTargetAtTime() {}, setValueAtTime() {}, linearRampToValueAtTime() {} });
-class Node { constructor() { this.gain = param(); this.frequency = param(); this.pan = param(); this.playbackRate = param(); this.buffer = null; } connect(n) { return n; } disconnect() {} start() { this.started = true; } stop() {} }
+class Node { constructor() { this.gain = param(); this.frequency = param(); this.pan = param(); this.Q = param(); this.positionX = param(); this.positionY = param(); this.positionZ = param(); this.playbackRate = param(); this.buffer = null; } connect(n) { return n; } disconnect() {} start() { this.started = true; } stop() {} }
 class Ctx {
   constructor() { this.sampleRate = 22050; this.currentTime = 0; this.state = 'running'; this.destination = new Node(); }
   createGain() { return new Node(); } createBiquadFilter() { return new Node(); } createDynamicsCompressor() { const n = new Node(); n.threshold = param(); n.knee = param(); n.ratio = param(); n.attack = param(); n.release = param(); return n; }
-  createBufferSource() { const n = new Node(); this.sources = (this.sources || 0) + 1; return n; } createStereoPanner() { return new Node(); } createConvolver() { return new Node(); } createOscillator() { return new Node(); }
+  createBufferSource() { const n = new Node(); this.sources = (this.sources || 0) + 1; return n; } createStereoPanner() { return new Node(); } createPanner() { this.panners = (this.panners || 0) + 1; return new Node(); } createConvolver() { return new Node(); } createOscillator() { return new Node(); }
   createBuffer(ch, len, sr) { const d = new Float32Array(len); return { length: len, duration: len / sr, sampleRate: sr, getChannelData: () => d }; }
   resume() { return Promise.resolve(); }
 }
@@ -44,18 +44,38 @@ a.unlock();
 const names = new Set();
 const orig = a.play.bind(a);
 a.play = (name, ...rest) => { names.add(name); return orig(name, ...rest); };
-let events = 0, loopsMax = 0;
+let events = 0, loopsMax = 0, bowSeen = false;
 for (let i = 0; i < 6000; i++) {
   w.update(0.1);
   const ev = w.drainEvents();
   events += ev.length;
   cam.x = (w.ships[0].x + w.ships[w.ships.length - 1].x) / 2; cam.z = (w.ships[0].z + w.ships[w.ships.length - 1].z) / 2;
+  if (i >= 300 && i < 400) { cam.x = w.ships[0].x + 120; cam.z = w.ships[0].z; }        // a camera close to a ship under way
   a.onEvents(ev); a.update(0.1);
   a.active = Math.min(a.active, 20);          // the stub never ends a sound
   loopsMax = Math.max(loopsMax, a.loops.size);
+  if (!bowSeen) for (const k of a.loops.keys()) if (k.startsWith('sb')) bowSeen = true;
 }
 ok(events > 5000, `${events} battle events went through the audio engine without error`);
 for (const n of ['gun_big', 'gun_small', 'aa_burst', 'splash_big', 'impact_he', 'impact_pen']) ok(names.has(n), `sound used: ${n}`);
+ok(bowSeen, 'the bow wave is heard along ships under way');
 ok(loopsMax > 0, `continuous voices followed their sources (up to ${loopsMax})`);
+// the blast of a heavy gun next to the listener ducks and muffles the master bus, which then recovers
+{
+  a.shock = 0;
+  const ship = w.ships[0];
+  a.onEvents([{ type: 'muzzle', cal: 406, n: 3, x: cam.x + 60, y: cam.y, z: cam.z, mount: null, ship }]);
+  ok(a.shock > 0.5, `a 406 mm gun 60 m away shocks the ears (${a.shock.toFixed(2)})`);
+  for (let i = 0; i < 60; i++) a.update(0.1);
+  ok(a.shock < 0.05, 'and the ringing fades in a few seconds');
+  a.shock = 0;
+  a.onEvents([{ type: 'muzzle', cal: 406, n: 3, x: cam.x + 5000, y: cam.y, z: cam.z, mount: null, ship }]);
+  ok(a.shock === 0, 'a distant salvo does not');
+  a.setHrtf(true);
+  const before = a.ctx.panners || 0;
+  a.play('gun_big', cam.x + 300, cam.y, cam.z, { pri: 3, ref: 2400 });
+  ok((a.ctx.panners || 0) === before + 1, 'with headphones the loud sounds go through an HRTF panner');
+  a.setHrtf(false);
+}
 console.log('sounds played:', [...names].sort().join(' '));
 console.log(fail ? `${fail} check(s) failed` : 'audio OK');

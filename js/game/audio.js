@@ -14,6 +14,8 @@ export class GameAudio {
     this.ctx = null;
     this.muted = false;
     this.volume = 0.75;
+    this.hrtf = false;                // binaural rendering of the loudest sounds (headphones): costs a little CPU
+    try { this.hrtf = localStorage.getItem('naval-hrtf') === '1'; } catch (e) { /* storage unavailable */ }
     this.active = 0;
     this.loops = new Map();           // continuous voices by key
     this.rushed = new Set();          // shells / bombs already announced
@@ -45,7 +47,10 @@ export class GameAudio {
     this.master.gain.value = this.muted ? 0 : this.volume;
     const comp = ctx.createDynamicsCompressor();
     comp.threshold.value = -14; comp.knee.value = 12; comp.ratio.value = 5; comp.attack.value = 0.004; comp.release.value = 0.25;
-    this.master.connect(comp); comp.connect(ctx.destination);
+    // the cockpit canopy and the ringing that follows a blast close to the ears both muffle everything that comes out of the master bus
+    this.muffle = ctx.createBiquadFilter(); this.muffle.type = 'lowpass'; this.muffle.frequency.value = 20000; this.muffle.Q.value = 0.5;
+    this.shock = 0;
+    this.master.connect(this.muffle); this.muffle.connect(comp); comp.connect(ctx.destination);
     this.lib = makeLibrary(ctx.sampleRate, (n, sr) => ctx.createBuffer(1, n, sr));
     // open-sea reverb
     const ir = makeReverbIR(ctx.sampleRate, 2.4);
@@ -112,10 +117,12 @@ export class GameAudio {
     const lp = ctx.createBiquadFilter(); lp.type = 'lowpass';
     lp.frequency.value = Math.max(260, Math.min(20000, 19000 / (1 + m.d / 650)));
     const g = ctx.createGain(); g.gain.value = Math.min(1.6, gain);
-    const pan = ctx.createStereoPanner ? ctx.createStereoPanner() : null;
+    // headphones: the loud sounds go through an HRTF panner (front / back and height cues); the others (and the speakers) use the plain stereo pan
+    const bin = this.hrtf && pri >= 2 && ctx.createPanner ? this.binaural(x, y, z) : null;
+    const pan = bin ? null : ctx.createStereoPanner ? ctx.createStereoPanner() : null;
     if (pan) pan.pan.value = m.pan;
     src.connect(lp); lp.connect(g);
-    if (pan) { g.connect(pan); pan.connect(this.master); } else g.connect(this.master);
+    if (bin) { g.connect(bin); bin.connect(this.master); } else if (pan) { g.connect(pan); pan.connect(this.master); } else g.connect(this.master);
     // reverb: big sounds ring over the water, more so from far away
     const wet = (o.wet ?? 0.15) * (0.4 + Math.min(1, m.d / 3500));
     let send = null;
@@ -123,10 +130,26 @@ export class GameAudio {
     if (this.offline) this.offline.ends.push(t0 + src.buffer.duration / Math.max(0.1, o.rate ?? 1));
     else {
       this.active++;
-      src.onended = () => { this.active--; src.disconnect(); lp.disconnect(); g.disconnect(); if (pan) pan.disconnect(); if (send) send.disconnect(); };
+      src.onended = () => { this.active--; src.disconnect(); lp.disconnect(); g.disconnect(); if (pan) pan.disconnect(); if (bin) bin.disconnect(); if (send) send.disconnect(); };
     }
     src.start(t0);
     return src;
+  }
+
+  /** A panner that places a source in the head: direction only (the distance is handled by the gain and the filter). */
+  binaural(x, y, z) {
+    const c = this.game.engine.cam, dx = x - c.x, dy = y - c.y, dz = z - c.z;
+    const brg = Math.atan2(dx, -dz) - c.yaw, hz = Math.hypot(dx, dz) || 1, el = Math.atan2(dy, hz) - (c.pitch || 0) * 0;
+    const p = this.ctx.createPanner();
+    p.panningModel = 'HRTF'; p.distanceModel = 'inverse'; p.refDistance = 1; p.rolloffFactor = 0;
+    const ce = Math.cos(el);
+    for (const [k, v] of [['positionX', Math.sin(brg) * ce], ['positionY', Math.sin(el)], ['positionZ', -Math.cos(brg) * ce]]) { if (p[k]) p[k].value = v; }
+    return p;
+  }
+
+  setHrtf(on) {
+    this.hrtf = !!on;
+    try { localStorage.setItem('naval-hrtf', on ? '1' : '0'); } catch (e) { /* ignore */ }
   }
 
   // ---- events --------------------------------------------------------------------------------------------------------
@@ -138,6 +161,8 @@ export class GameAudio {
         case 'muzzle': {
           const cal = e.cal, v = e.mount ? (e.mount.idx % 3) : 0, nb = Math.min(e.n || 1, 4);
           const gm = 0.82 + 0.1 * nb;
+          // a heavy gun fired a few hundred metres from the listener: the blast rings in the ears (the sound ducks, then comes back, dull at first)
+          if (cal >= 190) { const dd = this.geo(e.x, e.y, e.z).d; this.shock = Math.max(this.shock, Math.min(1, (cal >= 300 ? 1 : 0.6) * Math.min(1, 220 / Math.max(60, dd)) * Math.min(1, 0.5 + 0.2 * nb)) * (dd < 600 ? 1 : 0)); }
           if (cal >= 300) this.play('gun_big', e.x, e.y, e.z, { arg: v, gain: gm, ref: 2400, pri: 3, wet: 0.4, rate: R(0.97, 1.03) });
           else if (cal >= 190) this.play('gun_med', e.x, e.y, e.z, { arg: v, gain: 0.95 * gm, ref: 1600, pri: 3, wet: 0.35, rate: R(0.96, 1.04) });
           else if (cal >= 100) this.play('gun_small', e.x, e.y, e.z, { arg: v, gain: 0.9 * gm, ref: 1000, pri: 2, wet: 0.3, rate: R(0.94, 1.06) * (cal >= 140 ? 0.92 : 1) });
@@ -292,6 +317,15 @@ export class GameAudio {
 
   update(dt) {
     if (!this.ctx) return;
+    // master bus: canopy and blast
+    {
+      const cockpit = this.game.camera?.mode === 'cockpit';
+      this.shock *= Math.exp(-dt / 1.1);
+      const sh = this.shock > 0.02 ? this.shock : 0;
+      const t = this.ctx.currentTime;
+      this.muffle.frequency.setTargetAtTime(Math.max(500, (cockpit ? 4500 : 20000) * (1 - 0.85 * sh)), t, sh > 0.5 ? 0.02 : 0.15);
+      this.master.gain.setTargetAtTime(this.muted ? 0 : this.volume * (1 - 0.4 * sh), t, 0.03);
+    }
     const live = this.live;
     for (const v of this.loops.values()) v.seen = false;
     if (live) {
@@ -367,6 +401,10 @@ export class GameAudio {
         nEng++;
         const v = this.loop('se' + s.id, 'ship_engine');
         this.setLoop(v, (0.22 + 0.55 * sp) * (s.propulsion > 0.2 ? 1 : 0.5), 0.8 + 0.5 * sp, s.x, 5, s.z, 320 + s.stats.L);
+      }
+      if (s.state === 'afloat' && sp > 0.08 && d < 700) {
+        const v = this.loop('sb' + s.id, 'bow_wave');
+        this.setLoop(v, 0.04 + 0.5 * sp * sp, 0.85 + 0.35 * sp, s.x, 1, s.z, 90 + s.stats.L * 0.35);
       }
       if (s.fires.length && nFire < 3) {
         nFire++;

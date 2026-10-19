@@ -234,6 +234,8 @@ export function createUI(game) {
       ...[['auto', 'Automatique'], ['high', 'Haute'], ['medium', 'Moyenne'], ['low', 'Basse']].map(([v, l]) => h('option', { value: v, selected: game.qualityMode === v }, l)));
     settings.append(h('label', { class: 'slider' }, h('span', {}, 'Qualité graphique'), qsel, h('span')));
     settings.append(h('label', { class: 'slider' }, h('span', {}, 'Ombres des navires'), h('input', { type: 'checkbox', checked: game.shadowsOn, onchange: (e) => { game.userShadows = e.target.checked; game.applyQuality(); } }), h('span')));
+    settings.append(h('label', { class: 'slider', title: 'Spatialisation binaurale des sons forts (canons, explosions) : à activer avec un casque.' },
+      h('span', {}, 'Son binaural (casque)'), h('input', { type: 'checkbox', checked: game.audio.hrtf, onchange: (e) => game.audio.setHrtf(e.target.checked) }), h('span')));
     const pval = h('output', {}, game.particleMax / 1000 + ' k');
     settings.append(h('label', { class: 'slider', title: 'Plus de particules : flammes, fumées et gerbes ne disparaissent plus dans les grosses batailles, mais le processeur et la carte graphique travaillent plus.' },
       h('span', {}, 'Particules max'),

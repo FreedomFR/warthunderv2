@@ -49,6 +49,8 @@ function addEcho(dst, src, sr, delay, g, lp = 0) {
   const a = lp ? lpa(lp, sr) : 1;
   for (let i = 0; i + off < dst.length && i < src.length; i++) { y += a * (src[i] - y); dst[i + off] += y * g; }
 }
+/** The front of a blast wave (Friedlander): a sharp positive pulse followed by a short negative phase, `T` seconds long. This is the click at the start of a gun report. */
+const friedlander = (t, T) => (1 - t / T) * Math.exp(-t / T);
 function softclip(x) { return Math.tanh(x * 1.25) / 1.25; }
 
 /** Damped sinusoid ringing (metal, bells). */
@@ -75,7 +77,8 @@ const BUILDERS = {
         const f2 = 90 * Math.exp(-t * 1.2) + 40; ph2 += TAU * f2 / sr;
         const thump = Math.sin(ph2) * env(t, 0.01, 0.2) * 0.5;
         const rumble = rum.step(nz, 120 + 80 * Math.exp(-t), 0.7).lp * env(t, 0.06, 1.8) * (0.7 + 0.3 * Math.sin(TAU * 1.9 * t + 1.2)) * 1.4;
-        d[i] = softclip(crack + blast + boom + thump + rumble);
+        const snap = friedlander(t, 0.0011) * 1.5 * (t < 0.008 ? 1 : 0);
+        d[i] = softclip(crack + snap + blast + boom + thump + rumble);
       }
       // reflections of the blast off the water and hull
       const base = d.slice();
@@ -94,7 +97,8 @@ const BUILDERS = {
         const f = 44 + 70 * Math.exp(-t * 4.5); ph += TAU * f / sr;
         const boom = Math.sin(ph) * env(t, 0.004, 0.38) * 1.2;
         const rumble = rum.step(nz, 200, 0.7).lp * env(t, 0.04, 1.0) * 0.9;
-        d[i] = softclip(crack + blast + boom + rumble);
+        const snap = friedlander(t, 0.0008) * 1.4 * (t < 0.006 ? 1 : 0);
+        d[i] = softclip(crack + snap + blast + boom + rumble);
       }
       const base = d.slice();
       addEcho(d, base, sr, 0.27, 0.3, 900); addEcho(d, base, sr, 0.52, 0.2, 520); addEcho(d, base, sr, 0.85, 0.12, 350);
@@ -113,7 +117,8 @@ const BUILDERS = {
         const f = 70 + 90 * Math.exp(-t * 6); ph += TAU * f / sr;
         const boom = Math.sin(ph) * env(t, 0.003, 0.2) * 1.0;
         const tail = rum.step(nz, 320, 0.7).lp * env(t, 0.03, 0.55) * 0.6;
-        d[i] = softclip(crack + blast + boom + tail);
+        const snap = friedlander(t, 0.0006) * 1.3 * (t < 0.005 ? 1 : 0);
+        d[i] = softclip(crack + snap + blast + boom + tail);
       }
       const base = d.slice();
       addEcho(d, base, sr, 0.19, 0.24, 1100); addEcho(d, base, sr, 0.41, 0.14, 650);
@@ -513,6 +518,22 @@ const BUILDERS = {
       }
       // crossfade the end into the start so that the loop is seamless
       const x = Math.floor(0.25 * sr);
+      for (let i = 0; i < x; i++) { const k = i / x; d[i] = d[i] * k + d[n - x + i] * (1 - k); }
+    });
+    return normalize(d, 0.7);
+  },
+  /** Water along a moving hull: the hiss of the bow wave under a slow swell of the sea (loops). */
+  bow_wave(sr, seed = 38) {
+    const r = prng(seed);
+    const d = mk(sr, 4.0, (d, n) => {
+      const hiss = new SVF(sr), body = new SVF(sr), thud = new SVF(sr);
+      for (let i = 0; i < n; i++) {
+        const t = i / sr, nz = r() * 2 - 1;
+        const swell = 0.55 + 0.3 * Math.sin(TAU * t / 4) + 0.15 * Math.sin(TAU * t * 0.75 + 1.3);       // whole periods in the loop length
+        const slap = Math.max(0, Math.sin(TAU * t * 0.5 + 0.6 * Math.sin(TAU * t / 4))) ** 6;              // waves slapping the stem every two seconds
+        d[i] = hiss.step(nz, 2600 + 900 * swell, 0.7).bp * 0.5 * swell + body.step(nz, 420, 0.8).lp * 0.8 * (0.5 + 0.5 * slap) + thud.step(nz, 90, 0.9).lp * slap * 1.2;
+      }
+      const x = Math.floor(0.3 * sr);
       for (let i = 0; i < x; i++) { const k = i / x; d[i] = d[i] * k + d[n - x + i] * (1 - k); }
     });
     return normalize(d, 0.7);
