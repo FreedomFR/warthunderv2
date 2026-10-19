@@ -1,6 +1,8 @@
 // Strike formations and the light anti-aircraft magazines: node test/airops.mjs
 import { World } from '../js/game/sim/world.js';
 import { spawnFleet, teamStart } from '../js/game/sim/formation.js';
+import { PERF } from '../js/game/sim/airperf.js';
+import { PLANES } from '../js/game/model/planes.js';
 
 let fail = 0;
 const ok = (c, m) => { console.log(c ? 'PASS' : 'FAIL', m); if (!c) { fail++; process.exitCode = 1; } };
@@ -28,8 +30,8 @@ const run = (w, secs, f) => { const n = Math.round(secs / 0.1); for (let i = 0; 
   run(w, 200, () => {
     for (const sec of secs) {
       const live = sec.members.filter((m) => !m.dying && !m.gone && m.phase === 'cruise');
-      // (a big section takes a while to join up: judged once its last aircraft has been flying for some time)
-      if (live.length < 3 || !live.every((m) => m.age - m.t0Air > 60)) continue;
+      // (a big section takes a while to join up: judged once its last aircraft has been in the strike for some time)
+      if (live.length < 3 || !live.every((m) => m.t > 60)) continue;
       const L = live[0];
       for (const m of live.slice(1)) { const d = Math.hypot(m.x - L.x, m.z - L.z); checked++; worst = Math.max(worst, d); }
     }
@@ -173,4 +175,27 @@ console.log(fail ? `${fail} check(s) failed` : 'all air operation checks OK');
   });
   ok(shots > 50, `the light AA fired ${shots} times`);
   ok(outside === 0, `every shot of the light AA is inside the arc of its mount and below its highest elevation (${outside} outside, worst ${(worst * 180 / Math.PI).toFixed(0)} deg beyond the arc)`);
+}
+
+// ---- every type flies at its own speed ----
+{
+  const bad = [];
+  for (const k of Object.keys(PLANES)) {
+    const f = PERF[k];
+    if (!f) { bad.push(k + ' has no figures'); continue; }
+    if (!(f.vc < f.vmax && f.vcl < f.vc && f.va < f.vcl + 3 && f.vto < f.va + 8 && f.vp > f.va && f.vp < f.vc)) bad.push(k + ' speeds out of order');
+    if (f.vt && f.vt > f.vmax) bad.push(k + ' torpedo run above top speed');
+  }
+  ok(bad.length === 0, `the speeds of the ${Object.keys(PLANES).length} types are in order (take-off < approach < circuit < cruise < top)${bad.length ? ': ' + bad.join(', ') : ''}`);
+  ok(PERF.swordfish.vc < PERF.skua.vc * 0.65 && PERF.swordfish.vc < PERF.tbf.vc * 0.65 && PERF.a6m.vcomb > PERF.sbd.vc * 1.3, 'a Swordfish cruises at barely half the speed of a Skua or an Avenger, a Zero fights much faster than a Dauntless cruises');
+  // in the air: the aircraft of a British strike (Skua and Swordfish) hold their own speeds in formation
+  const w = setup('illustrious:1,kgv:1', 'shokaku:1,agano:1', 5);
+  const sp = { skua: [], swordfish: [] };
+  run(w, 700, () => {
+    for (const p of w.planes) if (p.phase === 'cruise' && p.t > 90 && !p.dying && sp[p.typeKey]) sp[p.typeKey].push(p.speed);
+  });
+  const mean = (a) => a.reduce((x, y) => x + y, 0) / Math.max(1, a.length);
+  const ms = mean(sp.skua), mw = mean(sp.swordfish);
+  ok(sp.skua.length > 20 && sp.swordfish.length > 20, `Skuas and Swordfish both flew the strike (${sp.skua.length} and ${sp.swordfish.length} samples)`);
+  ok(mw > PERF.swordfish.vc * 0.85 && mw < PERF.swordfish.vmax && ms > PERF.skua.vc * 0.85 && ms < PERF.skua.vmax && mw < ms * 0.75, `in formation a Skua flies at ${ms.toFixed(0)} m/s and a Swordfish at ${mw.toFixed(0)} m/s`);
 }

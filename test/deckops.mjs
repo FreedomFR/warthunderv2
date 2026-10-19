@@ -3,6 +3,8 @@
 // struck below for the recovery and spotted again afterwards.
 import { World } from '../js/game/sim/world.js';
 import { spawnFleet, teamStart } from '../js/game/sim/formation.js';
+import { wrapPi, G } from '../js/game/math.js';
+import { PERF } from '../js/game/sim/airperf.js';
 
 let fail = 0;
 const ok = (c, m) => { console.log(c ? 'PASS' : 'FAIL', m); if (!c) { fail++; process.exitCode = 1; } };
@@ -25,9 +27,25 @@ for (const id of ids) {
   let wave = null, minGap = 1e9, lastTD = -1, worstLz = 0, firstTakeoff = null, lastTakeoff = null, maxOnDeck = 0, called = false, tCall = 0;
   const tdPos = [];
   let parkedMin = parked0, parkedAfter = null;
+  let climbDev = 0, climbY = 1e9, firstGo = 1e9, orbitUp = 0, peakDecel = 0, peakJerk = 0, arrestT = 1e9, arrestN = 0;
   const step = (secs, until) => { const f = until && (() => (until() ? false : undefined)); for (let i = 0; i < secs * 10; i++) { w.update(0.1); for (const e of w.drainEvents()) { ev[e.type] = (ev[e.type] || 0) + 1; if (e.type === 'planeTouchdown' && e.ship === ship) { if (lastTD >= 0) minGap = Math.min(minGap, w.time - lastTD); lastTD = w.time; worstLz = Math.max(worstLz, Math.abs(e.lz)); tdPos.push(e.lx); } if (e.type === 'planeLaunch' && e.ship === ship) { lastTakeoff = w.time; firstTakeoff ??= w.time; } }
     if (process.env.TRACE && called) for (const p of w.planes) if (p.owner === ship && !p.service) { const k = p.phase + '/' + (p.ds || '') + (p.leg ? '#' + p.leg : ''); if (p._k !== k) { p._k = k; console.log('   ', w.time.toFixed(0), 'p' + p.id, k); } }
     for (const p of w.planes) if (p.owner === ship) { const set = states.get(p.id) || new Set(); set.add(p.phase + '/' + (p.ds || '')); states.set(p.id, set); }
+    for (const p of w.planes) if (p.owner === ship && !p.service) {
+      if (p.phase === 'assemble' && p.asm === 'climb') climbDev = Math.max(climbDev, Math.abs(wrapPi(p.heading - ship.heading)));
+      if (p.phase === 'assemble' && p.asm === 'orbit') orbitUp++;
+      if (p.wave && !p.wave.cap && (p.phase === 'cruise' || p.phase === 'escort')) firstGo = Math.min(firstGo, w.time);
+      if (p.ds === 'arrest') {
+        // (the first tick of an arrest may follow the touchdown itself: the speed before it is the one in the air)
+        if (p._arN) {
+          const a = (p._pu - p.u) / 0.1; peakDecel = Math.max(peakDecel, a);
+          if (p._pa != null) peakJerk = Math.max(peakJerk, Math.abs(a - p._pa) / 0.1);
+          p._pa = a;
+        }
+        p._arN = (p._arN || 0) + 1;
+      } else if (p._arN) { arrestT = Math.min(arrestT, p._arN * 0.1); arrestN++; p._arN = 0; p._pa = null; }
+      p._pu = p.u;
+    }
     parkedMin = Math.min(parkedMin, ship.parked);
     if (f && f() === false) break; } };
   // 1. the launch
@@ -41,7 +59,9 @@ for (const id of ids) {
   ok(lifted.every((p) => states.get(p.id).has('queue/lower') && states.get(p.id).has('queue/spot') && states.get(p.id).has('queue/taxi') && states.get(p.id).has('takeoff/run')), `${id}: the aircraft that came up on a lift went through lower, rise, spot and taxi to the take-off run`);
   // 2. call the wave back once it is in the air and has settled
   step(110);
-  for (const p of wave.planes) if (p.phase === 'cruise' || STRIKE(p)) { p.phase = 'return'; }
+  ok(climbDev < 0.06, `${id}: the aircraft fly straight ahead off the deck until clear of the bow (worst turn ${(climbDev * 57.3).toFixed(1)} degrees)`);
+  ok(orbitUp > 0 && firstGo >= lastTakeoff, `${id}: the strike circles over the sea until the last aircraft has taken off (leaves ${(firstGo - lastTakeoff).toFixed(0)} s after the last take-off)`);
+  for (const p of wave.planes) if (p.phase === 'cruise' || p.phase === 'assemble' || STRIKE(p)) { p.phase = 'return'; p.asm = null; }
   wave.aborted = true; wave.assessed = true; called = true; tCall = w.time;
   function STRIKE(p) { return ['cruise', 'ip', 'run', 'rollin', 'dive', 'egress'].includes(p.phase); }
   const inAir = wave.planes.filter((p) => p.phase === 'return').length;
@@ -52,6 +72,7 @@ for (const id of ids) {
   if (process.env.DEBUG) console.log('   after', w.time.toFixed(0), JSON.stringify(ev), wave.planes.map((p) => p.phase + (p.gone ? 'G' : '')).join(' '));
   const landed = ev.planeLand || 0;
   ok(landed >= inAir - 1, `${id}: ${landed} of the ${inAir} aircraft called back landed (touchdowns ${ev.planeTouchdown || 0}, bolters ${ev.bolter || 0}, wire catches ${ev.wireCatch || 0})`);
+  ok(arrestN > 0 && peakDecel < 1.5 * G && arrestT > 1.6 && peakJerk < 70, `${id}: the wire stops the aircraft smoothly (${arrestN} arrests, peak ${(peakDecel / G).toFixed(2)} g, jerk ${peakJerk.toFixed(0)} m/s3, shortest ${arrestT.toFixed(1)} s)`);
   ok(total() >= readyBefore + landed - 0, `${id}: the aircraft that landed are back in the air group, being serviced or ready (${readyBefore} -> ${total()})`);
   ok(minGap > 18, `${id}: touchdowns at least ${minGap > 1e8 ? '-' : minGap.toFixed(0)} s apart`);
   ok(worstLz < dp.hw * 0.85, `${id}: touchdowns within ${worstLz.toFixed(1)} m of the centre line (deck half-width ${dp.hw.toFixed(1)} m)`);
