@@ -135,8 +135,8 @@ export function fighterSteer(world, p, dt, ctx) {
     if (!p.wasFiring) world.events.push({ type: 'mgBurst', plane: p, x: p.x, y: p.y, z: p.z });
     world.events.push({ type: 'mgFire', plane: p, target: q, x: p.x + fx * 3, y: p.y + fy * 3 - 0.3, z: p.z + fz * 3, dx: dx / al, dy: dy / al, dz: dz / al, range: d });
     // hits: more likely near, on a bomber, on an aircraft that does not break away
-    const pHit = clamp(0.72 - d / 900, 0.05, 0.72) * (q.fighter ? 0.55 : 0.92) * (q.evade > 0 ? 0.5 : 1);
-    if (world.rng() < pHit * BURST_RATE * dt) ctx.hit(world, ship, q, 0.34 + world.rng() * 0.2, 12.7);
+    const pHit = clamp(0.72 - d / 900, 0.05, 0.72) * (q.fighter ? 0.4 : 0.55) * (q.evade > 0 ? 0.5 : 1);
+    if (world.rng() < pHit * BURST_RATE * dt) ctx.hit(world, ship, q, 0.3 + world.rng() * 0.15, 12.7);
   }
   p.wasFiring = p.firing;
   // the rear gunner of a bomber shoots back at a fighter on its tail

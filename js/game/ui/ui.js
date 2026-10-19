@@ -563,7 +563,7 @@ export function createUI(game) {
         h('span', {}, 'Tirs / touches'), h('b', {}, `${s.shotsFired} / ${s.shotsHit} (${acc}%)`),
         h('span', {}, 'Coulés / avions'), h('b', {}, `${s.kills} / ${s.planeKills || 0}`),
       ),
-      s.air ? h('div', { class: 'iline' }, `Groupe aérien : ${s.air.ready} bombardiers, ${s.air.fReady} chasseurs${s.deckWrecked ? ' — pont d\'envol détruit' : ''}`) : null,
+      s.air ? h('div', { class: 'iline' }, `Groupe aérien : ${s.air.ready} bombardiers, ${s.air.fReady} chasseurs${s.air.servicing.length ? `, ${s.air.servicing.length} en révision` : ''}${s.deckWrecked ? ' — pont d\'envol détruit' : ''}`) : null,
       s.state !== 'afloat' ? h('div', { class: 'si-state' }, SINK_LABEL[s.split ? 'split' : s.sinkMode] || 'NAVIRE COULÉ') : null,
     ];
     shipInfo.replaceChildren(...lines.filter(Boolean));

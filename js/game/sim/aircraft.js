@@ -127,7 +127,7 @@ function spawnFighters(world, ship, wave, n, role) {
       phase: 'queue', ds: 'pending', t: 0, ts: 0, age: 0, target: null, hp: spec.hp, maxHp: spec.hp, ordnance: false,
       spin: 0, gearDown: true, lost: { wingL: false, wingR: false, tail: false, engine: false }, dying: false, smoke: 0, fire: 0, harass: 0,
       lx: 0, lz: 0, u: 0, apOff: 0, jitter: (world.rng() - 0.5) * 2, fold: 1, hook: 0, eng: 0, aoa: 0, gp: GROUND_PITCH, yaw: 0, hidden: true, lift: null,
-      t0Air: 0, cruiseAlt: 0, relAlt: 0, fuel: 1000 + world.rng() * 200, aimErr: [0, 0], diveAng: 0, group: wave.planes.length,
+      t0Air: 0, cruiseAlt: 0, relAlt: 0, fuel: 1700 + world.rng() * 400, aimErr: [0, 0], diveAng: 0, group: wave.planes.length,
       ...fighterFields(spec), role,
     };
     wave.planes.push(p);
@@ -179,7 +179,7 @@ function launches(world, dt) {
     const n = Math.min(air.ready, Math.round(6 + world.rng() * 5));
     settleService(world, ship);
     air.ready -= n;
-    air.cooldown = 120 + n * 3.4 + world.rng() * 60;
+    air.cooldown = 200 + n * 6 + world.rng() * 80;       // the next strike needs the aircraft serviced and a new deck load spotted
     air.wave++;
     const dp = ship.model.deckPoints;
     const wave = { ship, n, id: air.wave, launched: 0, assessed: false, aborted: false, t0: world.time, planes: [] };
@@ -206,7 +206,7 @@ function launches(world, dt) {
           phase: 'queue', ds: 'pending', t: 0, ts: 0, age: 0, target: sec.target, hp: spec.hp, maxHp: spec.hp, ordnance: true,
           spin: 0, gearDown: true, lost: { wingL: false, wingR: false, tail: false, engine: false }, dying: false, smoke: 0, fire: 0, harass: 0,
           lx: 0, lz: 0, u: 0, apOff: 0, jitter: (world.rng() - 0.5) * 2, fold: 1, hook: 0, eng: 0, aoa: 0, gp: GROUND_PITCH, yaw: 0, hidden: true, lift: null,
-          t0Air: 0, cruiseAlt: kind === 'dive' ? rn(world, 1500, 2000) : rn(world, 420, 650), relAlt: rn(world, 480, 620), fuel: 900 + world.rng() * 200,
+          t0Air: 0, cruiseAlt: kind === 'dive' ? rn(world, 1500, 2000) : rn(world, 420, 650), relAlt: rn(world, 480, 620), fuel: 1700 + world.rng() * 400,
           aimErr: [world.rng.normal(), world.rng.normal()], diveAng: rn(world, 58, 70) * D2R, group: i,
         };
         p.x = ship.x; p.y = ship.y; p.z = ship.z;

@@ -11,6 +11,10 @@
   two-seat bombers shoots back at a fighter astern. A fighter that is hurt (under 30 %), out of ammunition or short of fuel goes home; it lands like the other aircraft (and counts as a fighter again).
 - **Visible and heard**: tracers along the line of fire, a flash, the hits, the machine-gun burst (`mg_burst`); kill-feed lines for the fighters' and the gunners' kills; the camera director likes a fighter that fires.
   The ship panel shows the bombers and the fighters left. `dogfight` trailer scene; `test/fighters.mjs`.
+- **Bigger air groups, slower tempo**: the capacities are the largest documented figures that fit the hangar and the deck park (Essex 91 -> 100, Shokaku 72 -> 84 with its 12 spares, Illustrious 36 -> 57 as in 1943,
+  Béarn 32 -> 40, Aquila 51 -> 66 with the folding-wing Re.2001G); the share of fighters depends on the navy (USN 38 %, Germany 40 %, UK 34 %, Italy 35 %, Japan and France 26 %). A landed aircraft is serviced
+  (refuelled, rearmed) for about five minutes before it counts as ready again, the next strike needs 200-280 s instead of 120-180 s, fuel is 28-37 minutes instead of 15-18 (they were running dry while they
+  waited their turn to land), and the fighters' guns are a little less deadly. The ship panel shows the aircraft being serviced.
 - Circuit: the aircraft only turn in when they are on the downwind line, on the opposite course (they used to turn from any position and roll out far off the centre line, then go round again); the downwind
   leg damps its lateral correction; the hold circle is bigger and banked more; the next aircraft turns in when the one ahead is 3.6 km from its touchdown point; an aircraft that floats past the first wires
   is waved off sooner. Landings are about twice as frequent when many aircraft come back together.

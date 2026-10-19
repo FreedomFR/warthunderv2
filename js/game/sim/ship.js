@@ -101,9 +101,9 @@ export class Ship {
     this.tubes = model.tubes.map((t) => ({ ...t, ready: 0, left: t.n }));
     this.torpReload = 0; this.torpLeft = stats.torpedo ? stats.torpedo.tubes : 0;
     // carrier air group
-    // a quarter of the air group are fighters (escort and patrol), the rest bombers
-    const nFight = stats.air ? Math.round(stats.air.capacity * 0.26) : 0;
-    this.air = stats.air ? { ready: stats.air.capacity - nFight, fReady: nFight, cooldown: world.rng.range(5, 25), capCooldown: 30, wave: 0 } : null;
+    // the share of fighters in the air group (escort and patrol) depends on the navy (USN 1944: 36 of 91), the rest are bombers
+    const nFight = stats.air ? Math.round(stats.air.capacity * ({ USA: 0.38, UK: 0.34, Germany: 0.4, Italy: 0.35 }[stats.nation] ?? 0.26)) : 0;
+    this.air = stats.air ? { ready: stats.air.capacity - nFight, fReady: nFight, cooldown: world.rng.range(5, 25), capCooldown: 30, wave: 0, servicing: [] } : null;
     this.parkType = this.air ? planeTypeFor(stats.nation, 'dive') : null;
     this.parked = 0;
     // fire control

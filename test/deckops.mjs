@@ -46,12 +46,13 @@ for (const id of ids) {
   function STRIKE(p) { return ['cruise', 'ip', 'run', 'rollin', 'dive', 'egress'].includes(p.phase); }
   const inAir = wave.planes.filter((p) => p.phase === 'return').length;
   if (process.env.DEBUG) console.log('   called back', inAir, 'of', wave.planes.length, wave.planes.map((p) => p.phase + (p.dying ? '!' : '')).join(' '));
-  const readyBefore = ship.air.ready + ship.air.fReady;
+  const total = () => ship.air.ready + ship.air.fReady + ship.air.servicing.length;
+  const readyBefore = total();
   step(1200, () => !w.planes.some((p) => p.owner === ship && !p.service && ['return', 'pattern', 'final', 'waveoff', 'rollout', 'taxiIn'].includes(p.phase)));
   if (process.env.DEBUG) console.log('   after', w.time.toFixed(0), JSON.stringify(ev), wave.planes.map((p) => p.phase + (p.gone ? 'G' : '')).join(' '));
   const landed = ev.planeLand || 0;
   ok(landed >= inAir - 1, `${id}: ${landed} of the ${inAir} aircraft called back landed (touchdowns ${ev.planeTouchdown || 0}, bolters ${ev.bolter || 0}, wire catches ${ev.wireCatch || 0})`);
-  ok(ship.air.ready + ship.air.fReady >= readyBefore + landed - 0, `${id}: the air group counts them again (${readyBefore} -> ${ship.air.ready + ship.air.fReady})`);
+  ok(total() >= readyBefore + landed - 0, `${id}: the aircraft that landed are back in the air group, being serviced or ready (${readyBefore} -> ${total()})`);
   ok(minGap > 18, `${id}: touchdowns at least ${minGap > 1e8 ? '-' : minGap.toFixed(0)} s apart`);
   ok(worstLz < dp.hw * 0.85, `${id}: touchdowns within ${worstLz.toFixed(1)} m of the centre line (deck half-width ${dp.hw.toFixed(1)} m)`);
   ok(tdPos.every((x) => x > dp.x0 - 2 && x < dp.x0 + 70), `${id}: the wheels come down between the stern and the first wires (x0 + ${Math.min(...tdPos).toFixed(0)}..${Math.max(...tdPos).toFixed(0)} m from the ship's origin ${dp.x0.toFixed(0)})`);
