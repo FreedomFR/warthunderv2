@@ -7,14 +7,19 @@ tirent dessus jusqu'à ce qu'il ne reste qu'une équipe.
 
 ![Bataille : l'Iowa tire sous un ciel de coucher de soleil](docs/battle.jpg)
 
-## Bande-annonce — version 0.0.1
+## Bande-annonce — version 0.1.0
 
-[![Bande-annonce de la version 0.0.1 (aperçu animé)](docs/trailer-v0.0.1.gif)](docs/trailer-v0.0.1.mp4)
+[![Bande-annonce de la version 0.1.0 (aperçu animé)](docs/trailer-v0.1.0.gif)](docs/trailer-v0.1.0.mp4)
 
-▶ [**Voir la bande-annonce complète** (MP4, 48 s, 1280×720, 15 Mo)](docs/trailer-v0.0.1.mp4)
+▶ [**Voir la bande-annonce complète** (MP4, 62 s, 1280×720, 20 Mo)](docs/trailer-v0.1.0.mp4)
 
-Toutes les images sont rendues par le jeu lui-même, image par image (rendu WebGPU logiciel, environ 3 h de calcul sans carte graphique), les
-sons sont ceux du jeu et la musique est synthétisée par programme. Les plans sont cadrés par script (`js/trailerScenes.js`) ; pour deux
+Cette version montre les 30 navires et tous les avions relevés sur plans d'époque (tourelles, cheminées, mâts, ponts, hélices), les nouveaux effets de tir
+et 17 nouvelles familles de tourelles. Pour mesurer le chemin parcouru depuis la 0.0.1, une vidéo met les deux versions côte à côte, **mêmes scènes, mêmes graines
+aléatoires** : ▶ [**Comparatif 0.0.1 / 0.1.0**](docs/comparatif-0.0.1-0.1.0.mp4) (MP4, 48 s, 20 Mo). La bande-annonce d'origine est conservée :
+▶ [bande-annonce 0.0.1](docs/trailer-v0.0.1.mp4) (48 s).
+
+Toutes les images sont rendues par le jeu lui-même, image par image (environ 25 s de calcul par scène avec une RTX 3080 ; plusieurs heures en rendu logiciel sans carte
+graphique), les sons sont ceux du jeu et la musique est synthétisée par programme. Les plans sont cadrés par script (`js/trailerScenes.js`) ; pour deux
 d'entre eux (la bombe sur le croiseur et la torpille sur le Takao), l'arme est placée près de sa cible pour que l'impact tombe dans le
 champ de la caméra : l'impact lui-même est calculé par le vrai modèle de dégâts du jeu. Voir `tools/trailer/README.md` pour refaire la vidéo.
 
@@ -108,7 +113,7 @@ Les fiches sont dans `js/game/data/specs/` (avec leurs sources). Les champs que 
 profil connu du navire, donc certains détails peuvent différer légèrement de l'original. Le *Graf Zeppelin* et
 l'*Aquila* n'ont jamais été achevés ; ils sont modélisés d'après leur conception réelle.
 
-**Détails visuels** (version 0.0.1) : occlusion ambiante précalculée dans les sommets, tôlerie en relief, **camouflages** selon les
+**Détails visuels** (depuis la version 0.0.1) : occlusion ambiante précalculée dans les sommets, tôlerie en relief, **camouflages** selon les
 livrées de chaque classe (dazzle, Admiralty, « sunburst » italien, taches japonaises), **pavillons nationaux** qui flottent au vent (le
 pavillon allemand est la Reichskriegsflagge d'avant 1935, sans svastika), **numéros de coque** dessinés, tourelles, garde-corps,
 canots sur bossoirs, radeaux, gréement et pavillons de signaux. Les détails fins ne sont dessinés que de près, les navires hors champ ne

@@ -1,0 +1,351 @@
+{
+ "frames": "out/frames_cmp",
+ "out": "docs/trailer-v0.1.0.mp4",
+ "music": "out/music_010/music.wav",
+ "fps": 24,
+ "w": 1280,
+ "h": 720,
+ "musicDb": -1,
+ "sfxDb": -7,
+ "grain": 2,
+ "crf": 24,
+ "clips": [
+  {
+   "scene": "open",
+   "shot": "open_a",
+   "dur": 3.8,
+   "fadeIn": 1.2
+  },
+  {
+   "scene": "open",
+   "shot": "open_b",
+   "dur": 2.2
+  },
+  {
+   "scene": "open",
+   "shot": "open_c",
+   "dur": 2.4
+  },
+  {
+   "scene": "roster",
+   "shot": "roster_yamato",
+   "dur": 1.5
+  },
+  {
+   "scene": "roster",
+   "shot": "roster_bismarck",
+   "dur": 1.5
+  },
+  {
+   "scene": "roster",
+   "shot": "roster_littorio",
+   "dur": 1.5
+  },
+  {
+   "scene": "roster",
+   "shot": "roster_shokaku",
+   "dur": 1.5
+  },
+  {
+   "scene": "roster2",
+   "shot": "roster2_takao",
+   "dur": 1.2
+  },
+  {
+   "scene": "roster2",
+   "shot": "roster2_zara",
+   "dur": 1.2
+  },
+  {
+   "scene": "roster2",
+   "shot": "roster2_baltimore",
+   "dur": 1.2
+  },
+  {
+   "scene": "roster2",
+   "shot": "roster2_belfast",
+   "dur": 1.2
+  },
+  {
+   "scene": "roster2",
+   "shot": "roster2_tribal",
+   "dur": 1.2
+  },
+  {
+   "scene": "roster2",
+   "shot": "roster2_fantasque",
+   "dur": 1.2
+  },
+  {
+   "scene": "carrier",
+   "shot": "carrier_b",
+   "dur": 3.6,
+   "sfxDb": -4
+  },
+  {
+   "scene": "dive",
+   "shot": "dive_a",
+   "dur": 3.4
+  },
+  {
+   "scene": "dive",
+   "shot": "dive_b",
+   "dur": 3.4
+  },
+  {
+   "scene": "torp",
+   "shot": "torp_a",
+   "dur": 2.8
+  },
+  {
+   "scene": "torp",
+   "shot": "torp_b",
+   "dur": 3.6
+  },
+  {
+   "scene": "duel",
+   "shot": "duel_a",
+   "dur": 2.4
+  },
+  {
+   "scene": "duel",
+   "shot": "duel_b",
+   "dur": 2.0
+  },
+  {
+   "scene": "duel",
+   "shot": "duel_c",
+   "dur": 2.0
+  },
+  {
+   "scene": "fire_takao",
+   "shot": "fire_air",
+   "dur": 1.7
+  },
+  {
+   "scene": "fire_baltimore",
+   "shot": "fire_deck",
+   "dur": 1.6
+  },
+  {
+   "scene": "fire_zara",
+   "shot": "fire_air",
+   "dur": 1.6
+  },
+  {
+   "scene": "fire_fletcher",
+   "shot": "fire_deck",
+   "dur": 1.6
+  },
+  {
+   "scene": "boom",
+   "shot": "boom_a",
+   "dur": 2.6
+  },
+  {
+   "scene": "boom",
+   "shot": "boom_b",
+   "dur": 3.4
+  },
+  {
+   "scene": "end",
+   "shot": "end_a",
+   "dur": 4.2,
+   "fadeOut": 1.0
+  }
+ ],
+ "cards": [
+  {
+   "at": 0.9,
+   "dur": 2.7,
+   "text": "1939 – 1945",
+   "size": 58,
+   "sub": "Six marines. Trente navires. Le combat s'engage seul.",
+   "subSize": 26,
+   "y": "h*0.15",
+   "subY": "h*0.15+82"
+  },
+  {
+   "at": 8.7,
+   "dur": 5.4,
+   "text": "30 NAVIRES HISTORIQUES",
+   "size": 40,
+   "y": "h*0.80",
+   "sub": "Cuirassés · croiseurs · destroyers · porte-avions · 6 nations",
+   "subSize": 22,
+   "subY": "h*0.80+58",
+   "box": true
+  },
+  {
+   "at": 14.7,
+   "dur": 6.6,
+   "text": "RELEVÉS SUR PLANS D'ÉPOQUE",
+   "size": 40,
+   "y": "h*0.80",
+   "sub": "Tourelles, cheminées, mâts : chaque navire comparé à ses dessins",
+   "subSize": 22,
+   "subY": "h*0.80+58",
+   "box": true
+  },
+  {
+   "at": 21.9,
+   "dur": 3.0,
+   "text": "AVIATION EMBARQUÉE",
+   "size": 40,
+   "y": "h*0.80",
+   "sub": "Décollage, piqué, torpillage",
+   "subSize": 22,
+   "subY": "h*0.80+58",
+   "box": true
+  },
+  {
+   "at": 25.5,
+   "dur": 3.2,
+   "text": "BOMBES",
+   "size": 40,
+   "y": "h*0.80",
+   "sub": "Les dégâts se calculent module par module",
+   "subSize": 22,
+   "subY": "h*0.80+58",
+   "box": true
+  },
+  {
+   "at": 32.4,
+   "dur": 3.0,
+   "text": "TORPILLES",
+   "size": 40,
+   "y": "h*0.80",
+   "sub": "Inondation, gîte, colonne d'eau",
+   "subSize": 22,
+   "subY": "h*0.80+58",
+   "box": true
+  },
+  {
+   "at": 38.8,
+   "dur": 3.4,
+   "text": "ARTILLERIE",
+   "size": 40,
+   "y": "h*0.80",
+   "sub": "Balistique, blindage, pénétration",
+   "subSize": 22,
+   "subY": "h*0.80+58",
+   "box": true
+  },
+  {
+   "at": 44.9,
+   "dur": 6.0,
+   "text": "TOURELLES ET CANONS",
+   "size": 40,
+   "y": "h*0.80",
+   "sub": "Du 120 au 460 mm · 17 nouvelles familles relevées sur plans",
+   "subSize": 22,
+   "subY": "h*0.80+58",
+   "box": true
+  },
+  {
+   "at": 51.7,
+   "dur": 3.2,
+   "text": "EXPLOSIONS ET NAUFRAGES",
+   "size": 40,
+   "y": "h*0.80",
+   "sub": "Soutes, incendies, avaries",
+   "subSize": 22,
+   "subY": "h*0.80+58",
+   "box": true
+  },
+  {
+   "at": 57.8,
+   "dur": 3.5,
+   "text": "COMBAT NAVAL",
+   "size": 84,
+   "y": "h*0.22",
+   "fade": 0.6
+  },
+  {
+   "at": 58.0,
+   "dur": 3.3,
+   "text": "Simulation de la Seconde Guerre mondiale · version 0.1.0",
+   "size": 28,
+   "weight": "Inter-Medium",
+   "y": "h*0.22+104",
+   "fade": 0.6
+  },
+  {
+   "at": 58.3,
+   "dur": 3.0,
+   "text": "github.com/FreedomFR/warthunderv2",
+   "size": 24,
+   "weight": "Inter-Medium",
+   "y": "h*0.22+148",
+   "fade": 0.6
+  }
+ ],
+ "musicEnv": [
+  [
+   0.0,
+   -26
+  ],
+  [
+   1.6,
+   -9
+  ],
+  [
+   8.4,
+   -8
+  ],
+  [
+   9.72,
+   -7
+  ],
+  [
+   21.03,
+   -6
+  ],
+  [
+   38.4,
+   -4
+  ],
+  [
+   50.9,
+   -2
+  ],
+  [
+   51.3,
+   2
+  ],
+  [
+   57.1,
+   2
+  ],
+  [
+   57.5,
+   -3
+  ],
+  [
+   59.7,
+   -6
+  ],
+  [
+   61.5,
+   -14
+  ]
+ ],
+ "sfxEnv": [
+  [
+   0,
+   0
+  ],
+  [
+   50.7,
+   0
+  ],
+  [
+   51.3,
+   3
+  ],
+  [
+   57.3,
+   0
+  ]
+ ]
+}

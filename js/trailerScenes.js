@@ -1,4 +1,4 @@
-// The scenes of the v0.0.1 trailer (see js/trailer.js for the director and tools/trailer for the recorder).
+// The scenes of the trailers (v0.0.1 and v0.1.0) (see js/trailer.js for the director and tools/trailer for the recorder).
 // Each scene: build a battle, let it run until something worth filming happens, record shots.
 import { clamp, lerp, D2R, KN } from './game/math.js';
 import { mv } from './trailer.js';
@@ -110,6 +110,24 @@ export const SCENES = {
     for (const [id, dur, az, h, look] of spec) {
       const s = ships[ids.indexOf(id)], L = s.stats.L;
       await T.shot('roster_' + id, dur, mv.orbit(() => P3(s), az[0], az[1], L * 0.82, L * 0.7, h[0], h[1], look, 46));
+    }
+  },
+
+  // ---- roster 2: the cruisers and destroyers that were re-measured on their plans (0.1.0) -------------------------------------------
+  async roster2(T) {
+    T.reset(9, 'afternoon', { sunElev: 25, sunAzim: -35, exposure: 1.12, haze: 2.5, veil: 0.22, contrast: 1.12, warmth: -0.05, bloom: 0.08 });
+    const ids = ['takao', 'zara', 'baltimore', 'belfast', 'tribal', 'fantasque'];
+    const ships = T.column(ids, 0, 0, 0, 90, 700, 9);
+    sail(ships, 9);
+    T.go();
+    await T.wait(20);
+    const spec = [
+      ['takao', 1.2, [30, 70], [10, 9], 9], ['zara', 1.2, [-14, 26], [9, 10], 8], ['baltimore', 1.2, [74, 36], [9, 8], 8],
+      ['belfast', 1.2, [-30, 8], [8, 9], 8], ['tribal', 1.2, [60, 100], [7, 8], 6], ['fantasque', 1.2, [-6, 34], [7, 8], 6],
+    ];
+    for (const [id, dur, az, h, look] of spec) {
+      const s = ships[ids.indexOf(id)], L = s.stats.L;
+      await T.shot('roster2_' + id, dur, mv.orbit(() => P3(s), az[0], az[1], L * 0.9, L * 0.8, h[0], h[1], look, 46));
     }
   },
 
@@ -259,9 +277,9 @@ export const SCENES = {
   },
 
   // ---- gunfire: a development scene for the muzzle blast (compared with photographs of broadsides) ---------------------------------
-  async firetest(T) {
+  async firetest(T, shipId) {
     T.reset(77, 'noon', { clouds: 0.2, veil: 0.2 });
-    const us = T.fleet(0, [{ id: new URLSearchParams(location.search).get('ship') || 'iowa' }], 0, 0, 90, { knots: 12 });
+    const us = T.fleet(0, [{ id: shipId || new URLSearchParams(location.search).get('ship') || 'iowa' }], 0, 0, 90, { knots: 12 });
     const jp = T.fleet(1, [{ id: 'yamato' }], 2500, -7500, 90, { knots: 12 });
     T.go();
     const ship = us[0];
@@ -313,3 +331,6 @@ export const SCENES = {
     });
   },
 };
+
+// one gunfire scene per ship for the 0.1.0 trailer: fire_<id>/fire_air and fire_deck
+for (const id of ['takao', 'baltimore', 'zara', 'fletcher']) SCENES['fire_' + id] = (T) => SCENES.firetest(T, id);
