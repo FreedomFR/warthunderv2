@@ -26,6 +26,10 @@ import { bakeAO } from './ao.js';
 
 export const VERTEX_STRIDE = 24;
 
+/** Geometric detail of the models (read by every builder): `rounding` scales the segment count of the large round parts, `bevel` is the
+ *  edge chamfer of boxes as a fraction of their smallest dimension (0 = sharp edges). tools / tests may change it before building. */
+export const DETAIL = { rounding: 1.75, bevel: 0.1, maxBevel: 0.5, minSeg: 12, maxSeg: 40 };
+
 /** '#rrggbb' -> [r, g, b] (0-255, sRGB) */
 export function rgb(hex) {
   if (Array.isArray(hex)) return hex;
@@ -144,6 +148,14 @@ export class MeshBuilder {
     return this;
   }
 
+  /** segment count of a round part: the big ones (radius >= 0.45 m) get DETAIL.rounding times more, gun barrels and the like (>= 0.12 m) a half
+   *  more up to 16, the rigging stays as it is */
+  _seg(seg, r) {
+    if (!(DETAIL.rounding > 1) || r < 0.12) return seg;
+    if (r < 0.45) return Math.min(16, Math.max(seg, Math.round(seg * (1 + (DETAIL.rounding - 1) * 0.6))));
+    return Math.min(DETAIL.maxSeg, Math.max(Math.round(seg * DETAIL.rounding), Math.min(DETAIL.minSeg, DETAIL.maxSeg)));
+  }
+
   // ---- solids ------------------------------------------------------------------------------
   /**
    * Convex prism between a bottom and a top rectangle (a box when both are equal).
@@ -159,12 +171,42 @@ export class MeshBuilder {
     const T0 = [tx0, y1, tzc - thw], T1 = [tx1, y1, tzc - thw], T2 = [tx1, y1, tzc + thw], T3 = [tx0, y1, tzc + thw];
     const ref = [(x0 + x1 + tx0 + tx1) * 0.25, (y0 + y1) * 0.5, (zc + tzc) * 0.5];
     const sc = o.sideCol || col, ao = o.ao ?? this.ao;
+    // chamfer the vertical edges and the edges of the top: boxes of a metre or more only (the real superstructures have rounded corners)
+    const dims = Math.min(x1 - x0, tx1 - tx0, 2 * hw, 2 * thw, y1 - y0);
+    const cb = o.bevel ?? Math.min(DETAIL.bevel * dims, DETAIL.maxBevel);
+    if (cb > 0.05 && dims > 1.2 && o.top !== false) return this._bevelBlock([B0, B1, B2, B3], [T0, T1, T2, T3], y0, y1, cb, col, sc, o, mat, ref, ao);
     this.quad(B3, B2, T2, T3, sc, mat, ref, ao);   // starboard
     this.quad(B0, T0, T1, B1, sc, mat, ref, ao);   // port
     this.quad(B1, T1, T2, B2, sc, mat, ref, ao);   // front
     this.quad(B3, T3, T0, B0, sc, mat, ref, ao);   // back
     if (o.top !== false) this.quad(T0, T3, T2, T1, o.topCol || col, o.topMat ?? mat, ref, ao);
     if (o.bottom) this.quad(B0, B1, B2, B3, sc, mat, ref, ao * 0.6);
+    return this;
+  }
+
+  /** a block with its four vertical edges and the edges of its top cut at 45 degrees (cb = size of the chamfer) */
+  _bevelBlock(B, T, y0, y1, cb, col, sc, o, mat, ref, ao) {
+    // octagon outline of a rectangle (corner order B0..B3 = (x0,-z) (x1,-z) (x1,+z) (x0,+z)): two points per corner, cb along each edge
+    const oct = (R, y) => {
+      const out = [];
+      for (let i = 0; i < 4; i++) {
+        const a = R[(i + 3) % 4], c = R[i], d = R[(i + 1) % 4];
+        const la = Math.hypot(c[0] - a[0], c[2] - a[2]) || 1, ld = Math.hypot(d[0] - c[0], d[2] - c[2]) || 1;
+        out.push([c[0] + (a[0] - c[0]) / la * cb, y, c[2] + (a[2] - c[2]) / la * cb], [c[0] + (d[0] - c[0]) / ld * cb, y, c[2] + (d[2] - c[2]) / ld * cb]);
+      }
+      return out;
+    };
+    const lo = oct(B, y0), hi = oct(T, y1 - cb);
+    const cx = (T[0][0] + T[2][0]) / 2, cz = (T[0][2] + T[2][2]) / 2;
+    const inset = hi.map((p) => [cx + (p[0] - cx) * (1 - cb / Math.max(Math.abs(T[2][0] - T[0][0]), Math.abs(T[2][2] - T[0][2]), 2 * cb) * 1.0), y1, cz + (p[2] - cz) * (1 - cb / Math.max(Math.abs(T[2][0] - T[0][0]), Math.abs(T[2][2] - T[0][2]), 2 * cb) * 1.0)]);
+    const topCol = o.topCol || col, tm = o.topMat ?? mat, rim = o.topCol ? o.topCol : sc;
+    for (let i = 0; i < 8; i++) {
+      const j = (i + 1) % 8;
+      this.quad(lo[i], lo[j], hi[j], hi[i], sc, mat, ref, ao);                                   // the walls
+      this.quad(hi[i], hi[j], inset[j], inset[i], rim, tm, ref, ao);                              // the chamfer under the roof
+      this.triFlat([cx, y1, cz], inset[i], inset[j], topCol, tm, ref, ao);                        // the roof
+    }
+    if (o.bottom) for (let i = 1; i < 7; i++) this.triFlat(lo[0], lo[i], lo[i + 1], sc, mat, ref, ao * 0.6);
     return this;
   }
   /** axis aligned box centred at (cx,cy,cz) with sizes (sx,sy,sz) */
@@ -207,7 +249,7 @@ export class MeshBuilder {
    * o: { seg, capTop, capBottom, smooth, topCol, ao, aoTop }
    */
   cyl(cx, y0, cz, rx0, rz0, rx1, rz1, y1, col, mat = MAT.HULL, o = {}) {
-    const seg = o.seg || 16;
+    const seg = this._seg(o.seg || 16, Math.max(rx0, rz0, rx1, rz1));
     const dx = o.dx || 0, dz = o.dz || 0;
     const ao = o.ao ?? this.ao;
     const ring0 = [], ring1 = [];
@@ -265,7 +307,7 @@ export class MeshBuilder {
   }
 
   sphere(cx, cy, cz, rx, ry, rz, col, mat = MAT.HULL, o = {}) {
-    const seg = o.seg || 12, rings = o.rings || 7;
+    const seg = this._seg(o.seg || 12, Math.max(rx, rz)), rings = Math.round((o.rings || 7) * (seg / (o.seg || 12) > 1 ? 1.4 : 1));
     const top = o.half ? rings / 2 : rings;   // half: dome only (upper hemisphere)
     const idx = [];
     for (let j = 0; j <= top; j++) {
