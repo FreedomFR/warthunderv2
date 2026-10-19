@@ -97,6 +97,13 @@ export function segmentHit(ship, x0, y0, z0, x1, y1, z1) {
   return null;
 }
 
+/** cosine of the angle between the shell's path and the normal of the surface it struck (superstructure, modules) */
+function faceCos(ship, hit, ldx, ldy, ldz) {
+  const n = hitNormal(ship, hit);
+  const l = Math.hypot(n[0], n[1], n[2]) || 1;
+  return Math.abs((ldx * n[0] + ldy * n[1] + ldz * n[2]) / l);
+}
+
 /** Surface normal at a hit, in ship-local axes. */
 function hitNormal(ship, hit) {
   switch (hit.part) {
@@ -120,10 +127,10 @@ function addFireAt(ship, lx, ly, lz, power) { ship.addFire(lx, Math.max(ly, 1), 
  * Burst of strength P at a local point: damages the modules around it, makes the visual event and scars the hull.
  * kind: event kind ('penetrate' | 'explode' | 'bomb'), cal: for the size of the effect.
  */
-function detonate(world, ship, lx, ly, lz, P, where, owner, cause, kind, cal, hitInfo) {
+function detonate(world, ship, lx, ly, lz, P, where, owner, cause, kind, cal, hitInfo, extra) {
   const killed = blast(world, ship, lx, ly, lz, P, where, owner, cause);
   const w = ship.toWorld(lx, ly, lz, [0, 0, 0]);
-  world.events.push({ type: 'impact', kind, x: w[0], y: w[1], z: w[2], cal, ship, lx, ly, lz, part: hitInfo ? hitInfo.part : null, inside: where === 'inside', killed: killed.length });
+  world.events.push({ type: 'impact', kind, x: w[0], y: w[1], z: w[2], cal, ship, lx, ly, lz, part: hitInfo ? hitInfo.part : null, inside: where === 'inside', killed: killed.length, ...extra });
   return killed;
 }
 
@@ -145,6 +152,8 @@ export function resolveShellHit(world, ship, shell, hit) {
   const isAP = shell.type === 'AP';
   let armor = 0, cosA = 1;
   const part = hit.part;
+  // the world direction and the shell, as the effects need them (a tracer's last leg, the way the burst is thrown)
+  const fx = { shell: shell.type, dx: dirx, dy: diry, dz: dirz, speed };
 
   // ---- armour and incidence angle of the struck surface ----
   if (part === 'hull') {
@@ -157,9 +166,9 @@ export function resolveShellHit(world, ship, shell, hit) {
     armor = inCitadel ? st.armor.deck : Math.max(st.armor.deck * 0.2, 12);
     if (st.type === 'CV') armor = Math.max(st.armor.deck, 12);
   } else if (part === 'super') {
-    cosA = 0.7; armor = Math.min(30, st.armor.citadel * 0.15 + 12);
+    cosA = faceCos(ship, hit, ldx, ldy, ldz); armor = Math.min(30, st.armor.citadel * 0.15 + 12);
   } else if (part === 'module') {
-    cosA = 0.7; armor = hit.module.kind === 'bridge' ? Math.min(40, st.armor.citadel * 0.2 + 10) : hit.module.kind === 'funnel' ? 6 : 10;
+    cosA = faceCos(ship, hit, ldx, ldy, ldz); armor = hit.module.kind === 'bridge' ? Math.min(40, st.armor.citadel * 0.2 + 10) : hit.module.kind === 'funnel' ? 6 : 10;
   } else if (part === 'aa') {
     cosA = 0.7; armor = 6;
   } else if (part === 'mount') {
@@ -169,12 +178,20 @@ export function resolveShellHit(world, ship, shell, hit) {
     const fx = Math.sin(yaw), fz = -Math.cos(yaw);
     const toShell = -(dirx * fx + dirz * fz);   // >0 when the shell comes from the front
     armor = toShell > 0.45 ? st.armor.turretFace : st.armor.turretSide;
-    cosA = 0.75;
+    // incidence on the nearest vertical face of the house (front or side), allowing for the dive of the shell
+    const along = Math.abs(dirx * fx + dirz * fz), across = Math.abs(dirx * fz * -1 + dirz * fx);
+    cosA = clamp(Math.max(along, across) * Math.sqrt(Math.max(0, 1 - diry * diry)), 0.17, 1);
     if (m.rec.kind === 'dp') armor = Math.max(armor * 0.2, 25);
   }
+  const angle = Math.acos(clamp(cosA, 0, 1)) * 180 / Math.PI;            // incidence: 0 = square on the plate, 90 = grazing
   cosA = Math.max(cosA, 0.17);
   const eff = armor / cosA;
   const pen = isAP ? g.pen0 * Math.pow(speed / g.v0, 1.43) : cal * 0.18 * Math.pow(speed / g.v0, 1.43);
+  // the hit report (shown on the screen and in the log): what the shell was, how it met the plate, what the plate was worth and what came of it
+  const label = hit.module ? hit.module.label : hit.mount ? (hit.mount.rec.label ? 'Tourelle ' + hit.mount.rec.label : 'Affût') : part === 'aa' ? 'DCA' : part === 'hull' ? (hit.ly < 0 ? 'Carène' : 'Muraille') : part === 'deck' ? 'Pont' : 'Superstructure';
+  const report = (result, dmgv) => world.events.push({ type: 'shellHit', ship, owner, shell: shell.type, cal, speed, angle, armor, eff, pen, result, dmg: dmgv, part, label, lx: hit.lx, ly: hit.ly, lz: hit.lz, time: world.time });
+  // an armour-piercing shell that meets the plate at a grazing angle glances off, whatever its energy
+  const glance = isAP && armor > cal * 0.08 && angle > 68 && rng() < clamp((angle - 68) / 14, 0, 1);
 
   let dmg = 0, kind = 'explode';
   const nrm = hitNormal(ship, hit);
@@ -183,7 +200,7 @@ export function resolveShellHit(world, ship, shell, hit) {
   const modHit = part === 'module' ? hit.module : null;
 
   if (isAP) {
-    if (pen > eff) {
+    if (pen > eff && !glance) {
       // the shell is through the plate: it detonates after its fuze delay (~0.03 s), if it is still inside the ship
       const vres = speed * Math.sqrt(Math.max(0.12, 1 - (eff / pen) * (eff / pen)));
       const delay = 0.03 * vres;
@@ -208,7 +225,9 @@ export function resolveShellHit(world, ship, shell, hit) {
         if (part === 'module') damageModule(world, ship, modHit, kg * 0.25, owner, 'shell');
         if (part === 'aa') { hit.aa.hp = 0; hit.aa.alive = false; world.events.push({ type: 'moduleKilled', ship, kind: 'aa', label: hit.aa.rec.label, x: hit.aa.rec.x, y: hit.aa.rec.y, z: hit.aa.rec.z }); }
         ship.addScar(lx + nrm[0] * 0.02, ly, lz, nrm[0], nrm[1], nrm[2], scarR * 0.8, 1);
-        world.events.push({ type: 'impact', kind, x: ship.toWorld(lx, ly, lz, [0, 0, 0])[0], y: ship.toWorld(lx, ly, lz, [0, 0, 0])[1], z: ship.toWorld(lx, ly, lz, [0, 0, 0])[2], cal, ship, lx, ly, lz, part });
+        const we = ship.toWorld(lx, ly, lz, [0, 0, 0]), wx = ship.toWorld(px, py, pz, [0, 0, 0]);
+        world.events.push({ type: 'impact', kind, x: we[0], y: we[1], z: we[2], cal, ship, lx, ly, lz, part, ...fx, angle, exit: wx });
+        report('over', dmg);
         if (owner) { owner.damageDealt += dmg; owner.shotsHit++; }
         ship.applyDamage(dmg, owner, 'shell');
         return;
@@ -227,20 +246,27 @@ export function resolveShellHit(world, ship, shell, hit) {
       // the burst: centred where the fuze fired
       const pm = part === 'mount' ? 0.7 : 1.0;
       if (part === 'mount') damageMount(world, ship, hit.mount, kg * 1.0, owner, true);
-      detonate(world, ship, px, py, pz, kg * pm, 'inside', owner, 'shell', 'penetrate', cal, hit);
+      detonate(world, ship, px, py, pz, kg * pm, 'inside', owner, 'shell', 'penetrate', cal, hit, { ...fx, angle, entry: ship.toWorld(lx, ly, lz, [0, 0, 0]), delay, thin });
       ship.addScar(lx, ly, lz, nrm[0], nrm[1], nrm[2], scarR, 1);
+      report('pen', dmg);
       if (owner) { owner.damageDealt += dmg; owner.shotsHit++; }
       ship.applyDamage(dmg, owner, 'shell');
       return;
     }
-    // bounced off the armour
+    // bounced off the armour: ricochet at a grazing angle, or too thick to pierce
     dmg = kg * 0.035;
     kind = 'bounce';
     if (part === 'mount') damageMount(world, ship, hit.mount, kg * 0.12, owner, false);
     blast(world, ship, lx, ly, lz, kg * 0.03, 'outside', owner, 'shell');
     ship.addScar(lx, ly, lz, nrm[0], nrm[1], nrm[2], scarR * 0.6, 0);
     const w0 = ship.toWorld(lx, ly, lz, [0, 0, 0]);
-    world.events.push({ type: 'impact', kind, x: w0[0], y: w0[1], z: w0[2], cal, ship, lx, ly, lz, part });
+    // the direction it leaves in: reflected about the plate
+    const nl = Math.hypot(nrm[0], nrm[1], nrm[2]) || 1, nn = [nrm[0] / nl, nrm[1] / nl, nrm[2] / nl];
+    const dn = ldx * nn[0] + ldy * nn[1] + ldz * nn[2];
+    const rl = [ldx - 2 * dn * nn[0], ldy - 2 * dn * nn[1], ldz - 2 * dn * nn[2]];
+    const r0 = ship.toWorld(lx, ly, lz, [0, 0, 0]), r1 = ship.toWorld(lx + rl[0], ly + rl[1], lz + rl[2], [0, 0, 0]);
+    world.events.push({ type: 'impact', kind, x: w0[0], y: w0[1], z: w0[2], cal, ship, lx, ly, lz, part, ...fx, angle, glance, rwx: r1[0] - r0[0], rwy: r1[1] - r0[1], rwz: r1[2] - r0[2] });
+    report(glance ? 'glance' : 'bounce', dmg);
     if (owner) { owner.damageDealt += dmg; owner.shotsHit++; }
     ship.applyDamage(dmg, owner, 'shell');
     return;
@@ -258,7 +284,8 @@ export function resolveShellHit(world, ship, shell, hit) {
   const thinSkin = (part === 'hull' || part === 'deck' || part === 'super') && eff < cal * 0.45;
   const P = kg * 0.35;
   if (part === 'mount') damageMount(world, ship, hit.mount, P * 0.6, owner, false);
-  detonate(world, ship, lx - (thinSkin ? ldx * 1.2 : 0), ly - (thinSkin ? ldy * 1.2 : 0), lz - (thinSkin ? ldz * 1.2 : 0), P * (thinSkin ? 0.85 : 1), thinSkin ? 'inside' : 'outside', owner, 'shell', kind, cal, hit);
+  detonate(world, ship, lx - (thinSkin ? ldx * 1.2 : 0), ly - (thinSkin ? ldy * 1.2 : 0), lz - (thinSkin ? ldz * 1.2 : 0), P * (thinSkin ? 0.85 : 1), thinSkin ? 'inside' : 'outside', owner, 'shell', kind, cal, hit, { ...fx, angle, thin: thinSkin });
+  report(kind === 'bounce' ? 'shatter' : thinSkin ? 'pen' : 'burst', dmg);
   ship.addScar(lx, ly, lz, nrm[0], nrm[1], nrm[2], scarR * (kind === 'bounce' ? 0.6 : 1), kind === 'bounce' ? 0 : (rng() < 0.4 ? 2 : 1));
   if (lx < -L * 0.38 && part !== 'super' && rng() < 0.04) ship.rudderJam = (rng() < 0.5 ? -1 : 1) * 0.6;
   if (owner) { owner.damageDealt += dmg; owner.shotsHit++; }

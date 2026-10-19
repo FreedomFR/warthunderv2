@@ -133,6 +133,15 @@
   #score .kl .kt { opacity: .5; margin-right: 6px; font-variant-numeric: tabular-nums; }
   #score .kl .kh { opacity: .55; }
   .btn.tiny.on { background: var(--amber); color: #111; }
+  #hitlog { position: fixed; left: 12px; bottom: 64px; width: 360px; font-size: 12px; pointer-events: none; background: #0b0f14c0; border: 1px solid #ffffff18; border-radius: 8px; padding: 6px 9px; }
+  #hitlog .hl-title { opacity: .6; font-weight: 600; margin-bottom: 3px; }
+  #hitlog .hl-row { padding: 3px 0 3px 7px; border-left: 3px solid var(--hc); margin-top: 3px; line-height: 1.3; }
+  #hitlog .hl-part, #hitlog .hl-dmg { opacity: .7; }
+  #hitlog .hl-res { color: var(--hc); }
+  #hitlog .hl-why { opacity: .6; font-size: 11px; }
+  .hittag { position: absolute; left: 0; top: 0; pointer-events: none; text-align: center; white-space: nowrap; text-shadow: 0 1px 6px #000c; line-height: 1.15; }
+  .hittag b { display: block; font-size: 15px; color: var(--hc); letter-spacing: .5px; }
+  .hittag span { display: block; font-size: 11px; opacity: .9; }
   #help { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); max-width: 640px; cursor: pointer; }
   .helpgrid { display: grid; grid-template-columns: 210px 1fr; gap: 6px 14px; margin-top: 6px; }
   .helpgrid b { color: var(--amber); font-weight: 600; }

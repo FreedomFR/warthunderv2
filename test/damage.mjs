@@ -102,6 +102,31 @@ for (const spec of ALL_SHIPS) {
   for (let i = 0; i < 1200; i++) w.update(0.1);
   ok(s.state === 'sunk', 'the sections sink');
 }
+// ---- shell hits: the angle of attack decides whether an armour-piercing shell goes through, and the report says why ----
+{
+  const shoot = (id, type, angleDeg, where) => {
+    const { w, s } = mk(id, 11);
+    for (let i = 0; i < 20; i++) w.update(0.1);
+    const g = s.stats.main, owner = w.addShip('iowa', 0, 8000, 0, 0);
+    // a shell flying at 1000 m from the side: its incidence on a vertical plate is the angle between its path and the plate normal
+    const a = angleDeg * Math.PI / 180;
+    const sp = type === 'AP' ? g.v0 * 0.72 : g.v0 * 0.72;
+    // heading 0: starboard is +x, forward is -z; the shell flies towards port, its path turned `a` away from the plate normal
+    const shell = { owner, gun: g, type, vx: -Math.cos(a) * sp, vy: -sp * 0.02, vz: -Math.sin(a) * sp, c: 0 };
+    const hit = { part: 'hull', lx: 0, ly: 1.5, lz: s.stats.B / 2 - 0.3 };
+    w.drainEvents();
+    // the shell comes from starboard: its velocity points to port (-z)
+    resolveShellHit(w, s, shell, hit);
+    const ev = w.drainEvents();
+    return { ev: ev.find((e) => e.type === 'shellHit'), imp: ev.find((e) => e.type === 'impact') };
+  };
+  const side = shoot('iowa', 'AP', 0, null);
+  ok(side.ev && side.ev.angle < 5 && ['pen', 'bounce', 'over'].includes(side.ev.result), `shell report: ${side.ev && side.ev.shell} ${side.ev && side.ev.cal} mm at ${side.ev && side.ev.angle.toFixed(0)} deg, plate ${side.ev && side.ev.armor} mm (${side.ev && side.ev.eff.toFixed(0)} effective) against ${side.ev && side.ev.pen.toFixed(0)} mm of penetration: ${side.ev && side.ev.result}`);
+  let glances = 0; for (let i = 0; i < 20; i++) if (shoot('iowa', 'AP', 80, null).ev.result === 'glance') glances++;
+  ok(glances >= 10, `at 80 degrees an armour-piercing shell mostly glances off (${glances}/20)`);
+  const he = shoot('iowa', 'HE', 0, null); ok(he.ev && ['burst', 'shatter', 'pen'].includes(he.ev.result) && he.ev.shell === 'HE', `an HE shell reports its burst (${he.ev && he.ev.result})`);
+  ok(he.imp && he.imp.shell === 'HE' && typeof he.imp.dx === 'number', 'the impact event carries the shell type and its direction for the effects');
+}
 // ---- the broken hull never leaves the water: the sections only hop a little, then settle and go down ----
 {
   const { w, s } = mk('iowa', 4);
