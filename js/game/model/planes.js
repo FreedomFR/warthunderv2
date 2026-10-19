@@ -205,8 +205,13 @@ function insignia(b, nation, cx, cy, cz, r, axis, sign) {
     case 'USA': {
       disc(b, cx, cy, cz, r, axis, sign, rgb('#1f3a78'), MAT.AIRCRAFT, 0.012);
       disc(b, cx, cy, cz, r * 0.62, axis, sign, w, MAT.AIRCRAFT, 0.016);
-      bar(b, cx - r * 1.5, cy, cz, r * 0.62, r * 0.2, axis, sign, w);
-      bar(b, cx + r * 1.5, cy, cz, r * 0.62, r * 0.2, axis, sign, w);
+      if (axis === 'y') {       // on a wing the bars run along the span: along the chord they would hang over the edges
+        bar(b, cx, cy, cz - r * 1.5, r * 0.2, r * 0.62, axis, sign, w);
+        bar(b, cx, cy, cz + r * 1.5, r * 0.2, r * 0.62, axis, sign, w);
+      } else {
+        bar(b, cx - r * 1.5, cy, cz, r * 0.62, r * 0.2, axis, sign, w);
+        bar(b, cx + r * 1.5, cy, cz, r * 0.62, r * 0.2, axis, sign, w);
+      }
       break;
     }
     case 'Japan': disc(b, cx, cy, cz, r * 0.82, axis, sign, rgb('#c7192a'), MAT.AIRCRAFT, 0.012); break;
@@ -239,7 +244,7 @@ function insignia(b, nation, cx, cy, cz, r, axis, sign) {
 export function drawPlane(b, s, { part = 'whole' } = {}) {
   const P = PAINT[s.nation] || PAINT.USA;
   const top = rgb(P.top), bot = rgb(P.bot), acc = rgb(P.acc);
-  const dark = rgb('#25272a'), glass = rgb('#0f161c');
+  const dark = rgb('#25272a'), glass = rgb('#33485a');
   const all = part === 'whole';
   const f = s.fus, e = s.engine, w = s.wing, t = s.tail;
   const noseX = s.L * 0.42;
@@ -302,7 +307,7 @@ export function drawPlane(b, s, { part = 'whole' } = {}) {
         b.sphere((c.x0 + c.x1) / 2, yb + h * 0.94, 0, 0.26, 0.2, 0.24, rgb('#3a2f25'), MAT.CANVAS, { seg: 7, rings: 4, half: true });   // helmet
         b.block({ x0: c.x1 - 0.05, x1: c.x1 + 0.03, hw: rz0 * 0.5, y0: yb + h * 0.3, y1: yb + h * 0.85, tx1: c.x1 - 0.2 }, glass, MAT.GLASS);   // windscreen
       } else {
-        b.block({ x0: c.x0, x1: c.x1, hw: rz0 * 0.72, y0: yb - 0.04, y1: yb + h, tx0: c.x0 + 0.05, tx1: c.tx1, thw: rz0 * 0.5 }, glass, MAT.GLASS);
+        b.block({ x0: c.x0, x1: c.x1, hw: rz0 * 0.7, y0: yb - 0.04, y1: yb + h * 0.92, tx0: c.x0 + 0.25, tx1: c.tx1 - 0.15, thw: rz0 * 0.3 }, glass, MAT.GLASS);
         for (const sz of [-1, 1]) b.beam([c.x0, yb, sz * rz0 * 0.72], [(c.x0 + c.x1) / 2, yb + h, sz * rz0 * 0.45], 0.05, 0.05, shade(top, 0.8), MAT.AIRCRAFT, { caps: false });
         b.beam([c.x0 + (c.x1 - c.x0) * 0.35, yb + h * 0.1, -rz0 * 0.7], [c.x0 + (c.x1 - c.x0) * 0.35, yb + h * 0.95, 0], 0.05, 0.05, shade(top, 0.8), MAT.AIRCRAFT, { caps: false });
       }
@@ -380,8 +385,6 @@ export function drawPlane(b, s, { part = 'whole' } = {}) {
     }
     insignia(b, s.nation, x0 - 0.15, yr + dih * 0.65 + w.t * 0.32, sg * hs * 0.68, Math.min(0.62, hs * 0.09), 'y', 1);
     insignia(b, s.nation, x0 - 0.15, yr + dih * 0.65 - w.t * 0.32, sg * hs * 0.68, Math.min(0.62, hs * 0.09), 'y', -1);
-    // aileron hint and wing-root fillet
-    b.quad([x0 - cr / 2 + 0.2, yr + w.t * 0.3, sg * hs * 0.55], [x0 - cr / 2 + 0.2 + sweep * 0.5, yr + dih * 0.65 + w.t * 0.2, sg * hs * 0.95], [x0 - ct / 2 + sweep, yr + dih * 0.9 + w.t * 0.2, sg * hs * 0.95], [x0 - cr / 2 + 0.05, yr + w.t * 0.3, sg * hs * 0.55], shade(top, 0.82), MAT.AIRCRAFT, [x0, yr - 1, sg * hs * 0.7], 1);
   };
   if (all || part === 'wingR') wingSide(1);
   if (all || part === 'wingL') wingSide(-1);
