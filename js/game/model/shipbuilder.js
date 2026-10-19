@@ -335,7 +335,8 @@ export function buildShipModel(spec, tw = {}) {
         if (tw.mastRake?.[i]) {
           // a raked mast (tw.mastRake: how far its head stands forward (+) or aft (-) of its foot, m)
           const top = [x + tw.mastRake[i], y0 + h, 0], col = rgb(pal.mast);
-          b.beam([x, y0, 0], top, 1.2, 1.2, col, MAT.HULL);
+          const mw = clamp(L * 0.0046, 0.35, 1.2);   // a destroyer's mast is a pole, a battleship's a tower
+          b.beam([x, y0, 0], top, mw, mw, col, MAT.HULL);
           b.rodZ(x + tw.mastRake[i] * 0.75, y0 + h * 0.75, -4, 4, 0.08, 0.06, col, MAT.HULL, { seg: 5 });
         } else if (kindOf(m.kind, 'tripod')) PT.tripod(b, { x, y0, h, legSpread: 3.5, legBack: 4, legFront: 1.5, platforms: [0.6], yards: [[0.78, 7]] }, pal);
         else PT.poleMast(b, { x, y0, h, r: 0.36, yards: [[0.6, 8]] }, pal);
