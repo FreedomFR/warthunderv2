@@ -386,7 +386,7 @@ export async function createEngine(canvas, options = {}) {
   const foam = {
     stamps: new Float32Array(MAX_STAMPS * 8),
     count: 0,
-    wakeDecay: 0.035,   // 1/s: how long ship wakes stay visible
+    wakeDecay: 0.03,   // 1/s: how long ship wakes stay visible
     /** capsule from (x0,z0) to (x1,z1); wake = slow foam, fresh = dense bright foam, dense = ordinary foam */
     add(x0, z0, x1, z1, radius, wake, fresh, dense) {
       if (this.count >= MAX_STAMPS) return;

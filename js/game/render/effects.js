@@ -8,34 +8,40 @@ const rnd = Math.random;
 const rr = (a, b) => a + (b - a) * rnd();
 
 /**
- * Foam stamps of a moving ship: bow wave, foam along the hull sides, propeller wash and the diverging
- * wake arms (a fan of stripes behind the stern). s needs x, z, heading, speed, state and stats.{L,B,maxSpeed}.
+ * Foam stamps of a moving ship: the bow wave (a splash at the stem and two white wings flaring along the hull), the foam line along the waterline,
+ * the churned white water behind the screws, the long wake that fades into the sea, and the diverging arms of the Kelvin pattern. s needs x, z,
+ * heading, speed, state and stats.{L,B,maxSpeed}. The strength follows the speed: a ship that creeps hardly marks the water, one at full speed
+ * leaves a white road several lengths long. (The foam of the sea is only kept for 512 m round the camera, see the clipmaps of the engine.)
  */
 export function addWakeStamps(foam, s, d, forceSpeed) {
   const st = s.stats;
   const fx = Math.sin(s.heading), fz = -Math.cos(s.heading);
   const speedF = forceSpeed ?? Math.min(1, Math.abs(s.speed) / Math.max(1, st.maxSpeed));
   const L = st.L, B = st.B;
-  const sf = s.state === 'sinking' ? 0.5 : speedF;
-  if (!(sf > 0.04 || s.state === 'sinking')) return;
-  const bowX = s.x + fx * L * 0.46, bowZ = s.z + fz * L * 0.46;
-  const sternX = s.x - fx * L * 0.46, sternZ = s.z - fz * L * 0.46;
+  const sinking = s.state === 'sinking';
+  const sf = sinking ? 0.5 : speedF;
+  if (!(sf > 0.04 || sinking)) return;
+  const k = clamp(0.12 + 1.05 * Math.pow(sf, 1.15), 0, 1);       // strength of the foam
   const rx = -fz, rz = fx;
-  // bow wave
-  foam.add(bowX, bowZ, bowX - fx * L * 0.14, bowZ - fz * L * 0.14, B * 0.62, 0.35 * sf, 0.7 * sf, 0.55 * sf);
-  // hull sides
+  // a point at `back` metres astern of the centre and `side` metres to starboard
+  const at = (back, side) => [s.x - fx * back + rx * side, s.z - fz * back + rz * side];
+  const seg = (b0, s0, b1, s1, r, wake, fresh, dense) => {
+    const p0 = at(b0, s0), p1 = at(b1, s1);
+    foam.add(p0[0], p0[1], p1[0], p1[1], r, wake * k, fresh * k, dense * k);
+  };
+  const bow = -L * 0.47, stern = L * 0.46;
+  // the stem: a splash of fresh white water
+  seg(bow, 0, bow + L * 0.06, 0, B * 0.42, 0.5, 1.0, 0.9);
   for (const sg of [-1, 1]) {
-    const o = sg * B * 0.5;
-    foam.add(bowX - fx * L * 0.1 + rx * o, bowZ - fz * L * 0.1 + rz * o, sternX + rx * o, sternZ + rz * o, 2.4, 0.38 * sf, 0.35 * sf, 0.2 * sf);
+    // the bow wave: a bank of foam that spreads from the stem along the hull and leaves it a quarter of the way aft
+    seg(bow + L * 0.02, sg * B * 0.32, bow + L * 0.26, sg * B * 0.58, Math.max(1.6, B * 0.15), 0.7, 0.8, 0.7);
+    // the thin line of foam along the waterline
+    seg(bow + L * 0.2, sg * B * 0.5, stern - L * 0.02, sg * B * 0.5, Math.max(1.6, B * 0.12), 0.55, 0.45, 0.4);
   }
-  // propeller wash: a turbulent core, then a longer fading trail (kept below full cover so the foam texture shows)
-  foam.add(sternX, sternZ, sternX - fx * L * 0.22, sternZ - fz * L * 0.22, B * 0.36, 0.6 * sf, 0.28 * sf, 0.12 * sf);
-  foam.add(sternX - fx * L * 0.2, sternZ - fz * L * 0.2, sternX - fx * L * 1.4, sternZ - fz * L * 1.4, B * 0.3, 0.45 * sf, 0, 0);
-  // diverging wake arms
-  if (d < 700) for (let k = 1; k <= 4; k++) {
-    const back = L * (0.5 + 0.8 * k), lat = back * 0.3;
-    for (const sg of [-1, 1]) foam.add(s.x - fx * back + rx * lat * sg, s.z - fz * back + rz * lat * sg, s.x - fx * back + rx * lat * sg - fx * 8, s.z - fz * back + rz * lat * sg - fz * 8, 3 + 2 * k, 0.62 * sf / (0.5 + 0.5 * k), 0, 0);
-  }
+  // the churn behind the screws (white), the wake that breaks up as it goes, and the wide pale bed that stays on the sea
+  seg(stern - L * 0.04, 0, stern + L * 0.3, 0, B * 0.5, 1.0, 1.0, 0.8);
+  seg(stern + L * 0.28, 0, stern + L * 1.4, 0, B * 0.45, 0.8, 0.2, 0.25);
+  seg(stern + L * 1.2, 0, stern + L * 3.4, 0, B * 0.7, 0.5, 0, 0);
 }
 
 export class Effects {

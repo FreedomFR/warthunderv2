@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased — wakes
+
+- **Ship wakes redone** (`addWakeStamps`, `render/effects.js`): they were hardly visible (a faint thin line behind a destroyer at 36 knots, nothing at the bow of a battleship) and the diverging arms were short bars. Now: a splash at the stem and a bank of foam along the first quarter of the hull (the bow wave), a line of foam at the waterline, white churned water behind the screws, the wake that breaks up over one to three lengths and a wide pale bed that stays on the sea, all scaled by the speed (a ship at a quarter of her speed marks the water little, at full speed she leaves a white road). The Kelvin arms are gone (they looked like detached hatched strips). Wakes last a little longer (decay 0.03 per second).
+- New trailer scene `wakes` (ships of every size at their own speed, from the stern, the bow, above, and in a turn). The foam is only laid for the ships within 1.4 km of the camera and kept for 512 m round it, so a scene has to keep the camera near the ships while they sail (`T.camFn` during the wait); the recorder needs `--q prelite=1` for the foam to be laid on every frame.
+
 ## Unreleased — guns audit
 
 - **Field of fire of every gun** (`model/clearance.js`): for each mount the model computes, bearing by bearing (3 degrees), the band of elevations at which the barrel clears the towers, funnels, masts, the house of the other mounts and the rising deck of the forecastle (`rec.clr`, `rec.clrHi`), and from it the arc the mount can be trained over (`arcMin` .. `arcMax`). The sim uses it: a gun does not train into a blind sector, does not fire through the superstructure, and a barrel that has to swing across a low obstacle rises over it, then comes back to the elevation of the shot. A mount whose centre is blocked rests in the middle of its widest free stretch. Casemates in the hull side are left out (they fire through their port).
