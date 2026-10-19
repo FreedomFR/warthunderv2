@@ -15,7 +15,10 @@
 - **Type 1936A (Mob)**: a small coloured 3-view (shared by the project owner; about +-0.8 m): the single 15 cm guns at 0.76 / 0.81 / 0.868 and the Drh LC/38 twin at 0.19, funnels at 0.374 /
   0.505, tubes at 0.45 / 0.64 (the spec had both abaft the funnels), the bridge block and mast (28.7 m); new `de150_2` / `de150_1` families (`mainVariant` can now be an object keyed by the number
   of guns). Profile 2.2 m, plan 0.2 m.
-- **Le Fantasque, Soldati**: only photographs (the ONI 203 booklet, a camouflaged Legionario, public domain): funnels, masts and the after guns moved, about +-2.5 m, no new drawing-based shapes.
+- **Le Fantasque**: a profile and plan with a scale in feet (434 ft 5 in), shared by the project owner (source unknown, measurements only): forecastle 7.6 m at the stem, 6.8 m at f 0.3,
+  4.4 m aft of f 0.45; the 138.6 mm single mounts at 0.17 / 0.207 / 0.757 / 0.855 / 0.883 (the spec had 0.10 / 0.17 / 0.66 / 0.80 / 0.88), the stepped bridge block (to 16 m), a pole foremast (26.6 m),
+  funnels at 0.375 / 0.611, the after deckhouse with its director tower; new `fr138` family. Profile 1.6 m, plan 0.7 m (the drawing is hatched and about 10 % too wide: normalised).
+- **Soldati**: only photographs (a camouflaged Legionario, public domain): funnel, masts and guns moved, about +-2.5 m.
 
 ## Unreleased — fidelity batch 4 (the cruisers)
 

@@ -80,6 +80,9 @@ const FAMILY = {
   // read on a small 3-view (about +-0.8 m), the single on the deckhouse and the superfiring one 2.3 m above their decks
   de150_2: { kind: 'turret', cal: 150, n: 2, spacing: 1.5, trunX: 0.5, trunY: 1.35, face: 2.8, port: 2.5, fwd: 7.0, back: 1.0, rB: 0.2, rP: 0.16, rM: 0.09, bagR: 0.26, bagLen: 0.4, recoil: 0.5, lift: 2.3, h: 2.9, barbR: 2.5 },
   de150_1: { kind: 'shield', cal: 150, n: 1, spacing: 0, trunX: 0.5, trunY: 1.3, face: 1.9, fwd: 5.6, back: 1.0, rB: 0.2, rP: 0.16, rM: 0.09, bagR: 0.0, bagLen: 0, recoil: 0.5, lift: 2.3, h: 2.6 },
+  // Le Fantasque 138.6 mm Mle 1929 single shielded mount (scaled class sheet, 7.4 px/m): a house 4.4 m long, 3.0 m high, barrels 5.2 m clear of the pivot, the superfiring mounts
+  // on a bridge / deckhouse top 2.5 m higher
+  fr138: { kind: 'shield', cal: 138.6, n: 1, spacing: 0, trunX: 0.5, trunY: 1.35, face: 2.1, fwd: 6.2, back: 1.0, rB: 0.18, rP: 0.14, rM: 0.08, bagR: 0.0, bagLen: 0, recoil: 0.5, lift: 2.5, h: 2.9 },
   mk28: { kind: 'dp', cal: 127, n: 2, spacing: 0.78, trunX: 0.55, trunY: 1.35, face: 1.9, fwd: 3.6, back: 0.9, rB: 0.19, rP: 0.15, rM: 0.085, bagR: 0.3, bagLen: 0.3, recoil: 0.5, lift: 3.0, h: 2.9 },
   mk30: { kind: 'shield', cal: 127, n: 1, spacing: 0, trunX: 0.5, trunY: 1.3, face: 1.5, fwd: 3.4, back: 0.9, rB: 0.19, rP: 0.15, rM: 0.085, bagR: 0.0, bagLen: 0, recoil: 0.5, lift: 1.7, h: 2.9 },
 };
@@ -270,7 +273,7 @@ function houseMk30(hb, col, dark, f) {
   hb.block({ x0: f.face - 0.3, x1: f.face, hw: 0.28, y0: f.trunY - 0.3, y1: f.trunY + 0.3 }, dark, MAT.DARK);
 }
 
-const HOUSES = { mk7: houseMk7, type94: houseType94, type3_155: houseType3, drh28_150: houseDrh28, lit381: houseLit381, lit152: houseLit152, rich380: houseRich380, fr152: houseFr152, it152: houseIt152, us152: houseUs152, brit152: houseBrit152, de150_2: houseDe150_2, de150_1: houseMk30, brit120: houseBrit120, type3_127: houseType3_127, brit203: houseBrit203, type41_152: houseType41_152, us203: houseUs203, fr203: houseFr203, fr152_30: houseFr152_30, zara203: houseZara203, type3_203: houseType3_203, drh203: houseDrh203, drh34: houseDrh34, mk28: houseMk28, mk30: houseMk30 };
+const HOUSES = { mk7: houseMk7, type94: houseType94, type3_155: houseType3, drh28_150: houseDrh28, lit381: houseLit381, lit152: houseLit152, rich380: houseRich380, fr152: houseFr152, it152: houseIt152, us152: houseUs152, brit152: houseBrit152, de150_2: houseDe150_2, de150_1: houseMk30, fr138: houseMk30, brit120: houseBrit120, type3_127: houseType3_127, brit203: houseBrit203, type41_152: houseType41_152, us203: houseUs203, fr203: houseFr203, fr152_30: houseFr152_30, zara203: houseZara203, type3_203: houseType3_203, drh203: houseDrh203, drh34: houseDrh34, mk28: houseMk28, mk30: houseMk30 };
 
 function makeFamily(s, f) {
   const col = rgb(s.col || '#6b7076'), dark = rgb(s.dark || '#1d1f22');

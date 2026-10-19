@@ -2113,5 +2113,51 @@
       "bow": 1990,
       "cl": 700
     }
+  },
+  "fantasque": {
+    "loa": 132.4,
+    "side": {
+      "file": "refs/fantasque/user_class_sheet.jpg",
+      "source": "DD Le Fantasque class, profile and plan with a scale in feet (434 ft 5 in OA), shared by the project owner (a recognition-manual style sheet, source unknown; consulted for measurements only); 7.4 px per metre",
+      "close": 9,
+      "open": 3,
+      "threshold": 150,
+      "tol": 2.0,
+      "crop": [
+        100,
+        205,
+        1200,
+        418
+      ],
+      "stern": 152,
+      "bow": 1142,
+      "wl": 414,
+      "erase": [
+        [
+          1150,
+          190,
+          1213,
+          430
+        ]
+      ],
+      "dilate": 3
+    },
+    "top": {
+      "file": "refs/fantasque/user_class_sheet.jpg",
+      "source": "same sheet, plan view",
+      "close": 3,
+      "open": 0,
+      "threshold": 150,
+      "tol": 1.2,
+      "crop": [
+        100,
+        480,
+        1200,
+        610
+      ],
+      "stern": 152,
+      "bow": 1142,
+      "cl": 542
+    }
   }
 }

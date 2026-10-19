@@ -481,6 +481,33 @@ export const TWEAKS = {
     mastY0: { 1: 3.6 },
     aa: [{ k: 't37', f: 0.727, z: 0, y: 3.3 }, { k: 'o20', f: 0.55, z: 4.6, y: 0 }, { k: 'o20', f: 0.35, z: 3.9, y: 5.0 }, { k: 'o20', f: 0.93, z: 3.0, y: 0 }],
   },
+  // Le Fantasque (a profile and plan with a scale in feet, 434 ft 5 in over all, shared by the project owner, measured only: 7.4 px per metre, about +-0.5 m): a forecastle at 7.6 m at the
+  // stem falling to 6.8 m at f 0.3 and 4.4 m aft of f 0.45; the 138.6 mm single mounts at 0.17 / 0.207 (B on the bridge base) and 0.757 / 0.855 / 0.883 (the middle one on the after
+  // deckhouse, the 0.855 one superfiring over the last); the bridge block 0.241-0.345 (tiers 9.4 / 12 / 14.3 / 16 m), a pole foremast at 0.30 (top 26.6 m), funnels at 0.383 and 0.611 (tops
+  // 14.6 / 13.2 m), the after deckhouse 0.734-0.853 (7.5 m) with a director tower at 0.786 (13.2 m) and a small mast at 0.537 (10.5 m).
+  fantasque: {
+    mainVariant: 'fr138', dirKind: 'drum', houseH: 2.4, bulwarkF: [0, 0.02],
+    fb: [[0, 7.6], [0.05, 7.3], [0.15, 7.0], [0.3, 6.8], [0.36, 6.5], [0.4, 5.5], [0.45, 4.6], [0.5, 4.4], [1, 4.4]],
+    planDeck: [[0, 0], [0.042, 0.4], [0.083, 0.6], [0.125, 0.72], [0.167, 0.8], [0.208, 0.84], [0.25, 0.9], [0.292, 0.94], [0.333, 0.96], [0.375, 0.97], [0.417, 0.98], [0.5, 1.0], [0.667, 1.0], [0.708, 0.98], [0.75, 0.96], [0.792, 0.92], [0.833, 0.88], [0.875, 0.82], [0.917, 0.74], [0.958, 0.66], [1, 0.26]],
+    planWL: [[0, 0], [0.04, 0.3], [0.1, 0.57], [0.2, 0.8], [0.3, 0.93], [0.4, 0.99], [0.5, 1], [0.6, 1], [0.7, 0.97], [0.8, 0.88], [0.9, 0.68], [0.95, 0.5], [1, 0.26]],
+    decks: [
+      { f: [0.241, 0.345], hw: 4.0, y: [0, 2.6], windows: true },           // bridge base, 9.4 m
+      { f: [0.252, 0.327], hw: 3.4, y: [2.6, 5.2], windows: true },         // 12 m
+      { f: [0.27, 0.316], hw: 2.6, y: [5.2, 7.5], windows: true },          // 14.3 m
+      { f: [0.289, 0.313], round: true, hw: 1.7, y: [7.5, 9.2] },           // the director, 16 m
+      { f: [0.455, 0.55], hw: 3.2, y: [0, 2.0] },
+      { f: [0.63, 0.69], hw: 3.6, y: [0, 3.8] },                            // the deckhouse abaft the second funnel, 8.2 m
+      { f: [0.734, 0.853], hw: 3.6, y: [0, 3.1] },                          // after deckhouse, 7.5 m
+      { f: [0.797, 0.835], hw: 2.0, y: [3.1, 6.6] },                        // 11 m
+      { f: [0.776, 0.796], hw: 1.2, y: [3.1, 8.8] },                        // the after director tower, 13.2 m
+    ],
+    towerF: 0.30, towerY0: 16.0,
+    tiers: [{ len: 2.5, w: 2.5, h: 0.1 }],
+    dir0: { dx: 0, w: 2.0, l: 2.2, h: 1.2 },
+    foremast: { dx: 0, y0: 16.0 },
+    funnels: [{ lx: 2.9, lz: 2.4, y0: 0.4, h: 8.2, rake: 0.4, top: 0.92, pipes: false }, { lx: 2.9, lz: 2.4, y0: 0.4, h: 8.2, rake: 0.4, top: 0.92, pipes: false }],
+    mastY0: { 1: 4.6 },
+  },
   fletcher: {
     mainVariant: 'mk30', dirKind: 'drum', houseH: 2.2, bulwarkF: [0, 0.02],
     fb: [[0, 6.8], [0.04, 6.1], [0.1, 5.5], [0.2, 4.9], [0.3, 4.5], [0.4, 4.0], [0.5, 3.4], [0.6, 3.0], [1, 3.0]],
