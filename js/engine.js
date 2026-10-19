@@ -630,9 +630,17 @@ export async function createEngine(canvas, options = {}) {
     const cy = Math.cos(cam.yaw), sy = Math.sin(cam.yaw), cp = Math.cos(cam.pitch), sp = Math.sin(cam.pitch);
     const fx = cp * sy, fy = sp, fz = -cp * cy;            // forward
     const rx = cy, ry = 0, rz = sy;                          // right
-    const ux = ry * fz - rz * fy, uy = rz * fx - rx * fz, uz = rx * fy - ry * fx; // up = right x fwd
+    let ux = ry * fz - rz * fy, uy = rz * fx - rx * fz, uz = rx * fy - ry * fx; // up = right x fwd
+    // camera roll (cockpit view): the right side dips by cam.roll
+    let rxx = rx, ryy = ry, rzz = rz;
+    if (cam.roll) {
+      const cr = Math.cos(cam.roll), sr = Math.sin(cam.roll);
+      rxx = rx * cr - ux * sr; ryy = ry * cr - uy * sr; rzz = rz * cr - uz * sr;
+      const nux = ux * cr + rx * sr, nuy = uy * cr + ry * sr, nuz = uz * cr + rz * sr;
+      ux = nux; uy = nuy; uz = nuz;
+    }
     view.fill(0);
-    view[0] = rx; view[4] = ry; view[8] = rz;
+    view[0] = rxx; view[4] = ryy; view[8] = rzz;
     view[1] = ux; view[5] = uy; view[9] = uz;
     view[2] = -fx; view[6] = -fy; view[10] = -fz;
     view[15] = 1;
@@ -640,7 +648,7 @@ export async function createEngine(canvas, options = {}) {
     const f = frameF;
     f.set(viewProj, 0);
     f[16] = cam.x; f[17] = cam.y; f[18] = cam.z; f[19] = time;
-    f[20] = rx * tanX; f[21] = ry * tanX; f[22] = rz * tanX; f[23] = 0;
+    f[20] = rxx * tanX; f[21] = ryy * tanX; f[22] = rzz * tanX; f[23] = 0;
     f[24] = ux * tanY; f[25] = uy * tanY; f[26] = uz * tanY; f[27] = 0;
     f[28] = fx; f[29] = fy; f[30] = fz; f[31] = 0;
     const se = P.sunElev * D2R, sa = P.sunAzim * D2R;

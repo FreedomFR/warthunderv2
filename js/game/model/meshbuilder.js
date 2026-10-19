@@ -65,6 +65,18 @@ export class MeshBuilder {
     this.m = M4_ID.slice();
     this.ao = 1;
     this.groups = new Map();
+    this.solids = null;   // when an array: the bounding box [x0, x1, y0, y1, z0, z1] of every block, prism and cylinder (for placing cameras)
+  }
+
+  /** record the bounding box of a solid (through the current transform) in `solids` */
+  _track(x0, x1, y0, y1, z0, z1) {
+    const m = this.m;
+    let a = [1e9, 1e9, 1e9], c = [-1e9, -1e9, -1e9];
+    for (const x of [x0, x1]) for (const y of [y0, y1]) for (const z of [z0, z1]) {
+      const p = [m[0] * x + m[4] * y + m[8] * z + m[12], m[1] * x + m[5] * y + m[9] * z + m[13], m[2] * x + m[6] * y + m[10] * z + m[14]];
+      for (let i = 0; i < 3; i++) { if (p[i] < a[i]) a[i] = p[i]; if (p[i] > c[i]) c[i] = p[i]; }
+    }
+    this.solids.push([a[0], c[0], a[1], c[1], a[2], c[2]]);
   }
 
   // ---- transform stack ---------------------------------------------------------------------
@@ -167,6 +179,7 @@ export class MeshBuilder {
     const { x0, x1, hw, y0, y1 } = o;
     const tx0 = o.tx0 ?? x0, tx1 = o.tx1 ?? x1, thw = o.thw ?? hw;
     const zc = o.zc ?? 0, tzc = o.tzc ?? zc;
+    if (this.solids) this._track(Math.min(x0, tx0), Math.max(x1, tx1), y0, y1, Math.min(zc - hw, tzc - thw), Math.max(zc + hw, tzc + thw));
     const B0 = [x0, y0, zc - hw], B1 = [x1, y0, zc - hw], B2 = [x1, y0, zc + hw], B3 = [x0, y0, zc + hw];
     const T0 = [tx0, y1, tzc - thw], T1 = [tx1, y1, tzc - thw], T2 = [tx1, y1, tzc + thw], T3 = [tx0, y1, tzc + thw];
     const ref = [(x0 + x1 + tx0 + tx1) * 0.25, (y0 + y1) * 0.5, (zc + tzc) * 0.5];
@@ -218,6 +231,7 @@ export class MeshBuilder {
   prism(poly, y0, y1, col, mat = MAT.HULL, o = {}) {
     const n = poly.length;
     let cx = 0, cz = 0;
+    if (this.solids) this._track(Math.min(...poly.map((q) => q[0])), Math.max(...poly.map((q) => q[0])), y0, y1, Math.min(...poly.map((q) => q[1])), Math.max(...poly.map((q) => q[1])));
     for (const p of poly) { cx += p[0]; cz += p[1]; }
     cx /= n; cz /= n;
     const ts = o.topScale ?? 1;
@@ -251,6 +265,7 @@ export class MeshBuilder {
   cyl(cx, y0, cz, rx0, rz0, rx1, rz1, y1, col, mat = MAT.HULL, o = {}) {
     const seg = this._seg(o.seg || 16, Math.max(rx0, rz0, rx1, rz1));
     const dx = o.dx || 0, dz = o.dz || 0;
+    if (this.solids) this._track(cx - Math.max(rx0, rx1) + Math.min(0, dx), cx + Math.max(rx0, rx1) + Math.max(0, dx), y0, y1, cz - Math.max(rz0, rz1) + Math.min(0, dz), cz + Math.max(rz0, rz1) + Math.max(0, dz));
     const ao = o.ao ?? this.ao;
     const ring0 = [], ring1 = [];
     const h = y1 - y0;

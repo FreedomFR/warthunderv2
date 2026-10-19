@@ -91,7 +91,7 @@ export class PlaneVisuals {
       if (!lost.wingL) r.add(m.mesh.wingL, S32, tint, Math.max(dmg, 0.7), fire, rnd);
       if (!lost.wingR) r.add(m.mesh.wingR, S32, tint, Math.max(dmg, 0.7), fire, rnd);
     }
-    if (!lost || !lost.engine) {
+    if ((!lost || !lost.engine) && !p.inCockpit) {      // the propeller is not drawn from the pilot's seat: a frozen blade would hide the view
       mat4RotX(RX, p.spin || 0);
       mat4Mul(P64, S64, RX);
       for (let i = 0; i < 16; i++) P32[i] = P64[i];

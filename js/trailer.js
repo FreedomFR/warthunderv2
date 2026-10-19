@@ -195,6 +195,7 @@ export class Trailer {
     cam.yaw = Math.atan2(fx, -fz);
     cam.pitch = Math.asin(fy / Math.max(1e-6, Math.hypot(fx, fy, fz)));
     cam.fovY = (c.fov ?? 55) * D2R;
+    cam.roll = c.roll || 0;
     // explosion shake, deterministic
     const sh = this.g.effects.shake;
     if (sh > 0.002) { cam.yaw += (this.rng() - 0.5) * 0.004 * sh; cam.pitch += (this.rng() - 0.5) * 0.004 * sh; }

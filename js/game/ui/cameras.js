@@ -163,7 +163,7 @@ export class CameraRig {
     }
     let mode = this.mode;
     if (mode === 'auto') mode = this.updateAuto(dt);
-    let px, py, pz, yaw, pitch;
+    let px, py, pz, yaw, pitch, roll = 0;
     const tgt = this.target;
     const sm = this.smooth;
     switch (mode) {
@@ -196,7 +196,7 @@ export class CameraRig {
       case 'plane': case 'cockpit': {
         const r = this.computePlane(mode, dt);
         if (!r) { px = cam.x; py = cam.y; pz = cam.z; yaw = cam.yaw; pitch = cam.pitch; break; }
-        px = r.x; py = r.y; pz = r.z; yaw = r.yaw; pitch = r.pitch;
+        px = r.x; py = r.y; pz = r.z; yaw = r.yaw; pitch = r.pitch; roll = r.roll || 0;
         break;
       }
       case 'follow': case 'orbit': case 'bridge': case 'shell': {
@@ -209,13 +209,13 @@ export class CameraRig {
     }
     // light smoothing of the final pose (keeps cuts crisp, removes jitter)
     const hard = mode === 'free' || mode === 'tactical';
-    if (!sm.init || hard) { sm.x = px; sm.y = py; sm.z = pz; sm.yaw = yaw; sm.pitch = pitch; sm.init = true; }
+    if (!sm.init || hard) { sm.x = px; sm.y = py; sm.z = pz; sm.yaw = yaw; sm.pitch = pitch; sm.roll = roll; sm.init = true; }
     else {
       const k = 1 - Math.exp(-dt * (mode === 'shell' ? 14 : mode === 'cockpit' ? 40 : mode === 'plane' ? 12 : 9));
       sm.x += (px - sm.x) * k; sm.y += (py - sm.y) * k; sm.z += (pz - sm.z) * k;
-      sm.yaw += wrapPi(yaw - sm.yaw) * k; sm.pitch += (pitch - sm.pitch) * k;
+      sm.yaw += wrapPi(yaw - sm.yaw) * k; sm.pitch += (pitch - sm.pitch) * k; sm.roll += wrapPi(roll - (sm.roll || 0)) * k;
     }
-    cam.x = sm.x; cam.y = sm.y; cam.z = sm.z; cam.yaw = sm.yaw; cam.pitch = sm.pitch;
+    cam.x = sm.x; cam.y = sm.y; cam.z = sm.z; cam.yaw = sm.yaw; cam.pitch = sm.pitch; cam.roll = sm.roll || 0;
     // stay above the sea
     const wh = this.engine.water.camH || 0;
     if (cam.y < wh + 1.2) cam.y = wh + 1.2;
@@ -246,9 +246,9 @@ export class CameraRig {
       return this.lookAt(cx, cy, cz, ship.x, ship.model.topY * 0.35, ship.z);
     }
     if (mode === 'bridge') {
-      const b = ship.model.bridge || { x: L * 0.2, y: ship.model.topY * 0.6 };
+      const b = ship.model.bridge || { x: L * 0.2, y: ship.model.topY * 0.6, z: 0 };
       const p = [0, 0, 0];
-      ship.toWorld(b.x + 5, b.y + 1.0, 0, p);
+      ship.toWorld(b.x, b.y, b.z || 0, p);
       return { x: p[0], y: p[1] + (this.engine.water.camH || 0) * 0, z: p[2], yaw: hs + this.bridge.yaw, pitch: this.bridge.pitch + ship.pitch * 0.5 };
     }
     // shell cam
@@ -367,11 +367,18 @@ export class CameraRig {
     const sh = Math.sin(p.heading), ch = Math.cos(p.heading), cp = Math.cos(p.pitch), sp = Math.sin(p.pitch);
     const fx = sh * cp, fy = sp, fz = -ch * cp;                      // flight direction
     if (mode === 'cockpit') {
-      const yaw = p.heading + pc.look.yaw, pitch = clamp(p.pitch + pc.look.pitch, -1.45, 1.45);
-      // the pilot's eye: above the seat, in the canopy
-      const cn = p.spec.canopy[0], ry0 = p.spec.fus.r * p.spec.fus.ar;
-      const ex = (cn.x0 + (cn.x1 - cn.x0) * 0.55), ey = ry0 * 0.78 + cn.h * 0.85;
-      return { x: p.x + fx * ex - Math.sin(p.heading) * 0, y: p.y + ey * Math.cos(p.pitch) + fy * ex, z: p.z + fz * ex, yaw, pitch };
+      // the pilot's eye: at the front of the canopy, high (over the cowling); a biplane's pilot looks over the upper wing. The view banks with the aircraft.
+      const pitchA = p.pitch + (p.aoa || 0), bank = p.bank || 0;
+      const yaw = p.heading + pc.look.yaw, pitch = clamp(pitchA + pc.look.pitch, -1.45, 1.45);
+      const sp0 = p.spec, cn = sp0.canopy[0], ry0 = sp0.fus.r * sp0.fus.ar;
+      const ex = cn.x0 + 0.2;
+      let ey = ry0 * 0.78 + cn.h * 1.05;
+      if (sp0.kind === 'bi') ey = Math.max(ey, sp0.wing.gap * 0.55 + sp0.wing.t + 0.35);
+      // the eye in the aircraft's frame (x forward, y up, z starboard) -> world: pitch, then bank about the flight axis
+      const cpA = Math.cos(pitchA), spA = Math.sin(pitchA), cb = Math.cos(bank), sb = Math.sin(bank);
+      const ux = -sh * spA * cb + ch * sb, uy = cpA * cb, uz = ch * spA * cb + sh * sb;      // aircraft up
+      const f2 = [sh * cpA, spA, -ch * cpA];
+      return { x: p.x + f2[0] * ex + ux * ey, y: p.y + f2[1] * ex + uy * ey, z: p.z + f2[2] * ex + uz * ey, yaw, pitch, roll: bank };
     }
     pc.t += dt;
     const zoom = pc.zoom;
@@ -395,17 +402,17 @@ export class CameraRig {
         pc.fix = { x: p.x + fx * lead + ch * side * off, y: Math.max(p.y + fy * lead * 0.5 + 5, 6), z: p.z + fz * lead + sh * side * off, age: 0 };
       }
       pc.fix.age += dt;
-      this.fovWant = 40 * D2R;
+      this.fovWant = 30 * D2R;
       return this.lookAt(pc.fix.x, pc.fix.y, pc.fix.z, p.x + fx * 3, p.y, p.z + fz * 3);
     }
     // 'victim': from the deck of the ship the aircraft is attacking
     const tgt = p.target && p.target.state !== 'sunk' ? p.target : null;
     if (tgt) {
-      const b = tgt.model.bridge || { x: 0, y: tgt.model.topY * 0.6 };
+      const b = tgt.model.bridge || { x: 0, y: tgt.model.topY * 0.6, z: 0 };
       const q = [0, 0, 0];
-      tgt.toWorld(b.x + 3, b.y + 2, 0, q);
+      tgt.toWorld(b.x, b.y + 1, b.z || 0, q);
       const dist = Math.hypot(p.x - q[0], p.y - q[1], p.z - q[2]);
-      this.fovWant = clamp(dist * 0.013, 16, 52) * D2R;
+      this.fovWant = clamp(dist / 150, 8, 50) * D2R;       // narrow enough to see the aircraft at a distance
       return this.lookAt(q[0], q[1], q[2], p.x, p.y, p.z);
     }
     pc.view = 'chase';
