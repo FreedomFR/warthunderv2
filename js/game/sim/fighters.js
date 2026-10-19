@@ -3,6 +3,7 @@
 // closes on it with lead pursuit and fires its machine guns in bursts; the rear gunners of the bombers shoot back. When it has no ammunition left,
 // is badly hurt or short of fuel it goes home and lands like the others (sim/aircraft.js, sim/deck.js).
 import { clamp, wrapPi, D2R } from '../math.js';
+import { aaSources, exposure } from './routing.js';
 
 export const FIGHT_PHASES = new Set(['escort', 'cap', 'engage']);
 const STRIKE = new Set(['cruise', 'ip', 'run', 'rollin', 'dive', 'pullout', 'break', 'egress']);
@@ -36,6 +37,8 @@ function value(world, p, q, d, anchor) {
     else if (anchor && Math.hypot(q.x - anchor.x, q.z - anchor.z) < 2500) sc += 2.5;
   }
   for (const f of world.planes) if (f !== p && f.fighter && f.prey === q && !f.dying) sc -= 1.8;      // two on one is enough
+  // nobody likes to follow his prey into the guns of its friends
+  if (!q.fighter && q.y < 2500) sc -= 2.2 * exposure(p._srcs || (p._srcs = aaSources(world, p.team, 0)), q.x, q.z, q.y < 1500);
   return sc;
 }
 
@@ -70,6 +73,7 @@ export function fighterSteer(world, p, dt, ctx) {
   if (p.prey && (p.prey.dying || p.prey.gone || p.prey.hidden || p.prey.y < 8)) { p.prey = null; p.preyT = 0; }
   if (p.preyT <= 0) {
     p.preyT = 0.8 + world.rng() * 0.6;
+    p._srcs = null;
     const detect = p.phase === 'engage' ? 8500 : p.role === 'escort' ? 4800 : 15000;
     let best = null, bs = -1e9;
     for (const q of hostiles(world, p)) {
@@ -194,5 +198,14 @@ export function bomberDefense(world, dt, ctx) {
     world.events.push({ type: 'mgFire', plane: b, target: f, x: b.x - fx * 3, y: b.y + 0.9, z: b.z - fz * 3, dx: dx / bd, dy: dy / bd, dz: dz / bd, range: bd });
     const pHit = clamp(0.42 - bd / 1300, 0.02, 0.4) * (f.evade > 0 ? 0.6 : 1);
     if (world.rng() < dt * 2.4 * pHit) ctx.hit(world, b.owner, f, 0.2 + world.rng() * 0.1, 7.7, 'gunner');
+  }
+}
+
+/** The bombers that enemy fighters are after, for a few seconds: they may take shelter under the guns of friendly ships (sim/aircraft.js, phase 'refuge'). */
+export function markHunted(world) {
+  for (const f of world.planes) {
+    const q = f.prey;
+    if (!f.fighter || !q || f.dying || q.fighter || q.dying) continue;
+    if (Math.hypot(q.x - f.x, q.z - f.z) < 1800) q.hunted = 3;
   }
 }

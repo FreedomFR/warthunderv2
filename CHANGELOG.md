@@ -24,6 +24,10 @@
   armed ship is also a better target than one in the middle of the screen. In twelve simulated battles 57 % of the bombers reach their release point against 45 % when they come in on the direct bearing.
 - **The bombers defend themselves**: every bomber with a rear gunner (all the torpedo bombers, the two- and three-seat dive bombers) fires at the nearest enemy fighter within 520 m in the rear half-space, tracers
   and sound included; the aircraft of a tight section cover each other (the old rule only let the bomber that was being attacked fire back).
+- **Shelter under the guns of friendly ships**: a bomber that enemy fighters are hunting on its way home (egress or return, enough fuel) circles round the friendly ship with the most anti-aircraft guns within 28 km
+  (a ring of 1.1 km, 350 m up, within reach of its light guns) until the fighters have given up or been shot down (15 s without a hunter), then goes on home. The ship's AA fires at the fighters that follow
+  (they were already targets); and a fighter hesitates to follow its prey into the guns of the friends: the AA the prey would fly through counts against it when it picks its target. In my simulations few bombers
+  are still alive and hunted on the way home (7 of about 500), so it is a small effect.
 - **The escort protects**: an escort fighter goes first for the enemy fighters that are after the bombers it covers (a fighter whose prey is one of them, or already within 2.5 km of them), does not chase further
   than 7.5 km from them and goes back to its station (weaving over a narrower track). With the escort 57 % of the bombers reach their release point, without it 45 %.
 - Circuit: the aircraft only turn in when they are on the downwind line, on the opposite course (they used to turn from any position and roll out far off the centre line, then go round again); the downwind

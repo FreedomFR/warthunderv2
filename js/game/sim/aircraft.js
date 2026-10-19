@@ -5,8 +5,8 @@
 import { clamp, wrapPi, approach, D2R, G } from '../math.js';
 import { planeTypeFor, PLANES, groundY, GROUND_PITCH, hookBack } from '../model/planes.js';
 import { AA, FLAK_RANGE } from './aadata.js';
-import { chooseApproach, aaSources, density } from './routing.js';
-import { fighterSteer, fighterFields, bomberDefense, FIGHT_PHASES } from './fighters.js';
+import { chooseApproach, aaSources, density, refugeShip } from './routing.js';
+import { fighterSteer, fighterFields, bomberDefense, markHunted, FIGHT_PHASES } from './fighters.js';
 import { deckOf, planLaunch, settleService, beginRecovery, launching, stepDeck, stepDeckShip, touchdown, clearToLand, deckClearFor, DECK_PHASES } from './deck.js';
 import { segmentNearShip, segmentHit, resolveBombHit, resolveNearMiss, resolveCrashHit } from './damage.js';
 import { spawnPlaneDebris, spawnScrap } from './debris.js';
@@ -108,6 +108,7 @@ export function updateAir(world, dt) {
   launches(world, dt);
   for (const ship of world.ships) if (ship.air && ship.alive) stepDeckShip(world, ship, dt);
   flight(world, dt);
+  markHunted(world);
   bomberDefense(world, dt, FIGHT_CTX);
   updateAA(world, dt);
   stepBombs(world, dt);
@@ -306,6 +307,9 @@ function stepPlane(world, p, dt) {
   }
   if (p.fuel < 0 && p.phase !== 'ditch' && p.phase !== 'floating' && p.phase !== 'final' && p.phase !== 'pattern' && p.phase !== 'waveoff' && p.phase !== 'return') p.phase = 'return';
   const carrierOk = ship && ship.alive && !ship.deckWrecked;
+  // a bomber that fighters are hunting on its way home takes shelter under the guns of the nearest friendly ships
+  p.hunted = Math.max(0, (p.hunted || 0) - dt);
+  if (p.hunted > 0 && !p.fighter && (p.phase === 'egress' || p.phase === 'return') && p.fuel > 200) { p.phase = 'refuge'; p.calm = 0; p.refuge = null; p.dirOrbit = world.rng() < 0.5 ? -1 : 1; }
   if (p.gearDown && p.age > p.t0Air + 3 && p.phase !== 'pattern' && p.phase !== 'final' && p.phase !== 'waveoff') p.gearDown = false;
   // the hook is lowered with the gear for the landing; the nose is held high on the approach
   const landing = p.phase === 'pattern' || p.phase === 'final' || (p.phase === 'waveoff' && p.t < 9);
@@ -314,6 +318,23 @@ function stepPlane(world, p, dt) {
 
   let hdg = p.heading, gam = 0, spd = V_CRUISE, o = {};
   switch (p.phase) {
+    case 'refuge': {
+      // circle round a friendly ship (a ring of 1.1 km, 350 m up, within the reach of its light guns) until the fighters give up or are shot down
+      p.refT = (p.refT || 0) - dt;
+      if (!p.refuge || !p.refuge.alive || p.refT <= 0) { p.refT = 3; p.refuge = refugeShip(world, p.team, p.x, p.z); }
+      const c = p.refuge;
+      if (!c || p.fuel < 150) { p.phase = 'return'; break; }
+      p.calm = p.hunted > 0 ? 0 : (p.calm || 0) + dt;
+      if (p.calm > 15) { p.phase = 'return'; break; }
+      const R = 1100, rx = p.x - c.x, rz = p.z - c.z, rl = Math.hypot(rx, rz) || 1;
+      const dir = p.dirOrbit || 1, k = clamp((R - rl) / R * 1.6, -1.2, 1.2);
+      let vx = dir * rz / rl + rx / rl * k, vz = -dir * rx / rl + rz / rl * k;
+      const vl = Math.hypot(vx, vz) || 1;
+      vx = vx / vl * 62 + c.vx; vz = vz / vl * 62 + c.vz;
+      hdg = Math.atan2(vx, -vz); spd = Math.hypot(vx, vz); o = { bankMax: 50 * D2R };
+      gam = clamp((350 - p.y) / 400, -0.1, 0.08);
+      break;
+    }
     case 'escort': case 'cap': case 'engage': {
       const r = fighterSteer(world, p, dt, FIGHT_CTX);
       hdg = r.hdg; gam = r.gam; spd = r.spd; o = r.o;

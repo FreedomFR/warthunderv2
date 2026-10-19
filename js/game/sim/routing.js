@@ -7,11 +7,11 @@ import { AA } from './aadata.js';
 
 const R_LIGHT = 3200, R_HEAVY = 7000;
 
-/** The enemy anti-aircraft strength, ship by ship: { ship, x, z, light, heavy } (light: hits a second; heavy: flak guns). */
-export function aaSources(world, team, ahead = 20) {
+/** The anti-aircraft strength of the ships of the other teams (of `team` itself when own is true), ship by ship: { ship, x, z, light, heavy } (light: hits a second; heavy: flak guns). */
+export function aaSources(world, team, ahead = 20, own = false) {
   const out = [];
   for (const s of world.ships) {
-    if (s.team === team || !s.alive) continue;
+    if ((s.team === team) !== own || !s.alive) continue;
     let light = 0, heavy = 0;
     for (const a of s.aaMounts) if (a.alive && a.ammo > 0) { const c = AA[a.rec.variant]; if (c) light += c.dps / c.hit * a.rec.n * 0.5; }
     for (const m of s.mounts) if (m.group === 'sec' && m.alive && m.gun.cal <= 140 && m.gun.maxElevDeg >= 55 && !m.noAmmo) heavy += m.n * 0.12;
@@ -67,4 +67,19 @@ export function chooseApproach(world, team, from, target, kind, taken = []) {
     if (!best || cost < best.cost) best = { a, cost, k };
   }
   return best.a;
+}
+
+/**
+ * The friendly ship an aircraft that is being hunted should circle round: the one with the most anti-aircraft guns within 28 km (the nearer the better).
+ * Returns null when there is none.
+ */
+export function refugeShip(world, team, x, z) {
+  let best = null, bs = 0;
+  for (const q of aaSources(world, team, 0, true)) {
+    const d = Math.hypot(q.x - x, q.z - z);
+    if (d > 28000) continue;
+    const sc = (q.light + q.heavy * 1.5 + 0.15) / (1 + d / 9000);
+    if (sc > bs) { bs = sc; best = q.ship; }
+  }
+  return best;
 }

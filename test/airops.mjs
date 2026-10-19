@@ -102,6 +102,22 @@ const run = (w, secs, f) => { const n = Math.round(secs / 0.1); for (let i = 0; 
   ok(escortKills + fromGunners > 0, `fighters shot down by fighters (${escortKills}) or by gunners (${fromGunners})`);
 }
 
+// ---- a bomber that fighters are hunting takes shelter under the guns of the friendly ships ----
+{
+  const w = setup('essex:1,cleveland:2,fletcher:2', 'shokaku:1,agano:2', 21, 60000);
+  let b = null;
+  run(w, 300, () => { b = w.planes.find((q) => !q.fighter && q.phase === 'cruise' && q.y > 100); if (b) return false; });
+  ok(!!b, 'a bomber is in the air');
+  if (b) {
+    b.phase = 'return'; b.ordnance = false;
+    let refuge = false, near = 1e9;
+    run(w, 40, () => { b.hunted = 3; if (b.phase === 'refuge') { refuge = true; for (const s of w.ships) if (s.team === b.team) near = Math.min(near, Math.hypot(s.x - b.x, s.z - b.z)); } });
+    ok(refuge && near < 2500, `hunted, it circles round a friendly ship (${near.toFixed(0)} m from the nearest)`);
+    run(w, 40);
+    ok(b.phase !== 'refuge' || b.gone, `and goes home when the fighters have gone (${b.phase})`);
+  }
+}
+
 // ---- light AA spends its rounds ----
 {
   const w = setup('essex:1,cleveland:2,fletcher:2', 'shokaku:1,agano:2,kagero:2', 25, 14000);
