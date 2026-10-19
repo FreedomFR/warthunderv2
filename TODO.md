@@ -48,22 +48,22 @@ Lot 2 (cuirassés et porte-avions des autres nations) : **fait, avec des réserv
 - [ ] **King George V** : DCA légère non mesurée (placement aléatoire), décalage transversal des arbres estimé ; le plan est protégé (© de l'auteur) : ne pas le redistribuer, ne pas le mettre dans le dépôt ; demander l'accord de l'auteur si le jeu devient public.
 - [ ] **Richelieu, Littorio** : pas de vue de dessus du Richelieu (coupe centrale) ; largeurs de coque estimées ; pièces hors de l'axe estimées.
 - [ ] **Shōkaku, Illustrious** : vue de dessus du Shōkaku à comparer en retirant les tubs de DCA ; pas de plan de l'Illustrious à l'échelle (la vue de dessus de la feuille est trop petite).
-- [ ] **Autres porte-avions et classes** : voir le tableau ci-dessous ; les croiseurs sont faits ; les destroyers restent à faire.
+- [ ] **Autres porte-avions et classes** : voir le tableau ci-dessous ; les croiseurs et les destroyers sont faits.
 
 | Nation | Destroyer | Croiseur léger | Croiseur lourd | Cuirassé | Porte-avions |
 |---|---|---|---|---|---|
-| États-Unis | Fletcher (5"/38 Mk 30 déjà) | **Cleveland ✔** | **Baltimore ✔** | **Iowa ✔** | **Essex ✔** |
-| Japon | Kagerō | **Agano ✔** | **Takao ✔** | **Yamato ✔** | **Shōkaku ✔** |
-| Royaume-Uni | Tribal | **Belfast ✔** (planche Profile Publications) | **Norfolk ✔** (notice Hasegawa 1/700) | **King George V ✔** | **Illustrious ✔** |
-| Allemagne | Type 1936A (Mob) | **Königsberg ✔** | **Admiral Hipper ✔** | **Bismarck ✔** | **Graf Zeppelin ✔** |
-| France | Le Fantasque | **La Galissonnière ✔** | **Algérie ✔** | **Richelieu ✔** | **Béarn ✔** (photo) |
-| Italie | Soldati | **Montecuccoli ✔** | **Zara ✔** | **Littorio ✔** | **Aquila ✔** |
+| États-Unis | **Fletcher ✔** | **Cleveland ✔** | **Baltimore ✔** | **Iowa ✔** | **Essex ✔** |
+| Japon | **Kagerō ✔** | **Agano ✔** | **Takao ✔** | **Yamato ✔** | **Shōkaku ✔** |
+| Royaume-Uni | **Tribal ✔** | **Belfast ✔** (planche Profile Publications) | **Norfolk ✔** (notice Hasegawa 1/700) | **King George V ✔** | **Illustrious ✔** |
+| Allemagne | **Type 1936A (Mob) ✔** (petit trois-vues) | **Königsberg ✔** | **Admiral Hipper ✔** | **Bismarck ✔** | **Graf Zeppelin ✔** |
+| France | **Le Fantasque ✔** | **La Galissonnière ✔** | **Algérie ✔** | **Richelieu ✔** | **Béarn ✔** (photo) |
+| Italie | **Soldati ✔** | **Montecuccoli ✔** | **Zara ✔** | **Littorio ✔** | **Aquila ✔** |
 
 - [x] **Porte-avions restants** : Graf Zeppelin (feuille ONI 204, reconstruction), Aquila (dessin partagé, auteur inconnu : mesures seulement), Béarn (photo de 1927, ±1,5 m, pas de plan).
 - [ ] **Béarn** : trouver un plan ; coque générique, ascenseurs et casemates de 155 mm estimés. **Graf Zeppelin** : le pont est mesuré mais l'îlot reste approximatif (feuille de 1942, pas de plan de construction).
 - [ ] **Avions** : les empennages étaient deux fois trop petits (corrigé) ; SBD, B5N, Skua, TBF et D3A comparés à leurs dessins, Swordfish, Stuka (empennage mesuré), Fi 167, LN.401 (double dérive) et Re.2001 corrigés ; PL.10 : le trois-vues fourni a des proportions (longueur / envergure 0,68) qui ne correspondent pas à la fiche (0,77), identité à confirmer ; LN.401, PL.10 et Re.2001 restent à comparer (dessins fournis par le propriétaire du projet : © éditeur, mesures seulement) (empennage estimé à 0,33 de l'envergure) ; profils (hauteur) non vérifiés (les dessins ont des fils et des roues qui faussent la boîte englobante).
 - [ ] **Croiseurs (lot 4)** : *Cleveland*, *Baltimore*, *Agano*, *Belfast* et *Norfolk* sont mesurés sur des dessins partagés (Colosseum, Pit-Road, Shipbucket, TZoli, Profile Publications, Hasegawa : © de leurs auteurs, mesures seulement, non redistribués ; à contacter si le jeu devient public). *Norfolk* et *Algérie*, *La Galissonnière* : dessins de 2-5 px/m (±0,6 à 1 m). Positions des 127 mm, 100 mm, 90 mm, 102 mm et de la DCA légère estimées, sauf *Baltimore* (plan TZoli), *Zara* et *Algérie* (plan ONI).
-- [ ] **Priorité proposée** : destroyers.
+- [ ] **Destroyers (lot 5)** : *Fletcher*, *Tribal*, *Mob* sont mesurés sur des dessins partagés (© de leurs auteurs, mesures seulement, non redistribués) ; *Kagerō* sur un dessin CC BY-SA 4.0 ; *Le Fantasque* sur une feuille partagée (profil + plan, ±0,5 m) ; *Soldati* sur un petit dessin partagé (±0,6 m) ; tubes du *Fantasque* lus sur le plan mais les affûts de bord sont dessinés sur l'axe.
 - [ ] Pour chaque classe : chercher les plans libres (`tools/refs/search.py`, feuilles ONI sur Commons), créer les familles de tourelles manquantes, refaire les superstructures, la livrée d'époque.
 - [ ] Contrôler chaque tir en plein jeu (scène `firetest` : `node tools/trailer/record.mjs firetest <dossier> --q ship=<id>`).
 - [ ] *Graf Zeppelin* et *Aquila* n'ont jamais été achevés : décider quelle configuration de projet représenter.

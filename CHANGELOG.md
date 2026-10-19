@@ -1,5 +1,28 @@
 # Changelog
 
+## Unreleased — fidelity batch 5 (the destroyers: Fletcher, Kagero, Tribal, Type 1936A, Le Fantasque, Soldati)
+
+- **Fletcher**: a profile / plan / lines sheet with a 20 m scale bar, shared by the project owner (a monograph; copyright, measurements only). Flush deck from 6.8 m at the stem to 3.0 m aft, the
+  5 in mounts at 0.177 / 0.238 / 0.679 / 0.754 / 0.831 (the spec had 0.10 / 0.165 / 0.66 / 0.78 / 0.885), the bridge block, pole mast (28.7 m), funnels at 0.419 / 0.534, quintuple tubes at
+  0.465 / 0.585, the after structure with its Bofors platform, a screw and a rudder. Plan 0.2 m; profile figure dominated by the rigging drawn on the sheet. `mk30` lowered (superfiring on a
+  1.7 m base, not 2.4 m).
+- **Kagero**: the Commons outline drawing (MacMoreno, CC BY-SA 4.0, scaled to the length): forecastle 5.3 m stepping down at f 0.31-0.33, A at 0.152 and X / Y at 0.730 / 0.800 (the spec had
+  0.13 / 0.76 / 0.87), bridge to 12.5 m, pole foremast (23.7 m), funnels at 0.373 / 0.517 (the big forward one 12.3 m), tubes at 0.45 / 0.60 (the spec had 0.58 / 0.67), the long deckhouse, screw and
+  rudder; new `type3_127` family. Plan 0.1 m.
+- **Tribal**: the TZoli profile and plan (shared by the project owner, copyright, measurements only): forecastle 6.3 m ending at f 0.455, A / B at 0.177 / 0.254 and X / Y at 0.808 / 0.905
+  (the spec had 0.115 / 0.185 / 0.775 / 0.86), the bridge block with the director, the leaning lattice radar mast (29.4 m), funnels at 0.448 / 0.57, the long after deckhouse with the pom-pom;
+  new `brit120` family. Profile 1.7 m, plan 0.2 m.
+- **Type 1936A (Mob)**: a small coloured 3-view (shared by the project owner; about +-0.8 m): the single 15 cm guns at 0.76 / 0.81 / 0.868 and the Drh LC/38 twin at 0.19, funnels at 0.374 /
+  0.505, tubes at 0.45 / 0.64 (the spec had both abaft the funnels), the bridge block and mast (28.7 m); new `de150_2` / `de150_1` families (`mainVariant` can now be an object keyed by the number
+  of guns). Profile 2.2 m, plan 0.2 m.
+- **Le Fantasque**: a profile and plan with a scale in feet (434 ft 5 in), shared by the project owner (source unknown, measurements only): forecastle 7.6 m at the stem, 6.8 m at f 0.3,
+  4.4 m aft of f 0.45; the 138.6 mm single mounts at 0.17 / 0.207 / 0.757 / 0.855 / 0.883 (the spec had 0.10 / 0.17 / 0.66 / 0.80 / 0.88), the stepped bridge block (to 16 m), a pole foremast (26.6 m),
+  funnels at 0.375 / 0.611, the after deckhouse with its director tower; new `fr138` family. Profile 1.6 m, plan 0.7 m (the drawing is hatched and about 10 % too wide: normalised).
+- **Soldati**: a profile and plan of the Camicia Nera shared by the project owner (a small line drawing, source unknown, measurements only; scaled to the length, about +-0.6 m): forecastle 4.5 m at the
+  stem down to a 1.4 m quarterdeck abaft f 0.88, the twin turrets at 0.218 / 0.83 (the spec had 0.14 / 0.84), the bridge block (to 13.8 m), a raked foremast (23 m), the big funnel at 0.445,
+  the triple tubes at 0.62 / 0.73 round the star-shell gun at 0.677 (the spec had 0.56 / 0.70 and 0.63), the raked mainmast (17.5 m), screw and rudder; new `it120` family. Profile 1.4 m; the
+  outline-only plan cannot be compared by silhouette, its half-breadths were read by hand.
+
 ## Unreleased — fidelity batch 4 (the cruisers)
 
 Every ship below was measured on a drawing (profile and, when there is one, plan view), compared with `tools/refs/check.mjs` + `silhouette.py` in

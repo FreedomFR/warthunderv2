@@ -379,7 +379,7 @@ export function buildShipModel(spec, tw = {}) {
       const x = X(m.fractionFromBow), deckY = Y(x);
       const lvl = m.level || 0;
       const sideZ = m.z ?? 0;
-      const variant = tw.mainVariant;
+      const variant = tw.mainVariant && typeof tw.mainVariant === 'object' ? tw.mainVariant[m.guns] : tw.mainVariant;   // an object picks the family by the number of guns
       const dm = mountDims({ kind: mainKind, cal: mainCal, n: m.guns, bore: spec.main.boreCalibers, variant });
       const bh = m.barbM ?? dm.barb ?? barbH;   // m.barbM: this mount's barbette height above the deck, measured on the plan
       let pivot = deckY + bh;
