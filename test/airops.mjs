@@ -130,3 +130,23 @@ const run = (w, secs, f) => { const n = Math.round(secs / 0.1); for (let i = 0; 
   ok(spent > 0 && fr < 1, `the AA guns have fired ${Math.round(spent)} rounds in the raids (the emptiest ship is down to ${Math.round(fr * 100)} %)`);
 }
 console.log(fail ? `${fail} check(s) failed` : 'all air operation checks OK');
+
+// ---- a section with fighters on it closes up, and opens out again afterwards ----
+{
+  const w = setup('essex:1,cleveland:2,fletcher:2', 'shokaku:1,agano:2', 21, 70000);
+  let sec = null;
+  const spread = (s) => { const m = s.members.filter((q) => q.phase === 'cruise' && !q.dying && !q.gone); const l = m[0]; return m.length < 3 ? 1e9 : m.slice(1).reduce((a, q) => a + Math.hypot(q.x - l.x, q.z - l.z), 0) / (m.length - 1); };
+  run(w, 400, () => {
+    for (const p of w.planes) if (p.sec && !p.fighter && p.phase === 'cruise' && spread(p.sec) < 120 && w.time - (p.sec.t0 ?? w.time) > 20) { sec = p.sec; return false; }
+  });
+  ok(!!sec, 'a section is formed up and flying');
+  if (sec) {
+    const before = spread(sec);
+    run(w, 40, () => { for (const m of sec.members) m.hunted = 3; });
+    const tight = spread(sec);
+    run(w, 40);
+    const after = spread(sec);
+    ok(tight < before * 0.8, `hunted, the section closes up (${before.toFixed(0)} m -> ${tight.toFixed(0)} m mean distance to the leader)`);
+    ok(after > tight * 1.2 || after === 1e9, `and opens out again when the fighters have gone (${after === 1e9 ? 'attack' : after.toFixed(0) + ' m'})`);
+  }
+}

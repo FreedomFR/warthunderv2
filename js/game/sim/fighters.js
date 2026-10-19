@@ -196,7 +196,8 @@ export function bomberDefense(world, dt, ctx) {
     if (!b.gunFiring) world.events.push({ type: 'mgBurst', plane: b, x: b.x, y: b.y, z: b.z });
     b.gunFiring = true;
     world.events.push({ type: 'mgFire', plane: b, target: f, x: b.x - fx * 3, y: b.y + 0.9, z: b.z - fz * 3, dx: dx / bd, dy: dy / bd, dz: dz / bd, range: bd });
-    const pHit = clamp(0.42 - bd / 1300, 0.02, 0.4) * (f.evade > 0 ? 0.6 : 1);
+    // in a closed-up section the fields of fire overlap: every gunner has a neighbour covering the same sky
+    const pHit = clamp(0.42 - bd / 1300, 0.02, 0.4) * (f.evade > 0 ? 0.6 : 1) * (b.tight && b.phase === 'cruise' ? 1.4 : 1);
     if (world.rng() < dt * 2.4 * pHit) ctx.hit(world, b.owner, f, 0.2 + world.rng() * 0.1, 7.7, 'gunner');
   }
 }

@@ -24,6 +24,8 @@
   armed ship is also a better target than one in the middle of the screen. In twelve simulated battles 57 % of the bombers reach their release point against 45 % when they come in on the direct bearing.
 - **The bombers defend themselves**: every bomber with a rear gunner (all the torpedo bombers, the two- and three-seat dive bombers) fires at the nearest enemy fighter within 520 m in the rear half-space, tracers
   and sound included; the aircraft of a tight section cover each other (the old rule only let the bomber that was being attacked fire back).
+- **Closing up under attack**: when enemy fighters are on one aircraft of a section, the whole section tightens its formation to 55 % of the usual spacing (about 22 m abeam, 50 m astern), easing in over a few seconds, and
+  its gunners' fields of fire overlap (hits 40 % likelier); it opens out again once the fighters have gone, and the attack run itself is unchanged. AA damage against aircraft is untouched.
 - **Shelter under the guns of friendly ships**: a bomber that enemy fighters are hunting on its way home (egress or return, enough fuel) circles round the friendly ship with the most anti-aircraft guns within 28 km
   (a ring of 1.1 km, 350 m up, within reach of its light guns) until the fighters have given up or been shot down (15 s without a hunter), then goes on home. The ship's AA fires at the fighters that follow
   (they were already targets); and a fighter hesitates to follow its prey into the guns of the friends: the AA the prey would fly through counts against it when it picks its target. In my simulations few bombers

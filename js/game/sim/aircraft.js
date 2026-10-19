@@ -70,11 +70,12 @@ function placeOf(p) {
   return { rank, pos: rank % 3, row: Math.floor(rank / 3) };
 }
 /** where a follower holds in the leader's frame: [metres astern, metres to starboard, metres of height] */
-function slotOffset(kind, pl) {
+function slotOffset(kind, pl, k = 1) {
   const side = pl.pos === 0 ? 0 : pl.pos === 1 ? 1 : -1;
   const sp = kind === 'torp' ? 52 : 40;
-  return [-(pl.row * 90 + (pl.pos ? 38 : 0)), side * sp, pl.pos === 0 ? 0 : -6 * pl.pos];
+  return [-(pl.row * 90 + (pl.pos ? 38 : 0)) * k, side * sp * k, pl.pos === 0 ? 0 : -6 * pl.pos];
 }
+const TIGHT = 0.55;                     // the spacing of a section that closes up under attack, against the loose one
 const SECTION_SPREAD = 0.72;            // rad between the approach bearings of the torpedo sections
 
 function bestTarget(world, team, fromX, fromZ) {
@@ -347,9 +348,15 @@ function stepPlane(world, p, dt) {
       // the strike is looked over once, 16 km from the target: too few left and it turns back, few left and it closes up
       if (range < 16000 && !p.wave.assessed && (p.wave.launched >= p.wave.n || world.time - p.wave.t0 > 150)) assessWave(world, p.wave);
       if (p.wave.aborted) { p.phase = 'return'; break; }
+      // a section with enemy fighters on one of its aircraft closes up (the gunners cover each other), and opens out again when they have gone
+      if (sec) {
+        const want = sec.members.some((m) => live(m) && m.hunted > 0) ? TIGHT : 1;
+        p.tightF = (p.tightF ?? 1) + (want - (p.tightF ?? 1)) * Math.min(1, dt * 0.5);
+        p.tight = p.tightF < 0.8;
+      }
       // ---- in formation behind the leader ----
       if (sec && lead && lead !== p && airborne(lead) && lead.phase === 'cruise') {
-        const pl = placeOf(p), so = slotOffset(p.kind, pl);
+        const pl = placeOf(p), so = slotOffset(p.kind, pl, p.tightF ?? 1);
         const fx = Math.sin(lead.heading), fz = -Math.cos(lead.heading), rx = Math.cos(lead.heading), rz = Math.sin(lead.heading);
         const sx = lead.x + fx * so[0] + rx * so[1], sz = lead.z + fz * so[0] + rz * so[1];
         const ex = sx + lead.vx * 1.2 - p.x, ez = sz + lead.vz * 1.2 - p.z;
