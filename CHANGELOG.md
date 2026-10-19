@@ -1,6 +1,14 @@
 # Changelog
 
-## Unreleased — fidelity batch 5 (the destroyers: Fletcher, Kagero, Tribal, Type 1936A, Le Fantasque, Soldati)
+## 0.1.0 — every ship and aircraft measured on plans (19 October 2026)
+
+All 30 ships and all the aircraft were compared with period drawings (ONI sheets, Commons drawings, plans shared by the project owner) in metres and corrected, in five
+batches (below): positions of turrets, torpedo mounts, funnels and masts were often 10-40 m off in 0.0.1; hulls, decks, superstructures, funnels, masts, screws, rudders,
+catapults and cranes follow the plans; new turret families measured per gun type; new muzzle blast and gunfire effects; aircraft tailplanes were half the real size. New tools:
+`tools/refs` (`check.mjs`, `silhouette.py`, `hull.py`, `grid.py`, `fit_decks.py`). A new trailer, `docs/trailer-v0.1.0.mp4`, and a side-by-side comparison with the 0.0.1 one,
+`docs/comparatif-0.0.1-0.1.0.mp4` (the 0.0.1 scenes re-recorded with the 0.1.0 game, same seeds, side by side with the original trailer). The 0.0.1 trailer is kept.
+
+### Batch 5 (the destroyers: Fletcher, Kagero, Tribal, Type 1936A, Le Fantasque, Soldati)
 
 - **Fletcher**: a profile / plan / lines sheet with a 20 m scale bar, shared by the project owner (a monograph; copyright, measurements only). Flush deck from 6.8 m at the stem to 3.0 m aft, the
   5 in mounts at 0.177 / 0.238 / 0.679 / 0.754 / 0.831 (the spec had 0.10 / 0.165 / 0.66 / 0.78 / 0.885), the bridge block, pole mast (28.7 m), funnels at 0.419 / 0.534, quintuple tubes at
@@ -23,7 +31,7 @@
   the triple tubes at 0.62 / 0.73 round the star-shell gun at 0.677 (the spec had 0.56 / 0.70 and 0.63), the raked mainmast (17.5 m), screw and rudder; new `it120` family. Profile 1.4 m; the
   outline-only plan cannot be compared by silhouette, its half-breadths were read by hand.
 
-## Unreleased — fidelity batch 4 (the cruisers)
+### Batch 4 (the cruisers)
 
 Every ship below was measured on a drawing (profile and, when there is one, plan view), compared with `tools/refs/check.mjs` + `silhouette.py` in
 metres and corrected; new turret families and houses were created from the measured dimensions (the guns were never in the right place before).
@@ -60,7 +68,7 @@ metres and corrected; new turret families and houses were created from the measu
   0.829 (the spec had 0.10 / 0.155 / 0.79 / 0.855), a flush deck 8.5 m, the stepped bridge block, three funnels, tripod masts; new `brit203` family. Profile 2.0 m, plan 0.2 m.
 - Tools: `fit_decks.py` (profile -> `decks:`), `rulers` / `rulerRegion` and an automatic camera in `silhouette.py`, `hull.py --B`.
 
-## Unreleased — fidelity batch 3 (the remaining carriers, the aircraft)
+### Batch 3 (the remaining carriers, the aircraft)
 
 - **Graf Zeppelin**: the ONI 204 sheet of September 1942 (Commons, public domain): flight deck 16.0 m above the waterline with its real outline
   (narrowing at both ends), a long low island on a sponson, funnel and tower blocks, six groups of 150 mm casemates. Profile 2.4 -> 1.2 m.
@@ -99,7 +107,7 @@ metres and corrected; new turret families and houses were created from the measu
 - Tools: `planecheck.mjs` / `planecheck.py` (aircraft planform and profile against a 3-view), `dilate` for 1 px line drawings, `open`
   for hairlines.
 
-## Unreleased — fidelity batch 2 (King George V, Richelieu, Littorio, Shōkaku, Illustrious)
+### Batch 2 (King George V, Richelieu, Littorio, Shōkaku, Illustrious)
 
 Same method as batch 1: free plans from Commons, positions read on a grid in fractions of the length and metres (`tools/refs/grid.py`), the model
 compared with the drawing in metres (`check.mjs` + `silhouette.py`), hull tables read off the drawing (`hull.py`).
@@ -124,7 +132,7 @@ compared with the drawing in metres (`check.mjs` + `silhouette.py`), hull tables
   positions; measured hull tables; `aa` / `boats` for every nation (octuple pom-pom added).
 - Tools: `grid.py`, `hull.py`, `outline.py` (the profile as plateaus), automatic cameras in `plans.json`, `open` (removes hairlines such as scale lines).
 
-## Unreleased — fidelity batch 1 (Iowa, Yamato, Bismarck, Essex)
+### Batch 1 (Iowa, Yamato, Bismarck, Essex)
 
 ### Checked in metres against the plans (batch 1, third pass)
 - `tools/refs/check.mjs` + `silhouette.py`: matte renders (`?matte=1`, `?flags=0`) compared with the profile and plan drawings station by

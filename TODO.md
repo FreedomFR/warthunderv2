@@ -1,6 +1,6 @@
 # Reste à faire
 
-État au 18 octobre 2026 : version 0.0.1 + **lot 1 « fidélité »** (Iowa, Yamato, Bismarck, Essex), second passage sur plans terminé.
+État au 19 octobre 2026 : **version 0.1.0** (les 30 navires et tous les avions relevés sur plans, nouvelle bande-annonce + comparatif avec la 0.0.1).
 Cases cochées = fait et vérifié ; cases vides = à faire. Les points marqués *(limite)* sont des choses que je ne sais pas faire
 (ou pas vérifier) depuis l'environnement de développement actuel.
 
@@ -77,9 +77,9 @@ Lot 2 (cuirassés et porte-avions des autres nations) : **fait, avec des réserv
 
 ## 4. Vidéo et version
 
-- [ ] **Refaire la bande-annonce** avec les nouveaux effets de tir et les nouvelles tourelles (`docs/trailer-v0.0.1.mp4` date d'avant le lot 1), puis la nommer v0.0.2 (ou v0.1.0) et mettre à jour la section du README, l'affiche et le GIF.
-- [ ] **Tag `v0.0.1`** : il n'existe que sur la machine de développement (l'environnement refuse de pousser les tags). À faire de votre côté : `git tag v0.0.1 c22a94c && git push origin v0.0.1` (ou créer une version sur GitHub). Pour le lot 1, un nouveau tag sur `main` serait plus juste.
-- [ ] **CHANGELOG** : passer la section « Unreleased » à un numéro de version quand elle sera publiée.
+- [x] **Bande-annonce 0.1.0** faite (`docs/trailer-v0.1.0.mp4`, 62 s) + comparatif côte à côte avec la 0.0.1 (`docs/comparatif-0.0.1-0.1.0.mp4`) ; l'ancienne est conservée.
+- [ ] **Tag `v0.1.0`** : l'environnement refuse de pousser les tags. À faire de votre côté après le merge : `git tag v0.1.0 && git push origin v0.1.0` (ou créer une version sur GitHub). Idem `v0.0.1` : `git tag v0.0.1 c22a94c`.
+- [x] **CHANGELOG** : la section est passée en « 0.1.0 ».
 - [ ] **Dépôt public** : il est toujours privé (*limite* : je ne peux pas changer la visibilité). À faire de votre côté : *Settings → General → Danger Zone → Change visibility*.
 
 ## 5. Jeu
