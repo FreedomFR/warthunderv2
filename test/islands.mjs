@@ -106,7 +106,8 @@ const is = T.islands[0];
   }
   ok(bad === 0, 'no NaN');
   ok(worst < 12, `the ships never get far into the ground (worst ${worst.toFixed(1)} m)`);
-  ok(landShots < 400, `the guns do not waste the battle on the rock (${landShots} impacts)`);
+  const fired = w.ships.reduce((a, q) => a + q.shotsFired, 0);
+  ok(landShots < 0.1 * fired, `the guns do not waste the battle on the rock (${landShots} impacts of ${fired} shells)`);
 }
 
 // ---- battles with islands ----

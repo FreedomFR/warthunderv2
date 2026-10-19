@@ -4,6 +4,8 @@
 // every module around that point (see modules.js).
 import { clamp } from '../math.js';
 import { blast, damageMount, damageModule } from './modules.js';
+import { inFoot } from '../model/clearance.js';
+import { getMountModel } from '../model/mounts.js';
 
 const _l = [0, 0, 0];
 
@@ -12,7 +14,7 @@ export function insideHull(ship, lx, ly, lz) {
   const m = ship.model, st = ship.stats;
   if (Math.abs(lx) > st.L / 2) return false;
   const deck = m.hull.deckY(lx);
-  if (ly > deck + 0.3 || ly < -st.D) return false;
+  if (ly > deck + 0.15 || ly < -st.D) return false;
   const hbDeck = m.hull.halfBeamDeck(lx), hbWl = m.hull.halfBeamWL(lx);
   let hb;
   if (ly >= 0) hb = hbWl + (hbDeck - hbWl) * clamp(ly / Math.max(deck, 1), 0, 1);
@@ -20,20 +22,59 @@ export function insideHull(ship, lx, ly, lz) {
   return Math.abs(lz) <= hb;
 }
 
-function insideSuper(ship, lx, ly, lz) {
-  const sb = ship.model.superBox;
-  if (!sb) return false;
-  const top = sb.y1 + 2;
-  const deck = ship.model.hull.deckY(lx);
-  return lx >= sb.x0 && lx <= sb.x1 && Math.abs(lz - (sb.zc || 0)) <= sb.hw && ly > deck && ly <= top;
+// ---- the volumes that stop a shell: what is drawn --------------------------------------------------------------------------------
+// The superstructure is every block, prism and cylinder the model was built from (not the struts of the masts), found through a grid of the plan; a gun house or a light AA
+// mount is the box of the house that is drawn, turned with the mount.
+const CELL = 4;
+function solidGrid(model) {
+  if (model._sg) return model._sg;
+  const list = model.solids.filter((q) => !q.strut && !(q.part && (q.part.endsWith('_ruin') || q.part.endsWith('_fine'))));
+  let x0 = 1e9, x1 = -1e9, z0 = 1e9, z1 = -1e9;
+  for (const q of list) { x0 = Math.min(x0, q[0]); x1 = Math.max(x1, q[1]); z0 = Math.min(z0, q[4]); z1 = Math.max(z1, q[5]); }
+  const nx = Math.max(1, Math.ceil((x1 - x0) / CELL) + 1), nz = Math.max(1, Math.ceil((z1 - z0) / CELL) + 1);
+  const cells = Array.from({ length: nx * nz }, () => null);
+  for (const q of list) {
+    for (let j = Math.floor((q[4] - z0) / CELL); j <= Math.floor((q[5] - z0) / CELL); j++) for (let i = Math.floor((q[0] - x0) / CELL); i <= Math.floor((q[1] - x0) / CELL); i++) (cells[j * nx + i] ||= []).push(q);
+  }
+  return (model._sg = { x0, z0, nx, nz, cells });
+}
+
+/** The solid of the superstructure that contains the local point, or null. */
+function insideSolid(ship, lx, ly, lz) {
+  const g = solidGrid(ship.model);
+  const i = Math.floor((lx - g.x0) / CELL), j = Math.floor((lz - g.z0) / CELL);
+  if (i < 0 || j < 0 || i >= g.nx || j >= g.nz) return null;
+  const c = g.cells[j * g.nx + i];
+  if (!c) return null;
+  for (const q of c) if (ly >= q[2] && ly <= q[3] && lx >= q[0] && lx <= q[1] && lz >= q[4] && lz <= q[5] && inFoot(q, lx, lz)) return q;
+  return null;
+}
+
+/** Box of the house of a mount in its own frame (x forward, z to starboard), from the mesh that is drawn; cached on the record. */
+function houseBox(ship, rec, aa) {
+  if (rec._hb) return rec._hb;
+  const model = ship.model;
+  const mm = aa
+    ? getMountModel({ kind: 'aa', cal: rec.cal, n: rec.n, bore: rec.bore, col: model.pal.sup, variant: rec.variant })
+    : getMountModel({ kind: rec.kind, cal: rec.cal, n: rec.n, bore: rec.bore, col: model.pal.sup, variant: rec.variant, top: model.pal.top });
+  const b = mm.house.aabb;
+  return (rec._hb = { x0: b[0], x1: b[3], y0: b[1], y1: b[4], z0: b[2], z1: b[5] });
+}
+
+function inHouse(ship, rec, yaw, aa, lx, ly, lz) {
+  const hb = houseBox(ship, rec, aa);
+  const dx = lx - rec.x, dz = lz - rec.z, cy = Math.cos(yaw), sy = Math.sin(yaw);
+  const px = dx * cy + dz * sy, pz = -dx * sy + dz * cy, py = ly - rec.y;
+  const sx = (hb.x1 - hb.x0) * 0.07, sz = (hb.z1 - hb.z0) * 0.07;
+  return px >= hb.x0 + sx && px <= hb.x1 - sx && pz >= hb.z0 + sz && pz <= hb.z1 - sz && py >= hb.y0 && py <= hb.y1;
 }
 
 function insideMount(ship, lx, ly, lz) {
   for (const m of ship.mounts) {
     if (!m.alive) continue;
-    const r = Math.max(m.rec.cal / 1000 * 6, 1.3);
-    const dx = lx - m.rec.x, dz = lz - m.rec.z;
-    if (dx * dx + dz * dz <= r * r && ly >= m.rec.y - 1.8 && ly <= m.rec.y + 3.4 + m.rec.cal / 200) return m;
+    const r = m.rec;
+    if (Math.abs(lx - r.x) > 14 || Math.abs(lz - r.z) > 14) continue;
+    if (inHouse(ship, r, (r.arcC || 0) + (m.trainRel || 0), false, lx, ly, lz)) return m;
   }
   return null;
 }
@@ -42,19 +83,21 @@ function insideAA(ship, lx, ly, lz) {
   for (const a of ship.aaMounts) {
     if (!a.alive) continue;
     const r = a.rec;
-    const dx = lx - r.x, dy = ly - r.y, dz = lz - r.z;
-    if (dx * dx + dz * dz <= 1.5 && dy > -1.2 && dy < 2.4) return a;
+    if (Math.abs(lx - r.x) > 4 || Math.abs(lz - r.z) > 4) continue;
+    if (inHouse(ship, r, r.arcC ?? r.yaw0 ?? 0, true, lx, ly, lz)) return a;
   }
   return null;
 }
 
-/** Visible, destroyable parts (funnels, masts, bridge...) are hit through their module boxes. */
-function insidePart(ship, lx, ly, lz) {
-  for (const m of ship.modules) {
-    if (m.part == null || m.state === 2) continue;
-    if (Math.abs(lx - m.x) <= m.hx * 0.85 && Math.abs(ly - m.y) <= m.hy && Math.abs(lz - m.z) <= m.hz * 0.85) return m;
-  }
-  return null;
+/** The module of the destroyable part a solid belongs to (funnel, mast, bridge...): null for the plain superstructure. */
+function moduleOfSolid(ship, q) {
+  if (!q.part) return null;
+  const model = ship.model;
+  if (!model._partIdx) model._partIdx = new Map(model.parts.map((p, i) => [p.id, i]));
+  const idx = model._partIdx.get(q.part);
+  if (idx == null) return null;
+  if (!ship._partMod) { ship._partMod = new Map(); for (const m of ship.modules) if (m.part != null) ship._partMod.set(m.part, m); }
+  return ship._partMod.get(idx) || null;
 }
 
 /** Fast reject: closest approach of the segment p0->p1 to the ship's centre vs its bounding radius. */
@@ -76,25 +119,63 @@ export function segmentHit(ship, x0, y0, z0, x1, y1, z1) {
   if (ship.state === 'sunk') return null;
   const len = Math.hypot(x1 - x0, y1 - y0, z1 - z0);
   const n = Math.max(2, Math.ceil(len / 1.2));
+  // the ship's own frame: heading, pitch and roll (a ship that rolls in the swell or heels as she goes down is not where her upright self would be)
+  const B = poseBasis(ship);
+  const at = (f) => {
+    const dx = x0 + (x1 - x0) * f - ship.x, dy = y0 + (y1 - y0) * f - ship.y, dz = z0 + (z1 - z0) * f - ship.z;
+    _P[0] = dx * B[0] + dy * B[1] + dz * B[2]; _P[1] = dx * B[3] + dy * B[4] + dz * B[5]; _P[2] = dx * B[6] + dy * B[7] + dz * B[8];
+    return probe(ship, _P[0], _P[1], _P[2], f);
+  };
+  let prev = 0;
   for (let i = 0; i <= n; i++) {
     const f = i / n;
-    ship.toLocal(x0 + (x1 - x0) * f, y0 + (y1 - y0) * f, z0 + (z1 - z0) * f, _l);
-    const lx = _l[0], ly = _l[1], lz = _l[2];
-    // ship pitch / roll are ignored for hit detection (small angles)
-    const mnt = insideMount(ship, lx, ly, lz);
-    if (mnt) return { t: f, part: 'mount', lx, ly, lz, mount: mnt };
-    const aa = insideAA(ship, lx, ly, lz);
-    if (aa) return { t: f, part: 'aa', lx, ly, lz, aa };
-    const mod = insidePart(ship, lx, ly, lz);
-    if (mod) return { t: f, part: 'module', lx, ly, lz, module: mod };
-    if (insideSuper(ship, lx, ly, lz)) return { t: f, part: 'super', lx, ly, lz };
-    if (insideHull(ship, lx, ly, lz)) {
-      const deck = ship.model.hull.deckY(lx);
-      const part = ly > deck - 0.8 ? 'deck' : 'hull';
-      return { t: f, part, lx, ly, lz };
+    let h = at(f);
+    if (h) {
+      // the sample is up to a step inside the thing that was hit: find the surface the shell entered by
+      if (i > 0) {
+        let lo = prev, hi = f;
+        for (let k = 0; k < 6; k++) { const mid = (lo + hi) / 2; if (at(mid)) hi = mid; else lo = mid; }
+        const h2 = at(hi);
+        if (h2) h = h2;
+      }
+      return h;
     }
+    prev = f;
   }
   return null;
+}
+
+const _P = [0, 0, 0];
+/** What is at a local point: the hit record of the first volume that contains it, or null. */
+function probe(ship, lx, ly, lz, f) {
+  const mnt = insideMount(ship, lx, ly, lz);
+  if (mnt) return { t: f, part: 'mount', lx, ly, lz, mount: mnt };
+  const aa = insideAA(ship, lx, ly, lz);
+  if (aa) return { t: f, part: 'aa', lx, ly, lz, aa };
+  const q = insideSolid(ship, lx, ly, lz);
+  if (q) {
+    const mod = moduleOfSolid(ship, q);
+    if (!mod) return { t: f, part: 'super', lx, ly, lz, solid: q };
+    if (mod.state !== 2) return { t: f, part: 'module', lx, ly, lz, module: mod, solid: q };    // (a part that has been destroyed leaves a stump: the shell goes on)
+  }
+  if (insideHull(ship, lx, ly, lz)) {
+    const deck = ship.model.hull.deckY(lx);
+    return { t: f, part: ly > deck - 0.8 ? 'deck' : 'hull', lx, ly, lz };
+  }
+  return null;
+}
+
+const _B = new Float64Array(9);
+/** The rows of the world -> ship rotation (the inverse of the matrix the ship is drawn with, math.js mat4Ship): local x, y, z as dot products with the world offset. */
+function poseBasis(ship) {
+  const sh = Math.sin(ship.heading), ch = Math.cos(ship.heading), sp = Math.sin(ship.pitch || 0), cp = Math.cos(ship.pitch || 0), sr = Math.sin(ship.roll || 0), cr = Math.cos(ship.roll || 0);
+  const fx = sh, fz = -ch, rx = ch, rz = sh;
+  const xx = fx * cp, xy = sp, xz = fz * cp;
+  const y0x = -fx * sp, y0y = cp, y0z = -fz * sp;
+  const yx = y0x * cr + rx * sr, yy = y0y * cr, yz = y0z * cr + rz * sr;
+  const zx = rx * cr - y0x * sr, zy = -y0y * sr, zz = rz * cr - y0z * sr;
+  _B[0] = xx; _B[1] = xy; _B[2] = xz; _B[3] = yx; _B[4] = yy; _B[5] = yz; _B[6] = zx; _B[7] = zy; _B[8] = zz;
+  return _B;
 }
 
 /** cosine of the angle between the shell's path and the normal of the surface it struck (superstructure, modules) */
@@ -113,6 +194,14 @@ function hitNormal(ship, hit) {
       return [hit.lx > ship.stats.L * 0.38 ? 0.45 : hit.lx < -ship.stats.L * 0.4 ? -0.4 : 0, 0.18, side];
     }
     case 'super': case 'module': {
+      const q = hit.solid;
+      if (q) {
+        // the face of the box the shell went in by (the one it is nearest to), or the side of a round one
+        const d = [hit.lx - q[0], q[1] - hit.lx, hit.ly - q[2], q[3] - hit.ly, hit.lz - q[4], q[5] - hit.lz];
+        if (q.round && d[3] > 0.2) { const cx = (q[0] + q[1]) / 2, cz = (q[4] + q[5]) / 2, a = (q[1] - q[0]) / 2, c = (q[5] - q[4]) / 2; const nx = (hit.lx - cx) / (a * a), nz = (hit.lz - cz) / (c * c), l = Math.hypot(nx, nz) || 1; return [nx / l, 0.05, nz / l]; }
+        let k = 0; for (let i = 1; i < 6; i++) if (d[i] < d[k]) k = i;
+        return [[-1, 0, 0], [1, 0, 0], [0, -1, 0], [0, 1, 0], [0, 0, -1], [0, 0, 1]][k];
+      }
       const sb = ship.model.superBox;
       if (sb && Math.abs(hit.lz - (sb.zc || 0)) > sb.hw * 0.8) return [0, 0.05, hit.lz >= 0 ? 1 : -1];
       return [hit.lx > (sb ? (sb.x0 + sb.x1) / 2 : 0) ? 1 : -1, 0.1, 0];
@@ -212,7 +301,7 @@ export function resolveShellHit(world, ship, shell, hit) {
         for (let i = 1; i <= steps; i++) {
           const dd = Math.min(i, delay);
           px = lx + dx * dd; py = ly + dy * dd; pz = lz + dz * dd;
-          if (!insideHull(ship, px, py, pz) && !insideSuper(ship, px, py, pz)) { inside = false; break; }
+          if (!insideHull(ship, px, py, pz) && !insideSolid(ship, px, py, pz)) { inside = false; break; }
         }
       }
       if (!inside && part !== 'mount') {
