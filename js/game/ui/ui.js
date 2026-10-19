@@ -330,12 +330,13 @@ export function createUI(game) {
   // ---- hits: a floating tag where the shell struck and a log of the last ones --------------------------------------------------------------
   const RESULT = {
     pen: ['PERCE', '#ff7a45'], over: ['TRAVERSE SANS ÉCLATER', '#ffd24a'], glance: ['RICOCHET', '#9fd0ff'], bounce: ['NE PERCE PAS', '#9fd0ff'],
-    burst: ['ÉCLATE', '#ffb347'], shatter: ['SE BRISE SUR LE BLINDAGE', '#b8c4cf'],
+    dud: ['FUSÉE DÉFAILLANTE', '#c9b8ff'], burst: ['ÉCLATE', '#ffb347'], shatter: ['SE BRISE SUR LE BLINDAGE', '#b8c4cf'],
   };
   const why = (e) => {
     const a = Math.round(e.angle);
     if (e.result === 'glance') return `incidence ${a}° : l'obus ricoche`;
     if (e.result === 'bounce') return `plaque ${Math.round(e.armor)} mm à ${a}° = ${Math.round(e.eff)} mm effectifs > pénétration ${Math.round(e.pen)} mm`;
+    if (e.result === 'dud') return `la fusée ne fonctionne pas : l'obus traverse sans éclater`;
     if (e.result === 'over') return `plaque trop mince (${Math.round(e.eff)} mm) : la fusée n'arme pas`;
     if (e.result === 'shatter') return `plaque ${Math.round(e.armor)} mm à ${a}° : l'obus explosif éclate en surface`;
     if (e.shell === 'HE') return `${a}° · ${e.result === 'pen' ? 'éclate derrière la tôle' : 'éclate au contact'}`;

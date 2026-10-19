@@ -1,26 +1,26 @@
 // Gameplay statistics derived from the real-ship spec sheets.
 import { KN } from '../math.js';
+import { muzzlePenetration } from './penetration.js';
+import { navyOf, protectionOf } from '../data/protection.js';
 
 const TURN_FACTOR = { DD: 2.3, CL: 2.5, CA: 2.6, BB: 2.7, CV: 2.7 };     // turning radius (full rudder) / length
 const ACCEL_SECONDS = { DD: 38, CL: 52, CA: 62, BB: 95, CV: 80 };      // time to reach full speed
+const SKIN = { DD: 10, CL: 16, CA: 20, BB: 25, CV: 18 };           // mm of hull plating where there is no belt
+const SUP = { DD: 6, CL: 10, CA: 12, BB: 15, CV: 10 };            // mm of superstructure plating
+const FLIGHT = { essex: 19, shokaku: 19 };                         // thin unarmoured flight deck over the armoured hangar deck (estimated)
 const HP_FACTOR = { DD: 0.42, CL: 0.36, CA: 0.34, BB: 0.30, CV: 0.28 };
 
-/** Penetration of an AP shell against vertical armour at the muzzle (mm). */
-function penAtMuzzle(cal) {
-  if (cal >= 300) return 2.0 * cal;
-  if (cal >= 190) return 1.9 * cal;
-  if (cal >= 120) return 1.5 * cal;
-  return 1.1 * cal;
-}
-
-function gunStats(g, group, extra = {}) {
+function gunStats(g, group, navy, extra = {}) {
   const cal = g.caliberMm;
   return {
     group, cal, bore: g.boreCalibers || 40,
     v0: g.muzzleVelocityMs || 800, shellKg: g.shellKg || Math.pow(cal / 100, 3) * 15,
     maxRange: g.maxRangeM || cal * 90, maxElevDeg: Math.min(g.maxElevationDeg || 45, 85),
     reload: g.reloadSecPerGun || 8, trainRate: g.trainRateDegS || (cal >= 300 ? 4 : cal >= 190 ? 6 : 15),
-    pen0: penAtMuzzle(cal),
+    // armour penetration at the muzzle from the shell's mass and velocity (see penetration.js)
+    pen0: muzzlePenetration(cal, g.shellKg || Math.pow(cal / 100, 3) * 15, g.muzzleVelocityMs || 800),
+    // the base fuze of the armour-piercing shell: delay (s) and the share that fail to function
+    fuzeDelay: navy.fuze.find(([lim]) => cal < lim)[1], dud: navy.dud, breakup: navy.breakup,
     // AP capable only for the heavier guns
     ap: cal >= 150,
     // the magazine: rounds per gun (a 16 in battleship carried about 100 a gun, a 6 in cruiser 200, a destroyer's 5 in 400 or more) and the share of them that is armour-piercing
@@ -34,8 +34,9 @@ export function makeStats(spec) {
   const t = spec.type;
   const L = spec.loa, dispFull = spec.displacementFull || spec.displacementStd * 1.15;
   const maxSpeed = spec.speedKn * KN;
-  const main = gunStats(spec.main, 'main');
-  const secs = (spec.secondary || []).map((s, i) => ({ s, i })).filter(({ s }) => s.caliberMm >= 70 && s.mounts > 0).map(({ s, i }) => gunStats(s, 'sec', { specIndex: i }));
+  const navy = navyOf(spec.nation), prot = protectionOf(spec);
+  const main = gunStats(spec.main, 'main', navy);
+  const secs = (spec.secondary || []).map((s, i) => ({ s, i })).filter(({ s }) => s.caliberMm >= 70 && s.mounts > 0).map(({ s, i }) => gunStats(s, 'sec', navy, { specIndex: i }));
   const arm = spec.armour || {};
   const stats = {
     id: spec.id, nation: spec.nation, type: t, className: spec.className, refShip: spec.refShip, classShips: spec.classShips || [spec.refShip],
@@ -47,6 +48,12 @@ export function makeStats(spec) {
       belt: arm.beltMm ?? (t === 'DD' ? 5 : 20), deck: arm.deckMm ?? (t === 'DD' ? 6 : 25),
       turretFace: arm.turretFaceMm ?? (t === 'DD' ? 12 : t === 'CV' ? 20 : 40), turretSide: arm.turretSideMm ?? (arm.turretFaceMm ? arm.turretFaceMm * 0.5 : 20),
       citadel: arm.conningTowerMm ?? 30,
+      // the roof of a turret is about 0.4 of its face on every battleship and cruiser measured (Iowa 184 / 432, Yamato 270 / 650, Bismarck 180 / 360)
+      roof: arm.turretRoofMm ?? Math.max(6, (arm.turretFaceMm ?? 12) * 0.42),
+      // plating of an unarmoured hull side and deck, and of the superstructure (the 3/8 in skin of a destroyer let 14 in shells through unburst)
+      skin: SKIN[t], sup: SUP[t],
+      incl: prot.beltIncl ?? 0, weather: prot.weather ?? 0, flight: prot.flight ?? (t === 'CV' ? FLIGHT[spec.id] ?? 0 : 0),
+      lower: prot.lower ?? (arm.beltMm ?? 0) * 0.4,
     },
     main, secs,
     torpedo: spec.torpedoes && spec.torpedoes.tubes ? {
