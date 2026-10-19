@@ -245,7 +245,10 @@ export class GameAudio {
           break;
         }
         case 'planeDitch': this.play('splash_big', e.x, 1, e.z, { gain: 0.5, ref: 500, pri: 1, rate: 1.2 }); break;
-        case 'planeTouchdown': this.play('arrest', e.plane.x, e.plane.y, e.plane.z, { gain: 0.7, ref: 700, pri: 1 }); break;
+        case 'planeTouchdown': this.play('touchdown', e.plane.x, e.plane.y, e.plane.z, { gain: 0.8, ref: 700, pri: 1, rate: R(0.92, 1.1) }); break;
+        case 'wireCatch': this.play('arrest', e.plane.x, e.plane.y, e.plane.z, { gain: 0.7, ref: 700, pri: 1, when: 0.05 }); break;
+        case 'engineStart': this.play('engine_start', e.plane.x, e.plane.y, e.plane.z, { gain: 0.45, ref: 450, pri: 0, rate: R(0.92, 1.08) }); break;
+        case 'liftMove': this.play('lift_motor', e.x, e.y, e.z, { gain: 0.4, ref: 350, pri: 0 }); break;
         default: break;
       }
     }

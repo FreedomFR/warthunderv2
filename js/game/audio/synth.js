@@ -577,6 +577,58 @@ const BUILDERS = {
     });
     return normalize(d, 0.8);
   },
+  /** Main wheels hitting the deck: a thump and a short squeal of tyres. */
+  touchdown(sr, seed = 34) {
+    const r = prng(seed);
+    const d = mk(sr, 0.9, (d, n) => {
+      const a = new SVF(sr), b = new SVF(sr);
+      for (let i = 0; i < n; i++) {
+        const t = i / sr, nz = r() * 2 - 1;
+        const squeal = a.step(nz, 2600 - 900 * Math.min(1, t / 0.5), 3).bp * env(Math.max(0, t - 0.01), 0.02, 0.2) * 0.5;
+        const thump = Math.sin(TAU * (120 - 50 * Math.min(1, t / 0.15)) * t) * env(t, 0.002, 0.11) * 0.9 + b.step(nz, 320, 0.7).lp * env(t, 0.002, 0.07) * 0.8;
+        d[i] = softclip(squeal + thump);
+      }
+    });
+    return normalize(d, 0.8);
+  },
+  /** A radial engine starting: the starter's whine, a few coughs, then a rough idle. */
+  engine_start(sr, seed = 35) {
+    const r = prng(seed);
+    const d = mk(sr, 3.2, (d, n) => {
+      const a = new SVF(sr), b = new SVF(sr); let ph = 0, pe = 0;
+      for (let i = 0; i < n; i++) {
+        const t = i / sr, nz = r() * 2 - 1;
+        // the starter: a rising whine that dies away as the engine catches
+        const f = 140 + 260 * Math.min(1, t / 1.1);
+        ph += TAU * f / sr;
+        const starter = Math.sin(ph) * (0.5 + 0.5 * Math.sin(TAU * 11 * t)) * Math.min(1, t / 0.2) * (t < 1.6 ? 1 : Math.max(0, 1 - (t - 1.6) / 0.6)) * 0.28;
+        // firing: pulses that come faster as it catches, then settle at idle
+        const rate = t < 0.9 ? 3 + 2 * t : t < 1.7 ? 5 + 9 * (t - 0.9) : 12 + 2 * Math.sin(TAU * 0.7 * t);
+        pe += rate / sr;
+        const pulse = Math.pow(0.5 + 0.5 * Math.cos(TAU * pe), 5);
+        const fire = b.step(nz, 330 + 160 * pulse, 0.9).lp * pulse * Math.min(1, Math.max(0, (t - 0.55) / 0.5)) * (0.9 + 0.3 * Math.sin(TAU * 1.3 * t));
+        d[i] = softclip(starter + fire * 1.4 + a.step(nz, 180, 0.7).lp * 0.12 * Math.min(1, t / 1.6));
+      }
+    });
+    return normalize(d, 0.75);
+  },
+  /** A flight-deck lift: the motor's rumble and whine, a clunk when it starts and when it stops. */
+  lift_motor(sr, seed = 36) {
+    const r = prng(seed);
+    const d = mk(sr, 3.4, (d, n) => {
+      const a = new SVF(sr); let ph = 0;
+      for (let i = 0; i < n; i++) {
+        const t = i / sr, nz = r() * 2 - 1;
+        const run = Math.min(1, t / 0.4) * Math.min(1, Math.max(0, (3.1 - t) / 0.3));
+        ph += TAU * (72 + 14 * Math.sin(TAU * 0.3 * t)) / sr;
+        const hum = (Math.sin(ph) + 0.5 * Math.sin(ph * 2) + 0.25 * Math.sin(ph * 3)) * 0.22;
+        const rumble = a.step(nz, 150, 0.8).lp * 0.8;
+        const clunk = Math.sin(TAU * 70 * t) * env(t, 0.003, 0.09) * 0.8 + Math.sin(TAU * 62 * (t - 3.1)) * env(Math.max(0, t - 3.1), 0.003, 0.1) * (t > 3.1 ? 0.9 : 0);
+        d[i] = softclip((hum + rumble) * run + clunk);
+      }
+    });
+    return normalize(d, 0.7);
+  },
   /** Aircraft falling: engine howl dropping in pitch (one shot). */
   plane_fall(sr, seed = 33) {
     const r = prng(seed);

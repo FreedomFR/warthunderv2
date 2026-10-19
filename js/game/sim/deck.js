@@ -82,13 +82,13 @@ export function planLaunch(world, ship, planes) {
     p.group = j;
     if (j < nPark && slots[parkedBefore - 1 - j]) {
       const sl = slots[parkedBefore - 1 - j];
-      p.ds = 'spot'; p.hidden = false; p.fold = 0; p.lx = sl.x; p.lz = sl.z; p.lz0 = sl.z; p.lx0 = sl.x; p.yaw = sl.yaw || 0;
-      p.ts = -(j * 2.8);        // engine start a little before its turn
+      p.ds = 'spot'; p.hidden = false; p.fold = 1; p.lx = sl.x; p.lz = sl.z; p.lz0 = sl.z; p.lx0 = sl.x; p.yaw = sl.yaw || 0;
+      p.ts = -(j * 2.8);        // the wings spread and the engine starts a little before its turn
     } else if (usable.length) {
       p.ds = 'pending'; p.hidden = true; p.fold = 1; D.pending.push(p);
     } else {
       // no lift behind the start of the run: the aircraft is simply there, in the queue
-      p.ds = 'spot'; p.hidden = false; p.fold = 0; p.lx = startX - (planes.length - j) * GAP - 20; p.lz = 0; p.lz0 = 0; p.lx0 = p.lx; p.yaw = 0; p.ts = -(j * 2.8);
+      p.ds = 'spot'; p.hidden = false; p.fold = 1; p.lx = startX - (planes.length - j) * GAP - 20; p.lz = 0; p.lz0 = 0; p.lx0 = p.lx; p.yaw = 0; p.ts = -(j * 2.8);
     }
     p.lift = null; p.eng = 0; p.hook = 0; p.gp = GROUND_PITCH; p.u = 0;
   });
@@ -126,6 +126,11 @@ function servicePlane(world, ship, service, slotIdx) {
 export function stepDeckShip(world, ship, dt) {
   const D = deckOf(ship), dp = ship.model.deckPoints, slots = ship.model.deckSlots;
   for (const l of D.lifts) {
+    if (l.tgt !== l.moving && l.tgt !== l.h) {
+      l.moving = l.tgt;
+      ship.toWorld(l.x, ship.model.fdY, l.z, _w);
+      world.events.push({ type: 'liftMove', ship, x: _w[0], y: _w[1], z: _w[2] });
+    }
     const up = l.tgt > l.h;
     l.h = clamp(l.h + (up ? dt / LIFT_UP : -dt / LIFT_DOWN) * (l.tgt === l.h ? 0 : 1), 0, 1);
     if (up ? l.h > l.tgt : l.h < l.tgt) l.h = l.tgt;
@@ -137,6 +142,8 @@ export function stepDeckShip(world, ship, dt) {
     if (p.gone || p.dying || p.kill) { D.pending.shift(); continue; }
     const l = freeLift(D, startX, p);
     if (!l) break;
+    // a launching aircraft only comes up when its place in the queue is clear of the lift (or it would keep the lift for the others)
+    if (!p.service && p.group > p.wave.launched && startX - (p.group - p.wave.launched) * GAP < l.x + l.hl + 9) break;
     D.pending.shift();
     l.user = p; l.tgt = 0; p.lift = l; p.ds = 'lower'; p.ts = 0;
     p.lx = l.x; p.lz = l.z; p.lx0 = l.x; p.lz0 = l.z; p.yaw = 0;
@@ -160,7 +167,7 @@ export function stepDeckShip(world, ship, dt) {
       const idx = ship.parked - 1;
       const p = servicePlane(world, ship, 'strike', idx);
       ship.parked--;
-      p.phase = 'taxiIn'; p.ds = 'wait'; p.ts = 0; p.lx = slots[idx].x; p.lz = slots[idx].z; p.lx0 = p.lx; p.lz0 = p.lz; p.yaw = slots[idx].yaw || 0;
+      p.phase = 'taxiIn'; p.ds = 'wait'; p.ts = 0; p.lx = slots[idx].x; p.lz = slots[idx].z; p.lx0 = p.lx; p.lz0 = p.lz; p.yaw = slots[idx].yaw || 0; p.fold = 1;
       world.planes.push(p);
       D.nextService = world.time + STRIKE_EVERY;
     }
@@ -239,7 +246,7 @@ export function touchdown(world, ship, p, lx, lz) {
 // ---- the aircraft on the deck ----------------------------------------------------------------------------------------------------
 function place(p, ship, lx, lz, yExtra = 0) {
   const gy = groundY(p.spec);
-  ship.toWorld(lx, ship.model.fdY + gy + yExtra, lz, _w);
+  ship.toWorld(lx, ship.model.fdY + gy + 0.04 + yExtra, lz, _w);
   p.x = _w[0]; p.y = _w[1]; p.z = _w[2]; p.lx = lx; p.lz = lz;
   p.heading = ship.heading + p.yaw;
   p.pitch = ship.pitch + p.gp; p.roll = ship.roll; p.bank = ship.roll;
@@ -309,12 +316,13 @@ function stepDeckInner(world, p, dt) {
       case 'spot': {
         // unfolding and starting the engine (aircraft from the deck park have nothing to unfold)
         if (p.ts < 0) { place(p, ship, p.lx, p.lz); return true; }
-        p.fold = Math.max(0, p.fold - dt / UNFOLD);
         if (p.service) {
+          // the deck crew tow it folded: no need to spread the wings
           p.u = 0; place(p, ship, p.lx, p.lz);
-          if (p.fold <= 0 && p.ts > 1.2) { p.ds = 'taxi'; p.ts = 0; p.lx0 = p.lx; p.lz0 = p.lz; }
+          if (p.ts > 1.0) { p.ds = 'taxi'; p.ts = 0; p.lx0 = p.lx; p.lz0 = p.lz; }
           return true;
         }
+        p.fold = Math.max(0, p.fold - dt / UNFOLD);
         if (!p.started) { p.started = true; world.events.push({ type: 'engineStart', plane: p, ship }); }
         idleSpin(p, dt, 0.4);
         p.u = 0; p.yaw += (0 - p.yaw) * Math.min(1, dt * 3);

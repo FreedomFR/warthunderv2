@@ -144,9 +144,14 @@ Les croiseurs et cuirassés ont aussi leur hydravion sur la catapulte (Kingfishe
 |---|---|---|
 | ![Appareils](docs/planes.jpg) | ![Torpilleur](docs/air.jpg) | ![DCA](docs/aa.jpg) |
 
-- **Pont d'envol** : les avions attendent en file, roulent sur le pont et décollent un par un ; ceux qui restent garés disparaissent du pont à
-  mesure que les vagues partent. Au retour, circuit d'appontage, approche sur une pente de 3,5°, brin d'arrêt, remise de gaz si l'approche est ratée.
-  Un porte-avions dont le pont est détruit ne peut plus lancer ni récupérer ses avions (ils amerrissent).
+- **Pont d'envol** : un avion sort du parc ou monte de l'hangar sur un **ascenseur** (plateforme qui émerge du pont), déplie ses ailes, démarre son moteur
+  (fumée d'échappement, hélice qui prend ses tours), roule jusqu'au bout de la file et fait sa course de décollage : la queue se lève, puis le nez. Les avions
+  du parc, ailes repliées sur trois rangs, partent les premiers ; entre deux vagues l'équipage **regarnit le parc** depuis l'hangar. Au retour, le parc est
+  descendu avant le premier appontage, puis chaque avion suit le **circuit** (vent arrière du côté opposé à l'îlot, virage en descente, dernière ligne
+  droite sur une pente de 3,5°), crosse et train sortis. Les suivants **tournent en attente** (un cercle) tant que la ligne droite n'est pas libre. Les roues
+  touchent le pont derrière les brins, la **crosse accroche un brin** qui se dévide et arrête l'avion en 30 à 40 m (nez qui plonge, étincelles) ; une crosse qui
+  rate les brins donne un *bolter* : plein gaz et nouveau tour. Ailes repliées, l'avion roule jusqu'à un ascenseur qui le redescend. Un porte-avions dont le
+  pont est détruit ne peut plus lancer ni récupérer ses avions (ils amerrissent). Sons : démarrage du moteur, moteur d'ascenseur, impact des roues, brin.
 - **Bombardiers en piqué** : montée vers l'objectif, mise en piqué sur le dos, piqué à environ 60°, largage vers 500 m, ressource à 4,5 g puis
   retrait à basse altitude. La bombe est un vrai corps balistique : c'est l'endroit où elle tombe qui décide des dégâts.
 - **Torpilleurs** : descente progressive jusqu'à 50 m, approche par des azimuts différents autour de la cible (tenaille), passe rectiligne,

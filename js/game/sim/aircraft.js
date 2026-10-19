@@ -4,7 +4,7 @@
 // returns and lands on the carrier. Bombs and torpedoes are simulated bodies, so where they hit decides the damage.
 import { clamp, wrapPi, approach, D2R, G } from '../math.js';
 import { planeTypeFor, PLANES, groundY, GROUND_PITCH, hookBack } from '../model/planes.js';
-import { deckOf, planLaunch, settleService, beginRecovery, launching, stepDeck, stepDeckShip, touchdown, clearToLand, deckClearFor, TAKEOFF_RUN, DECK_PHASES } from './deck.js';
+import { deckOf, planLaunch, settleService, beginRecovery, launching, stepDeck, stepDeckShip, touchdown, clearToLand, deckClearFor, DECK_PHASES } from './deck.js';
 import { segmentNearShip, segmentHit, resolveBombHit, resolveNearMiss, resolveCrashHit } from './damage.js';
 import { spawnPlaneDebris, spawnScrap } from './debris.js';
 

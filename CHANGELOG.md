@@ -1,5 +1,28 @@
 # Changelog
 
+## Unreleased — deck operations
+
+- **Lifts**: a launching aircraft that is not in the deck park comes up on a **lift**: the platform goes down, the aircraft rides up out of an open shaft in the deck (the lifts are now in the ship model:
+  position and size of the painted squares), wings folded, then spreads them (the wings fold back about a hinge on the rear spar; the Japanese ones more steeply) and starts its engine: dark smoke from the
+  cowling, the propeller picks up speed, the starter and the coughs are heard. Aircraft taxi at 7 m/s to the head of the queue (14.5 m apart) and the lift is free again as soon as one has rolled clear.
+- **Take-off run**: tail wheel and arrester hook drawn on every aircraft; the run is 100 m (the speed needed is reached after 54), the tail comes up at about 10 m/s, the nose later, the wheels leave the deck at the
+  bow end or at 25 m/s.
+- **The deck park**: aircraft are parked wings folded, in three staggered rows across the aft deck (they used to overlap, wings spread). A wave leaves the park first (highest slots, nearest the run first), the others
+  come up from the hangar. Between two waves the deck crew **spot the park again** from the hangar (towed backwards, folded); before a recovery they **strike it below** one aircraft after another, the first
+  aircraft of the recovery waiting in its circuit. The deck is never used by a launch and a recovery at the same time.
+- **Circuit and approach**: an aircraft coming home joins a circuit on the side opposite the island (downwind on the reverse course 1.5 km out, a 180-degree turn at a steady 28 degrees of bank, the groove),
+  hook and gear down, the nose held high. It **turns in only when the groove is free** (the aircraft ahead is within 2 km of its touchdown, or down) and holds in a circle in the ship's frame otherwise.
+  It follows a 3.5-degree slope to a touchdown point just short of one of the first wires, steering for the centre line (within a metre or two at the touchdown on every carrier of the roster); the landing signal
+  officer waves it off if the deck is not clear, the line-up is bad or it floats past the wires.
+- **Touchdown and wire**: the wheels meet the deck (tyre smoke, a thump), the hook drags (sparks) and picks up a wire (one time in fourteen it skips them all: a bolter, full power off the bow and round again); the
+  wire is drawn from its two sheaves to the hook, pays out 30-42 m and stops the aircraft in about 2.5 s (the nose dips); it is let go, the hook comes up, the wings fold while the aircraft taxis to a free lift
+  (waiting its turn short of it), which takes it down; only then does it count as ready again.
+- **Visible**: wings folded or spreading on every aircraft (`fold`), arrester hook (`hook`), tail wheel, nose-high attitude on the approach (`aoa`), propeller speed following the engine. The aircraft in flight now bank
+  into their turns (the renderer read a roll that was never set; it is `bank` now). The camera in auto mode cuts to a touchdown or a take-off from time to time.
+- **Sounds**: `engine_start`, `lift_motor`, `touchdown` (the wire keeps `arrest`). **Dev**: `deck` trailer scene (park, lift, queue and run, circuit, groove, trap, the way down, the park struck and spotted), `?fold=` and
+  `?hook=` in the preview, `test/deckops.mjs` (every carrier: launch from the park and the lifts, recovery of the whole wave on the wires, park struck and spotted again).
+- Aircraft that run out of fuel in the circuit now ditch near the ship instead of flipping between return and circuit; the fuel of a strike is 900-1100 s.
+
 ## Unreleased — air operations
 
 - **Strike formations**: a wave leaves in sections of three or four aircraft of one kind (dive bombers off the deck first), and each section flies to the enemy in formation behind its leader (a vee, the fourth aircraft in

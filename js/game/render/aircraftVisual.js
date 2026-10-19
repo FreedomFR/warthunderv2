@@ -2,10 +2,12 @@
 import { getPlaneModel, getFloatplaneModel, buildOrdnanceMeshes, hookPivot, GROUND_PITCH } from '../model/planes.js';
 import { mat4Ship, mat4Mul, mat4RotX } from '../math.js';
 import { MeshBuilder, MAT, rgb } from '../model/meshbuilder.js';
+import { LIFT_DEPTH } from '../sim/deck.js';
 
 const S64 = new Float64Array(16), P64 = new Float64Array(16), RX = new Float64Array(16), W64 = new Float64Array(16);
 const S32 = new Float32Array(16), P32 = new Float32Array(16);
-const F64 = new Float64Array(16), H64 = new Float64Array(16);
+const F64 = new Float64Array(16), H64 = new Float64Array(16), Q64 = new Float64Array(16);
+const Q32 = new Float32Array(16), R32 = new Float32Array(16);
 
 // How the wings fold: back about a hinge on the rear spar beside the fuselage, the hinge axis leaning forward by this much (the folded
 // wing ends up pointing aft and a little up); the Japanese aircraft fold steeper.
@@ -164,7 +166,7 @@ export class PlaneVisuals {
       if (!inHalf(l.x)) continue;
       if (l.h > 0.995 && !l.user) continue;                                // idle, flush with the deck: the painted square is all there is
       put(dm.pit, l.x, fdY + 0.035, l.z, l.hl - 0.3, 1, l.hw - 0.3);
-      put(dm.plat, l.x, fdY + 0.045 - (1 - l.h) * 6.4, l.z, l.hl - 0.45, 1, l.hw - 0.45);
+      put(dm.plat, l.x, fdY + 0.045 - (1 - l.h) * LIFT_DEPTH, l.z, l.hl - 0.45, 1, l.hw - 0.45);
     }
     const w = D.wire;
     if (w && inHalf(w.x)) {
@@ -187,9 +189,23 @@ export class PlaneVisuals {
       mat4Ship(W64, 0, 0, 0, sl.yaw, GROUND_PITCH, 0);
       W64[12] = sl.x; W64[13] = sl.y + m.pm.groundY; W64[14] = sl.z;
       mat4Mul(P64, S, W64);
-      for (let k = 0; k < 16; k++) P32[k] = P64[k];
-      this.r.add(m.mesh.whole, P32, tint, 0, 0, rnd);
-      if (m.mesh.gear) this.r.add(m.mesh.gear, P32, tint, 0, 0, rnd);
+      this.addParts(m, P64, tint, rnd, 1, true);
     }
+  }
+
+  /** An aircraft model placed by a camera-relative matrix M (float64), the wings folded by `fold` (0 spread .. 1 folded), the undercarriage down or not. */
+  addParts(m, M, tint, rnd, fold, gear, dmg = 0, fire = 0) {
+    const r = this.r;
+    for (let i = 0; i < 16; i++) Q32[i] = M[i];
+    if (fold > 0.003) {
+      r.add(m.mesh.body, Q32, tint, dmg, fire, rnd);
+      r.add(m.mesh.tail, Q32, tint, dmg, fire, rnd);
+      for (const [sg, key] of [[1, 'wingR'], [-1, 'wingL']]) {
+        mat4Mul(Q64, M, foldMatrix(F64, m.pm.spec, sg, Math.min(1, fold)));
+        for (let i = 0; i < 16; i++) R32[i] = Q64[i];
+        r.add(m.mesh[key], R32, tint, dmg, fire, rnd);
+      }
+    } else r.add(m.mesh.whole, Q32, tint, dmg, fire, rnd);
+    if (gear && m.mesh.gear) r.add(m.mesh.gear, Q32, tint, dmg, fire, rnd);
   }
 }

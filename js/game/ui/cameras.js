@@ -340,6 +340,8 @@ export class CameraRig {
     const pc = this.planeCam;
     for (const e of events) {
       if (this.mode === 'auto' && (e.type === 'bombDrop' || e.type === 'torpedoDrop' || e.type === 'planeDown') && Math.random() < 0.45 && this.auto.sub !== 'plane') { this.auto.forcePlane = e.plane; this.auto.t = 0; }
+      // the director likes a touchdown on the wire and a take-off run (a take-off only when the carrier is in sight)
+      if (this.mode === 'auto' && (e.type === 'planeTouchdown' || e.type === 'planeLaunch') && Math.random() < 0.3 && this.auto.sub !== 'plane') { this.auto.forcePlane = e.plane; this.auto.t = 0; }
       if (e.type === 'planeCrash' && e.plane === this.plane) {
         pc.crash = { x: e.x, y: Math.max(e.y, 2), z: e.z, dx: Math.sin(e.plane.heading), dz: -Math.cos(e.plane.heading) };
         pc.hold = 3.2;
