@@ -6,6 +6,7 @@
 - **Particle pool** (`render/particles.js`): when full, fireballs, flames, flashes, tracers and fire take the place of one of the oldest-looking puffs of smoke or spray instead of being lost; the effects emit less smoke as the pool fills (`fill()`), and the muzzle smoke clouds are thinner.
 - **Setting "Particules max"** (10 k to 200 k, 40 k by default, saved in the browser, `?particles=N` in the URL): the pool grows or shrinks at run time (`Particles.setMax`).
 - **`render/effects.js` split by domain** (1046 lines -> about 200 + `render/fx/`: `guns`, `water`, `hits`, `air`, `fires`, `wake`, `common`): the methods moved unchanged and are mixed into `Effects`, so a change to the guns touches one small file.
+- **Ship shader** (`wgsl/ship.js`), after published weathering and shading practice (the sources are in the README credits): specular anti-aliasing (the highlight is widened where the normal varies inside a pixel, so far plating no longer sparkles), oil-canning of the plating between the frames, rust tears under the scuttles, a pale salt crust in the splash zone, a thin green growth line at the waterline, grime where the baked occlusion is strong, sun-faded paint on the faces that look up. Kept light on purpose: a ship in service is repainted often.
 - Tests: `test/particles.mjs` (a full pool, priority of the flashes of a shot, the capacity setting), `test/effects.mjs` (every event of a fifteen minute fleet battle goes through the effects without an exception or a NaN).
 
 ## Unreleased — take-off camera
