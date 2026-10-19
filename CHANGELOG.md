@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased — liveries
+
+- **Paints checked against the sources** (US Navy measures: Munsell values and reflectances; Royal Navy 507A/B/C; Kriegsmarine RAL cards): the palettes and plain paints that disagreed were corrected.
+  - US Measure 32 dazzle: the three tones are now Navy Blue 5-N, Ocean Gray 5-O and Light Gray 5-L (reflectances 9, 17 and 35 %); the middle tone was a navy-blue that made the dazzle too dark and too contrasted.
+  - Kriegsmarine: Dunkelgrau 51 (RAL 7000) hull and Hellgrau 50 (RAL 7001) upperworks instead of one grey all over, the aluminium funnel cap of the *Bismarck* (RAL 9006).
+  - *Norfolk*: Home Fleet grey 507A, a dark bluish grey (about 10 % reflectance), instead of a light grey; *Illustrious*: Mediterranean Fleet grey 507C (about 45 %).
+  - *Aquila*: hull and upperworks in the same light matt grey (grigio cenerino chiaro) as the rest of the Regia Marina.
+  - Flight decks take the colour of the spec sheet (US flight deck stain, IJN dark brown, RN dark grey, planking for the *Graf Zeppelin* and the *Béarn*) instead of one grey for all.
+- What could not be confirmed is listed in TODO.md (Yamato's soot camouflage, the pattern of the Yukikaze, the French greys).
+
 ## Unreleased — fighters
 
 - **Fighters** for each nation (F6F Hellcat, A6M Zero, Fulmar, Bf 109 T, D.520, MC.202: the dimensions of the real aircraft, the rest estimated): about a quarter of every air group (`air.fReady`; the

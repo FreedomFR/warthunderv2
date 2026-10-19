@@ -20,7 +20,7 @@ function makePalette(spec, tw) {
   const sup = p.superstructure || '#8a9096';
   const pal = {
     hull: p.hull || '#59616a', boot: p.boot || '#1b1d20', deck: p.deck || '#6b6258',
-    sup, dark: '#202327', cap: '#18191b', funnel: p.funnel || sup, mast: rgb(shade(sup, 0.82)).map(Math.round),
+    sup, dark: '#202327', cap: p.cap || '#18191b', funnel: p.funnel || sup, mast: rgb(shade(sup, 0.82)).map(Math.round),
     boat: '#8c9296', glass: '#0e151b', ...(tw.pal || {}),
   };
   const lv = LIVERY[spec.id];
@@ -667,7 +667,7 @@ function buildCarrier(b, model, spec, hull, pal, tw, X, Y, fdY, rnd, note, part)
   const fp = tw.fdPlan;
   const x1 = fp ? Math.max(...fp.map((q) => X(q[0]))) : L / 2 + (tw.fdBowOver ?? 3) - (L - fdL) * 0.3, x0 = fp ? Math.min(...fp.map((q) => X(q[0]))) : x1 - fdL;
   const hw = fp ? Math.max(...fp.map((q) => q[1])) : fdW / 2;
-  const col = rgb(tw.flightDeckCol || '#3b3a37');
+  const col = rgb(tw.flightDeckCol || spec.paint?.deck || '#3b3a37');   // flight deck stain, linoleum, planking: the colour of the spec sheet
   const sil = spec.silhouette || {};
   const isl = sil.island || { side: 'starboard', fractionFromBow: 0.5, lengthM: 40, heightAboveDeckM: 15 };
   const sg = isl.side === 'port' ? -1 : 1;
