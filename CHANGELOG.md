@@ -6,7 +6,7 @@ All 30 ships and all the aircraft were compared with period drawings (ONI sheets
 batches (below): positions of turrets, torpedo mounts, funnels and masts were often 10-40 m off in 0.0.1; hulls, decks, superstructures, funnels, masts, screws, rudders,
 catapults and cranes follow the plans; new turret families measured per gun type; new muzzle blast and gunfire effects; aircraft tailplanes were half the real size. New tools:
 `tools/refs` (`check.mjs`, `silhouette.py`, `hull.py`, `grid.py`, `fit_decks.py`). A new trailer, `docs/trailer-v0.1.0.mp4` (89 s, 1920×1080, 60 frames per second: `?fps=60` in the recorder, two fleet actions, a roster of 26 ships, gunfire scenes), and a side-by-side comparison with the 0.0.1 one,
-`docs/comparatif-0.0.1-0.1.0.mp4` (the 0.0.1 scenes re-recorded with the 0.1.0 game, same seeds, side by side with the original trailer). The 0.0.1 trailer is kept.
+`docs/comparatif-0.0.1-0.1.0.mp4` (the 0.0.1 scenes re-recorded with the 0.1.0 game, same seeds, side by side with the original trailer). The 0.0.1 trailer is kept. The pictures of the README (`docs/*.jpg`) were retaken with the 0.1.0 models (`tools/screenshots.mjs` for the interface views).
 
 ### Batch 5 (the destroyers: Fletcher, Kagero, Tribal, Type 1936A, Le Fantasque, Soldati)
 

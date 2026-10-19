@@ -39,6 +39,7 @@ Software rendering is slow: 10–25 s per frame at 800×450 with the ocean on; a
 | Simulation | `js/game/sim/` (world, ship, ai, aircraft, modules/damage, explosions); `test/` |
 | Trailer | `js/trailer*.js`, `tools/trailer/` (`record.mjs`, `assemble.mjs`, `edit.json`; needs ffmpeg), scene `firetest` films a salvo |
 | Reference photographs | `tools/refs/` (see its README) |
+| README pictures | `docs/*.jpg`: the interface ones from `tools/screenshots.mjs` (GPU), the others from the trailer scenes' frames and the preview scene (see CHANGELOG 0.1.0) |
 
 Useful URLs: `?scenario=duel&start=1&seed=3`, `?preview=iowa,yamato&offscreen=1&w=1280&h=720&parked=6&fov=38&ocean=0` with
 `window.__preview.set({ target, heading, dist, az, el, lookY, lookX })` (heading 90 = bow towards +x, az 180 = starboard profile), `?quality=low|medium|high`.

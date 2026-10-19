@@ -140,7 +140,7 @@ Chaque porte-avions embarque les appareils de sa nation, modélisés d'après le
 **Ju 87 Stuka** (avec sa sirène) et **Fi 167** (Allemagne), **LN.401** et **PL.10** (France), **Re.2001** (Italie).
 Les croiseurs et cuirassés ont aussi leur hydravion sur la catapulte (Kingfisher, Walrus, Arado 196...).
 
-| Les appareils (SBD, TBF, Swordfish, Stuka) | Torpilleur à basse altitude | DCA et fumée de combat |
+| Les appareils (SBD, TBF, Swordfish, Stuka) | Torpilleur à basse altitude | Bombardiers en piqué, DCA et fumée de combat |
 |---|---|---|
 | ![Appareils](docs/planes.jpg) | ![Torpilleur](docs/air.jpg) | ![DCA](docs/aa.jpg) |
 
@@ -159,7 +159,7 @@ Les croiseurs et cuirassés ont aussi leur hydravion sur la catapulte (Kingfishe
 
 ## Dégâts : là où ça touche
 
-| Cheminée détruite : l'épave remplace la pièce, qui vole en morceaux | Torpille : colonne d'eau contre la coque | Plan des dégâts du navire sélectionné |
+| Cheminées détruites sur le Norfolk : l'épave remplace la pièce | Torpille sur le Takao : colonne d'eau contre la coque | Plan des dégâts du navire sélectionné |
 |---|---|---|
 | ![Cheminée](docs/funnel.jpg) | ![Torpille](docs/torpedo.jpg) | ![Plan des dégâts](docs/damage-plan.jpg) |
 
@@ -185,7 +185,7 @@ lance-torpilles, catapultes, hangar, soute à essence et pont d'envol des porte-
 
 ## Explosions et naufrages
 
-| Explosion de munitions | Croiseur ravagé : cheminées détruites, incendies |
+| Explosion de munitions | Le croiseur Zara ravagé : cheminées détruites, incendies |
 |---|---|
 | ![Explosion](docs/explosion.jpg) | ![Dégâts](docs/damage.jpg) |
 
