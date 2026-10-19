@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased — fleet tactics
+
+- **The ships used to fight alone** (each picked its own target, circled the enemy at its own range in a random direction, and the carriers wandered off by themselves). A fleet now has an order of battle (`sim/fleet.js`): the flagship (heaviest of the line) leads, the line follows in column (battleships, heavy cruisers, light cruisers) at a gap that follows the lengths of the ships, the destroyers screen ahead and on both bows, the carriers sail behind the line on the side away from the enemy with two destroyers as escort. The whole fleet circles the enemy the same way (chosen when it is put on the water), at the range of the shortest-ranged ship of the line and at the speed of the slowest, and the line shoots at one target chosen for the fleet. A ship that is crippled (hull under 35 %, or short of power) leaves the formation and fights on her own; a destroyer on a torpedo run, a ship that is too close to the enemy and a carrier that is threatened break formation too. Ships of one fleet avoid each other only when really close (the old avoidance pushed them apart).
+- `spawnFleet` puts the ships in that order (it used to lay them out in rows by class).
+- In 18 simulated battles (six matches, three seeds) 17 finished against 17 before, in 1 293 s on average against 1 235 s; the fleets now sail in column (see `test/fleet.mjs`: the stations are held within a tenth of a tether, no hull touches another).
+
 ## Unreleased — camera on a lost ship
 
 - **Bridge camera on a ship that blows up or goes down**: the eye stayed on the bridge, in the fireball (a brown screen for ten seconds) or, on a capsizing ship, swung round the rolling hull while the horizon stayed level. The view now steps out to the outside (orbit) camera as soon as the ship is no longer afloat or has exploded; it goes back to the bridge of the next ship when the camera moves on.

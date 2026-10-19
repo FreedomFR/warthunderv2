@@ -1,40 +1,32 @@
-// Fleet placement: ships are laid out in rows by class (destroyers in front, then cruisers,
-// battleships, carriers at the back), each row line-abreast, the whole fleet facing the enemy.
+// Fleet placement: the ships start in the order of battle of sim/fleet.js (destroyers screening ahead, the line in column behind the flagship,
+// carriers at the back), the whole fleet facing the enemy.
 import { AIController } from './controllers/ai.js';
 import { BY_ID } from '../data/ships.js';
-
-const ROW = { DD: 0, CL: 1, CA: 1, BB: 2, CV: 3 };
+import { stationPlan } from './fleet.js';
 
 /**
  * entries: [{ id: shipSpecId, count }]. (cx, cz) = centre of the fleet's front, heading in rad (faces the enemy).
  * Returns the ships created.
  */
 export function spawnFleet(world, teamId, entries, cx, cz, heading, opts = {}) {
-  const rows = [[], [], [], []];
-  for (const e of entries) {
-    const spec = BY_ID[e.id];
-    for (let i = 0; i < (e.count || 1); i++) rows[ROW[spec.type]].push(spec);
-  }
+  const specs = [];
+  for (const e of entries) for (let i = 0; i < (e.count || 1); i++) specs.push(BY_ID[e.id]);
+  // the order of battle of sim/fleet.js: the flagship leads the line, the destroyers screen ahead, the carriers sail behind (the front of the fleet is at (cx, cz))
+  const fleet = world.fleetOf(teamId);
+  fleet.circle = opts.circle ?? (world.rng() < 0.5 ? 1 : -1);
+  const plan = stationPlan(specs.map((s) => ({ type: s.type, L: s.loa })), fleet.circle, opts.spread ?? 1);
   const fx = Math.sin(heading), fz = -Math.cos(heading);      // forward
   const rx = Math.cos(heading), rz = Math.sin(heading);       // right
+  const front = Math.max(...plan.map((p) => (p ? p.f : 0)));
   const out = [];
-  let back = 0;
-  for (const row of rows) {
-    if (!row.length) continue;
-    const maxL = Math.max(...row.map((s) => s.loa));
-    const lat = Math.max(380, maxL * 2.3) * (opts.spread ?? 1);
-    row.sort((a, b) => b.loa - a.loa);
-    row.forEach((spec, i) => {
-      // alternate left/right of the centre line so the row stays balanced
-      const k = (i % 2 ? 1 : -1) * Math.ceil(i / 2) + (row.length % 2 === 0 ? 0.5 * (i % 2 ? -1 : 1) * 0 : 0);
-      const off = (row.length % 2 === 1 ? k : (i - (row.length - 1) / 2)) * lat;
-      const x = cx + rx * off - fx * back, z = cz + rz * off - fz * back;
-      const ship = world.addShip(spec.id, teamId, x, z, heading, { throttle: 0, speed: 0 });
-      ship.controller = opts.controller ? opts.controller(ship) : new AIController();
-      out.push(ship);
-    });
-    back += Math.max(520, maxL * 1.9);
-  }
+  specs.forEach((spec, i) => {
+    const p = plan[i] || { f: 0, r: 0 };
+    const f = p.f - front, r = p.r;
+    const x = cx + fx * f + rx * r, z = cz + fz * f + rz * r;
+    const ship = world.addShip(spec.id, teamId, x, z, heading, { throttle: 0, speed: 0 });
+    ship.controller = opts.controller ? opts.controller(ship) : new AIController();
+    out.push(ship);
+  });
   return out;
 }
 

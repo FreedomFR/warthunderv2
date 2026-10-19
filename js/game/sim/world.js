@@ -10,6 +10,7 @@ import { segmentNearShip, segmentHit, resolveShellHit, resolveTorpedoHit } from 
 import { updateAir } from './aircraft.js';
 import { spawnPartDebris, stepDebris } from './debris.js';
 import { magazineExplosion, shipGone, secondaryBlast, breakInTwo } from './explosions.js';
+import { FleetCommand } from './fleet.js';
 
 const statsCache = new Map();
 function statsFor(spec) {
@@ -47,6 +48,7 @@ export class World {
     this.nameCounts = new Map();
     this.kills = [];
     this._enemyCache = new Map();
+    this.fleets = new Map();     // the captain of each team's fleet (sim/fleet.js)
     this.timeLimit = 3600;
     this.lastCombatT = 0;        // last time a ship damaged another (used by the AI to break stalemates)
   }
@@ -82,9 +84,11 @@ export class World {
     this.bombs.length = 0; this.debris.length = 0; this.seaFires.length = 0; this.timers.length = 0;
     this.events.length = 0; this.time = 0; this.lastCombatT = 0; this.state = 'setup'; this.winner = null; this.kills.length = 0;
     this.nameCounts.clear();
+    this.fleets.clear();
   }
 
   // ---- queries ----------------------------------------------------------------------------------------
+  fleetOf(team) { let f = this.fleets.get(team); if (!f) { f = new FleetCommand(team); this.fleets.set(team, f); } return f; }
   enemiesOf(ship) {
     const out = [];
     for (const s of this.ships) if (s.team !== ship.team && s.alive) out.push(s);
@@ -136,6 +140,7 @@ export class World {
 
   step(dt) {
     this.time += dt;
+    if (this.state === 'running') for (const t of this.teams) if (t) this.fleetOf(t.id).update(this, dt);
     for (const s of this.ships) {
       if (s.alive && s.controller) s.controller.update(s, this, dt);
       s.update(dt);
