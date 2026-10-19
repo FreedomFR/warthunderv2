@@ -20,6 +20,8 @@ for (const seed of [21, 33, 47]) {
   const fReady0 = w.ships.filter((s) => s.air).map((s) => s.air.fReady);
   for (let i = 0; i < 16000; i++) {
     w.update(0.1);
+    // the air war goes on after the last ship of a side is lost (the world stops updating aircraft once the battle is over): the test is about the aircraft
+    if (w.state === 'finished') { w.state = 'running'; w.finishT = 0; }
     for (const e of w.drainEvents()) {
       ev[e.type] = (ev[e.type] || 0) + 1;
       if (e.type === 'planeDown') kills[(e.plane.fighter ? 'F' : 'B') + ':' + e.cause] = (kills[(e.plane.fighter ? 'F' : 'B') + ':' + e.cause] || 0) + 1;

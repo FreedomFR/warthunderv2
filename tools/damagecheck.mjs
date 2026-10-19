@@ -5,7 +5,32 @@
 import { World } from '../js/game/sim/world.js';
 import { spawnFleet, teamStart } from '../js/game/sim/formation.js';
 import { resolveTorpedoHit } from '../js/game/sim/damage.js';
+import { BY_ID } from '../js/game/data/ships.js';
+import { makeStats } from '../js/game/sim/shipdata.js';
+import { gunBallistics } from '../js/game/sim/ballistics.js';
+import { V_EXP, effectiveThickness, spacedPlates } from '../js/game/sim/penetration.js';
 
+// node tools/damagecheck.mjs zones [shooter,target ...]: the immune zones, i.e. the ranges (km) at which an average AP shell goes through the belt
+// (broadside) or the deck of the target
+if (process.argv[2] === 'zones') {
+  const pairs = (process.argv.slice(3).length ? process.argv.slice(3) : ['iowa,yamato', 'yamato,iowa', 'iowa,bismarck', 'bismarck,iowa', 'kgv,bismarck', 'bismarck,kgv', 'iowa,iowa', 'baltimore,takao', 'takao,baltimore', 'yamato,fletcher']).map((p) => p.split(','));
+  for (const [sh, tg] of pairs) {
+    const g = makeStats(BY_ID[sh]).main, a = makeStats(BY_ID[tg]).armor;
+    const b = gunBallistics({ cal: g.cal, v0: g.v0, shellKg: g.shellKg, maxRange: g.maxRange, maxElevDeg: Math.min(g.maxElevDeg, 50) });
+    const belt = [], deck = [];
+    for (let r = 2000; r <= b.maxRange; r += 1000) {
+      const lk = b.lookup(r); if (!lk) break;
+      const pen = g.pen0 * Math.pow(lk.vImpact / g.v0, V_EXP);
+      const cb = Math.min(1, Math.cos(lk.fall) * Math.cos(a.incl * Math.PI / 180) + Math.sin(lk.fall) * Math.sin(a.incl * Math.PI / 180));
+      const eb = effectiveThickness(Math.max(a.belt, a.skin), Math.acos(cb) * 57.3);
+      const ed = spacedPlates([a.weather, a.deck].filter((x) => x > 0).map((x) => effectiveThickness(x, 90 - lk.fall * 57.3)));
+      belt.push(pen > eb ? 1 : 0); deck.push(pen > ed && lk.fall * 57.3 > 8 ? 1 : 0);      // below 8 degrees of fall a shell glances off a deck
+    }
+    const span = (arr) => { const out = []; let s0 = null; arr.forEach((v, i) => { const km = 2 + i; if (v && s0 == null) s0 = km; if (!v && s0 != null) { out.push(`${s0}-${km - 1}`); s0 = null; } }); if (s0 != null) out.push(`${s0}-${2 + arr.length - 1}`); return out.join(', ') || 'never'; };
+    console.log(`${sh} -> ${tg}: belt (${a.belt} mm${a.incl ? ' at ' + a.incl + ' deg' : ''}) penetrated at ${span(belt)} km; deck (${a.weather ? a.weather + '+' : ''}${a.deck} mm) at ${span(deck)} km`);
+  }
+  process.exit(0);
+}
 // node tools/damagecheck.mjs torp: how many torpedo hits sink each ship (no help from anyone else)
 if (process.argv[2] === 'torp') {
   const ids = (process.argv[3] || 'fletcher,cleveland,baltimore,iowa,yamato,bismarck,kgv,littorio,essex,shokaku').split(',');

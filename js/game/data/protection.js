@@ -27,7 +27,6 @@ export const NAVY = {
  *   lower        - thickness (mm) of the lower belt under the waterline, when it is known.
  *   torp         - underwater protection: design resistance (kg of TNT) and `flaw` (0..1, the share of that resistance the system really
  *                  gave: Yamato's joint between the belts, Pugliese's cylinder that did not collapse).
- *   water        - integrity of the watertight subdivision (1 = as designed): Shinano put to sea with doors not fitted and bulkheads unsealed.
  *   avgas        - (carriers) the fuel system: 'closed' (inerted lines, CO2-filled piping, foam) or 'open' (vapour reached the hangars).
  */
 export const PROTECTION = {
