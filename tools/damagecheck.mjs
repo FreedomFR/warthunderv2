@@ -4,7 +4,36 @@
 // bounced, over-penetrated, duds, HE bursts).
 import { World } from '../js/game/sim/world.js';
 import { spawnFleet, teamStart } from '../js/game/sim/formation.js';
+import { resolveTorpedoHit } from '../js/game/sim/damage.js';
 
+// node tools/damagecheck.mjs torp: how many torpedo hits sink each ship (no help from anyone else)
+if (process.argv[2] === 'torp') {
+  const ids = (process.argv[3] || 'fletcher,cleveland,baltimore,iowa,yamato,bismarck,kgv,littorio,essex,shokaku').split(',');
+  console.log('torpedo hits needed to sink (median of 5 seeds; hits come every 25 s along the citadel, alternating sides, then the ends)');
+  for (const id of ids) {
+    const row = [];
+    for (const W of [230, 363, 490]) {
+      const ns = [];
+      for (let seed = 1; seed <= 5; seed++) {
+        const w = new World(seed); w.addTeam(0); w.addTeam(1);
+        const s = w.addShip(id, 1, 0, 0, 0); w.start();
+        let n = 0;
+        while (s.state === 'afloat' && n < 40) {
+          const L = s.stats.L, xs = [0.12, -0.08, 0.2, -0.2, 0.3, -0.3];
+          const lx = L * xs[n % xs.length], side = n % 2 ? 1 : -1;
+          const p = s.toWorld(lx, 0, side * s.stats.B / 2, [0, 0, 0]);
+          resolveTorpedoHit(w, s, { warhead: W, owner: null }, p[0], p[2]); n++;
+          for (let i = 0; i < 250 && s.state === 'afloat'; i++) { w.update(0.1); w.drainEvents(); }
+        }
+        ns.push(s.state === 'afloat' ? 99 : n);
+      }
+      ns.sort((a, b) => a - b);
+      row.push(`${W} kg: ${ns[2] === 99 ? '>40' : ns[2]} (${ns.join(',')})`);
+    }
+    console.log(id.padEnd(14), row.join('   '));
+  }
+  process.exit(0);
+}
 const secs = Number(process.argv[2] || 1500);
 const seeds = Number(process.argv[3] || 3);
 const only = process.argv[4] || '';

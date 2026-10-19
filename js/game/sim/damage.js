@@ -354,11 +354,14 @@ export function resolveBombHit(world, ship, bomb, hit) {
   const cit = ship.model.zones.citadel;
   const frac = (st.L / 2 - lx) / st.L;
   const inCitadel = frac >= cit[0] && frac <= cit[1];
-  let armor = 8;
-  if (hit.part === 'deck') armor = inCitadel ? st.armor.deck : Math.max(st.armor.deck * 0.25, 10);
-  if (hit.part === 'deck' && st.type === 'CV') armor = Math.max(st.armor.deck, 10);
-  if (hit.part === 'mount') armor = ship.model.mounts.length && hit.mount.rec.kind === 'turret' ? st.armor.turretFace * 0.6 : 20;
-  if (hit.part === 'hull') armor = Math.max(st.armor.belt * 0.2, 10);
+  const a = st.armor;
+  let armor = Math.max(a.sup * 0.6, 6);
+  if (hit.part === 'deck') {
+    if (st.type === 'CV') armor = a.flight > 0 ? a.flight : Math.max(a.deck, 12);        // a bomb through a thin flight deck bursts in the hangar below
+    else armor = inCitadel ? spacedPlates([a.weather, a.deck].filter((x) => x > 0)) : Math.max(a.skin * 0.7, 8);
+  }
+  if (hit.part === 'mount') armor = hit.mount.rec.kind === 'turret' ? a.roof : 20;
+  if (hit.part === 'hull') armor = Math.max(a.belt * 0.2, a.skin);
   const pen = 2.2 * Math.sqrt(kg) * Math.pow(speed / 120, 1.3);
   const nrm = hitNormal(ship, hit);
   let dmg, kind;
@@ -416,18 +419,40 @@ export function resolveCrashHit(world, ship, plane, hit) {
   ship.applyDamage(kg * 0.12 * st.softness, null, 'fire');
 }
 
+/** Share of the torpedo's blow that the underwater protection lets through (0.6 .. 1): a system designed for a warhead of R kg stops a smaller one. */
+export function torpedoReach(ship, warhead, lx) {
+  const st = ship.stats;
+  const tp = st.torpProt;
+  if (!tp || !tp.kg) return 1;
+  // the system covers the length of the citadel; outside it (the shaft brackets of the Prince of Wales) the hull is as good as unprotected
+  const cit = ship.model.zones.citadel;
+  const frac = (st.L / 2 - lx) / st.L;
+  const inZone = frac >= cit[0] - 0.04 && frac <= cit[1] + 0.04;
+  const R = tp.kg * (tp.flaw ?? 1) * (inZone ? 1 : 0.3);
+  return 0.6 + 0.4 * clamp((warhead / R - 0.5) / 1.0, 0, 1);
+}
+
+// Share of the ship's hit points that one 300 kg warhead takes: a destroyer is lost to one, a battleship needs half a dozen to a dozen.
+const TORP_SHARE = { DD: 1.2, CL: 0.26, CA: 0.2, BB: 0.11, CV: 0.24 };
+
 /** Torpedo hit on the hull side at local lx. */
 export function resolveTorpedoHit(world, ship, torp, wx, wz) {
-  const st = ship.stats;
+  const st = ship.stats, rng = world.rng;
   ship.toLocal(wx, 0, wz, _l);
   const lz = _l[2], lx = _l[0];
-  const dmg = torp.warhead * 6 * st.torpFactor * (0.85 + 0.3 * world.rng());
+  const r = torpedoReach(ship, torp.warhead, lx);
+  const dmg = TORP_SHARE[st.type] * Math.pow(torp.warhead / 300, 0.7) * r * st.maxHp * (0.85 + 0.3 * rng());
   ship.flood(lx, lz, dmg * 0.012);
   ship.listSide = lz >= 0 ? 1 : -1;
   if (torp.owner) { torp.owner.damageDealt += dmg; torp.owner.torpHits++; torp.owner.shotsHit++; }
-  ship.engine = Math.max(0.2, ship.engine - 0.15 * world.rng());
-  const P = torp.warhead * 1.6 * st.torpFactor;
+  ship.engine = Math.max(0.2, ship.engine - 0.15 * rng());
+  const P = torp.warhead * 1.6 * st.torpFactor * r;
   const killed = blast(world, ship, lx, -2.0, clamp(lz, -st.B / 2, st.B / 2), P, 'under', torp.owner, 'torpedo');
   world.events.push({ type: 'impact', kind: 'torpedo', x: wx, y: 0, z: wz, cal: 600, ship, lx, ly: -1.5, lz, killed: killed.length });
-  ship.applyDamage(dmg, torp.owner, 'torpedo');
+  // a destroyer hit amidships by a torpedo usually breaks her back
+  const dead = ship.applyDamage(dmg, torp.owner, 'torpedo');
+  if (dead && st.type === 'DD' && ship.state === 'sinking' && !ship.exploded && rng() < 0.55) {
+    ship.sinkMode = 'split'; ship.sinkStyle = 'split';
+    world.breakInTwo(ship, clamp(lx, -st.L * 0.3, st.L * 0.3));
+  }
 }

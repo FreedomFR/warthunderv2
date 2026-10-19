@@ -335,6 +335,55 @@ export class Ship {
     return false;
   }
 
+  /**
+   * Counter-flooding: with a list, the party opens valves to the empty compartments on the high side. It brings the list down by a share of
+   * itself every few seconds, at the price of water in the hull (a ship near her limit of stability may be saved, one already low may not).
+   * Destroyers have no compartments to spare.
+   */
+  counterFlood(dt) {
+    const st = this.stats;
+    if (st.type === 'DD' || Math.abs(this.floodList) < 0.05) return;
+    this._cfT = (this._cfT ?? 6) - dt;
+    if (this._cfT > 0) return;
+    this._cfT = 8 + 10 / st.navy.dc;
+    const rng = this.world.rng;
+    if (this.waterFill > 0.5 || rng() > 0.9 * st.navy.dc) return;
+    const high = this.floodList > 0 ? 1 : 0;       // the heavy side, so the water goes to the other one
+    const low = 1 - high;
+    const mid = this.comps.map((c, i) => ({ c, i })).filter(({ c }) => Math.abs(c.xc) < st.L * 0.3 && c.water[low] < 0.6).sort((a, b) => a.c.water[low] - b.c.water[low]).slice(0, 3);
+    if (!mid.length) return;
+    const want = Math.abs(this.floodList) * this.comps.length * 0.4 / mid.length;
+    for (const { c } of mid) c.water[low] = Math.min(1, c.water[low] + want);
+    this.world.events.push({ type: 'counterFlood', ship: this });
+  }
+
+  /**
+   * A fuel line or tank of a carrier was holed: the vapour spreads through the hangars, and unless it is purged (the US system
+   * kept its lines filled with CO2 and was foamed, the Japanese hangars were closed boxes) it finds a spark: Taiho and Shokaku were lost
+   * hours after one torpedo hit, Lexington (CV-2) the same.
+   */
+  startAvgasLeak(m, world) {
+    if (this.avgasLeak || this.state !== 'afloat') return;
+    const rng = world.rng, dc = this.stats.navy.dc;
+    const purged = rng() < (this.stats.avgas === 'closed' ? 0.75 : 0.25) * dc;
+    this.avgasLeak = { t: 0, purge: purged ? 40 + rng() * 60 : Infinity, blow: 140 + rng() * 220, x: m.x, z: m.z };
+  }
+
+  updateAvgas(dt) {
+    const lk = this.avgasLeak;
+    lk.t += dt;
+    if (lk.t > lk.purge) { this.avgasLeak = null; return; }
+    if (lk.t > lk.blow && (this.fires.length > 0 || this.world.rng() < dt * 0.05)) {
+      this.avgasLeak = null;
+      const rng = this.world.rng, w = this.toWorld(lk.x, 0, lk.z, [0, 0, 0]);
+      this.world.events.push({ type: 'explosion', x: w[0], y: w[1] + 3, z: w[2], size: 1.4, ship: this, stage: 'secondary' });
+      for (let i = 0; i < 3; i++) this.world.after(0.4 + i * 0.5 + rng() * 0.4, () => this.world.secondaryBlast(this, lk.x + (rng() - 0.5) * 60, 3 + rng() * 3, (rng() - 0.5) * 8, 0.6 + rng() * 0.5));
+      blast(this.world, this, lk.x, 0, lk.z, 700, 'inside', this.lastAttacker, 'bomb');
+      this.addFire(lk.x, 4, lk.z, 1.3, true);
+      this.applyDamage(this.stats.maxHp * 0.35, this.lastAttacker, 'fire');
+    }
+  }
+
   // ---- per tick ---------------------------------------------------------------------------------------------------
   update(dt) {
     if (this.state === 'sunk') return;
@@ -396,7 +445,7 @@ export class Ship {
     let inflow = 0, wP = 0, wS = 0, moment = 0, filled = 0;
     const nC = this.comps.length;
     const cap = st.maxHp * 0.22 / nC;
-    const pump = st.maxHp * 0.00012 * dt;
+    const pump = st.maxHp * 0.00012 * dt * st.navy.dc;
     let active = 0;
     for (const c of this.comps) if (c.inflow[0] > 0 || c.inflow[1] > 0) active++;
     for (const c of this.comps) {
@@ -418,12 +467,21 @@ export class Ship {
     this.floodList = (wS - wP) / nC;                    // >0 = to starboard
     this.waterFill = filled / nC;
 
+    // the damage-control party floods compartments on the high side to bring the ship upright (the cost: she sits lower), when it has the time and the means
+    if (afloat) this.counterFlood(dt);
+
     // heel in turns (outward), damage list, flooding trim
     const heelT = clamp(-this.yawRate * this.speed * (st.type === 'DD' ? 5.5 : st.type === 'BB' ? 2.2 : 3.2), -12, 12) * D2R;
     this.heel += (heelT - this.heel) * Math.min(1, dt * 0.9);
     const dmgF = 1 - this.hpFrac;
     const listT = (afloat ? 1 : 0) * clamp(this.listSide * dmgF * 0.05 + this.floodList * 0.9, -0.38, 0.38);
     this.listCur += (listT - this.listCur) * Math.min(1, dt * 0.3);
+    // a ship that heels past the limit of her stability for long enough turns over
+    if (afloat) {
+      const lim = { DD: 0.26, CL: 0.28, CA: 0.30, BB: 0.33, CV: 0.30 }[st.type];
+      this._capT = Math.abs(this.listCur) > lim ? (this._capT || 0) + dt : Math.max(0, (this._capT || 0) - dt * 0.5);
+      if (this._capT > 12) { this.sinkMode = 'roll'; this.destroy(this.lastAttacker, 'flood'); this.sinkMode = 'roll'; this.sinkStyle = 'roll'; }
+    }
     const trimT = (afloat ? -dmgF * 0.015 - clamp(this.floodTrim * 0.9, -0.3, 0.3) : 0);
 
     // ---- sinking: the way down follows the mode chosen when she was lost (see destroy) -----------------------------
@@ -506,6 +564,7 @@ export class Ship {
         }
       }
       if (this.updateMagazines(dt)) return;
+      if (this.avgasLeak) this.updateAvgas(dt);
       this.fireLevel = sat(burn * 0.35);
       if (burn > 0) this.applyDamage(Math.min(burn, 3.5) * 0.00036 * st.maxHp * dt, null, 'fire');
       if (this.floodRate > 0) this.applyDamage(this.floodRate * dt, null, 'flood');

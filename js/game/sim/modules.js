@@ -197,7 +197,11 @@ export function damageModule(world, ship, m, amount, owner, cause) {
     onModuleDestroyed(world, ship, m, owner, cause);
     return true;
   }
-  if (m.hp < m.maxHp * 0.5 && m.state === 0) { m.state = 1; if (m.part != null && ship.partState[m.part] === 0) ship.partState[m.part] = 1; }
+  if (m.hp < m.maxHp * 0.5 && m.state === 0) {
+    m.state = 1;
+    if (m.part != null && ship.partState[m.part] === 0) ship.partState[m.part] = 1;
+    if (m.kind === 'avgas') ship.startAvgasLeak(m, world);
+  }
   return false;
 }
 
@@ -263,7 +267,10 @@ function onModuleDestroyed(world, ship, m, owner, cause) {
     case 'tubes': ship.tubesLost(m, world, owner); break;
     case 'catapult': if (rng() < 0.6) ship.addFire(m.x, m.y, m.z, 0.7); break;
     case 'hangar':
-    case 'avgas': ship.hangarLost(m, world, owner); break;
+    case 'avgas':
+      if (m.kind === 'avgas') ship.startAvgasLeak(m, world);
+      ship.hangarLost(m, world, owner);
+      break;
     case 'flightdeck': ship.deckWrecked = true; break;
     default: break;
   }

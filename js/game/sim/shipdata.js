@@ -68,7 +68,7 @@ export function makeStats(spec) {
     mountHp: (cal) => (cal >= 300 ? 900 : cal >= 180 ? 520 : cal >= 120 ? 240 : 110),
     // fraction of torpedo damage that gets through underwater protection
     torpFactor: { DD: 1.3, CL: 1.0, CA: 0.9, BB: 0.6, CV: 0.8 }[t],
-    sinkTime: { DD: 28, CL: 45, CA: 55, BB: 90, CV: 80 }[t],
+    sinkTime: { DD: 40, CL: 75, CA: 100, BB: 200, CV: 180 }[t],
     softness: { DD: 3.0, CL: 0.85, CA: 0.65, BB: 0.28, CV: 0.55 }[t],     // damage taken from HE / unarmoured hits
     score: { DD: 1, CL: 1.5, CA: 2.2, BB: 4, CV: 3.5 }[t],
     visualRange: 32000,

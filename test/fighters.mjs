@@ -9,7 +9,7 @@ const ok = (c, m) => { console.log(c ? 'PASS' : 'FAIL', m); if (!c) { fail++; pr
 const parse = (s) => s.split(',').map((t) => { const [id, c] = t.split(':'); return { id, count: Number(c || 1) }; });
 
 let landedAll = 0;
-for (const seed of [21, 33]) {
+for (const seed of [21, 33, 47]) {
   const w = new World(seed); w.addTeam(0); w.addTeam(1);
   [parse('essex:1,cleveland:2'), parse('shokaku:1,agano:2')].forEach((f, i) => { const s = teamStart(i, 2, 30000); spawnFleet(w, i, f, s.x, s.z, s.heading); });
   for (const s of w.ships) s.cmd.throttle = 0.5;
