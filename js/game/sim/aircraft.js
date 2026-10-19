@@ -110,13 +110,27 @@ function bestTargets(world, team, fromX, fromZ, n) {
 }
 
 export function updateAir(world, dt) {
-  launches(world, dt);
+  const over = world.state === 'finished';
+  if (!over) launches(world, dt);
   for (const ship of world.ships) if (ship.air && ship.alive) stepDeckShip(world, ship, dt);
   flight(world, dt);
-  markHunted(world);
-  bomberDefense(world, dt, FIGHT_CTX);
-  updateAA(world, dt);
+  if (over) ceaseFire(world);
+  else {
+    markHunted(world);
+    bomberDefense(world, dt, FIGHT_CTX);
+    updateAA(world, dt);
+  }
   stepBombs(world, dt);
+}
+
+/** The battle is over: the aircraft that were fighting or on their way to fight go home. */
+const CEASE = new Set(['assemble', 'cruise', 'ip', 'run', 'rollin', 'dive', 'pullout', 'break', 'egress', 'escort', 'cap', 'engage', 'refuge']);
+function ceaseFire(world) {
+  for (const p of world.planes) {
+    p.firing = false; p.gunFiring = false; p.prey = null; p.hunted = 0;
+    if (!p.dying && CEASE.has(p.phase)) { p.phase = 'return'; p.asm = null; p.t = 0; }
+  }
+  for (const ship of world.ships) for (const a of ship.aaMounts) { a.target = null; a.flash = 0; }
 }
 
 // ---- fighters ----------------------------------------------------------------------------------------------------

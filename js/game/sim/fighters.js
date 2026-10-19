@@ -5,7 +5,7 @@
 import { clamp, wrapPi, D2R } from '../math.js';
 import { aaSources, exposure } from './routing.js';
 import { perfOf } from './airperf.js';
-import { presentedArea, roundHitChance } from './airhit.js';
+import { presentedArea, roundHitChance, axes } from './airhit.js';
 
 export const FIGHT_PHASES = new Set(['escort', 'cap', 'engage']);
 const STRIKE = new Set(['assemble', 'cruise', 'ip', 'run', 'rollin', 'dive', 'pullout', 'break', 'egress']);
@@ -104,6 +104,7 @@ export function fighterSteer(world, p, dt, ctx) {
     out.hdg = d > 160 ? Math.atan2(dx, -dz) : Math.atan2(anchor.vx, -anchor.vz);
     out.spd = clamp(sp * 1.25 + d * 0.12, pf.vc * 0.8, vC);
     out.gam = clamp((sy - p.y) / 700, -0.12, 0.14);
+    out.o = { bankMax: 42 * D2R, pitchRate: 0.5 };         // station keeping is flown gently (the fighter used to rock from bank to bank at 70 degrees)
     return out;
   }
   if (p.phase === 'cap') {
@@ -115,6 +116,7 @@ export function fighterSteer(world, p, dt, ctx) {
     out.hdg = Math.atan2(tx - p.x, -(tz - p.z));
     out.spd = vCruiseF;
     out.gam = clamp((1400 - p.y) / 600, -0.1, 0.12);
+    out.o = { bankMax: 32 * D2R, pitchRate: 0.4 };
     // a patrol that has seen no enemy for a long while, or has been up long enough, goes home
     if ((p.age - p.t0Air) > 900 || (world.time - (p.lastSeen ?? world.time) > 240)) p.phase = 'return';
     if (hostiles(world, p).some((q) => Math.hypot(q.x - ship.x, q.z - ship.z) < 45000)) p.lastSeen = world.time;
@@ -180,11 +182,41 @@ export function fighterFields(spec) {
 }
 
 // ---- the bombers defend themselves -----------------------------------------------------------------------------------------------------
-/** Types with a gunner at the back (the torpedo bombers and the two- and three-seat dive bombers). */
-const GUNNERS = new Set(['sbd', 'tbf', 'd3a', 'b5n', 'swordfish', 'skua', 'ju87', 'fi167', 'pl10']);
+/**
+ * The field of fire of the gunners of each type: the bearing from straight astern (az, both sides), the elevation above and below the horizontal plane of the aircraft
+ * (up, down), and whether the fin shadows the sector right astern and above. A flexible gun in the rear cockpit swings wide but the fuselage and the tail stop it below
+ * and astern; the Avenger's turret covers the whole upper hemisphere and a gun in the tunnel under the tail the lower rear; a biplane's gunner is hemmed in by the lower wing.
+ */
+const GUN_ARCS = {
+  sbd: [{ az: 1.25, up: 1.3, down: -0.35, fin: true }],
+  tbf: [{ az: 3.1, up: 1.45, down: -0.04, fin: true }, { az: 0.85, up: -0.12, down: -1.1 }],
+  d3a: [{ az: 1.05, up: 1.2, down: -0.3, fin: true }],
+  b5n: [{ az: 1.1, up: 1.15, down: -0.4, fin: true }],
+  swordfish: [{ az: 1.5, up: 1.3, down: -0.5, fin: false }],
+  skua: [{ az: 1.05, up: 1.2, down: -0.3, fin: true }],
+  ju87: [{ az: 1.2, up: 1.25, down: -0.45, fin: true }],
+  fi167: [{ az: 1.25, up: 1.2, down: -0.5, fin: false }],
+  pl10: [{ az: 1.2, up: 1.2, down: -0.5, fin: false }],
+};
+const GUNNERS = new Set(Object.keys(GUN_ARCS));
+
+/** Can a gunner of this aircraft bear on the point at (dx, dy, dz) from it? */
+export function gunnerCan(b, dx, dy, dz) {
+  const arcs = GUN_ARCS[b.typeKey];
+  if (!arcs) return false;
+  const l = Math.hypot(dx, dy, dz) || 1, A = axes(b);
+  const df = (dx * A.f[0] + dy * A.f[1] + dz * A.f[2]) / l, dr = (dx * A.r[0] + dy * A.r[1] + dz * A.r[2]) / l, du = (dx * A.u[0] + dy * A.u[1] + dz * A.u[2]) / l;
+  const az = Math.abs(Math.atan2(dr, -df)), el = Math.asin(clamp(du, -1, 1));
+  for (const g of arcs) {
+    if (az > g.az || el > g.up || el < g.down) continue;
+    if (g.fin && az < 0.1 && el > 0.2 && el < 0.9) continue;           // the fin and the tailplane are in the way
+    return true;
+  }
+  return false;
+}
 
 /**
- * Every bomber with a rear gunner fires at the nearest enemy fighter that is within reach and in the gun's field (the rear half-space): the closer it
+ * Every bomber with a rear gunner fires at the nearest enemy fighter that is within reach and in the gun's field of fire (see GUN_ARCS): the closer it
  * comes, the likelier the hit. Aircraft of a tight formation cover each other. ctx.hit applies the damage.
  */
 export function bomberDefense(world, dt, ctx) {
@@ -193,17 +225,16 @@ export function bomberDefense(world, dt, ctx) {
     if (b.fighter || b.dying || b.hidden || b.gone || b.y < 30 || !GUNNERS.has(b.typeKey)) continue;
     if (!fighters) { fighters = world.planes.filter((q) => q.fighter && !q.dying && !q.hidden && q.y > 30); if (!fighters.length) return; }
     let best = null, bd = 520;
-    const fx = Math.sin(b.heading), fz = -Math.cos(b.heading);
     for (const f of fighters) {
       if (f.team === b.team) continue;
       const dx = f.x - b.x, dy = f.y - b.y, dz = f.z - b.z, d = Math.hypot(dx, dy, dz);
       if (d > bd) continue;
-      const behind = -(dx * fx + dz * fz) / Math.max(1, d);          // 1: right astern, 0: abeam
-      if (behind < 0.15) continue;
+      if (!gunnerCan(b, dx, dy, dz)) continue;
       best = f; bd = d;
     }
     if (!best) { b.gunFiring = false; continue; }
     const f = best, dx = f.x - b.x, dy = f.y - b.y, dz = f.z - b.z;
+    const fx = Math.sin(b.heading), fz = -Math.cos(b.heading);
     if (!b.gunFiring) world.events.push({ type: 'mgBurst', plane: b, x: b.x, y: b.y, z: b.z });
     b.gunFiring = true;
     world.events.push({ type: 'mgFire', plane: b, target: f, x: b.x - fx * 3, y: b.y + 0.9, z: b.z - fz * 3, dx: dx / bd, dy: dy / bd, dz: dz / bd, range: bd });

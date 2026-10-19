@@ -25,6 +25,11 @@ export const MAT = {
   LEAF: 14,     // the crown of a tree (lumps of foliage): r = family * 16 + shade, g = tone, b = how much the wind moves it; the shader erodes the edge into leaves
   CARD: 15,     // a card of leaves with a cut-out: r, g = position on the card, b = leaf shape; the vertex ambient occlusion is the wind amplitude
   ROCK: 16,     // boulders: rgb is the stone, the shader adds the speckle and the moss
+  CANOPY: 17,   // what is seen from outside only (canopy frames, the pilot): not drawn from the cockpit
+  GAUGE: 18,    // a dial of the instrument panel: r, g = position on the dial, b = the kind of dial; the shader draws it from the flight state
+  SIGHT: 19,    // the glass of a reflector sight: the ring and the dot are drawn by the shader
+  DISC: 20,     // the blur of a propeller seen from the cockpit: a dithered dark disc
+  INTERIOR: 21, // the inside of a cockpit: lit mostly by the sky
 };
 
 import { bakeAO } from './ao.js';

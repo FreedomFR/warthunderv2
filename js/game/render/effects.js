@@ -186,6 +186,17 @@ export class Effects {
     if (first || heavy) {
       const h = Math.hypot(dx, dz) || 1, hx = dx / h, hz = dz / h;
       const wy = Math.max(b[1], 1);
+      // the pressure of the blast: a ring that spreads over the sea under the muzzle (white water thrown up), and, for the heavy guns, a halo of condensation
+      if (first && heavy && d < 3000 && wy < 60) {
+        for (let k = 1; k <= 3; k++) this.later(k * 0.11, () => {
+          const rad = R * (1.0 + 1.0 * k), w = R * 0.1, sg = 12;
+          for (let i = 0; i < sg; i++) {
+            const a0 = i / sg * 6.283, a1 = (i + 1.1) / sg * 6.283;
+            this.engine.foam.add(b[0] + hx * R * 2.5 + Math.cos(a0) * rad, b[2] + hz * R * 2.5 + Math.sin(a0) * rad, b[0] + hx * R * 2.5 + Math.cos(a1) * rad, b[2] + hz * R * 2.5 + Math.sin(a1) * rad, w, 0.1, 0.45, 0.22);
+          }
+        });
+      }
+      if (first && heavy && lod > 0.5) p.add({ kind: K.SMOKE, x: b[0] + dx * R * 1.2, y: b[1] + dy * R * 1.2, z: b[2] + dz * R * 1.2, s0: R * 2, s1: R * 5, life: 0.35, r: 0.95, g: 0.97, b: 1, a0: 0.3, a1: 0, drag: 2 });
       if (d < 2600 && cal >= 120 && wy < 60) {
         const len = R * (heavy ? 6.5 : 4);
         this.engine.foam.add(b[0], b[2], b[0] + hx * len, b[2] + hz * len, R * (heavy ? 2.2 : 1.6), 0, heavy ? 1.0 : 0.6, heavy ? 0.9 : 0.5);
@@ -203,25 +214,102 @@ export class Effects {
     }
   }
 
+  /**
+   * A shell hits the sea. The column is built in stages, as in the photographs of salvos falling short: a dark slick and a core of dark water at the foot, the column
+   * itself thrown up over most of a second (it is the first drops that reach the top), the crown that opens up there, the collapse and the low surge that spreads
+   * from the foot, the droplets that fly out on ballistic paths, a mist that drifts; on the foam of the sea, a disc, a ring that spreads and a second patch where the column falls.
+   * The height of the column follows the calibre (about 30 m for a 406 mm shell, 11 m for a 127 mm one); an armour-piercing shell throws up a taller, narrower column
+   * (a fraction of a second after it has gone in), a high-explosive shell bursts at once on the surface: a lower, wider crown with a flash and grey smoke.
+   */
   splash(e) {
     const d = this.distToCam(e.x, e.z);
     const cs = clamp(e.cal / 400, 0.18, 1.7);
     if (d > 22000 * (0.4 + cs)) return;
     this.addShake(0.02 * cs, e.x, e.z);
-    const p = this.p;
-    // an armour-piercing shell slips in and its column rises narrow and tall (a fraction of a second later, when the fuze or the impact throws it up);
-    // a high-explosive shell bursts at once on the surface: a wider, lower crown with a flash and a puff of smoke
-    if (e.shell === 'HE') {
-      p.add({ kind: K.FLASH, x: e.x, y: 1.5, z: e.z, s0: 5 * cs, s1: 12 * cs, life: 0.1, r: 1, g: 0.85, b: 0.6, a0: 5, a1: 0 });
-      for (let i = 0; i < Math.round(5 * this.emitScale); i++) p.add({ kind: K.SMOKE, x: e.x + rr(-2, 2) * cs, y: rr(1, 4) * cs, z: e.z + rr(-2, 2) * cs, vy: rr(2, 6), s0: 3 * cs, s1: rr(10, 18) * cs, life: rr(2, 3.5), r: 0.3, g: 0.3, b: 0.3, a0: 0.45, a1: 0, drag: 0.5, wind: 1 });
+    const p = this.p, es = this.emitScale, lod = d > 12000 ? 0.25 : d > 6000 ? 0.45 : d > 2500 ? 0.7 : 1;
+    const ap = e.shell === 'AP', he = e.shell === 'HE';
+    const H = 40 * Math.pow(Math.max(e.cal, 40) / 406, 0.9) * (ap ? 0.9 : he ? 0.6 : 0.75);
+    const v0 = Math.sqrt(2 * 12 * H), wid = ap ? 0.7 : he ? 1.35 : 1;
+    const at = (a, r) => [e.x + Math.cos(a) * r, e.z + Math.sin(a) * r];
+    const N = (n) => Math.max(1, Math.round(n * es * lod));
+    if (he) {
+      p.add({ kind: K.FLASH, x: e.x, y: 0.2 * H, z: e.z, s0: 0.18 * H, s1: 0.4 * H, life: 0.07, r: 1, g: 0.85, b: 0.6, a0: 5, a1: 0 });
+      for (let i = 0; i < N(5); i++) p.add({ kind: K.SMOKE, x: e.x + rr(-0.1, 0.1) * H, y: rr(0.05, 0.2) * H, z: e.z + rr(-0.1, 0.1) * H, vy: rr(2, 6), s0: 0.12 * H, s1: rr(0.35, 0.6) * H, life: rr(2, 3.5), r: 0.3, g: 0.3, b: 0.3, a0: 0.45, a1: 0, drag: 0.5, wind: 1 });
     }
-    const n = Math.round((8 + 12 * cs) * this.emitScale * (e.shell === 'AP' ? 0.8 : 1.15));
-    for (let i = 0; i < n; i++) {
-      const a = rnd() * 6.283, sp = rr(1, 6) * cs * (e.shell === 'AP' ? 0.5 : e.shell === 'HE' ? 1.3 : 1);
-      p.add({ kind: K.SPRAY, x: e.x + Math.cos(a) * rr(0, 3) * cs, y: 0.4, z: e.z + Math.sin(a) * rr(0, 3) * cs, vx: Math.cos(a) * sp, vy: rr(16, 46) * Math.pow(cs, 0.7) * (e.shell === 'AP' ? 1.35 : e.shell === 'HE' ? 0.8 : 1), vz: Math.sin(a) * sp, s0: 2.6 * cs, s1: rr(8, 13) * cs, life: rr(1.5, 3.2), r: 0.92, g: 0.96, b: 1, a0: 0.95, a1: 0, grav: 17, drag: 0.15, wind: 0.4 });
+    // the dark slick and core of dark water at the foot (the first instant)
+    for (let i = 0; i < N(8); i++) {
+      const [x, z] = at(rnd() * 6.283, rr(0, 0.08) * H);
+      p.add({ kind: K.SMOKE, x, y: rr(0, 0.25) * H, z, vy: rr(0.3, 0.5) * H, s0: 0.12 * H, s1: 0.3 * H, life: 1.0, r: 0.3, g: 0.31, b: 0.3, a0: 0.5, a1: 0, drag: 0.6 });
     }
-    for (let i = 0; i < 3; i++) p.add({ kind: K.SMOKE, x: e.x + rr(-3, 3) * cs, y: rr(2, 9) * cs, z: e.z + rr(-3, 3) * cs, vy: rr(1, 4), s0: 7 * cs, s1: rr(22, 34) * cs, life: rr(2.5, 4), r: 0.85, g: 0.9, b: 0.95, a0: 0.5, a1: 0, drag: 0.5, wind: 1 });
-    if (d < 1100) this.engine.foam.add(e.x, e.z, e.x, e.z, 6 + 13 * cs, 0.0, 1.0, 0.95);
+    // the column: thrown up over 0.7 s, the first drops fastest (they reach the top)
+    const total = N(40 + 70 * Math.sqrt(cs));
+    for (let burst = 0; burst < 5; burst++) {
+      const n = Math.max(1, Math.round(total / 5)), t0 = burst * 0.15 + (ap ? 0.12 : 0);
+      this.later(t0, () => {
+        for (let i = 0; i < n; i++) {
+          const [x, z] = at(rnd() * 6.283, rnd() * 0.11 * H * wid);
+          const a = rnd() * 6.283, out = rr(0, 0.12) * v0 * wid;
+          p.add({ kind: K.SPRAY, x, y: 0.3, z, vx: Math.cos(a) * out, vy: rr(0.55, 1.0) * v0, vz: Math.sin(a) * out, s0: 0.06 * H, s1: 0.15 * H * rr(0.9, 1.2), life: rr(4, 6), r: 0.97, g: 1, b: 1, a0: 0.9, a1: 0, grav: 12, drag: 0.15, wind: 0.4 });
+          // streaks of water along the column: its texture
+          if (i % 3 === 0) p.add({ kind: K.SPRAY, x, y: 0.3, z, vx: Math.cos(a) * out * 0.5, vy: rr(0.7, 1.0) * v0, vz: Math.sin(a) * out * 0.5, s0: 0.035 * H, s1: 0.05 * H, life: rr(3, 5), r: 1, g: 1, b: 1, a0: 0.9, a1: 0, grav: 12, drag: 0.12, stretch: 0.35 * H });
+        }
+      });
+    }
+    // the crown that opens at the top, lobed
+    this.later(0.45 + (ap ? 0.12 : 0), () => {
+      const lobes = 5 + Math.floor(rnd() * 3);
+      for (let i = 0; i < N(24); i++) {
+        const lobe = Math.floor(rnd() * lobes), a = lobe / lobes * 6.283 + rr(-0.3, 0.3), out = rr(0.3, 0.6) * v0 * wid * (0.75 + 0.5 * ((lobe * 7919) % 5) / 4);
+        const [x, z] = at(a, rr(0, 0.06) * H);
+        p.add({ kind: K.SPRAY, x, y: rr(0.55, 0.8) * H, z, vx: Math.cos(a) * out, vy: rr(0.2, 0.5) * v0, vz: Math.sin(a) * out, s0: 0.06 * H, s1: 0.14 * H, life: rr(3, 5), r: 0.97, g: 1, b: 1, a0: 0.85, a1: 0, grav: 12, drag: 0.2, wind: 0.4 });
+      }
+    });
+    // the droplets: ballistic, small, stretched along their paths
+    for (let i = 0; i < N(25 + 40 * cs); i++) {
+      const a = rnd() * 6.283, cone = rr(0.44, 1.05), sp = rr(0.7, 1.4) * v0;
+      const [x, z] = at(a, rr(0, 0.05) * H);
+      p.add({ kind: K.SPRAY, x, y: 0.4, z, vx: Math.cos(a) * Math.sin(cone) * sp, vy: Math.cos(cone) * sp, vz: Math.sin(a) * Math.sin(cone) * sp, s0: rr(0.1, 0.35), s1: rr(0.2, 0.5), life: rr(1.5, 3), r: 0.95, g: 0.97, b: 1, a0: 0.8, a1: 0, grav: 9.8, drag: 0.1, stretch: sp * 0.04, wind: 0.3 });
+    }
+    // the mist
+    for (let i = 0; i < N(3); i++) p.add({ kind: K.SMOKE, x: e.x + rr(-0.1, 0.1) * H, y: rr(0.1, 0.4) * H, z: e.z + rr(-0.1, 0.1) * H, vy: rr(1, 3), s0: 0.5 * H, s1: rr(1.0, 1.5) * H, life: 4, r: 0.85, g: 0.9, b: 0.95, a0: 0.3, a1: 0, drag: 0.5, wind: 1 });
+    // the column falls back: spray coming down and a low surge spreading from the foot
+    this.later(1.6 + (ap ? 0.2 : 0), () => {
+      for (let i = 0; i < N(34); i++) {
+        const [x, z] = at(rnd() * 6.283, rr(0, 0.16) * H * wid);
+        p.add({ kind: K.SPRAY, x, y: rr(0.45, 0.85) * H, z, vx: rr(-1, 1) * 0.1 * v0, vy: -rr(0.1, 0.4) * H, vz: rr(-1, 1) * 0.1 * v0, s0: 0.1 * H, s1: 0.2 * H, life: rr(1.2, 2.2), r: 0.93, g: 0.96, b: 1, a0: 0.8, a1: 0, grav: 6, drag: 0.1, wind: 0.4 });
+      }
+      for (let i = 0; i < N(10); i++) {
+        const a = rnd() * 6.283, sp = 0.15 * H * rr(0.8, 1.2);
+        p.add({ kind: K.SMOKE, x: e.x, y: rr(0.5, 1.5), z: e.z, vx: Math.cos(a) * sp, vz: Math.sin(a) * sp, vy: 0.3, s0: 0.2 * H, s1: 0.6 * H, life: rr(3, 4), r: 0.88, g: 0.92, b: 0.95, a0: 0.35, a1: 0, drag: 1.2, wind: 1 });
+      }
+      if (d < 1100) this.engine.foam.add(e.x, e.z, e.x, e.z, 0.35 * H, 0.2, 0.7, 0.7);
+    });
+    // the sea: a disc of white water, and a ring that spreads
+    if (d < 1100) {
+      this.engine.foam.add(e.x, e.z, e.x, e.z, Math.max(3, 0.2 * H), 0.1, 1.0, 0.9);
+      const seg = d < 500 ? 14 : 8;
+      for (let k = 0; k < 8; k++) {
+        const t = 0.12 + k * 0.38;
+        this.later(t, () => {
+          const R = (0.1 + 0.55 * Math.sqrt(t / 3)) * H * 1.3, w = Math.max(0.8, 0.07 * H), dense = 0.7 - 0.5 * (t / 3), fresh = 0.7 * (1 - t / 3.2);
+          for (let i = 0; i < seg; i++) {
+            const a0 = i / seg * 6.283, a1 = (i + 1.05) / seg * 6.283;
+            this.engine.foam.add(e.x + Math.cos(a0) * R, e.z + Math.sin(a0) * R, e.x + Math.cos(a1) * R, e.z + Math.sin(a1) * R, w, 0.25, fresh, dense);
+          }
+        });
+      }
+    }
+  }
+
+  /** A small plume where a round of machine gun or light AA falls into the sea: a spurt, a few drops, a patch of foam. cal in mm. */
+  bulletSplash(x, z, cal, grazing = false) {
+    const d = this.distToCam(x, z);
+    if (d > 2600) return;
+    const p = this.p, k = clamp(cal / 12.7, 0.6, 3.2);
+    const lod = d > 1500 ? 0.5 : 1;
+    p.add({ kind: K.SPRAY, x, y: 0.2, z, vx: rr(-0.5, 0.5), vy: rr(4, 8) * (grazing ? 0.6 : 1), vz: rr(-0.5, 0.5), s0: 0.25 * k, s1: 0.9 * k, life: rr(0.5, 0.9), r: 0.95, g: 0.97, b: 1, a0: 0.8, a1: 0, grav: 9.8, drag: 0.4 });
+    for (let i = 0; i < Math.round(4 * lod * this.emitScale); i++) p.add({ kind: K.SPRAY, x, y: 0.2, z, vx: rr(-2.5, 2.5), vy: rr(5, 12), vz: rr(-2.5, 2.5), s0: 0.08, s1: 0.12, life: rr(0.5, 1.0), r: 0.95, g: 0.97, b: 1, a0: 0.7, a1: 0, grav: 9.8, drag: 0.1, stretch: 0.3 });
+    if (d < 700) this.engine.foam.add(x, z, x, z, 0.6 * k, 0.1, 0.8, 0.3);
   }
 
   impact(e) {
@@ -281,7 +369,7 @@ export class Effects {
       // a random direction inside the cone round `dir`
       let vx = dir[0] + rr(-cone, cone), vy = dir[1] + rr(-cone, cone) * (o.flat ? 0.5 : 1), vz = dir[2] + rr(-cone, cone);
       const l = Math.hypot(vx, vy, vz) || 1, sp = speed * rr(0.35, 1.0);
-      p.add({ kind: K.TRACER, x, y, z, vx: vx / l * sp, vy: vy / l * sp + (o.lift || 0), vz: vz / l * sp, s0: (o.size || 0.3) * cs, life: rr(0.3, o.life || 0.9), r: col[0], g: col[1], b: col[2], a0: 3.6, a1: 0, grav: o.grav ?? 20, stretch: (o.stretch || 3.5) * cs });
+      p.add({ kind: K.TRACER, x, y, z, vx: vx / l * sp, vy: vy / l * sp + (o.lift || 0), vz: vz / l * sp, s0: (o.size || 0.3) * cs, life: rr(0.3, o.life || 0.9), r: col[0], g: col[1], b: col[2], a0: 3.6, a1: 0, grav: o.grav ?? 12, stretch: (o.stretch || 3.5) * cs });
     }
   }
 
@@ -366,6 +454,7 @@ export class Effects {
         const ns = Math.round((9 + 7 * cs) * es);
         for (let i = 0; i < ns; i++) p.add({ kind: K.SMOKE, x: e.x + rr(-2, 2) * cs, y: e.y + rr(0, 3) * cs, z: e.z + rr(-2, 2) * cs, vx: back[0] * rr(0, 6) + rr(-3, 3), vy: rr(6, 15), vz: back[2] * rr(0, 6) + rr(-3, 3), s0: 3.5 * cs, s1: rr(16, 30) * cs, life: rr(8, 15), r: 0.045, g: 0.042, b: 0.04, a0: 0.85, a1: 0, drag: 0.35, wind: 1, grav: -0.3 });
         this.sparks(e.x, e.y + 1, e.z, [0, 1, 0], 14, 1.1, 45, cs, [1, 0.62, 0.22], { life: 1.1 });
+        if (d < 3500) this.vents(e.x, e.y, e.z, back, cs);
         this.addShake(0.2 * cs, e.x, e.z);
       });
       return;
@@ -382,6 +471,24 @@ export class Effects {
     for (let i = 0; i < ns; i++) p.add({ kind: K.SMOKE, x: e.x + rr(-3, 3) * cs, y: e.y + rr(0, 4) * cs, z: e.z + rr(-3, 3) * cs, vx: rr(-4, 4), vy: rr(4, 11), vz: rr(-4, 4), s0: 4 * cs, s1: rr(14, 26) * cs, life: rr(5, 10), r: 0.2, g: 0.19, b: 0.18, a0: 0.7, a1: 0, drag: 0.4, wind: 1, grav: -0.2 });
     if (inside) this.later(0.08, () => this.sparks(e.x, e.y + 1, e.z, [0, 1, 0], 10, 1.0, 40, cs, [1, 0.6, 0.2], { life: 1 }));
     this.addShake(0.2 * cs * big, e.x, e.z);
+  }
+
+  /** Smoke and flame that jet from the openings of a hull burst inside, for two or three seconds, weaker and weaker. */
+  vents(x, y, z, back, cs, dur = 2.6) {
+    const step = 0.13, p = this.p;
+    let t = 0;
+    const tick = () => {
+      t += step;
+      if (t > dur) return;
+      const k = 1 - t / dur;
+      const jd = [back[0] + rr(-0.5, 0.5), 0.5 + rr(0, 0.8), back[2] + rr(-0.5, 0.5)], l = Math.hypot(jd[0], jd[1], jd[2]) || 1;
+      const sp = rr(8, 20) * Math.sqrt(cs);
+      const px = x + rr(-2, 2) * cs, py = y + rr(0, 2) * cs, pz = z + rr(-2, 2) * cs;
+      if (rnd() < 0.2 + 0.7 * k) p.add({ kind: K.SMOKE, x: px, y: py, z: pz, vx: jd[0] / l * sp, vy: jd[1] / l * sp, vz: jd[2] / l * sp, s0: 1.2 * cs, s1: rr(4, 9) * cs, life: rr(3, 6), r: 0.05 + 0.2 * (1 - k), g: 0.05 + 0.2 * (1 - k), b: 0.05 + 0.2 * (1 - k), a0: 0.6, a1: 0, drag: 0.5, wind: 1, grav: -0.2 });
+      if (rnd() < 0.55 * k) p.add({ kind: K.FLAME, x: px, y: py, z: pz, vx: jd[0] / l * sp * 0.6, vy: jd[1] / l * sp * 0.6, vz: jd[2] / l * sp * 0.6, s0: 1.4 * cs, s1: 0.7 * cs, life: rr(0.25, 0.5), rot: 0, rotV: 0, r: 1, g: 0.5, b: 0.12, a0: 15, a1: 0, drag: 1.5 });
+      this.later(step, tick);
+    };
+    tick();
   }
 
   explosion(e) {
@@ -456,6 +563,30 @@ export class Effects {
       this.p.add({ kind: K.TRACER, x: e.x + rr(-1.6, 1.6), y: e.y + rr(-0.3, 0.3), z: e.z + rr(-1.6, 1.6), vx: ux / l * sp + e.plane.vx * 0.2, vy: uy / l * sp, vz: uz / l * sp + e.plane.vz * 0.2, s0: 0.3, life, r: 1, g: 0.85, b: 0.4, a0: 4, a1: 4, stretch: 13 });
     }
     if (rnd() < 0.5) this.p.add({ kind: K.FLASH, x: e.x, y: e.y, z: e.z, s0: 0.8, s1: 1.6, life: 0.05, r: 1, g: 0.8, b: 0.4, a0: 3, a1: 0 });
+    this.strayRounds(e, d, 12.7);
+  }
+
+  /** The rounds of a burst that go on past the target and fall into the sea: plumes along the line (the rounds that skim the water at a grazing angle skip). */
+  strayRounds(e, d, cal) {
+    const L = Math.hypot(e.dx, e.dy, e.dz) || 1, dy = e.dy / L;
+    if (dy > -0.03 || e.y < 2 || d > 3200) return;
+    const dist = e.y / -dy;
+    if (dist > 3500) return;
+    const grazing = -dy < 0.26;
+    const n = grazing ? 2 : 1;
+    for (let i = 0; i < n; i++) {
+      if (rnd() > 0.55) continue;
+      const sg = 0.012 * dist, ox = rr(-sg, sg), oz = rr(-sg, sg);
+      let x = e.x + e.dx / L * dist + ox, z = e.z + e.dz / L * dist + oz;
+      this.later(dist / 780 + i * 0.02, () => {
+        this.bulletSplash(x, z, cal, grazing);
+        // a round at a grazing angle skips: a second, smaller plume 20-60 m on
+        if (grazing && rnd() < clamp(0.9 - (-dy) * 3.4, 0, 0.7)) {
+          const hop = rr(20, 60), hl = Math.hypot(e.dx, e.dz) || 1;
+          this.later(hop / 700, () => this.bulletSplash(x + e.dx / hl * hop, z + e.dz / hl * hop, cal * 0.6, true));
+        }
+      });
+    }
   }
 
   aaFire(e) {
@@ -680,16 +811,42 @@ export class Effects {
       }
 
       // ---- fires ----
+      // Layers, after the way sooty oil fires look: tongues of flame that narrow to a flickering tip (they puff at a rate that falls with the size of the fire), a hotter core,
+      // a glow at the foot, embers carried off by the wind, and a column of black smoke (a dense core inside a paler veil) lit orange from below at its base.
       if (s.fires.length && d < 22000) {
+        const lod = d > 12000 ? 0.45 : d > 5000 ? 0.7 : 1;
         for (const f of s.fires) {
-          f.acc = (f.acc || 0) + dt * (7 + 6 * f.power) * this.emitScale;
+          if (f.ph === undefined) { f.ph = rnd() * 6.283; f.ph2 = rnd() * 6.283; f.ph3 = rnd() * 6.283; }
+          const fq = 1.5 / Math.sqrt(2 + 4 * f.power);
+          const flick = clamp(1 + 0.25 * Math.sin(6.283 * fq * t + f.ph) + 0.15 * Math.sin(6.283 * 3.7 * t + f.ph2) + 0.1 * Math.sin(6.283 * 9 * t + f.ph3), 0.45, 1.6);
+          f.acc = (f.acc || 0) + dt * (7 + 6 * f.power) * this.emitScale * lod;
+          f.accT = (f.accT || 0) + dt * (5 + 7 * f.power) * flick * this.emitScale * lod;
+          f.accE = (f.accE || 0) + dt * 1.8 * f.power * this.emitScale * (d < 2500 ? 1 : 0);
+          // the tongues
+          while (f.accT >= 1) {
+            f.accT -= 1;
+            const w = s.toWorld(f.x + rr(-1.4, 1.4), f.y + rr(0, 0.6), f.z + rr(-1.4, 1.4), this._v);
+            const sz = (1.4 + 1.7 * f.power) * rr(0.8, 1.3) * (0.8 + 0.4 * flick);
+            this.p.add({ kind: K.FLAME, x: w[0], y: w[1], z: w[2], vx: s.vx * 0.5 + rr(-0.6, 0.6), vy: rr(3, 6) + 2 * f.power, vz: s.vz * 0.5 + rr(-0.6, 0.6), s0: sz, s1: sz * 0.5, life: rr(0.45, 0.95), rot: 0, rotV: 0, r: 1, g: 0.5, b: 0.12, a0: 15, a1: 0, drag: 0.8 });
+            if (rnd() < 0.4) this.p.add({ kind: K.FLAME, x: w[0], y: w[1], z: w[2], vx: s.vx * 0.5, vy: rr(2, 4), vz: s.vz * 0.5, s0: sz * 0.5, s1: sz * 0.28, life: rr(0.25, 0.45), rot: 0, rotV: 0, r: 1, g: 0.8, b: 0.45, a0: 18, a1: 0, drag: 0.9 });
+            if (rnd() < 0.3) this.p.add({ kind: K.FLASH, x: w[0], y: w[1] + 0.8, z: w[2], s0: 2.5 + 3 * f.power, s1: 4 + 5 * f.power, life: 0.22, r: 1, g: 0.5, b: 0.15, a0: 3.2 * flick, a1: 0 });
+          }
+          // embers rising and drifting off with the wind
+          while (f.accE >= 1) {
+            f.accE -= 1;
+            const w = s.toWorld(f.x + rr(-1, 1), f.y + 1, f.z + rr(-1, 1), this._v);
+            this.p.add({ kind: K.FLASH, x: w[0], y: w[1], z: w[2], vx: s.vx * 0.5 + rr(-1.5, 1.5), vy: rr(3, 8), vz: s.vz * 0.5 + rr(-1.5, 1.5), s0: rr(0.07, 0.16), s1: 0.05, life: rr(1.5, 3.5), r: 1, g: rr(0.45, 0.7), b: 0.15, a0: rr(6, 14), a1: 0, drag: 0.3, wind: 0.7, grav: -0.5 });
+          }
+          // the smoke is hot: it rises in a column (low drag, buoyancy) and leans with the wind, instead of piling up on the ship
           let smokeN = 0;
           while (f.acc >= 1) {
             f.acc -= 1;
             const w = s.toWorld(f.x + rr(-1, 1), f.y + rr(0, 1), f.z + rr(-1, 1), this._v);
-            if (rnd() < 0.5) this.p.add({ kind: K.FIRE, x: w[0], y: w[1], z: w[2], vx: s.vx * 0.5, vy: rr(3, 8), vz: s.vz * 0.5, s0: 2.2 + f.power, s1: 5 + 3 * f.power, life: rr(0.4, 0.9), r: 1, g: 0.62, b: 0.2, a0: 3, a1: 0, drag: 0.8 });
-            // the smoke is hot: it rises in a column (low drag, buoyancy) and leans with the wind, instead of piling up on the ship
-            if ((smokeN++ & 1) === 0) this.p.add({ kind: K.SMOKE, x: w[0], y: w[1] + 2, z: w[2], vx: s.vx * 0.5, vy: rr(7, 14), vz: s.vz * 0.5, s0: 3.2, s1: rr(34, 58) * (0.7 + f.power * 0.4), life: rr(14, 24), r: 0.05, g: 0.048, b: 0.045, a0: 0.6, a1: 0, drag: 0.07, wind: 1, grav: -0.9 });
+            if ((smokeN++ & 1) === 0) {
+              this.p.add({ kind: K.SMOKE, x: w[0], y: w[1] + 4, z: w[2], vx: s.vx * 0.5, vy: rr(7, 14), vz: s.vz * 0.5, s0: 3.2, s1: rr(34, 58) * (0.7 + f.power * 0.4), life: rr(14, 24), r: 0.05, g: 0.048, b: 0.045, a0: 0.6, a1: 0, drag: 0.07, wind: 1, grav: -0.9 });
+              // a paler veil round it that gives the column a soft edge
+              if (rnd() < 0.5) this.p.add({ kind: K.SMOKE, x: w[0], y: w[1] + 3, z: w[2], vx: s.vx * 0.5, vy: rr(6, 11), vz: s.vz * 0.5, s0: 6, s1: rr(60, 96) * (0.7 + f.power * 0.4), life: rr(18, 30), r: 0.09, g: 0.088, b: 0.085, a0: 0.11, a1: 0, drag: 0.07, wind: 1, grav: -0.7 });
+            }
           }
         }
       }
@@ -738,7 +895,7 @@ export class Effects {
           const jx = rr(-0.8, 0.8), jy = rr(-0.5, 0.5), jz = rr(-0.8, 0.8);
           const dark = hot ? 0.035 : 0.2;
           this.p.add({ kind: K.SMOKE, x: p.x - fx * tail + jx, y: p.y + jy, z: p.z - fz * tail + jz, vx: p.vx * 0.15, vy: rr(0.5, 2), vz: p.vz * 0.15, s0: 1.4, s1: rr(8, 15), life: rr(5, 9), r: dark, g: dark, b: dark, a0: hot ? 0.9 : 0.55, a1: 0, drag: 0.5, wind: 1, grav: -0.1 });
-          if (hot && rnd() < 0.7) this.p.add({ kind: K.FIRE, x: p.x - fx * (tail * 0.4) + jx, y: p.y + jy + 0.3, z: p.z - fz * (tail * 0.4) + jz, vx: p.vx * 0.5, vy: p.vy * 0.5 + 1, vz: p.vz * 0.5, s0: 1.4, s1: rr(3.5, 6), life: rr(0.25, 0.55), r: 1, g: 0.6, b: 0.2, a0: 3.5, a1: 0, drag: 1.2 });
+          if (hot && rnd() < 0.7) this.p.add({ kind: K.FLAME, x: p.x - fx * (tail * 0.4) + jx, y: p.y + jy + 0.3, z: p.z - fz * (tail * 0.4) + jz, vx: p.vx * 0.5, vy: p.vy * 0.5 + 1, vz: p.vz * 0.5, s0: 1.7, s1: rr(2, 3.2), life: rr(0.25, 0.5), rot: 0, rotV: 0, r: 1, g: 0.5, b: 0.12, a0: 15, a1: 0, drag: 1.2 });
         }
         acc.set(p.id, a);
       }
@@ -825,7 +982,8 @@ export class Effects {
         f.acc -= 1;
         const a = rnd() * 6.283, rad = Math.sqrt(rnd()) * f.r;
         const x = f.x + Math.cos(a) * rad, z = f.z + Math.sin(a) * rad;
-        this.p.add({ kind: K.FIRE, x, y: 0.6, z, vy: rr(1.5, 5), s0: 2.2 + f.r * 0.12, s1: rr(4, 8) + f.r * 0.2, life: rr(0.5, 1.1), r: 1, g: 0.6, b: 0.2, a0: 3.2, a1: 0, drag: 1 });
+        this.p.add({ kind: K.FLAME, x, y: 0.6, z, vy: rr(2, 5), s0: (2.2 + f.r * 0.12) * rr(0.8, 1.3), s1: (2.2 + f.r * 0.12) * 0.5, life: rr(0.5, 1.0), rot: 0, rotV: 0, r: 1, g: 0.5, b: 0.12, a0: 15, a1: 0, drag: 1 });
+        if (rnd() < 0.12) this.p.add({ kind: K.FLASH, x, y: 0.5, z, vx: rr(-1, 1), vy: rr(3, 7), vz: rr(-1, 1), s0: rr(0.07, 0.15), life: rr(1.2, 3), r: 1, g: 0.55, b: 0.15, a0: 9, a1: 0, drag: 0.3, wind: 0.7, grav: -0.5 });
         if (rnd() < 0.45) this.p.add({ kind: K.SMOKE, x, y: 2, z, vx: 0, vy: rr(6, 12), vz: 0, s0: 3 + f.r * 0.2, s1: rr(24, 40) + f.r * 0.7, life: rr(12, 20), r: 0.05, g: 0.048, b: 0.045, a0: 0.62 * f.power, a1: 0, drag: 0.08, wind: 1, grav: -0.55 });
       }
     }

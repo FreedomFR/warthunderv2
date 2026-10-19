@@ -10,7 +10,7 @@ const F = 24;              // floats per particle in the pool
 const X = 0, Y = 1, Z = 2, VX = 3, VY = 4, VZ = 5, AGE = 6, LIFE = 7, S0 = 8, S1 = 9, R = 10, G = 11, B = 12, A0 = 13, A1 = 14,
   ROT = 15, ROTV = 16, GRAV = 17, DRAG = 18, KIND = 19, SEED = 20, STRETCH = 21, WIND = 22;
 
-export const K = { SMOKE: 0, FIRE: 1, SPRAY: 2, TRACER: 3, FLASH: 4, FIREBALL: 5 };
+export const K = { SMOKE: 0, FIRE: 1, SPRAY: 2, TRACER: 3, FLASH: 4, FIREBALL: 5, FLAME: 6 };      // FLAME: an upright tongue of flame (does not turn with the camera roll or spin)
 
 export class Particles {
   constructor(engine) {
@@ -113,8 +113,14 @@ export class Particles {
   upload() {
     const cam = this.engine.cam;
     const p = this.pool, d = this.inst;
-    for (let i = 0; i < this.n; i++) {
-      const o = i * F, q = i * INST;
+    // the particles that cover what is behind them (smoke, spray, fireballs) are drawn first, then the ones that add light (flames, flashes, tracers): a flame is
+    // seen in front of the smoke that hangs over it instead of being hidden by it
+    const order = this._order && this._order.length >= this.n ? this._order : (this._order = new Uint32Array(MAX));
+    let ia = 0, ib = this.n;
+    for (let i = 0; i < this.n; i++) { const k = p[i * F + KIND]; if (k === K.SMOKE || k === K.SPRAY || k === K.FIREBALL) order[ia++] = i; else order[--ib] = i; }
+    for (let j = 0; j < this.n; j++) {
+      const i = order[j];
+      const o = i * F, q = j * INST;
       const t = p[o + AGE] / p[o + LIFE];
       const size = p[o + S0] + (p[o + S1] - p[o + S0]) * Math.sqrt(t);
       const k = p[o + KIND];
@@ -123,7 +129,7 @@ export class Particles {
       else a = p[o + A0] * Math.pow(1 - t, 1.5) + p[o + A1] * t;
       d[q] = p[o + X] - cam.x; d[q + 1] = p[o + Y] - cam.y; d[q + 2] = p[o + Z] - cam.z; d[q + 3] = size;
       // fire cools from yellow to dark red as it ages
-      if (k === K.FIRE) {
+      if (k === K.FIRE || k === K.FLAME) {
         d[q + 4] = p[o + R]; d[q + 5] = p[o + G] * (1 - 0.7 * t); d[q + 6] = p[o + B] * (1 - 0.95 * t);
       } else { d[q + 4] = p[o + R]; d[q + 5] = p[o + G]; d[q + 6] = p[o + B]; }
       d[q + 7] = a;

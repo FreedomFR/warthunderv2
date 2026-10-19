@@ -346,13 +346,13 @@ export function drawPlane(b, s, { part = 'whole' } = {}) {
       const yb = ry0 * 0.78, h = c.h;
       if (c.open) {
         b.block({ x0: c.x0, x1: c.x1, hw: rz0 * 0.55, y0: yb, y1: yb + h * 0.5 }, shade(dark, 0.9), MAT.DARK, { top: false });
-        b.sphere((c.x0 + c.x1) / 2, yb + h * 0.7, 0, 0.22, 0.22, 0.2, rgb('#d9b99b'), MAT.CANVAS, { seg: 7, rings: 4 });      // pilot's head
-        b.sphere((c.x0 + c.x1) / 2, yb + h * 0.94, 0, 0.26, 0.2, 0.24, rgb('#3a2f25'), MAT.CANVAS, { seg: 7, rings: 4, half: true });   // helmet
+        b.sphere((c.x0 + c.x1) / 2, yb + h * 0.7, 0, 0.22, 0.22, 0.2, rgb('#d9b99b'), MAT.CANOPY, { seg: 7, rings: 4 });      // pilot's head (not drawn from his seat)
+        b.sphere((c.x0 + c.x1) / 2, yb + h * 0.94, 0, 0.26, 0.2, 0.24, rgb('#3a2f25'), MAT.CANOPY, { seg: 7, rings: 4, half: true });   // helmet
         b.block({ x0: c.x1 - 0.05, x1: c.x1 + 0.03, hw: rz0 * 0.5, y0: yb + h * 0.3, y1: yb + h * 0.85, tx1: c.x1 - 0.2 }, glass, MAT.GLASS);   // windscreen
       } else {
         b.block({ x0: c.x0, x1: c.x1, hw: rz0 * 0.7, y0: yb - 0.04, y1: yb + h * 0.92, tx0: c.x0 + 0.25, tx1: c.tx1 - 0.15, thw: rz0 * 0.3 }, glass, MAT.GLASS);
-        for (const sz of [-1, 1]) b.beam([c.x0, yb, sz * rz0 * 0.72], [(c.x0 + c.x1) / 2, yb + h, sz * rz0 * 0.45], 0.05, 0.05, shade(top, 0.8), MAT.AIRCRAFT, { caps: false });
-        b.beam([c.x0 + (c.x1 - c.x0) * 0.35, yb + h * 0.1, -rz0 * 0.7], [c.x0 + (c.x1 - c.x0) * 0.35, yb + h * 0.95, 0], 0.05, 0.05, shade(top, 0.8), MAT.AIRCRAFT, { caps: false });
+        for (const sz of [-1, 1]) b.beam([c.x0, yb, sz * rz0 * 0.72], [(c.x0 + c.x1) / 2, yb + h, sz * rz0 * 0.45], 0.05, 0.05, shade(top, 0.8), MAT.CANOPY, { caps: false });
+        b.beam([c.x0 + (c.x1 - c.x0) * 0.35, yb + h * 0.1, -rz0 * 0.7], [c.x0 + (c.x1 - c.x0) * 0.35, yb + h * 0.95, 0], 0.05, 0.05, shade(top, 0.8), MAT.CANOPY, { caps: false });
       }
     }
     if (s.turret) b.sphere(f.x - 1.2, ry0 * 0.95, 0, 0.5, 0.42, 0.5, shade(top, 1.05), MAT.AIRCRAFT, { seg: 10, rings: 6, half: true });   // Avenger dorsal turret
