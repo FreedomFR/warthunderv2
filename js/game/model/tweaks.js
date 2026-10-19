@@ -508,6 +508,34 @@ export const TWEAKS = {
     funnels: [{ lx: 2.9, lz: 2.4, y0: 0.4, h: 8.2, rake: 0.4, top: 0.92, pipes: false }, { lx: 2.9, lz: 2.4, y0: 0.4, h: 8.2, rake: 0.4, top: 0.92, pipes: false }],
     mastY0: { 1: 4.6 },
   },
+  // Soldati class (a profile and plan of the Camicia Nera, shared by the project owner, measured only: a small line drawing, 7.1 px per metre scaled to the 106.7 m length, about +-0.6 m):
+  // a forecastle at 4.5 m at the stem falling to 3.6 m, the main deck 3.4 m, a quarterdeck at 1.4 m abaft f 0.88; the twin turrets at 0.218 and 0.83; the bridge block 0.26-0.375 (7 m,
+  // director platform 10.5 m, tower 13.8 m), a raked pole foremast at 0.39 (top 23 m), the big raked funnel at 0.445 (top 10.1 m), the triple tubes at 0.62 and 0.73 round the star-shell
+  // gun on a round deckhouse at 0.677, the raked pole mainmast at 0.78 (top 17.5 m).
+  soldati: {
+    mainVariant: 'it120', dirKind: 'drum', houseH: 2.0, bulwarkF: [0, 0.02],
+    fb: [[0, 4.6], [0.05, 4.2], [0.15, 3.8], [0.3, 3.6], [0.5, 3.5], [0.8, 3.4], [0.87, 3.3], [0.9, 1.8], [1, 1.4]],
+    planDeck: [[0, 0.02], [0.05, 0.75], [0.1, 0.83], [0.15, 0.91], [0.2, 0.96], [0.25, 0.99], [0.3, 1.0], [0.65, 1.0], [0.7, 0.97], [0.75, 0.92], [0.8, 0.85], [0.85, 0.86], [0.9, 0.72], [0.95, 0.67], [1, 0.34]],
+    planWL: [[0, 0], [0.04, 0.3], [0.1, 0.57], [0.2, 0.8], [0.3, 0.93], [0.4, 0.99], [0.5, 1], [0.6, 1], [0.7, 0.97], [0.8, 0.88], [0.9, 0.68], [0.95, 0.5], [1, 0.3]],
+    decks: [
+      { f: [0.26, 0.375], hw: 3.2, y: [0, 3.6], windows: true },            // bridge base, 7.1 m
+      { f: [0.268, 0.372], hw: 2.6, y: [3.6, 7.0], windows: true },          // 10.5 m
+      { f: [0.355, 0.375], hw: 1.4, y: [7.0, 10.3], taper: 0.9 },           // the tower, 13.8 m
+      { f: [0.455, 0.53], hw: 2.6, y: [0, 1.4] },                           // deckhouse abaft the funnel
+      { f: [0.56, 0.76], hw: 2.8, y: [0, 1.0] },                            // the torpedo deck
+      { f: [0.64, 0.715], round: true, hw: 2.4, y: [0, 1.4] },              // round deckhouse of the star-shell gun
+      { f: [0.79, 0.88], hw: 3.0, y: [0, 1.8] },                            // the after deckhouse under the gun
+    ],
+    towerF: 0.365, towerY0: 10.4,
+    tiers: [{ len: 2.5, w: 2.5, h: 0.1 }],
+    dir0: { dx: 0, w: 2.0, l: 2.2, h: 1.2 },
+    foremast: { dx: -2.9, y0: 5.0 },
+    funnels: [{ lx: 4.2, lz: 2.4, y0: 0.4, h: 6.4, rake: 1.2, top: 0.95, pipes: false }],
+    mastY0: { 1: 3.4 },
+    mastRake: { 1: -2.0 },
+    props: [{ f: 0.93, z: 2.0, depth: 2.3, d: 2.4, blades: 3, toF: 0.85, strutF: 0.91 }],
+    rudders: [{ f: 0.975, z: 0, top: 0.5, bottom: 3.0, chord: 2.4 }],
+  },
   fletcher: {
     mainVariant: 'mk30', dirKind: 'drum', houseH: 2.2, bulwarkF: [0, 0.02],
     fb: [[0, 6.8], [0.04, 6.1], [0.1, 5.5], [0.2, 4.9], [0.3, 4.5], [0.4, 4.0], [0.5, 3.4], [0.6, 3.0], [1, 3.0]],

@@ -2159,5 +2159,34 @@
       "bow": 1142,
       "cl": 542
     }
+  },
+  "soldati": {
+    "loa": 106.7,
+    "side": {
+      "file": "refs/soldati/cn.png",
+      "source": "Soldati class destroyer Camicia Nera, profile and plan (shared by the project owner, a small line drawing, source unknown; consulted for measurements only); scaled to the 106.7 m length (no scale bar), 7.1 px per metre",
+      "close": 7,
+      "open": 3,
+      "threshold": 150,
+      "tol": 1.5,
+      "crop": [
+        0,
+        0,
+        800,
+        200
+      ],
+      "stern": 22,
+      "bow": 778,
+      "wl": 178,
+      "erase": [
+        [
+          0,
+          0,
+          160,
+          28
+        ]
+      ],
+      "dilate": 3
+    }
   }
 }

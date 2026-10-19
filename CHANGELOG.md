@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased — fidelity batch 5 (the destroyers)
+## Unreleased — fidelity batch 5 (the destroyers: Fletcher, Kagero, Tribal, Type 1936A, Le Fantasque, Soldati)
 
 - **Fletcher**: a profile / plan / lines sheet with a 20 m scale bar, shared by the project owner (a monograph; copyright, measurements only). Flush deck from 6.8 m at the stem to 3.0 m aft, the
   5 in mounts at 0.177 / 0.238 / 0.679 / 0.754 / 0.831 (the spec had 0.10 / 0.165 / 0.66 / 0.78 / 0.885), the bridge block, pole mast (28.7 m), funnels at 0.419 / 0.534, quintuple tubes at
@@ -18,7 +18,10 @@
 - **Le Fantasque**: a profile and plan with a scale in feet (434 ft 5 in), shared by the project owner (source unknown, measurements only): forecastle 7.6 m at the stem, 6.8 m at f 0.3,
   4.4 m aft of f 0.45; the 138.6 mm single mounts at 0.17 / 0.207 / 0.757 / 0.855 / 0.883 (the spec had 0.10 / 0.17 / 0.66 / 0.80 / 0.88), the stepped bridge block (to 16 m), a pole foremast (26.6 m),
   funnels at 0.375 / 0.611, the after deckhouse with its director tower; new `fr138` family. Profile 1.6 m, plan 0.7 m (the drawing is hatched and about 10 % too wide: normalised).
-- **Soldati**: only photographs (a camouflaged Legionario, public domain): funnel, masts and guns moved, about +-2.5 m.
+- **Soldati**: a profile and plan of the Camicia Nera shared by the project owner (a small line drawing, source unknown, measurements only; scaled to the length, about +-0.6 m): forecastle 4.5 m at the
+  stem down to a 1.4 m quarterdeck abaft f 0.88, the twin turrets at 0.218 / 0.83 (the spec had 0.14 / 0.84), the bridge block (to 13.8 m), a raked foremast (23 m), the big funnel at 0.445,
+  the triple tubes at 0.62 / 0.73 round the star-shell gun at 0.677 (the spec had 0.56 / 0.70 and 0.63), the raked mainmast (17.5 m), screw and rudder; new `it120` family. Profile 1.4 m; the
+  outline-only plan cannot be compared by silhouette, its half-breadths were read by hand.
 
 ## Unreleased — fidelity batch 4 (the cruisers)
 
