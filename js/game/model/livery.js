@@ -12,7 +12,7 @@ export const NATION_ID = { USA: 1, Japan: 2, UK: 3, Germany: 4, France: 5, Italy
 
 // Three colours per palette, as sRGB hex: [dark, medium, light]
 export const PALETTES = [
-  /* 0 */ ['#2c3846', '#46586a', '#8d9aa4'],      // US Measure 32 (navy blue / ocean grey / haze grey)
+  /* 0 */ ['#2c3846', '#6a7581', '#9ca5af'],      // US Measure 32 medium dazzle (Navy Blue 5-N / Ocean Gray 5-O / Light Gray 5-L; reflectances 9 / 17 / 35 %)
   /* 1 */ ['#3a4a57', '#6d7b86', '#a3aeb5'],      // Admiralty disruptive (dark / medium / light blue-greys)
   /* 2 */ ['#5d6468', '#838b8f', '#adb4b7'],      // Regia Marina greys
   /* 3 */ ['#4d5550', '#6b7173', '#8d9396'],      // IJN / KM disruptive greys
@@ -35,6 +35,17 @@ export const LIVERY = {
   zara: { scheme: CAMO.DAZZLE, pal: 2, seed: 0.91 },
   littorio: { scheme: CAMO.SUNBURST, pal: 2, seed: 0.44 },
   kagero: { scheme: CAMO.SPLOTCH, pal: 3, seed: 0.28 },       // Yukikaze wore a disruptive scheme in 1945
+};
+
+/**
+ * Recognition marks and special finishes, per ship id: { top: roof of the gun houses (col, or bands [stripe, ground]), stripes: { cols, w } diagonal deck stripes forward and aft }.
+ * Regia Marina: after the air attack of Punta Stilo (July 1940) the forecastle deck and the turret roofs wore red and white stripes, until 1942-43.
+ * Bismarck: turret tops Dunkelgrau (RAL 7024) on 24 May 1941.
+ */
+const IT_MARKS = { top: { bands: ['#a82e27', '#e6e3d8'] }, stripes: { cols: ['#a82e27', '#e6e3d8'], w: 2.6 } };
+export const MARKS = {
+  soldati: IT_MARKS, montecuccoli: IT_MARKS, zara: IT_MARKS, littorio: IT_MARKS,
+  bismarck: { top: { col: '#474A51' } },
 };
 
 /** Hull number carried on the bow ("61", "F03"...), taken from the reference ship of the spec: "USS Iowa (BB-61)". */

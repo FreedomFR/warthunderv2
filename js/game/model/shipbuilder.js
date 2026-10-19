@@ -6,7 +6,7 @@ import { MeshBuilder, MAT, rgb, shade, mix } from './meshbuilder.js';
 import { buildHull } from './hull.js';
 import * as PT from './parts.js';
 import { makeRng } from '../math.js';
-import { paintOf, hullNumber, LIVERY, PALETTES } from './livery.js';
+import { paintOf, hullNumber, LIVERY, MARKS, PALETTES } from './livery.js';
 import * as DT from './details.js';
 import { mountDims } from './mounts.js';
 
@@ -20,10 +20,11 @@ function makePalette(spec, tw) {
   const sup = p.superstructure || '#8a9096';
   const pal = {
     hull: p.hull || '#59616a', boot: p.boot || '#1b1d20', deck: p.deck || '#6b6258',
-    sup, dark: '#202327', cap: '#18191b', funnel: p.funnel || sup, mast: rgb(shade(sup, 0.82)).map(Math.round),
+    sup, dark: '#202327', cap: p.cap || '#18191b', funnel: p.funnel || sup, mast: rgb(shade(sup, 0.82)).map(Math.round),
     boat: '#8c9296', glass: '#0e151b', ...(tw.pal || {}),
   };
   const lv = LIVERY[spec.id];
+  if (MARKS[spec.id]?.top) pal.top = MARKS[spec.id].top;
   if (lv) { const m = PALETTES[lv.pal]; pal.hull = m[1]; pal.sup = m[2]; pal.funnel = m[1]; pal.mast = m[1]; pal.boat = m[2]; }
   // linoleum / teak decks: keep them from looking orange-bright under the strong sun
   pal.deck = '#' + mix(pal.deck, '#5b5348', 0.42).map((v) => Math.round(v).toString(16).padStart(2, '0')).join('');
@@ -546,6 +547,14 @@ export function buildShipModel(spec, tw = {}) {
   // -------- ship-specific extras (see tweaks.js) --------
   if (tw.extra) tw.extra({ b, hull, X, Y, pal, model, spec, rnd, PT, houseH, note, MAT, rgb, shade, part });
 
+  // -------- recognition stripes on the forecastle and the quarterdeck --------
+  const mk = MARKS[spec.id];
+  if (mk?.stripes && !carrier) {
+    const mf = spec.main.mounts.map((m) => m.fractionFromBow), gap = clamp(L * 0.04, 4, 9);
+    PT.deckStripes(b, hull, { ...mk.stripes, x0: X(0.012), x1: X(Math.min(...mf)) - gap });
+    PT.deckStripes(b, hull, { ...mk.stripes, x0: X(Math.max(...mf)) + gap, x1: X(0.985) });
+  }
+
   // -------- carrier flight deck --------
   if (carrier) buildCarrier(b, model, spec, hull, pal, tw, X, Y, fdY, rnd, note, part);
 
@@ -667,7 +676,7 @@ function buildCarrier(b, model, spec, hull, pal, tw, X, Y, fdY, rnd, note, part)
   const fp = tw.fdPlan;
   const x1 = fp ? Math.max(...fp.map((q) => X(q[0]))) : L / 2 + (tw.fdBowOver ?? 3) - (L - fdL) * 0.3, x0 = fp ? Math.min(...fp.map((q) => X(q[0]))) : x1 - fdL;
   const hw = fp ? Math.max(...fp.map((q) => q[1])) : fdW / 2;
-  const col = rgb(tw.flightDeckCol || '#3b3a37');
+  const col = rgb(tw.flightDeckCol || spec.paint?.deck || '#3b3a37');   // flight deck stain, linoleum, planking: the colour of the spec sheet
   const sil = spec.silhouette || {};
   const isl = sil.island || { side: 'starboard', fractionFromBow: 0.5, lengthM: 40, heightAboveDeckM: 15 };
   const sg = isl.side === 'port' ? -1 : 1;

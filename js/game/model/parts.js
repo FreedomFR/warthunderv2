@@ -382,6 +382,36 @@ export function forecastle(b, hull, xBow, pal) {
 }
 
 /** Flag staff with a team pennant at the stern and the masthead */
+/**
+ * Diagonal stripes across the weather deck between x0 and x1 (the recognition stripes painted on the forecastle and the quarterdeck of the Italian ships in 1940-42):
+ * flat cells that follow the sheer and the camber of the deck. o = { x0, x1 (either order), cols: [a, b], w: stripe width (m), slope: stripe slant }.
+ */
+export function deckStripes(b, hull, o) {
+  const xa = Math.max(o.x0, o.x1), xb = Math.min(o.x0, o.x1);
+  if (xa - xb < 3) return;
+  const cols = o.cols.map(rgb), w = o.w ?? 2.6, slope = o.slope ?? 0.9, dx = 1.5, SUB = 3;
+  const hw = (x) => hull.halfBeamDeck(x) * 0.93;
+  const vert = (x, z, col) => { const u = z / (hull.halfBeamDeck(x) || 1); return b.vert(x, hull.deckY(x) - hull.camber * u * u + 0.035, z, 0, 1, 0, col, MAT.DECK, 1); };
+  // a stripe is the strip of the deck where s = (distance from the bow end) + slope * z lies in [j w, (j + 1) w]: one trapezoid per slice of the deck, so the edges stay straight
+  const nx = Math.ceil((xa - xb) / dx);
+  for (let i = 0; i < nx; i++) {
+    const xe = xa - i * dx, xn = Math.max(xb, xe - dx);
+    const h0 = hw(xe), h1 = hw(xn);
+    const sLo = Math.min(xa - xe - slope * h0, xa - xn - slope * h1), sHi = Math.max(xa - xe + slope * h0, xa - xn + slope * h1);
+    for (let j = Math.floor(sLo / w); j <= Math.floor(sHi / w); j++) {
+      const col = cols[j & 1];
+      const zAt = (x, h, sv) => Math.max(-h, Math.min(h, (sv - (xa - x)) / slope));
+      const ze0 = zAt(xe, h0, j * w), ze1 = zAt(xe, h0, (j + 1) * w), zn0 = zAt(xn, h1, j * w), zn1 = zAt(xn, h1, (j + 1) * w);
+      if (ze1 - ze0 < 0.02 && zn1 - zn0 < 0.02) continue;
+      for (let k = 0; k < SUB; k++) {
+        const t0 = k / SUB, t1 = (k + 1) / SUB, L = (a, c, t) => a + (c - a) * t;
+        const a = vert(xe, L(ze0, ze1, t0), col), c = vert(xn, L(zn0, zn1, t0), col), d = vert(xn, L(zn0, zn1, t1), col), e = vert(xe, L(ze0, ze1, t1), col);
+        b.quadIdx(a, c, d, e);
+      }
+    }
+  }
+}
+
 export function pennant(b, x, y, z, len, team, flagCol) {
   if (!OPT.flags) return;
   const col = rgb(flagCol);

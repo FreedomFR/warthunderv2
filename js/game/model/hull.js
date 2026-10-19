@@ -228,7 +228,7 @@ export function buildHull(b, h) {
     return (B / 2) * shape(f) * sec(1, f);
   };
   return {
-    L, B, D,
+    L, B, D, camber,
     xBow: L / 2, xStern: -L / 2,
     /** deck height (above the design waterline) at longitudinal position x, at the centreline */
     deckY: (x) => fbF(clamp((L / 2 - x) / L, 0, 1)) + camber,
