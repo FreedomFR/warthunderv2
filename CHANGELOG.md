@@ -9,6 +9,7 @@
 ## Unreleased — camera on a lost ship
 
 - **Bridge camera on a ship that blows up or goes down**: the eye stayed on the bridge, in the fireball (a brown screen for ten seconds) or, on a capsizing ship, swung round the rolling hull while the horizon stayed level. The view now steps out to the outside (orbit) camera as soon as the ship is no longer afloat or has exploded; it goes back to the bridge of the next ship when the camera moves on.
+- **Automatic camera** (where it was seen, rarely): the cut to the deck of the ship an aircraft is attacking (the "victim" view) is no longer made from a ship that is going down, burning or smoking heavily (the screen was black or brown) nor when the aircraft is almost overhead (a blank sky); and the automatic director does not put the camera on the bridge of a ship that burns badly or is nearly lost. Measured on 480 frames of the automatic camera with ships blown up and sunk at random: 5 black or flat frames of 220 before, 1 of 260 after.
 - **The white slab on the sea at a magazine explosion**: the foam of the blast (a disc and an expanding ring, both persistent) covered the whole window of the foam map with a hard edge; the disc is smaller and the ring thinner and shorter-lived.
 
 ## Unreleased — masts that floated
