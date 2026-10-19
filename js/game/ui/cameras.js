@@ -169,6 +169,9 @@ export class CameraRig {
     if (mode === 'bridge' && this.target && (this.target.state !== 'afloat' || this.target.exploded)) mode = 'orbit';
     // the automatic director does not put the camera on the bridge of a ship that burns badly or is nearly lost: the screen is black smoke
     else if (mode === 'bridge' && this.mode === 'auto' && this.target && (this.target.fireLevel > 0.4 || this.target.hpFrac < 0.35)) mode = 'follow';
+    // the view that is drawn changed between two frames without a cut of the director (the ship under the camera was lost a moment after the cut to her bridge):
+    // cut too, instead of sweeping from the bridge to the outside through the hull and the fireball
+    if (mode !== this._shown) { if (this._shown === 'bridge' || mode === 'bridge') this.smooth.init = false; this._shown = mode; }
     let px, py, pz, yaw, pitch, roll = 0;
     const tgt = this.target;
     const sm = this.smooth;

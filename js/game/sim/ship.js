@@ -71,7 +71,7 @@ export class Ship {
     this.heights = new Float32Array(model.floatPts.length);
     this.haveHeights = false;
     this.y = 0; this.pitch = 0; this.roll = 0;
-    this.heel = 0; this.sinkDepth = 0; this.sinkRoll = 0; this.sinkPitch = 0; this.listCur = 0; this.fireLevel = 0;
+    this.heel = 0; this.trimCur = 0; this.settleCur = 0; this.sinkDepth = 0; this.sinkRoll = 0; this.sinkPitch = 0; this.listCur = 0; this.fireLevel = 0;
     this.vx = 0; this.vz = 0;
 
     // statistics
@@ -191,7 +191,7 @@ export class Ship {
       const share = rate * w[i] / wsum;
       c.inflow[side] += share * 0.8; c.inflow[1 - side] += share * 0.2;
     });
-    this.listSide = lz >= 0 ? 1 : -1;
+    if (this.state === 'afloat') this.listSide = lz >= 0 ? 1 : -1;        // (a ship going down keeps rolling the way she was rolling)
   }
 
   /** Recompute the speed factor from machinery, shafts and funnels. */
@@ -378,7 +378,10 @@ export class Ship {
     const dmgF = 1 - this.hpFrac;
     const listT = (afloat ? 1 : 0) * clamp(this.listSide * dmgF * 0.05 + this.floodList * 0.9, -0.38, 0.38);
     this.listCur += (listT - this.listCur) * Math.min(1, dt * 0.3);
+    // the trim and the sag of a damaged hull ease in and out: when she is lost they must not vanish at once (the ship would stand up and rise out of the water
+    // in one frame, the moment a torpedo finishes her), but give way slowly to the motion of the sinking
     const trimT = (afloat ? -dmgF * 0.015 - clamp(this.floodTrim * 0.9, -0.3, 0.3) : 0);
+    this.trimCur += (trimT - this.trimCur) * Math.min(1, dt * (afloat ? 1.5 : 0.25));
 
     // ---- sinking: the way down follows the mode chosen when she was lost (see destroy) -----------------------------
     let sinkRollT = 0, sinkPitchT = 0;
@@ -387,7 +390,7 @@ export class Ship {
       const full = st.D * 1.2 + (this.model.topY * 0.9);
       if (this.split) {
         this.updateSplit(dt, full);
-        this.sinkDepth = 0;
+        this.sinkDepth = this.split.depth0 || 0;        // what she had sunk before she broke in two; the sections go on from there
       } else {
         const mode = this.sinkMode || this.sinkStyle;
         // a burning ship first burns out dead in the water, cooking off ammunition, then settles
@@ -438,10 +441,11 @@ export class Ship {
     this.sinkPitch += (sinkPitchT - this.sinkPitch) * Math.min(1, dt * 0.6);
 
     this.roll = this.sr.x + this.heel + this.listCur + this.sinkRoll;
-    this.pitch = this.sp.x + trimT + this.sinkPitch;
+    this.pitch = this.sp.x + this.trimCur + this.sinkPitch;
     // settle lower in the water with damage / flooding
-    const settle = afloat ? Math.min(st.D * 0.4, dmgF * st.D * 0.25 + this.waterFill * st.D * 0.5) : 0;
-    this.y = this.sh.x - settle - this.sinkDepth;
+    const settleT = afloat ? Math.min(st.D * 0.4, dmgF * st.D * 0.25 + this.waterFill * st.D * 0.5) : 0;
+    this.settleCur += (settleT - this.settleCur) * Math.min(1, dt * (afloat ? 1.5 : 0.12));
+    this.y = this.sh.x - this.settleCur - this.sinkDepth;
 
     // ---- fires, magazine heating -------------------------------------------------------------------------
     if (afloat) {
@@ -570,6 +574,8 @@ export class Ship {
     this.cause = cause;
     const t = this.stats.type;
     const rng = this.world.rng;
+    // she goes over to the side she was already leaning to, whatever hit her last
+    if (Math.abs(this.listCur) > 0.04) this.listSide = this.listCur > 0 ? 1 : -1;
     this.sinkMode = this.chooseSinkMode(cause, t, rng);
     this.sinkStyle = this.sinkMode;
     if (this.sinkMode === 'burn') this.burnT = clamp(this.stats.L * 0.3 + rng() * 40, 30, 100);

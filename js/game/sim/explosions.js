@@ -96,7 +96,7 @@ export function breakInTwo(world, ship, cutX) {
       buoy: longer ? 0.95 : 0.75, leak: longer ? 0.025 + rng() * 0.02 : 0.045 + rng() * 0.03,
     };
   };
-  ship.split = { cut: cutX, t: 0, halves: [mk(1), mk(-1)] };
+  ship.split = { cut: cutX, t: 0, depth0: ship.sinkDepth, halves: [mk(1), mk(-1)] };
   const w = ship.toWorld(cutX, 3, 0, [0, 0, 0]);
   world.events.push({ type: 'shipBreak', ship, x: w[0], y: w[1], z: w[2], size: S });
   spawnScrap(world, w[0], w[1] + 2, w[2], Math.round(10 + 10 * S), 20 + 10 * S, ship.vx, ship.vz, 1);

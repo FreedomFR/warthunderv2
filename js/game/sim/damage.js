@@ -373,7 +373,7 @@ export function resolveTorpedoHit(world, ship, torp, wx, wz) {
   const lz = _l[2], lx = _l[0];
   const dmg = torp.warhead * 6 * st.torpFactor * (0.85 + 0.3 * world.rng());
   ship.flood(lx, lz, dmg * 0.012);
-  ship.listSide = lz >= 0 ? 1 : -1;
+  if (ship.state === 'afloat') ship.listSide = lz >= 0 ? 1 : -1;
   if (torp.owner) { torp.owner.damageDealt += dmg; torp.owner.torpHits++; torp.owner.shotsHit++; }
   ship.engine = Math.max(0.2, ship.engine - 0.15 * world.rng());
   const P = torp.warhead * 1.6 * st.torpFactor;
