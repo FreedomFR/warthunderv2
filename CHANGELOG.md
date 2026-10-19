@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased — scoreboard
+
+- **Tab** (held) or the "Tableau" button shows a live scoreboard: per team and per ship, ships sunk, aircraft shot down, shells fired, hits, accuracy, torpedoes (hits / launched), damage dealt, and state
+  (hull % or how she was lost), sorted by kills, plus the last sinkings. Tab no longer selects the next ship (N / B / ] / [ still do). `Ship.torpFired` counts the torpedoes launched.
+
 ## Unreleased — ways of sinking
 
 - A ship now goes down in one of several ways, chosen when she is lost (`Ship.chooseSinkMode`): **capsizing** (strongly one-sided flooding, a torpedo: the hull rolls over, floats keel up for a while, then
