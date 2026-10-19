@@ -2,7 +2,7 @@
 // A ship never decides anything itself: it executes its `cmd` (ShipCommand), which is written by a
 // controller (AI today, a human tomorrow — see controllers/).
 import { clamp, wrapPi, approach, KN, D2R, sat, smoothstep } from '../math.js';
-import { createModules, createCompartments, AA_HP, blast } from './modules.js';
+import { createModules, createCompartments, AA_HP, AA_ROUNDS, blast } from './modules.js';
 import { planeTypeFor } from '../model/planes.js';
 
 /**
@@ -95,7 +95,8 @@ export class Ship {
     // light AA mounts
     this.aaMounts = model.aaMounts.map((rec, i) => {
       const hp = AA_HP[rec.variant] * (rec.n >= 3 ? 1.5 : 1);
-      return { rec, idx: i, alive: true, hp, maxHp: hp, train: 0, elev: 0.3, recoil: 0, flash: 0, reload: world.rng.range(0, 1), target: null, retarget: world.rng.range(0, 0.6), burstLeft: 0 };
+      const rounds = (AA_ROUNDS[rec.variant] || 1500) * rec.n;
+      return { rec, idx: i, alive: true, hp, maxHp: hp, ammo: rounds, ammo0: rounds, train: 0, elev: 0.3, recoil: 0, flash: 0, reload: world.rng.range(0, 1), target: null, retarget: world.rng.range(0, 0.6), burstLeft: 0 };
     });
     this.tubes = model.tubes.map((t) => ({ ...t, ready: 0, left: t.n }));
     this.torpReload = 0; this.torpLeft = stats.torpedo ? stats.torpedo.tubes : 0;
@@ -117,6 +118,12 @@ export class Ship {
   }
 
   get alive() { return this.state === 'afloat'; }
+  /** rounds left for the light AA: { left, frac } (all the mounts, the working ones or not) */
+  aaAmmo() {
+    let left = 0, all = 0;
+    for (const a of this.aaMounts) { left += a.ammo; all += a.ammo0; }
+    return { left, frac: all ? left / all : 0 };
+  }
   /** shells left in the magazines of a battery ('main' | 'sec'): { AP, HE, frac } (frac of what the guns started with, working mounts only) */
   ammoLeft(group = 'main') {
     let AP = 0, HE = 0, all = 0;

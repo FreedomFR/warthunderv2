@@ -27,6 +27,8 @@ const HP = {
   avgas: (t) => 260,
   flightdeck: (t) => 700,
 };
+/** Rounds carried for each barrel of a light AA mount (a gun fires in bursts, about 60 % of the time it has a target). */
+export const AA_ROUNDS = { oerlikon: 3600, iijn25: 2700, bofors: 1400 };
 export const AA_HP = { oerlikon: 7, iijn25: 18, bofors: 26 };
 
 const LABEL = {

@@ -305,6 +305,12 @@ export function createUI(game) {
         if (state.killFeed.length > 6) state.killFeed.shift();
         continue;
       }
+      if (e.type === 'strikeAbort' || e.type === 'strikeMerged') {
+        const tc = world.teams[e.ship.team];
+        state.killFeed.push({ t: performance.now(), text: e.type === 'strikeAbort' ? `Le raid de ${e.ship.name} fait demi-tour (${e.left} appareils sur ${e.planned})` : `Le raid de ${e.ship.name} se resserre (${e.left} appareils sur ${e.planned})`, c1: '#ccc', c2: tc ? css(tc.rgb) : '#ccc', v: { name: '' }, killer: null, plane: true });
+        if (state.killFeed.length > 6) state.killFeed.shift();
+        continue;
+      }
       if (e.type === 'shipBreak') {
         state.killFeed.push({ t: performance.now(), text: `${e.ship.name} se brise en deux`, c1: '#ccc', c2: css(world.teams[e.ship.team].rgb), v: { name: '' }, killer: null });
         if (state.killFeed.length > 6) state.killFeed.shift();
@@ -550,7 +556,7 @@ export function createUI(game) {
         h('span', {}, 'Machines'), h('b', {}, okOf('engine') || '—'),
         h('span', {}, 'Gouvernail'), h('b', {}, s.rudderDead ? 'détruit' : s.rudderJam ? 'bloqué' : 'normal'),
         h('span', {}, 'Direction de tir'), h('b', {}, s.fcMult > 1.05 ? `dégradée (×${s.fcMult.toFixed(1)})` : 'normale'),
-        h('span', {}, 'DCA légère'), h('b', {}, `${aaAlive}/${s.aaMounts.length}`),
+        h('span', {}, 'DCA légère'), h('b', {}, `${aaAlive}/${s.aaMounts.length} · munitions ${Math.round(s.aaAmmo().frac * 100)} %`),
         h('span', {}, 'Inondation'), h('b', {}, `${Math.round((s.waterFill || 0) * 100)} %${Math.abs(s.floodList || 0) > 0.03 ? (s.floodList > 0 ? ' · gîte tribord' : ' · gîte bâbord') : ''}`),
         h('span', {}, 'Incendies'), h('b', {}, String(s.fires.length)),
         h('span', {}, 'Tirs / touches'), h('b', {}, `${s.shotsFired} / ${s.shotsHit} (${acc}%)`),
