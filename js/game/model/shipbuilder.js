@@ -117,8 +117,50 @@ const AA_TYPES = {
 
 function kindOf(desc, ...words) { return words.some((w) => new RegExp(w, 'i').test(desc || '')); }
 
+/**
+ * The eye of the bridge camera: a spot on a roof of the superstructure near the tower (standing at its front edge or on a wing) with the longest clear view
+ * ahead, out of the way of the centre-line mast and its stays. solids: bounding boxes [x0, x1, y0, y1, z0, z1] of everything built.
+ */
+function bridgeEye(model, solids, L) {
+  const tx = model.bridge.towerX, top = model.topY;
+  // anything that stands at the height of the eye, or reaches it, within 2 m: a funnel, a mast, a wall
+  const inside = (x, y, z, m) => { for (const s of solids) if (s[3] > y - 1.2 && s[2] < y + 2 && x > s[0] - m && x < s[1] + m && z > s[4] - m && z < s[5] + m) return true; return false; };
+  // distance along a ray (direction dx, dy, dz) to the first box, capped
+  const ray = (x, y, z, dx, dy, dz, cap) => {
+    let best = cap;
+    for (const s of solids) {
+      let t0 = 0, t1 = best;
+      for (const [o, d, lo, hi] of [[x, dx, s[0], s[1]], [y, dy, s[2], s[3]], [z, dz, s[4], s[5]]]) {
+        if (Math.abs(d) < 1e-9) { if (o < lo || o > hi) { t1 = -1; break; } continue; }
+        let a = (lo - o) / d, c = (hi - o) / d; if (a > c) [a, c] = [c, a];
+        t0 = Math.max(t0, a); t1 = Math.min(t1, c);
+        if (t0 > t1) break;
+      }
+      if (t1 >= t0 && t0 < best && t0 > 0) best = t0;
+    }
+    return best;
+  };
+  let best = null;
+  for (const [x, y, z] of model.bridge.cands || []) {
+    if (inside(x, y, z, 0.3)) continue;
+    // clear view ahead, on a fan of rays over the width and the height of the picture; near obstacles in it cost more than far ones
+    let score = 0, n = 0, worst = 60;
+    for (const pitch of [-0.04, 0.08]) for (const yaw of [0, -0.15, 0.15, -0.3, 0.3, -0.5, 0.5]) {
+      const d = Math.min(ray(x, y, z, Math.cos(yaw), pitch, Math.sin(yaw), 60), 60), w = 1 - Math.abs(yaw);
+      score += w * (d / 5 - (d < 7 ? 6 : 0)); n++;
+      if (Math.abs(yaw) < 0.4) worst = Math.min(worst, d);
+    }
+    score = score / n * 4 + 6 * (y / top) - Math.abs(x - tx) * 0.05 - (Math.abs(z) < 1.2 ? 5 : 0) + Math.min(worst, 25) * 0.8;
+    if (!best || score > best.score) best = { x, y, z, score };
+  }
+  delete model.bridge.cands;
+  if (best) { model.bridge.x = best.x; model.bridge.y = best.y; model.bridge.z = best.z; }
+  else { model.bridge.x = tx + 5; model.bridge.y = Math.max(model.bridge.y, top * 0.6); model.bridge.z = 2.5; }
+}
+
 export function buildShipModel(spec, tw = {}) {
   const b = new MeshBuilder();
+  b.solids = [];
   const rnd = makeRng(hashStr(spec.id));
   const pal = makePalette(spec, tw);
   const t = spec.type;
@@ -314,7 +356,16 @@ export function buildShipModel(spec, tw = {}) {
     part('radar0', 'radar', 'Radar de veille', () => PT.radar(b, { x: mx, y: Math.max(mastTopY - 3.5, y), z: 0, kind: rkind, w: Math.min(7, 0.2 * B + 2) }, pal));
     part('radar1', 'radar', 'Radar de surface', () => PT.radar(b, { x: x + 2, y: r.tops[Math.max(0, tiers.length - 2)], z: topW * 0.2, kind: 'dish' }, pal));
     note(mastTopY + 2);
-    model.bridge = { x, y: r.topY };
+    // candidate eyes for the bridge camera: outside the front face of every tier, at window height, on the wings and a little ahead (picked in bridgeEye())
+    {
+      const cands = [];
+      tiers.forEach((t, i) => {
+        if (t.round || t.h < 1.2) return;
+        const yb = r.tops[i] - t.h, xf = x + (t.dx || 0) + t.len / 2 - (t.rake ?? 0) * 0.5;
+        for (const off of [0.9, 2.4, 4.2]) for (const zz of [t.w / 2 + 0.6, t.w / 2 * 0.5, 0]) for (const sg of zz === 0 ? [1] : [-1, 1]) cands.push([xf + off, yb + t.h * 0.6, sg * zz]);
+      });
+      model.bridge = { x: x + 5, y: r.topY, z: 0, towerX: x, cands };
+    }
     {
       const hx0 = model.house ? model.house.x1 : x - 8, hx1 = model.house ? model.house.x0 : x + 8;
       model.superBox = { x0: Math.min(hx0, x - tiers[0].len / 2, deckBox.x0), x1: Math.max(hx1, x + tiers[0].len / 2, deckBox.x1), hw: Math.max(model.house ? model.house.hw : 0, tiers[0].w / 2, deckBox.hw), y1: Math.max(r.topY, deckBox.y1) };
@@ -598,6 +649,8 @@ export function buildShipModel(spec, tw = {}) {
   if (spec.machinery?.rooms) model.machinery = spec.machinery.rooms.map(([k, f0, f1, z = 0, w = 0]) => ({ k, x: (X(f0) + X(f1)) / 2, hx: Math.abs(X(f0) - X(f1)) / 2, z, hz: w ? w / 2 : 0 }));
   model.topY = topY;
   model.radius = Math.hypot(L / 2, topY);
+  if (model.bridge) bridgeEye(model, b.solids, L);
+  b.solids = null;
   const built = b.build();
   model.mesh = built;
   for (const p of model.parts) { p.mesh = built.groups[p.id]; p.ruin = p.hasRuin ? built.groups[p.id + '_ruin'] : null; p.fineMesh = p.hasFine ? built.groups[p.id + '_fine'] : null; }
@@ -684,6 +737,12 @@ function buildCarrier(b, model, spec, hull, pal, tw, X, Y, fdY, rnd, note, part)
   part('director0', 'director', 'Directeur de tir', () => PT.director(b, { x: dgx, y: fdY + dgy, z: iz, w: 3.4, l: 3.2, h: 2.2, kind: spec.nation === 'Japan' ? 'drum' : 'box' }, pal), () => b.cylinder(dgx, fdY + dgy, iz, 0.5, 0.4, fdY + dgy + 0.7, dark, MAT.DARK, { seg: 6 }));
   note(fdY + my0 + imh + 2);
   model.island = { x: ix, z: iz, y: fdY + ih };
+  // the bridge camera looks out of the front of the island, over the flight deck
+  {
+    const cands = [];
+    for (const off of [0.6, 2, 4]) for (const f of [0.5, 0.65, 0.8]) for (const dz of [0, 2.5, -2.5]) cands.push([ix + il / 2 + off, fdY + ih * f, iz + dz]);
+    model.bridge = { x: ix + il / 2 + 0.6, y: fdY + ih * 0.7, z: iz, towerX: ix, cands };
+  }
   model.superBox = { x0: ix - il / 2, x1: ix + il / 2, hw: ihw, zc: iz, y1: fdY + ih };
   model.deckPoints = { x0, x1, hw, y: fdY };
   model.fdY = fdY;

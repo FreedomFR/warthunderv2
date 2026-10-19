@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased — cameras
+
+- **Bridge view**: the eye used to sit 5 m ahead of the centre of the tower, on the centre line, where the foremast, its stays or a wall were in the way on most ships (and inside a block on the King George V, the
+  Bismarck, the Takao and the carriers, which have no tower and looked from over the flight deck). The model now carries an eye (`model.bridge`: x, y, z) found by a search over the front of every tier of the
+  tower (on the wings, a little ahead of the face, at window level; on carriers out of the front of the island): not inside any block, and the view ahead (a fan of rays over the width and the height of the picture)
+  as clear as possible. The camera of the aircraft seen from the victim ship uses it too. Checked on the 30 ships with the `cams` scene (bridge, chase and orbit, one frame each).
+- **Cockpit view**: the eye is at the front of the canopy, high (the cowling stays at the bottom of the picture), above the upper wing on a biplane; the view **banks with the aircraft** (the engine camera has a
+  `roll`); the propeller is not drawn from the pilot's seat (a frozen blade hid the view). The fly-past camera is narrower (30 degrees) and the victim camera's field of view follows the distance (8 to 50
+  degrees) so that the aircraft is seen. Checked on the 12 types in the cruise and in the attack with the `planecams` scene.
+
 ## Unreleased — deck operations
 
 - **Lifts**: a launching aircraft that is not in the deck park comes up on a **lift**: the platform goes down, the aircraft rides up out of an open shaft in the deck (the lifts are now in the ship model:

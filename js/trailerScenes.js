@@ -3,6 +3,8 @@
 import { clamp, lerp, D2R, KN } from './game/math.js';
 import { mv, FPS } from './trailer.js';
 import { magazineExplosion } from './game/sim/explosions.js';
+import { BY_ID } from './game/data/ships.js';
+import { PLANES } from './game/model/planes.js';
 
 /** world point `fwd` ahead of / `side` to starboard of a ship (heading only, no roll or pitch) at absolute height y */
 const H = (s, fwd, side, y) => [s.x + Math.sin(s.heading) * fwd + Math.cos(s.heading) * side, y, s.z - Math.cos(s.heading) * fwd + Math.sin(s.heading) * side];
@@ -253,6 +255,59 @@ export const SCENES = {
     await T.until(() => lander.phase === 'taxiIn' || !T.w.planes.includes(lander), { max: 30, dt: 1 / 12 });
     if (T.w.planes.includes(lander)) await T.shot('deck_down', 16, chaseCam(() => lander, 22, 7, 14, 6, 44, 6));
     T.log('deck: done at', T.now.toFixed(0), 'ready', ship.air.ready, 'parked', ship.parked);
+  },
+
+  // ---- cams: every ship of the roster through the camera modes of the game (bridge, chase, orbit), one frame each ----------------------------------
+  async cams(T, only) {
+    T.reset(5, 'noon');
+    const ids = Object.keys(BY_ID).filter((id) => !only || only.includes(id));
+    const ships = ids.map((id, i) => T.ship(id, 0, (i % 6) * 1500, Math.floor(i / 6) * 1500, 90, 0));
+    sail(ships, 0);
+    T.go();
+    await T.wait(2);
+    const cam = T.g.camera, mode = T.q?.mode || 'bridge';
+    for (const s of ships) {
+      cam.target = s;
+      const view = (m) => () => {
+        if (m === 'orbit') cam.orbit.az = 0.9;
+        const r = cam.compute(m, s, 0.016);
+        const cp = Math.cos(r.pitch);
+        return { p: [r.x, r.y, r.z], l: [r.x + Math.sin(r.yaw) * cp * 100, r.y + Math.sin(r.pitch) * 100, r.z - Math.cos(r.yaw) * cp * 100], fov: (m === 'bridge' ? 58 : 58) };
+      };
+      for (const m of ['bridge', 'follow', 'orbit']) await T.shot(m + '_' + s.stats.id, 1 / 24, view(m));
+    }
+  },
+
+  // ---- planecams: every aircraft type seen through the aircraft cameras of the game (chase, fly-past, from the victim, cockpit), in the cruise and in the attack ----------
+  async planecams(T) {
+    T.reset(9, 'noon');
+    const carriers = ['essex', 'shokaku', 'illustrious', 'graf_zeppelin', 'bearn', 'aquila'];
+    const us = carriers.flatMap((id, i) => T.fleet(0, [{ id }], -9000 + (i % 2) * 700, (i - 2.5) * 900, 90, { knots: 18 }));
+    const en = T.fleet(1, [{ id: 'takao' }, { id: 'agano' }, { id: 'kagero', count: 2 }], 5200, 0, 270, { knots: 14 });
+    quiet(us); quiet(en);
+    T.go();
+    const cam = T.g.camera;
+    const pick = (type, phases) => T.w.planes.find((p) => p.typeKey === type && phases.includes(p.phase) && !p.dying && !p.hidden && p.y > 8);
+    for (const [tag, phases] of [['cruise', ['cruise']], ['attack', ['rollin', 'dive', 'run', 'ip', 'pullout']]]) {
+      for (const type of Object.keys(PLANES)) {
+        if (PLANES[type].float) continue;
+        const ok = await T.until(() => pick(type, phases), { max: 300, dt: 1 / 12 });
+        const p = pick(type, phases);
+        if (!ok || !p) { T.log('planecams: no', type, tag); continue; }
+        for (const view of ['chase', 'side', 'victim', 'cockpit']) {
+          cam.plane = p; cam.planeCam.view = view; cam.planeCam.fix = null; cam.planeCam.look.yaw = 0; cam.planeCam.look.pitch = 0; cam.smooth.init = false;
+          cam.mode = view === 'cockpit' ? 'cockpit' : 'plane';
+          cam.fovWant = (view === 'cockpit' ? 75 : 58) * D2R;
+          await T.shot(tag + '_' + type + '_' + view, 1 / 24, () => {
+            const r = cam.computePlane(cam.mode, 0.016);
+            if (!r) return { p: [p.x - 30, p.y + 10, p.z], l: [p.x, p.y, p.z], fov: 58 };
+            const cp = Math.cos(r.pitch);
+            return { p: [r.x, r.y, r.z], l: [r.x + Math.sin(r.yaw) * cp * 100, r.y + Math.sin(r.pitch) * 100, r.z - Math.cos(r.yaw) * cp * 100], fov: cam.fovWant / D2R, roll: r.roll || 0 };
+          });
+        }
+        cam.mode = 'free';
+      }
+    }
   },
 
   // ---- dive: dive bombers on a cruiser -----------------------------------------------------------------------------------
