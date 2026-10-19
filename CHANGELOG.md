@@ -87,6 +87,26 @@
   - Drawing (`render/vegetationVisual.js`): within 105 m each plant is an instance (the cards do not cast shadows, the rest does), within 300 m and 1 km one mesh per square of 80 m, beyond one mesh per square of 640 m with a part of the plants; meshes are built when needed (7 ms a frame at most) and released when the camera goes away. 60 images/s on the RTX 3080 even inside a forest. `?trees=0` turns the plants off; the quality level shortens the distances.
   - `test/vegetation.mjs` (placement, climates, budgets of triangles, stamping) is part of `npm test`.
 - `test/islands.mjs` (generation, line of sight, grounding, shells and torpedoes, the AI, six battles among islands) is part of `npm test`.
+## Unreleased — wiki and viewer
+
+### 3D viewer (`viewer.html`)
+
+- A page to look at any of the 30 ships and the 24 aircraft (18 carrier types and 6 catapult floatplanes) in 3D, built on the game's engine and model builders (`js/viewer/`). Drag to orbit (with a little inertia, and from below when the sea is off), right-drag or shift-drag to pan, wheel to zoom, double click or `R` to frame the model again; one finger orbits and two fingers pinch and pan on a touch screen; arrow keys, `+` / `-`, `1`-`7` for the standard views, `[` / `]` for the previous / next model.
+- Light presets (full day, morning, sunset, overcast, dusk) plus the sun's height and azimuth, the sun can follow the camera; the sea and the sun shadows can be switched off (`engine.showOcean` replaces the `?ocean=0` test, which still works); render resolution.
+- Model options: intact / battle scars / wrecks / broken in two, turret train and gun elevation, aircraft parked on carriers; for aircraft: landing gear and hook, folded wings, ordnance, bank, pitch and altitude.
+- **Debug link** button: copies an address that reopens exactly the same view (subject, camera, light and options in the query string, only what differs from the defaults), and the address bar follows the view; **screenshot** button (PNG of the rendered frame). `?embed=1` gives the reduced interface used by the wiki.
+- Wireframe is not offered: WebGPU has no polygon mode, it would take a second line pipeline.
+
+### Wiki (`wiki.html`)
+
+- **Tech tree** by nation (tabs with the flags): the five ship types in rows, six eras in columns (cut by the year of service: up to 1931, 1932-36, 1937-39, 1940, 1941, 1942 and after), a silhouette of every ship drawn from its spec sheet at a common scale (hull, funnels, masts, turrets, island and flight deck at their measured positions, in the paint colours of the class), trunk and branch lines from the nation to each type, and "successor" links when a type has several ships. Empty eras can be hidden. On a phone the tree becomes a list by type.
+- **Ship card**: embedded 3D viewer, six key figures as bars, then the statistics of the spec sheet in French (dimensions, propulsion, main and secondary guns, torpedoes, aircraft, armour, silhouette), values the sheet flags as estimated marked with `≈`, the English notes of the sheet in a folded block, the list of estimated values and the sources. Links by hash (`#/japan/yamato`), previous / next ship of the nation.
+- **Comparison** table of the 30 ships (filters by nation and type, sortable) and **Aviation** page (top-view drawings and figures of the aircraft, which carriers fly them).
+- Everything is read from the game's modules (`js/game/data`, `planes.js`), so the wiki follows the game; `test/wiki.mjs` checks the adapter, the layout of every nation (no overlap, one branch per type) and the link format.
+
+### Other
+
+- The main menu links to both pages; the README is rewritten around a one-minute start, and its long technical parts moved to `docs/ARCHITECTURE.md` and `docs/CREDITS.md` (every credit and licence line kept).
 
 ## 0.1.1 — air groups, gun audit, wakes and fleet tactics (19 October 2026)
 
