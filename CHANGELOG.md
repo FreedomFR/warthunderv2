@@ -1,5 +1,42 @@
 # Changelog
 
+## Unreleased — fidelity batch 4 (the cruisers)
+
+Every ship below was measured on a drawing (profile and, when there is one, plan view), compared with `tools/refs/check.mjs` + `silhouette.py` in
+metres and corrected; new turret families and houses were created from the measured dimensions (the guns were never in the right place before).
+
+- **Takao** (ONI 41-42 sheet of the Atago class, public domain): forecastle 5.0 m (7.4 m at the stem) to a quarterdeck at 4.4 m, A / B / C at 0.205 / 0.245 /
+  0.277 and X / Y at 0.735 / 0.777 (superfiring B 3.3 m above A), the stepped bridge (19 / 24.5 / 27.9 m), a lattice tripod foremast (top 36.5 m), a slanted funnel,
+  a cylinder and a stub stack, the aircraft deck at 8.6 m with its crane and the catapult 8.7 m off the centre line. New `type3_203` family (20 cm/50 No. 3 twin).
+  Profile 3.1 m, plan 0.3 m mean difference.
+- **Admiral Hipper / Prinz Eugen** (ONI 204 sheets): 20.3 cm twins at 0.232 / 0.283 / 0.75 / 0.80, a tower of four tiers (13 / 11.5 / 7.2 / 5.4 m), the foremast
+  and a single raked funnel at 0.475, masts at 0.437 (35.7 m) and 0.60 (38.5 m); new `drh203` family.
+- **Königsberg / Köln** (ONI 204 sheet): forecastle 6.8 m (7.7 m at the stem), a quarterdeck at 4.1 m from f 0.73, turrets A / B / C at 0.176 / 0.71 / 0.794 (B on
+  the high deck, not over C), a narrow tower pole, two funnels at 0.335 and 0.452, the turntable catapult at 11.9 m and the mainmast with a derrick jib. Profile 2.8 m, plan 0.4 m.
+- **Montecuccoli** (ONI 202 sheet): the turrets were wrong (A / B at 0.205 / 0.262 instead of 0.14 / 0.21, X / Y at 0.775 / 0.83), funnels at 0.392 and 0.632,
+  the round armoured tower to 21 m, the catapult and a derrick jib; new `it152` twin family. Plan 0.2 m.
+- **Zara** (ONI sheet): A / B at 0.279 / 0.327 (B 2.7 m above A) and X / Y at 0.694 / 0.745 (the spec had 0.19 / 0.255 / 0.735 / 0.80), the deck sweeping from
+  6.9 to 4.4 m, the massive tower (director 30 m), funnels at 0.463 and 0.603, tripod mainmast 38 m, the catapult rails on the forecastle; new `zara203` family. Profile 1.8 m, plan 0.2 m.
+- **La Galissonnière** (small ONI sheet, 5 px/m): flush forecastle 8.4 m (the bottom line is taken as the waterline), A / B at 0.233 / 0.278, C at 0.778 with the catapult on
+  its roof, tripod bridge to 29.8 m, funnels at 0.43 and 0.549, the aft deckhouse and a derrick; new `fr152_30` family. Profile 1.7 m, plan 0.2 m.
+- **Algérie** (ONI sheet, 4.7 px/m): the turrets were 0.1 off (A / B / X / Y at 0.225 / 0.275 / 0.69 / 0.74, not 0.12 / 0.2 / 0.79 / 0.87), the block tower to 35 m with a
+  40 m pole, one big funnel at 0.409, a central searchlight tower with a crane boom, the catapult rails; new `fr203` family. Plan 0.2 m.
+- **Cleveland**: a 1942 Colosseum drawing with a scale bar and the waterline (profile) and the Pit-Road 1/700 sheet (plan), shared by the project owner (copyright of their
+  authors: measurements only, not in the repository). Turrets at 0.193 / 0.26 / 0.729 / 0.79 (the spec had 0.14 / 0.21 / 0.76 / 0.84), freeboard 8.8 -> 6.8 m, the bridge
+  block, funnels at 0.469 / 0.537 (25 m), 36 m masts, a 9.6 m hangar roof; new `us152` family. Profile 2.4 m, plan 0.7 m.
+- **Baltimore**: the Shipbucket profile (Ian B. Roberts, with a 100 m scale bar and the waterline) and the TZoli plan, shared by the project owner (copyright: measurements only).
+  Turrets 0.225 / 0.285 / 0.77 (the spec had 0.12 / 0.185 / 0.8), a 41.5 m foremast carrying the SP radar, two funnels at 0.491 / 0.582 (25 m), the 5 in twins on the centreline
+  and wings read on the plan, two catapults 6.9 m off the centre line; new `us203` family. Profile 1.8 m, plan 0.5 m.
+- **Agano**: a detailed profile and plan with a 50 m scale bar, shared by the project owner (author unknown: measurements only; the stylised Agano-kai profile of CC BY 3.0 was
+  used first). Turrets at 0.192 / 0.243 / 0.813 (the spec had 0.12 / 0.19 / 0.88), the bridge tiers, a big raked funnel at 0.478, the catapult with two floatplane carriages and
+  the crane mast at 0.78; new `type41_152` twin family. The silhouette figures are dominated by the rigging and crane stays drawn on the sheet (not modelled).
+- **Belfast**: James Goulding's profile and plan of 1943 (Profile Publications, scale bar in feet; copyright, measurements only). Turrets at 0.158 / 0.211 / 0.771 / 0.823 (the spec
+  had 0.11 / 0.165 / 0.775 / 0.855), forecastle 8.5 m to f 0.775, bridge block with the director tower (26 m) and a 41.7 m foremast, funnels at 0.489 / 0.631, tripod mainmast, the
+  athwartships catapult with a crane each side; new `brit152` family. Profile 2.2 m, plan 0.5 m.
+- **Norfolk**: the plan and profile of a three-funnel County class cruiser from a Hasegawa 1/700 instruction sheet (copyright, measurements only). Turrets at 0.175 / 0.247 / 0.763 /
+  0.829 (the spec had 0.10 / 0.155 / 0.79 / 0.855), a flush deck 8.5 m, the stepped bridge block, three funnels, tripod masts; new `brit203` family. Profile 2.0 m, plan 0.2 m.
+- Tools: `fit_decks.py` (profile -> `decks:`), `rulers` / `rulerRegion` and an automatic camera in `silhouette.py`, `hull.py --B`.
+
 ## Unreleased — fidelity batch 3 (the remaining carriers, the aircraft)
 
 - **Graf Zeppelin**: the ONI 204 sheet of September 1942 (Commons, public domain): flight deck 16.0 m above the waterline with its real outline

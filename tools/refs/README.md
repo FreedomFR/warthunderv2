@@ -49,7 +49,11 @@ is thin rigging, wireless aerials and booms that the model does not try to have.
 `grid.py` zooms on a stretch of a drawing with a grid in fractions of the length and in metres (to read positions and heights),
 `hull.py` prints `planDeck` / `fb` / `keel` tables off a drawing, `outline.py` the profile as plateaus (decks, houses, funnels), after
 `silhouette.py` has run. Lot 2: Littorio, Richelieu, Shōkaku and Illustrious have drawings in `plans.json` (the cameras are computed from
-the length when the entry has none); the King George V has none.
+the length when the entry has none); the King George V has none. Lot 4 (cruisers): `fit_decks.py <ship> --fb "f:m,..." --skip a-b,...` turns the
+profile written by `silhouette.py` into `decks:` blocks (stepped superstructure) for the tweaks entry; `plans.json` gained `rulers` / `rulerRegion` (the
+observer-height dotted lines of the ONI sheets are erased automatically) and `silhouette.py` defaults the camera when there is none; `hull.py --B <beam>`
+normalises `planDeck` to the real beam. Drawings that are not at one scale in both views or are low resolution (Agano, La Galissonnière, Algérie: 2-5 px per
+metre) are good to about +-1 m.
 
 ### Aircraft
 

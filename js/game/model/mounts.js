@@ -41,6 +41,35 @@ const FAMILY = {
   rich380: { kind: 'turret', cal: 380, n: 4, spacing: 2.5, trunX: 3.0, trunY: 1.8, face: 6.2, port: 5.6, fwd: 14.4, back: 2.8, rB: 0.5, rP: 0.42, rM: 0.25, bagR: 0.85, bagLen: 1.1, recoil: 1.1, lift: 3.9, h: 3.5, barbR: 7.0, barb: 1.5 },
   // the 152 mm Mle 1936 triple: an 8 m house 2.9 m high on a tall barbette, barrels 4.8 m clear of the face
   fr152: { kind: 'turret', cal: 152, n: 3, spacing: 1.5, trunX: 1.4, trunY: 1.5, face: 3.2, port: 2.8, fwd: 6.6, back: 1.0, rB: 0.22, rP: 0.18, rM: 0.1, bagR: 0.28, bagLen: 0.4, recoil: 0.5, lift: 2.4, h: 2.9, barbR: 3.3 },
+  // Takao class 20 cm/50 No. 3 Year Type twin (ONI 41-42 sheet, Oct 1942): a house 7.4 m long, 3.9 m high, 6.4 m wide, barrels 11 m clear of the
+  // trunnion, the superfiring turret 3.3 m above the lower one
+  type3_203: { kind: 'turret', cal: 203, n: 2, spacing: 2.0, trunX: 1.8, trunY: 1.9, face: 4.2, port: 3.7, fwd: 12.8, back: 1.4, rB: 0.30, rP: 0.24, rM: 0.14, bagR: 0.45, bagLen: 0.6, recoil: 0.8, lift: 3.3, h: 3.9, barbR: 3.9, barb: 0.2 },
+  // Admiral Hipper class 20.3 cm SK C/34 Drh LC/34 twin (ONI 204 sheet of Prinz Eugen, 1942): a house about 7.7 m long and 3.4 m high, barrels
+  // 11.6 m clear of the trunnion; the superfiring turret 2.3 m above the lower one
+  drh203: { kind: 'turret', cal: 203, n: 2, spacing: 2.1, trunX: 1.6, trunY: 1.7, face: 3.9, port: 3.4, fwd: 11.6, back: 1.3, rB: 0.28, rP: 0.23, rM: 0.14, bagR: 0.42, bagLen: 0.55, recoil: 0.8, lift: 2.3, h: 3.4, barbR: 3.6, barb: 0.1 },
+  // Montecuccoli class 152 mm/53 OTO twin (ONI 202 sheet): a house 5.8 m long and 3.2 m high, barrels 5.5 m clear of the face (dimensions read on the profile)
+  it152: { kind: 'turret', cal: 152, n: 2, spacing: 1.55, trunX: 1.9, trunY: 1.5, face: 3.4, port: 3.0, fwd: 8.4, back: 1.2, rB: 0.24, rP: 0.19, rM: 0.1, bagR: 0.3, bagLen: 0.45, recoil: 0.55, lift: 2.2, h: 3.2, barbR: 3.0 },
+  // Zara class 203/53 Ansaldo Mod. 1927 twin (ONI sheet of 1942): a house 6.6 m long and 3.1 m high, barrels 12.6 m clear of the pivot, B on a barbette 2.7 m taller than A
+  zara203: { kind: 'turret', cal: 203, n: 2, spacing: 2.0, trunX: 1.9, trunY: 1.8, face: 4.4, port: 3.9, fwd: 12.8, back: 1.4, rB: 0.30, rP: 0.24, rM: 0.14, bagR: 0.45, bagLen: 0.6, recoil: 0.8, lift: 2.4, h: 3.2, barbR: 4.0, barb: 0.2 },
+  // La Galissonniere class 152/55 Mle 1930 triple (ONI sheet of 1942): a house 7.2 m long, 3.4 m high and 6.4 m wide, barrels 5.9 m clear of the face, the superfiring
+  // turret 3.2 m above the lower one
+  fr152_30: { kind: 'turret', cal: 152, n: 3, spacing: 1.5, trunX: 1.6, trunY: 1.5, face: 3.5, port: 3.1, fwd: 9.4, back: 1.0, rB: 0.22, rP: 0.18, rM: 0.1, bagR: 0.28, bagLen: 0.4, recoil: 0.5, lift: 3.2, h: 3.2, barbR: 3.3 },
+  // Algerie 203/50 Mle 1931 twin (ONI sheet of 1942): a house 7.3 m long, 3.4 m high and 6.7 m wide, barrels 7 m clear of the face, the superfiring turret 3.5 m above the lower one
+  fr203: { kind: 'turret', cal: 203, n: 2, spacing: 1.9, trunX: 1.8, trunY: 1.8, face: 3.7, port: 3.3, fwd: 11.0, back: 1.3, rB: 0.28, rP: 0.23, rM: 0.14, bagR: 0.42, bagLen: 0.55, recoil: 0.8, lift: 3.5, h: 3.4, barbR: 3.6 },
+  // Cleveland class 6 in/47 Mk 16 triple (Colosseum drawing of 1942, with scale bar): a house 8.8 m long and 3.9 m high, barrels 4.8 m clear of the face, the superfiring turret 2.6 m above the lower one
+  us152: { kind: 'turret', cal: 152, n: 3, spacing: 1.6, trunX: 2.0, trunY: 1.9, face: 4.6, port: 4.2, fwd: 9.4, back: 1.2, rB: 0.24, rP: 0.19, rM: 0.1, bagR: 0.3, bagLen: 0.45, recoil: 0.6, lift: 2.6, h: 3.7, barbR: 4.2 },
+  // Baltimore class 8 in/55 Mk 12 triple (Shipbucket profile with scale bar + TZoli plan, 1944): a house 10 m long, 3.4 m high and 8 m wide, barrels 9.6 m clear of the face,
+  // gun spacing 1.55 m, the superfiring turret 3.4 m above the lower one
+  us203: { kind: 'turret', cal: 203, n: 3, spacing: 1.55, trunX: 2.0, trunY: 1.9, face: 5.2, port: 4.7, fwd: 14.8, back: 1.4, rB: 0.28, rP: 0.23, rM: 0.14, bagR: 0.42, bagLen: 0.55, recoil: 0.8, lift: 3.4, h: 3.4, barbR: 4.6, barb: 0.2 },
+  // Agano class 15.2 cm/50 41st Year Type twin gunhouse (detailed line drawing of the Agano class, with a 50 m scale bar: 8.7 px per metre): a house 6.3 m long and
+  // 2.7 m high, barrels 4 m clear of the face, the superfiring turret on a barbette 4.4 m higher
+  type41_152: { kind: 'turret', cal: 152, n: 2, spacing: 1.8, trunX: 1.3, trunY: 1.4, face: 3.1, port: 2.8, fwd: 7.1, back: 1.1, rB: 0.22, rP: 0.18, rM: 0.1, bagR: 0.28, bagLen: 0.4, recoil: 0.5, lift: 4.4, h: 2.7, barbR: 2.8 },
+  // Belfast 6 in/50 Mk XXIII triple (Profile Publications plate of 1943, with a scale bar in feet): a house 7.5 m long and 2.8 m high, barrels 4.6 m clear of the face, gun spacing 1.55 m,
+  // the superfiring turret 2.2 m above the lower one
+  brit152: { kind: 'turret', cal: 152, n: 3, spacing: 1.55, trunX: 1.9, trunY: 1.7, face: 3.6, port: 3.2, fwd: 8.2, back: 1.2, rB: 0.24, rP: 0.19, rM: 0.1, bagR: 0.3, bagLen: 0.45, recoil: 0.6, lift: 2.2, h: 2.8, barbR: 3.5 },
+  // County class 8 in/50 Mk I twin (Hasegawa 1/700 instruction sheet of a three-funnel County class cruiser; 5 px per metre): a house 9.4 m long and 3.8 m high, barrels 6 m clear of the face,
+  // the superfiring turret 3.4 m above the lower one
+  brit203: { kind: 'turret', cal: 203, n: 2, spacing: 2.2, trunX: 2.0, trunY: 2.0, face: 5.0, port: 4.5, fwd: 11.0, back: 1.4, rB: 0.30, rP: 0.24, rM: 0.14, bagR: 0.45, bagLen: 0.6, recoil: 0.8, lift: 3.4, h: 3.8, barbR: 4.3, barb: 0.2 },
   mk28: { kind: 'dp', cal: 127, n: 2, spacing: 0.78, trunX: 0.55, trunY: 1.35, face: 1.9, fwd: 3.6, back: 0.9, rB: 0.19, rP: 0.15, rM: 0.085, bagR: 0.3, bagLen: 0.3, recoil: 0.5, lift: 3.0, h: 2.9 },
   mk30: { kind: 'shield', cal: 127, n: 1, spacing: 0, trunX: 0.5, trunY: 1.3, face: 1.5, fwd: 3.4, back: 0.9, rB: 0.19, rP: 0.15, rM: 0.085, bagR: 0.0, bagLen: 0, recoil: 0.5, lift: 2.4, h: 2.5 },
 };
@@ -179,6 +208,17 @@ const houseLit381 = boxHouse({ rear: 6.6, hw: 6.0, slope: 3.2, ears: 1.0 });    
 const houseLit152 = boxHouse({ rear: 4.4, hw: 3.2, slope: 1.8, ears: 0, tubeHw: 0.4 });   // Italian 152/55 triple
 const houseRich380 = boxHouse({ rear: 7.9, hw: 6.3, slope: 3.4, ears: 1.1 });      // French 380 mm quadruple (Richelieu class)
 const houseFr152 = boxHouse({ rear: 5.0, hw: 3.3, slope: 1.5, ears: 0, tubeHw: 0.4 });    // French 152 mm Mle 1936 triple
+const houseIt152 = boxHouse({ rear: 3.9, hw: 2.9, slope: 1.5, ears: 0, tubeHw: 0.4 });   // Italian 152 mm twin (Montecuccoli class)
+const houseZara203 = boxHouse({ rear: 4.9, hw: 3.5, slope: 1.6, ears: 0.5, tubeHw: 0.6 });   // Italian 203/53 twin (Zara class)
+const houseFr152_30 = boxHouse({ rear: 3.7, hw: 3.2, slope: 1.5, ears: 0, tubeHw: 0.4 });   // French 152 mm Mle 1930 triple (La Galissonniere class)
+const houseFr203 = boxHouse({ rear: 3.6, hw: 3.3, slope: 1.5, ears: 0.4, tubeHw: 0.6 });   // French 203 mm twin (Algerie)
+const houseUs152 = boxHouse({ rear: 4.2, hw: 3.4, slope: 2.0, ears: 0, tubeHw: 0.4 });   // US 6 in/47 Mk 16 triple (Cleveland class)
+const houseUs203 = boxHouse({ rear: 4.8, hw: 4.0, slope: 2.2, ears: 0.4, tubeHw: 0.6 });   // US 8 in/55 Mk 12 triple (Baltimore class)
+const houseType41_152 = boxHouse({ rear: 3.2, hw: 2.6, slope: 1.0, ears: 0, tubeHw: 0.4 });   // Japanese 15.2 cm twin (Agano class)
+const houseBrit152 = boxHouse({ rear: 3.9, hw: 3.2, slope: 1.4, ears: 0, tubeHw: 0.4 });   // British 6 in triple (Town class)
+const houseBrit203 = boxHouse({ rear: 4.4, hw: 3.6, slope: 1.8, ears: 0.5, tubeHw: 0.6 });   // British 8 in twin (County class)
+const houseType3_203 = boxHouse({ rear: 5.2, hw: 3.4, slope: 1.7, ears: 0.6, tubeHw: 0.6 });   // Japanese 20 cm twin (Takao class)
+const houseDrh203 = boxHouse({ rear: 4.8, hw: 3.3, slope: 1.2, ears: 0.5, tubeHw: 0.6 });   // German 20.3 cm twin (Admiral Hipper class)
 
 /** German 15 cm twin turret (Bismarck's secondary battery): sloped face and roof edges, rangefinder hoods at the rear corners. */
 function houseDrh28(hb, col, dark, f) {
@@ -217,7 +257,7 @@ function houseMk30(hb, col, dark, f) {
   hb.block({ x0: f.face - 0.3, x1: f.face, hw: 0.28, y0: f.trunY - 0.3, y1: f.trunY + 0.3 }, dark, MAT.DARK);
 }
 
-const HOUSES = { mk7: houseMk7, type94: houseType94, type3_155: houseType3, drh28_150: houseDrh28, lit381: houseLit381, lit152: houseLit152, rich380: houseRich380, fr152: houseFr152, drh34: houseDrh34, mk28: houseMk28, mk30: houseMk30 };
+const HOUSES = { mk7: houseMk7, type94: houseType94, type3_155: houseType3, drh28_150: houseDrh28, lit381: houseLit381, lit152: houseLit152, rich380: houseRich380, fr152: houseFr152, it152: houseIt152, us152: houseUs152, brit152: houseBrit152, brit203: houseBrit203, type41_152: houseType41_152, us203: houseUs203, fr203: houseFr203, fr152_30: houseFr152_30, zara203: houseZara203, type3_203: houseType3_203, drh203: houseDrh203, drh34: houseDrh34, mk28: houseMk28, mk30: houseMk30 };
 
 function makeFamily(s, f) {
   const col = rgb(s.col || '#6b7076'), dark = rgb(s.dark || '#1d1f22');

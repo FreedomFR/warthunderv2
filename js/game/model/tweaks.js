@@ -212,9 +212,294 @@ export const TWEAKS = {
     // ship's boats on skid beams across the boat deck aft of the after funnel
     boats: [{ f0: 0.595, f1: 0.633, z: -9.2, y: 4.9, cabin: true, one: true }, { f0: 0.603, f1: 0.646, z: -6.0, y: 4.9, one: true }, { f0: 0.61, f1: 0.648, z: -2.8, y: 4.9, one: true }, { f0: 0.61, f1: 0.648, z: 2.2, y: 4.9, one: true }, { f0: 0.603, f1: 0.646, z: 5.4, y: 4.9, one: true }, { f0: 0.595, f1: 0.633, z: 8.6, y: 4.9, cabin: true, one: true }],
   },
+  // Admiral Hipper class (ONI 204 sheet of Prinz Eugen, August 1942, public domain; profile and plan at one scale): a forecastle at 5.1 m (6.9 m at
+  // the stem), a stern deck at 5.8-6.0 m; turrets A / B at 0.232 / 0.283 (B 2.3 m higher), C / D at 0.75 / 0.80; the tower 0.375-0.44 stepped up to the
+  // director drum at 29.5 m, the foremast pole at 0.437 (top 35.7 m); one big oval funnel at 0.475 (top ~21 m); the catapult and crane amidships; the
+  // mainmast pole at 0.60 (top 38.5 m) and an after tower at 0.595-0.62 (17 m); 105 mm twin sponsons at 0.392 / 0.572 / 0.653.
+  admiral_hipper: {
+    mainVariant: 'drh203', dirKind: 'drum', houseH: 4.3, bulwarkF: [0, 0.05],
+    fb: [[0, 6.9], [0.05, 6.4], [0.1, 5.65], [0.15, 5.25], [0.2, 5.1], [0.5, 5.2], [0.7, 5.4], [0.8, 5.7], [1, 6.0]],
+    planDeck: [[0, 0.122], [0.05, 0.389], [0.1, 0.511], [0.15, 0.645], [0.2, 0.803], [0.25, 0.888], [0.3, 0.973], [0.35, 1.022], [0.4, 1.034], [0.45, 1.034], [0.5, 1.034], [0.55, 1.022], [0.6, 1.022], [0.65, 1.05], [0.7, 0.937], [0.75, 0.9], [0.8, 0.803], [0.85, 0.693], [0.9, 0.572], [0.95, 0.4], [1, 0.3]],
+    planWL: [[0, 0], [0.04, 0.3], [0.08, 0.47], [0.15, 0.6], [0.25, 0.8], [0.35, 0.93], [0.5, 1], [0.6, 1], [0.7, 0.95], [0.8, 0.82], [0.9, 0.58], [0.95, 0.4], [1, 0.3]],
+    house: { plan: [[0.31, 6.5], [0.34, 8.5], [0.45, 9.2], [0.62, 9.2], [0.70, 7.0]] },
+    decks: [
+      { f: [0.508, 0.522], hw: 3.5, y: [0, 8.4] },
+      { f: [0.551, 0.560], hw: 3.3, y: [0, 8.5] },
+      { f: [0.567, 0.588], hw: 4.1, y: [0, 6.9] },
+      { f: [0.591, 0.621], hw: 2.5, y: [0, 11.7] },
+      { f: [0.631, 0.647], hw: 3.9, y: [0, 6.0] },
+      { f: [0.661, 0.687], hw: 2.5, y: [0, 11.0] },
+      { f: [0.689, 0.713], hw: 3.0, y: [0, 8.3] },
+    ],
+    towerF: 0.4075, towerY0: 4.3,
+    tiers: [
+      { len: 13.0, w: 9.0, h: 4.2, windows: true },
+      { len: 11.5, w: 7.0, h: 6.2, windows: true, wings: 0.8 },
+      { len: 7.2, w: 5.6, h: 6.0, round: true, taper: 0.92 },
+      { len: 5.4, w: 5.0, h: 3.5, round: true, taper: 0.9 },
+    ],
+    dir0: { dx: 0, w: 4.4, l: 4.0, h: 1.0 },
+    foremast: { dx: -6.3, y0: 14.8 },
+    funnels: [{ lx: 8.6, lz: 7.0, h: 11.8, rake: 0.5, top: 0.9, pipes: false }],
+    mastY0: { 1: 4.3 },
+  },
+  // Konigsberg class (Koln, ONI 204 sheet of August 1942, public domain; profile and plan at one scale): a forecastle at 6.8 m (7.7 m at the stem),
+  // the main deck 6.1 m, a quarterdeck at 4.1 m from f 0.73; turrets A / B / C at 0.176 / 0.71 / 0.794 (B stands on the high deck, not over C);
+  // the bridge base 0.248-0.31, a narrow tower pole at 0.29 (platform 26 m, top 33.7 m); two funnels at 0.335 and 0.452 (tops 17.6 m); the
+  // aircraft platform with its turntable catapult 0.353-0.425 (11.9 m); the mainmast at 0.469 (top 30.5 m) with a derrick jib pointing aft.
+  koenigsberg: {
+    houseH: 3.0, bulwarkF: [0, 0.04],
+    fb: [[0, 7.7], [0.1, 7.0], [0.3, 6.5], [0.5, 6.1], [0.7, 6.1], [0.73, 4.2], [1, 4.1]],
+    planDeck: [[0, 0.099], [0.05, 0.472], [0.1, 0.671], [0.15, 0.771], [0.2, 0.87], [0.25, 0.97], [0.3, 0.995], [0.35, 1.02], [0.4, 1.069], [0.45, 1.069], [0.5, 1.044], [0.55, 1.094], [0.6, 1.094], [0.65, 1.069], [0.7, 0.995], [0.75, 0.95], [0.8, 0.87], [0.85, 0.8], [0.9, 0.72], [0.95, 0.6], [1, 0.45]],
+    planWL: [[0, 0], [0.05, 0.33], [0.1, 0.52], [0.2, 0.74], [0.3, 0.9], [0.4, 0.97], [0.5, 1], [0.6, 1], [0.7, 0.96], [0.8, 0.84], [0.9, 0.66], [0.95, 0.52], [1, 0.4]],
+    house: { plan: [[0.248, 4.5], [0.28, 5.8], [0.60, 5.8], [0.66, 4.5]] },
+    decks: [
+      { f: [0.248, 0.312], hw: 4.2, y: [0, 5.6], windows: true },
+      { f: [0.26, 0.285], hw: 3.0, y: [5.6, 9.7], windows: true },
+      { f: [0.282, 0.298], round: true, hw: 1.4, y: [3.0, 20.5], taper: 0.8 },
+      { f: [0.353, 0.425], hw: 4.0, y: [0, 5.4] },
+      { f: [0.537, 0.549], hw: 2.9, y: [0, 8.8] },
+    ],
+    towerF: 0.29, towerY0: 20.0,
+    tiers: [{ len: 4.0, w: 4.2, h: 2.0, round: true, taper: 0.9 }],
+    dir0: { dx: 0, w: 3.0, l: 3.0, h: 1.6 },
+    foremast: { dx: 0, y0: 22.0 },
+    funnels: [{ lx: 4.6, lz: 5.0, h: 8.5, rake: 0.4, top: 0.95, pipes: false }, { lx: 5.0, lz: 5.0, h: 8.6, rake: 0.4, top: 0.95, pipes: false }],
+    mastY0: { 1: 3.0 },
+    cat: { f: 0.39, y: 5.4, yaw: Math.PI / 2, len: 14, craneF: 0.4685, craneY: 0, craneH: 11.8, craneLen: 9.5, craneDir: -1, craneAng: 0.15, craneSide: 0, craneW: 0.5 },
+  },
+  // Montecuccoli class (ONI 202 sheet, public domain; profile and plan at one scale): forecastle 6.4 m, quarterdeck 4.8 m abaft f 0.58; turrets A / B
+  // at 0.205 / 0.262 (B superfiring), X / Y at 0.775 / 0.83; the round armoured tower bridge at 0.31, funnels at 0.392 and 0.632 (tops 18.9 / 18.6 m),
+  // the catapult 0.50-0.58 at 9 m, the mainmast at 0.60 (top 35 m) with a derrick jib leaning forward from the after funnel.
+  montecuccoli: {
+    mainVariant: 'it152', dirKind: 'drum', houseH: 3.2, bulwarkF: [0, 0.04],
+    fb: [[0, 7.3], [0.04, 6.6], [0.2, 6.3], [0.5, 6.4], [0.53, 5.9], [0.64, 5.7], [0.7, 5.0], [0.75, 4.8], [1, 4.5]],
+    planDeck: [[0, 0], [0.042, 0.593], [0.083, 0.715], [0.125, 0.809], [0.167, 0.849], [0.208, 0.917], [0.25, 0.957], [0.292, 0.998], [0.333, 1.025], [0.375, 1.1], [0.417, 1.065], [0.458, 1.079], [0.5, 1.092], [0.583, 1.092], [0.625, 1.065], [0.667, 1.1], [0.708, 1.038], [0.75, 0.957], [0.792, 0.903], [0.833, 0.809], [0.875, 0.607], [0.917, 0.553], [0.958, 0.378], [1, 0.189]],
+    planWL: [[0, 0], [0.04, 0.3], [0.1, 0.55], [0.2, 0.76], [0.3, 0.9], [0.4, 0.97], [0.5, 1], [0.6, 1], [0.7, 0.95], [0.8, 0.82], [0.9, 0.6], [0.95, 0.42], [1, 0.25]],
+    house: { plan: [[0.285, 5.0], [0.31, 7.0], [0.55, 7.5], [0.70, 6.0]] },
+    decks: [
+      { f: [0.285, 0.34], hw: 4.3, y: [0, 4.4], windows: true },         // forebridge base, 10.7 m
+      { f: [0.30, 0.335], hw: 3.2, y: [4.4, 6.2], windows: true },       // 12.5 m
+      { f: [0.303, 0.320], round: true, hw: 1.9, y: [6.2, 14.9], taper: 0.85 },   // the round armoured tower, director on top at 21.2 m
+      { f: [0.336, 0.37], hw: 4.2, y: [0, 2.7] },                        // 9.0 m
+      { f: [0.415, 0.566], hw: 3.9, y: [0, 2.9] },                       // boat deck, 9.3 m
+      { f: [0.647, 0.675], hw: 3.6, y: [0, 6.9] },                       // after bridge, 12.5 m
+      { f: [0.668, 0.72], hw: 4.1, y: [0, 1.9] },                        // 7.0 m
+    ],
+    towerF: 0.31, towerY0: 9.5,
+    tiers: [{ len: 3.0, w: 3.0, h: 0.1 }],
+    dir0: { dx: 0, w: 3.4, l: 3.4, h: 1.6 },
+    funnels: [{ lx: 6.1, lz: 5.0, h: 7.9, rake: 1.0, top: 0.95, pipes: false }, { lx: 5.7, lz: 4.8, h: 9.0, rake: 1.0, top: 0.95, pipes: false }],
+    mastY0: { 1: 5.7 },
+    cat: { f: 0.54, z: 0, yaw: 0, len: 17, y: 2.9, craneF: 0.618, craneY: 2.7, craneH: 3.0, craneLen: 21, craneDir: 1, craneAng: 1.1, craneSide: 0, craneW: 0.6 },
+  },
+  // Zara class (ONI sheet of 1942, public domain; profile and plan at one scale): forecastle 6.9 m sweeping down to the 4.4 m deck from f 0.27 to 0.5;
+  // turrets A / B at 0.279 / 0.327 (B 2.7 m higher), X / Y at 0.694 / 0.745; the massive tower 0.365-0.426 (director top 30 m, spire 31.8 m), funnels at
+  // 0.463 and 0.603 (tops 19.7 / 19.0 m), the tripod mainmast at 0.57 (platform 25 m, top 38 m), an open lattice tower at 0.657; the catapult rails on the
+  // forecastle (f 0.03-0.20).
+  zara: {
+    mainVariant: 'zara203', dirKind: 'drum', houseH: 3.1, bulwarkF: [0, 0.04],
+    fb: [[0, 7.3], [0.04, 7.2], [0.2, 6.9], [0.27, 6.9], [0.35, 5.8], [0.44, 5.0], [0.5, 4.6], [0.6, 4.4], [1, 4.2]],
+    planDeck: [[0, 0.123], [0.042, 0.347], [0.083, 0.499], [0.125, 0.621], [0.167, 0.715], [0.208, 0.802], [0.25, 0.86], [0.292, 0.925], [0.333, 0.968], [0.375, 1.004], [0.417, 1.026], [0.458, 1.02], [0.5, 1.02], [0.542, 1.02], [0.583, 1.02], [0.625, 1.004], [0.667, 0.983], [0.708, 0.939], [0.75, 0.882], [0.792, 0.831], [0.833, 0.759], [0.875, 0.672], [0.917, 0.556], [0.958, 0.441], [1, 0.224]],
+    planWL: [[0, 0], [0.04, 0.3], [0.1, 0.52], [0.2, 0.74], [0.3, 0.9], [0.4, 0.98], [0.5, 1], [0.6, 1], [0.7, 0.96], [0.8, 0.84], [0.9, 0.62], [0.95, 0.44], [1, 0.22]],
+    house: { plan: [[0.35, 6.0], [0.38, 7.5], [0.62, 8.0], [0.7, 6.0]] },
+    funnels: [{ lx: 7.8, lz: 5.2, h: 11.9, rake: 1.2, top: 0.8, pipes: false }, { lx: 5.0, lz: 4.6, h: 12.0, rake: 1.2, top: 0.9, pipes: false }],
+    decks: [
+      { f: [0.37, 0.426], hw: 4.2, y: [0, 5.8], windows: true },          // tower base, 11.2 m
+      { f: [0.371, 0.426], hw: 3.8, y: [5.8, 8.2], windows: true },        // 13.5 m
+      { f: [0.384, 0.426], hw: 3.4, y: [8.2, 14.6], windows: true },       // 20 m
+      { f: [0.406, 0.424], hw: 2.2, y: [14.6, 18.1] },                     // 23.5 m
+      { f: [0.392, 0.404], round: true, hw: 1.4, y: [14.6, 20.1], taper: 0.7 },     // the tripod under the director
+      { f: [0.648, 0.665], hw: 1.8, y: [0, 10.0], taper: 0.9 },            // the open lattice tower, 14.4 m
+      { f: [0.355, 0.372], hw: 3.0, y: [0, 11.0] },                        // searchlight platform abaft B, 16.7 m
+      { f: [0.497, 0.56], hw: 4.9, y: [0, 2.1] },                          // 6.6 m
+    ],
+    towerF: 0.397, towerY0: 19.7,
+    tiers: [{ len: 3.0, w: 3.0, h: 0.1 }],
+    dir0: { dx: 0, w: 2.6, l: 2.6, h: 1.4 },
+    mastY0: { 1: 4.4 },
+    cat: { f: 0.115, z: 0, yaw: 0, len: 28, y: 0.3, craneF: 0.15, craneY: 0, craneH: 3.0, craneLen: 6, craneDir: 1, craneAng: 0.5, craneSide: 0, craneW: 0.5 },
+  },
+  // La Galissonniere class (ONI sheet of 1942, public domain; profile and plan at one scale, but small: 5 px per metre, so about +-0.6 m): a forecastle
+  // at 8.4 m (8.6 m at the stem) running to f 0.68 with the quarterdeck at 5.0 m abaft; turrets A / B at 0.233 / 0.278 (B 3.2 m above A), C at 0.778 with
+  // the catapult on its roof; the tripod bridge 0.309-0.40 (platform 24.7 m, director 29.8 m, spire 33.5 m), funnels at 0.43 and 0.549 (tops 19.5 / 16.9 m),
+  // the aft deckhouse 0.612-0.68 (10.7 m) with the pole mainmast at 0.62 (top 30 m) and a derrick at the stern.
+  la_galissoniere: {
+    mainVariant: 'fr152_30', dirKind: 'drum', houseH: 2.8, bulwarkF: [0, 0.03],
+    fb: [[0, 8.6], [0.04, 8.4], [0.2, 8.2], [0.3, 8.0], [0.45, 7.8], [0.6, 7.6], [0.68, 7.6], [0.69, 5.0], [1, 5.0]],
+    planDeck: [[0, 0.092], [0.042, 0.458], [0.083, 0.687], [0.125, 0.801], [0.167, 0.893], [0.208, 0.962], [0.25, 1.0], [0.333, 1.008], [0.417, 1.03], [0.5, 1.03], [0.625, 1.03], [0.667, 1.008], [0.708, 0.985], [0.75, 0.962], [0.792, 0.939], [0.833, 0.87], [0.875, 0.801], [0.917, 0.756], [0.958, 0.595], [1, 0.504]],
+    planWL: [[0, 0], [0.04, 0.3], [0.1, 0.55], [0.2, 0.78], [0.3, 0.92], [0.4, 0.99], [0.5, 1], [0.6, 1], [0.7, 0.96], [0.8, 0.86], [0.9, 0.66], [0.95, 0.5], [1, 0.4]],
+    house: { plan: [[0.309, 5.0], [0.33, 7.0], [0.40, 7.0], [0.455, 5.5]] },
+    decks: [
+      { f: [0.309, 0.40], hw: 5.0, y: [0, 4.2], windows: true },          // bridge base, 12.4 m
+      { f: [0.318, 0.395], hw: 3.8, y: [4.2, 7.6], windows: true },        // 15.8 m
+      { f: [0.34, 0.39], hw: 3.0, y: [7.6, 8.9], windows: true },          // 17.1 m
+      { f: [0.612, 0.68], hw: 6.5, y: [0, 3.1], windows: true },           // after deckhouse, 10.7 m
+      { f: [0.357, 0.385], hw: 2.0, y: [8.9, 16.0], round: true, taper: 0.8 },   // the tripod legs and platform under the director, 24 m
+      { f: [0.614, 0.633], hw: 1.8, y: [3.1, 6.4], taper: 0.9 },           // the foot of the mainmast, 14 m
+    ],
+    towerF: 0.367, towerY0: 15.5,
+    tiers: [{ len: 3.0, w: 3.0, h: 0.1 }],
+    dir0: { dx: 0, w: 3.0, l: 3.7, h: 3.5 },
+    foremast: { dx: -2.0, base: 4.2, apex: 0.8, platform: 0.78, spread: 3.2, back: 3.5, front: 1.5 },
+    funnels: [{ lx: 5.6, lz: 3.6, h: 8.9, rake: 1.2, top: 0.92, pipes: false }, { lx: 5.0, lz: 3.0, h: 6.5, rake: 1.0, top: 0.95, pipes: false }],
+    mastY0: { 1: 7.6 },
+    cat: { f: 0.775, z: 0, yaw: 0, len: 13.5, y: 5.2, craneF: 0.975, craneY: 0, craneH: 1.5, craneLen: 16, craneDir: 1, craneAng: 0.15, craneSide: 0, craneW: 0.6 },
+  },
+  // Algerie (ONI sheet of 1942, public domain; profile and plan at one scale, small: 4.7 px per metre, so about +-0.7 m): a flush deck at 7.6 m at the stem, 6.4 m
+  // aft of f 0.25; turrets A / B at 0.225 / 0.275 (B 3.5 m above A), X / Y at 0.69 / 0.74; the block tower bridge 0.30-0.372 (platform 21 m, director 35 m, pole 40 m),
+  // the funnel at 0.409 (top 19.9 m), the central searchlight tower at 0.545 (22.3 m) with two crane booms, the tripod mainmast at 0.655 (top 36.7 m).
+  algerie: {
+    mainVariant: 'fr203', dirKind: 'drum', houseH: 2.4, bulwarkF: [0, 0.03],
+    fb: [[0, 7.6], [0.05, 7.1], [0.1, 6.9], [0.2, 6.8], [0.3, 6.6], [0.5, 6.4], [0.7, 6.3], [0.85, 6.3], [1, 6.4]],
+    planDeck: [[0, 0.15], [0.042, 0.43], [0.083, 0.623], [0.125, 0.752], [0.167, 0.838], [0.208, 0.903], [0.25, 0.946], [0.292, 0.989], [0.333, 1.01], [0.5, 1.01], [0.583, 1.01], [0.625, 0.989], [0.667, 0.989], [0.708, 0.967], [0.75, 0.924], [0.792, 0.903], [0.833, 0.85], [0.875, 0.774], [0.917, 0.645], [0.958, 0.516], [1, 0.279]],
+    planWL: [[0, 0], [0.04, 0.28], [0.1, 0.55], [0.2, 0.78], [0.3, 0.92], [0.4, 0.99], [0.5, 1], [0.6, 1], [0.7, 0.96], [0.8, 0.86], [0.9, 0.64], [0.95, 0.46], [1, 0.3]],
+    house: { plan: [[0.30, 5.0], [0.32, 8.0], [0.46, 8.5], [0.71, 8.0], [0.72, 5.0]] },
+    decks: [
+      { f: [0.31, 0.372], hw: 4.8, y: [0, 6.5], windows: true },          // bridge base, 13 m
+      { f: [0.305, 0.372], hw: 5.2, y: [6.5, 9.2], windows: true },        // wings, 15.7 m
+      { f: [0.318, 0.366], hw: 3.4, y: [9.2, 14.8], windows: true },       // 21.3 m
+      { f: [0.332, 0.366], round: true, hw: 2.3, y: [14.8, 24.5], taper: 0.85 },   // the tower, 31 m
+      { f: [0.332, 0.353], round: true, hw: 1.8, y: [24.5, 28.8] },        // the director, 35.3 m
+      { f: [0.532, 0.557], hw: 2.4, y: [0, 15.9], taper: 0.9 },            // the searchlight tower, 22.3 m
+      { f: [0.595, 0.64], hw: 3.0, y: [0, 4.8] },
+    ],
+    towerF: 0.353, towerY0: 24.7,
+    tiers: [{ len: 3.0, w: 3.0, h: 0.1 }],
+    dir0: { dx: 0, w: 3.0, l: 3.0, h: 1.6 },
+    funnels: [{ lx: 6.0, lz: 3.4, h: 11.0, rake: 0.8, top: 0.95, pipes: false }],
+    mastY0: { 1: 8.7 },
+    cat: { f: 0.445, z: -7.7, yaw: 0, len: 21, y: 2.6, craneF: 0.545, craneY: 8.5, craneH: 3.0, craneLen: 18.6, craneDir: 1, craneAng: 0.44, craneSide: 0, craneW: 0.7 },
+  },
+  // Belfast (James Goulding's profile and plan of 1943 for Profile Publications, with a scale bar in feet; shared by the project owner, measured only: 4.7 px per metre, about
+  // +-0.5 m): a long forecastle at 9.3 m at the stem and about 8.5 m aft to f 0.775, a quarterdeck at 4.9 m abaft; turrets A / B at 0.158 / 0.211 and X / Y at 0.771 / 0.823
+  // (the spec had 0.11 / 0.165 / 0.775 / 0.855); the bridge block 0.246-0.36 with the director tower at 0.318 (26 m), the tripod foremast at 0.349 (top 41.7 m), funnels at
+  // 0.489 and 0.631 (tops 21 / 20 m), the tripod mainmast at 0.596 (top 36.7 m), the catapult athwartships at f 0.42 with a crane each side.
+  belfast: {
+    mainVariant: 'brit152', dirKind: 'drum', houseH: 2.5, bulwarkF: [0, 0.03],
+    fb: [[0, 9.3], [0.04, 8.9], [0.15, 8.7], [0.3, 8.5], [0.6, 8.3], [0.77, 8.3], [0.785, 4.9], [0.9, 4.9], [0.95, 5.5], [1, 6.5]],
+    planDeck: [[0, 0.13], [0.042, 0.44], [0.083, 0.66], [0.125, 0.79], [0.167, 0.88], [0.208, 0.95], [0.25, 0.99], [0.3, 1.0], [0.7, 1.0], [0.75, 0.95], [0.792, 0.9], [0.833, 0.86], [0.875, 0.816], [0.917, 0.66], [0.958, 0.51], [1, 0.2]],
+    planWL: [[0, 0], [0.04, 0.3], [0.1, 0.55], [0.2, 0.8], [0.3, 0.93], [0.4, 0.99], [0.5, 1], [0.6, 1], [0.7, 0.97], [0.8, 0.88], [0.9, 0.68], [0.95, 0.5], [1, 0.3]],
+    house: { plan: [[0.246, 5.0], [0.27, 7.5], [0.5, 8.0], [0.7, 7.5], [0.72, 5.0]] },
+    decks: [
+      { f: [0.246, 0.36], hw: 5.5, y: [0, 3.4], windows: true },           // bridge base, 11.9 m
+      { f: [0.248, 0.30], hw: 4.6, y: [3.4, 10.7], windows: true },        // the forward block, 19.3 m
+      { f: [0.30, 0.335], hw: 4.0, y: [3.4, 7.0], windows: true },         // 15.5 m
+      { f: [0.309, 0.327], round: true, hw: 1.9, y: [7.0, 17.8], taper: 0.85 },   // the director tower, 26.3 m
+      { f: [0.353, 0.364], hw: 1.0, y: [0, 26.5], taper: 0.7 },            // the foremast pole and ladder, 34.9 m
+      { f: [0.388, 0.398], hw: 4.2, y: [0, 4.7] },                         // searchlight platform, 13.1 m
+      { f: [0.519, 0.572], hw: 4.4, y: [0, 4.4] },                         // boat deck between the funnels, 12.7 m
+      { f: [0.663, 0.693], hw: 4.0, y: [0, 7.5] },                         // after structure, 15.8 m
+      { f: [0.695, 0.73], hw: 4.1, y: [0, 3.7] },                          // 12 m
+    ],
+    towerF: 0.318, towerY0: 15.0,
+    tiers: [{ len: 3.0, w: 3.0, h: 0.1 }],
+    dir0: { dx: 0, w: 3.0, l: 3.0, h: 1.8 },
+    foremast: { dx: -5.8, base: 8.0, apex: 0.7, platform: 0.75, spread: 3.0, back: 3.0, front: 1.5 },
+    funnels: [{ lx: 6.8, lz: 5.2, y0: 0.5, h: 12.3, rake: 1.4, top: 0.9, pipes: false }, { lx: 6.8, lz: 5.2, y0: 1.5, h: 10.1, rake: 1.4, top: 0.9, pipes: false }],
+    mastY0: { 1: 9.0 },
+    cat: { f: 0.42, z: 0, yaw: Math.PI / 2, len: 16, y: 1.8, craneF: 0.452, craneZ: 8.0, craneY: 0.5, craneH: 4.0, craneLen: 11.5, craneDir: 1, craneAng: 0.85, craneSide: 0, craneW: 0.6, craneBoth: true },
+  },
+  // Norfolk (the plan and profile of a three-funnel County class cruiser from a Hasegawa 1/700 instruction sheet, shared by the project owner, measured only: 5 px per metre, about
+  // +-0.6 m): a flush deck 10.0 m at the stem, 8.4-8.6 m from f 0.2 aft; turrets A / B at 0.175 / 0.247 and X / Y at 0.763 / 0.829 (the spec had 0.10 / 0.155 / 0.79 / 0.855); the bridge
+  // block 0.288-0.395 (tiers 15 / 20.3 / 24 m), the tripod foremast at 0.375 (top 37 m), three funnels at 0.413 / 0.468 / 0.523 (tops 25 m), the tripod mainmast at 0.728 (top 35.3 m),
+  // the aft tower 0.63-0.652 (21.3 m).
+  norfolk: {
+    mainVariant: 'brit203', dirKind: 'drum', houseH: 2.5, bulwarkF: [0, 0.03],
+    fb: [[0, 10.0], [0.03, 9.6], [0.1, 9.2], [0.15, 8.9], [0.2, 8.6], [0.3, 8.4], [0.5, 8.5], [0.75, 8.6], [1, 8.5]],
+    planDeck: [[0, 0.08], [0.042, 0.338], [0.083, 0.537], [0.125, 0.677], [0.167, 0.756], [0.208, 0.816], [0.25, 0.9], [0.292, 0.95], [0.333, 0.975], [0.375, 0.995], [0.417, 1.0], [0.5, 1.0], [0.625, 1.0], [0.667, 1.0], [0.708, 0.975], [0.75, 0.916], [0.792, 0.876], [0.833, 0.776], [0.875, 0.677], [0.917, 0.577], [0.958, 0.398], [1, 0.1]],
+    planWL: [[0, 0], [0.04, 0.28], [0.1, 0.55], [0.2, 0.78], [0.3, 0.92], [0.4, 0.99], [0.5, 1], [0.6, 1], [0.7, 0.97], [0.8, 0.86], [0.9, 0.64], [0.95, 0.45], [1, 0.2]],
+    house: { plan: [[0.288, 5.0], [0.31, 7.5], [0.5, 8.5], [0.69, 7.5], [0.70, 5.0]] },
+    decks: [
+      { f: [0.272, 0.395], hw: 5.0, y: [0, 3.5], windows: true },          // bridge base, 12 m
+      { f: [0.29, 0.345], hw: 4.0, y: [3.5, 10.8], windows: true },        // 19.2 m
+      { f: [0.308, 0.342], hw: 3.0, y: [10.8, 12.0], windows: true },      // 20.4 m
+      { f: [0.395, 0.5], hw: 4.4, y: [0, 5.4] },                           // house round the funnels, 14 m
+      { f: [0.562, 0.627], hw: 3.9, y: [0, 5.6] },                         // boat deck, 14.1 m
+      { f: [0.627, 0.69], hw: 4.4, y: [0, 4.4] },
+      { f: [0.632, 0.66], hw: 3.0, y: [4.4, 12.8], windows: true },        // after structure, 21.4 m
+      { f: [0.857, 0.891], hw: 2.9, y: [0, 2.5] },
+    ],
+    towerF: 0.33, towerY0: 14.0,
+    tiers: [{ len: 3.0, w: 3.0, h: 0.1 }],
+    dir0: { dx: 0, w: 2.6, l: 2.6, h: 1.2 },
+    foremast: { dx: -8.0, base: 6.0, apex: 0.7, platform: 0.7, spread: 3.2, back: 3.5, front: 1.5 },
+    funnels: [{ lx: 5.2, lz: 4.0, y0: 2.5, h: 13.7, rake: 1.4, top: 0.9, pipes: false }, { lx: 5.4, lz: 4.0, y0: 2.5, h: 13.7, rake: 1.4, top: 0.9, pipes: false }, { lx: 5.2, lz: 4.0, y0: 2.5, h: 13.7, rake: 1.4, top: 0.9, pipes: false }],
+    mastY0: { 1: 6.0 },
+    cat: { f: 0.64, z: 0, yaw: Math.PI / 2, len: 13, y: 2.0, craneF: 0.70, craneY: 6.8, craneH: 2.0, craneLen: 10, craneDir: -1, craneAng: 0.5, craneSide: 0, craneW: 0.6 },
+  },
   fletcher: { mainVariant: 'mk30' },
-  cleveland: { secVariant: ['mk28'] },
-  baltimore: { secVariant: ['mk28'] },
+  // Cleveland class (Colosseum drawing of USS Cleveland, Measure 12 modified, 1942, with a scale bar and the waterline; plan from the Pit-Road 1/700 sheet; shared by
+  // the project owner, measured only: 3.9 px per metre, about +-0.5 m): freeboard 8.8 m at the stem, 7.3 m at f 0.2, 6.8-7.0 m amidships and aft, a 9.6 m hangar roof at
+  // the stern (f 0.84-0.97); turrets A / B at 0.193 / 0.26 (B 2.6 m higher), X / Y at 0.729 / 0.79; the bridge block 0.347-0.445 (platform 17.6 m, director top
+  // 25.3 m), funnels at 0.469 and 0.537 (tops 25.0 / 24.4 m, bases 13.8 m), pole masts at 0.443 and 0.559 (tops 35.9 m), the aft tower 0.61-0.655 (22.7 m).
+  cleveland: {
+    secVariant: ['mk28'], mainVariant: 'us152', dirKind: 'drum', houseH: 2.5, bulwarkF: [0, 0.03],
+    fb: [[0, 8.8], [0.04, 8.3], [0.08, 8.3], [0.125, 7.5], [0.2, 7.3], [0.3, 6.8], [0.5, 6.9], [0.7, 7.0], [0.85, 7.4], [1, 7.8]],
+    planDeck: [[0, 0], [0.042, 0.278], [0.083, 0.389], [0.125, 0.472], [0.167, 0.584], [0.208, 0.667], [0.25, 0.75], [0.292, 0.806], [0.333, 0.861], [0.375, 0.917], [0.417, 0.972], [0.5, 0.972], [0.542, 1], [0.583, 1], [0.625, 0.972], [0.708, 0.972], [0.75, 0.917], [0.792, 0.889], [0.833, 0.834], [0.875, 0.778], [0.917, 0.75], [0.958, 0.723], [1, 0.36]],
+    planWL: [[0, 0], [0.04, 0.3], [0.1, 0.55], [0.2, 0.78], [0.3, 0.92], [0.4, 0.99], [0.5, 1], [0.6, 1], [0.7, 0.97], [0.8, 0.88], [0.9, 0.7], [0.95, 0.55], [1, 0.4]],
+    house: { plan: [[0.347, 5.0], [0.37, 8.0], [0.5, 8.5], [0.66, 8.0], [0.68, 5.0]] },
+    decks: [
+      { f: [0.347, 0.445], hw: 5.0, y: [0, 5.0], windows: true },          // bridge base, 12 m
+      { f: [0.352, 0.434], hw: 4.3, y: [5.0, 8.7], windows: true },        // 15.7 m
+      { f: [0.352, 0.429], hw: 3.8, y: [8.7, 10.6], windows: true },       // 17.6 m
+      { f: [0.386, 0.419], hw: 3.0, y: [10.6, 12.9], windows: true },      // 19.9 m
+      { f: [0.386, 0.419], round: true, hw: 2.4, y: [12.9, 16.4] },        // the director housing, 23.4 m
+      { f: [0.364, 0.381], round: true, hw: 1.6, y: [8.7, 18.3], taper: 0.9 },   // the forward 5 in director, 25.3 m
+      { f: [0.31, 0.34], hw: 3.0, y: [0, 6.0] },                           // base of the forward 5 in mount, 13 m
+      { f: [0.452, 0.49], hw: 4.5, y: [0, 6.8] },                          // forward funnel base, 13.8 m
+      { f: [0.52, 0.556], hw: 4.5, y: [0, 6.8] },                          // after funnel base, 13.8 m
+      { f: [0.556, 0.603], hw: 4.5, y: [0, 8.5], windows: true },          // after superstructure, 15.5 m
+      { f: [0.565, 0.595], hw: 3.0, y: [8.5, 13.5], windows: true },       // second tower, 20.5 m
+      { f: [0.603, 0.655], hw: 4.5, y: [0, 8.7], windows: true },          // after tower, 15.7 m
+      { f: [0.615, 0.633], hw: 1.8, y: [8.7, 16.4], taper: 0.8 },          // the radar tower, 23.4 m
+      { f: [0.64, 0.69], hw: 4.5, y: [0, 3.0] },                           // 10 m
+      { f: [0.838, 0.965], hw: 5.0, y: [0, 1.9] },                         // hangar roof, 9.6 m
+    ],
+    towerF: 0.372, towerY0: 14.0,
+    tiers: [{ len: 3.0, w: 3.0, h: 0.1 }],
+    dir0: { dx: 0, w: 2.6, l: 2.6, h: 1.4 },
+    foremast: { dx: -13.2, y0: 12.0 },
+    funnels: [{ lx: 6.0, lz: 4.4, y0: 6.8, h: 11.2, rake: 1.0, top: 0.95, pipes: false }, { lx: 6.0, lz: 4.4, y0: 6.8, h: 10.6, rake: 1.0, top: 0.95, pipes: false }],
+    mastY0: { 1: 8.5 },
+    cat: { f: 0.9, z: 4.5, yaw: 0, len: 20, y: 2.0, craneF: 0.965, craneY: 1.9, craneH: 7.0, craneLen: 9, craneDir: -1, craneAng: 0.5, craneSide: 0, craneW: 0.7 },
+  },
+  // Baltimore class (Shipbucket drawing of USS Baltimore, Measure 33/16D, October 1944, with a 100 m scale bar and the waterline, plan from the TZoli drawing of the
+  // class; shared by the project owner, measured only: 6.5 px per metre, about +-0.4 m): the forecastle 9.0 m at the stem, 7.2 m at f 0.125, 6.3 m from f 0.25 aft; turrets
+  // A / B at 0.225 / 0.285 (B 3.4 m higher) and X at 0.77; the bridge block 0.372-0.45 (tower 26 m, director 28.7 m), the SP radar mast at 0.46 (antenna 34.8-40.7 m,
+  // top 41.5 m), funnels at 0.491 and 0.582 (tops 25.5 / 24.4 m, casings 13.1 m), the pole mainmast at 0.605 (top 37.6 m), the aft tower 0.63-0.646 (22.2 m); 5 in twins on
+  // the centreline at 0.345 and 0.715 and on the wings at 0.409 / 0.643; two catapults at 0.885, 6.9 m off the centre line, and a crane at the stern.
+  baltimore: {
+    secVariant: ['mk28'], mainVariant: 'us203', dirKind: 'drum', houseH: 2.5, bulwarkF: [0, 0.03],
+    fb: [[0, 9.0], [0.042, 8.4], [0.083, 7.7], [0.125, 7.2], [0.167, 6.8], [0.25, 6.4], [0.5, 6.3], [0.75, 6.3], [0.9, 6.4], [1, 6.6]],
+    planDeck: [[0, 0.085], [0.042, 0.39], [0.083, 0.441], [0.125, 0.509], [0.167, 0.594], [0.208, 0.679], [0.25, 0.747], [0.292, 0.798], [0.333, 0.849], [0.375, 0.917], [0.417, 0.933], [0.458, 0.933], [0.5, 0.95], [0.542, 0.967], [0.583, 0.984], [0.625, 0.984], [0.667, 1.0], [0.708, 0.95], [0.75, 0.917], [0.792, 0.883], [0.833, 0.85], [0.875, 0.798], [0.917, 0.73], [0.958, 0.679], [1, 0.4]],
+    planWL: [[0, 0], [0.04, 0.3], [0.1, 0.55], [0.2, 0.78], [0.3, 0.92], [0.4, 0.99], [0.5, 1], [0.6, 1], [0.7, 0.97], [0.8, 0.88], [0.9, 0.7], [0.95, 0.55], [1, 0.4]],
+    house: { plan: [[0.372, 5.0], [0.39, 8.5], [0.5, 9.0], [0.69, 8.5], [0.70, 5.0]] },
+    decks: [
+      { f: [0.372, 0.45], hw: 5.5, y: [0, 5.6], windows: true },           // bridge base, 11.9 m
+      { f: [0.375, 0.445], hw: 4.8, y: [5.6, 10.0], windows: true },       // 16.3 m
+      { f: [0.378, 0.44], hw: 4.0, y: [10.0, 13.7], windows: true },       // 20 m
+      { f: [0.426, 0.44], round: true, hw: 1.4, y: [10.7, 19.7] },         // the tower, 26 m
+      { f: [0.386, 0.404], hw: 1.8, y: [13.7, 18.6] },                     // director, 24.9 m
+      { f: [0.443, 0.47], hw: 1.2, y: [28.2, 34.4] },                      // the SP radar antenna, 34.8-40.7 m
+      { f: [0.465, 0.52], hw: 5.0, y: [0, 6.8] },                          // forward funnel casing, 13.1 m
+      { f: [0.55, 0.615], hw: 5.0, y: [0, 6.8] },                          // after funnel casing, 13.1 m
+      { f: [0.604, 0.69], hw: 5.2, y: [0, 7.4], windows: true },           // after superstructure, 13.7 m
+      { f: [0.625, 0.665], hw: 4.2, y: [7.4, 10.4], windows: true },       // 16.7 m
+      { f: [0.63, 0.646], round: true, hw: 1.9, y: [10.4, 15.9] },         // the after tower, 22.2 m
+      { f: [0.632, 0.644], hw: 1.2, y: [15.9, 18.1] },                     // 24.4 m
+      { f: [0.455, 0.468], hw: 1.2, y: [6.8, 25.7], taper: 0.8 },           // the foremast structure, 32 m
+      { f: [0.603, 0.617], hw: 1.2, y: [6.8, 24.2], taper: 0.8 },           // the mainmast structure, 30.5 m
+      { f: [0.338, 0.36], hw: 3.0, y: [0, 6.6] },                          // base of the forward centreline 5 in, 12.9 m
+    ],
+    towerF: 0.462, towerY0: 21.1,
+    tiers: [{ len: 3.0, w: 3.0, h: 0.1 }],
+    dir0: { dx: 0, w: 2.4, l: 2.4, h: 1.2 },
+    foremast: { dx: -2.9, base: 7.0, apex: 0.66, platform: 0.75, spread: 2.6, back: 3.0, front: 1.5 },
+    funnels: [{ lx: 6.5, lz: 4.4, y0: 6.8, h: 12.4, rake: 1.2, top: 0.8, pipes: false }, { lx: 5.8, lz: 4.4, y0: 6.8, h: 11.3, rake: 1.2, top: 0.9, pipes: false }],
+    mastY0: { 1: 13.0 },
+    cat: { f: 0.885, z: 6.9, yaw: 0, len: 20, y: 1.7, craneF: 0.975, craneY: 0.5, craneH: 8.0, craneLen: 10.5, craneDir: 1, craneAng: 0.1, craneSide: 0, craneW: 0.7 },
+  },
   // Yamato (1945): measured on the profile and plan by Alexpl (Commons, CC BY-SA 3.0) with the builders' table (NH 111711). The profile is
   // drawn 10 % flatter than its length scale (checked on the builders' depth of 18.915 m and bow height of 20.4 m), so its heights are
   // read at 12.74 px/m and from the waterline at the trial draft of 10.4 m: then its freeboards are the builders' 10.0 / 8.6 / 6.45 m.
@@ -273,9 +558,60 @@ export const TWEAKS = {
     // the catapults lie fore and aft at the quarterdeck edges, with their turntables
     cat: { f: 0.95, z: 10.4, yaw: 0, len: 18.4, y: 0.8, craneF: 0.99, craneH: 6, craneLen: 20, craneDir: 1, craneAng: 0.05, craneSide: 0, craneW: 1.0 },
   },
-  takao: { pagoda: [13, 11, 9, 34], dirKind: 'drum', funnelRake: 3.0 },
+  // Takao class (ONI 41-42 sheet "Atago class", October 1942, public domain; profile and plan at one scale, observer-height ruler in feet): a
+  // forecastle at 5.0 m (7.4 m at the stem) running to a quarterdeck at 4.4 m; turrets A / B / C at 0.205 / 0.245 / 0.277 (B 3.3 m above A), X / Y
+  // at 0.735 / 0.777; the bridge stepped up aft (19 m at 0.335-0.355, 25 m at 0.375, 27.9 m at 0.404), the foremast a lattice tripod at 0.43 (top
+  // 36.5 m), a slanted trunked funnel 0.43-0.49 (top 21.3 m), a cylindrical one at 0.516 (top 20.0 m) and a short stack at 0.551; the aircraft deck
+  // 0.61-0.68 at 8.6 m with its crane jib pointing forward from the mainmast (0.693, top 30.3 m) and the catapult rails 8.7 m off the centre line.
+  takao: {
+    mainVariant: 'type3_203', dirKind: 'drum', houseH: 4.8, bulwarkF: [0, 0.04],
+    fb: [[0, 7.4], [0.03, 6.4], [0.07, 5.6], [0.12, 5.2], [0.2, 5.0], [0.35, 4.9], [0.5, 4.8], [0.65, 4.6], [0.8, 4.4], [0.9, 4.0], [1, 3.4]],
+    planDeck: [[0, 0.126], [0.05, 0.491], [0.1, 0.629], [0.15, 0.704], [0.2, 0.755], [0.25, 0.818], [0.3, 0.881], [0.35, 1.0], [0.4, 1.05], [0.45, 1.05], [0.5, 1.03], [0.55, 1.03], [0.6, 1.05], [0.65, 0.969], [0.7, 0.868], [0.75, 0.818], [0.8, 0.755], [0.85, 0.667], [0.9, 0.554], [0.95, 0.403], [1, 0.113]],
+    planWL: [[0, 0], [0.03, 0.25], [0.06, 0.42], [0.1, 0.56], [0.2, 0.7], [0.3, 0.82], [0.4, 0.93], [0.5, 0.98], [0.6, 1], [0.7, 0.93], [0.8, 0.8], [0.9, 0.58], [0.95, 0.4], [1, 0.12]],
+    house: { plan: [[0.325, 6.5], [0.36, 8.5], [0.45, 9.0], [0.60, 9.0], [0.64, 7.0]] },
+    decks: [
+      { f: [0.322, 0.408], hw: 5.4, y: [0, 14.1], windows: true },       // bridge base, 19 m
+      { f: [0.358, 0.408], hw: 4.4, y: [14.1, 19.6], windows: true },     // 24.5 m
+      { f: [0.385, 0.408], hw: 3.4, y: [19.6, 23.0], windows: true },     // compass platform and director, 27.9 m
+      { f: [0.541, 0.559], round: true, hw: 1.7, y: [4.8, 12.4], taper: 0.9 },   // the short stack
+      { f: [0.61, 0.683], hw: 5.2, y: [0, 4.0] },                        // aircraft deck, 8.6 m
+    ],
+    towerF: 0.37, towerY0: 14.0,
+    tiers: [{ len: 3.5, w: 4.0, h: 0.1 }],
+    dir0: { dx: 0, w: 4.0, l: 3.6, h: 2.2 },
+    foremast: { dx: -8.0, y0: 23.0, base: 4.8, apex: 0.7, platform: 0.8, spread: 3.2, back: 6.0, front: 1.5 },
+    funnels: [{ lx: 8.0, lz: 5.6, h: 11.7, rake: 4.5, top: 0.9, pipes: false }, { lx: 5.4, lz: 5.0, h: 10.4, rake: 0.3, top: 0.96, pipes: false }],
+    mastY0: { 1: 4.0 },
+    cat: { f: 0.638, z: 8.7, yaw: 0, len: 20.4, y: 4.0, craneF: 0.693, craneY: 4.0, craneH: 4.5, craneLen: 19.5, craneDir: 1, craneAng: 0.4, craneSide: 0, craneW: 0.7 },
+  },
   kagero: { dirKind: 'drum', tiers: [{ len: 6.5, w: 5.4, h: 2.4, rake: 1.2 }, { len: 5.2, w: 4.4, h: 2.2, rake: 1, wings: 0.8 }, { len: 4, w: 3.4, h: 2.0, rake: 0.8 }] },
-  agano: { dirKind: 'drum' },
+  // Agano (a detailed line drawing of the class with a 50 m scale bar and the waterline, profile and plan, shared by the project owner; measured only, 8.7 px per metre, about +-0.3 m on
+  // the hull and +-0.6 m on the superstructure; the rigging of the sheet pollutes the silhouette check): a forecastle rising from 4.8 m amidships to 6.8 m at the stem (10 m at the
+  // stem head) and a quarterdeck at 3.9 m abaft f 0.85; turrets A / B at 0.192 / 0.243 (B on a barbette 4.4 m higher) and C at 0.813; the bridge block 0.346-0.41 (tiers 10 / 15.5 / 19 m,
+  // cupola 22.9 m), the tripod foremast at 0.421 (top 27 m), the big raked funnel at 0.478 (top 18.1 m), the catapult 0.605-0.729 at 9.2 m with two floatplane carriages, the pole mast at
+  // 0.78 (top 28.3 m) with the crane jib leaning forward from 10.1 to 20.3 m.
+  agano: {
+    mainVariant: 'type41_152', dirKind: 'drum', houseH: 2.2, bulwarkF: [0, 0.03],
+    fb: [[0, 6.9], [0.03, 6.2], [0.06, 5.8], [0.12, 5.1], [0.2, 4.9], [0.5, 4.8], [0.8, 4.8], [0.845, 4.7], [0.85, 3.9], [1, 3.9]],
+    planDeck: [[0, 0.068], [0.042, 0.49], [0.083, 0.611], [0.125, 0.687], [0.167, 0.747], [0.208, 0.8], [0.25, 0.86], [0.292, 0.92], [0.333, 0.96], [0.375, 0.973], [0.417, 0.985], [0.5, 0.985], [0.625, 0.97], [0.708, 0.943], [0.75, 0.92], [0.792, 0.883], [0.833, 0.838], [0.875, 0.822], [0.917, 0.687], [0.958, 0.536], [1, 0.219]],
+    house: { plan: [[0.346, 4.0], [0.37, 6.0], [0.40, 6.0], [0.41, 4.0]] },
+    decks: [
+      { f: [0.346, 0.41], hw: 3.8, y: [0, 5.2], windows: true },           // bridge base, 10 m
+      { f: [0.35, 0.40], hw: 3.4, y: [5.2, 10.7], windows: true },         // 15.5 m
+      { f: [0.362, 0.395], hw: 2.8, y: [10.7, 14.2], windows: true },      // 19 m
+      { f: [0.372, 0.392], round: true, hw: 1.8, y: [14.2, 18.1] },        // the cupola, 22.9 m
+      { f: [0.403, 0.456], hw: 3.4, y: [0, 4.7] },                         // house between the bridge and the funnel, 9.5 m
+      { f: [0.5, 0.612], hw: 3.4, y: [0, 3.4] },                           // deckhouse abaft the funnel, 8.2 m
+      { f: [0.736, 0.784], hw: 3.0, y: [0, 2.7] },                         // the foot of the aft mast, 7.5 m
+    ],
+    towerF: 0.382, towerY0: 14.6,
+    tiers: [{ len: 3.0, w: 3.0, h: 0.1 }],
+    dir0: { dx: 0, w: 2.6, l: 2.6, h: 1.2 },
+    foremast: { dx: -6.8, base: 5.0, apex: 0.75, platform: 0.8, spread: 2.6, back: 3.0, front: 1.5 },
+    funnels: [{ lx: 7.8, lz: 6.0, y0: 4.7, h: 8.6, rake: 3.0, top: 0.8, pipes: false }],
+    mastY0: { 1: 7.5 },
+    cat: { f: 0.667, z: 0, yaw: 0, len: 21, y: 4.4, craneF: 0.78, craneY: 5.3, craneH: 1.5, craneLen: 18.8, craneDir: 1, craneAng: 0.575, craneSide: 0, craneW: 0.7 },
+  },
   // Bismarck (May 1941): measured on the profile drawing "Battleship Bismark.svg" (Commons, CC0) and the Bundesarchiv photographs
   // 193-04-1-23 / -26, 193-06-7-16. Freeboard 9.5 m at the stem, 5.2 m amidships, 6.5 m at the stern (full load); the 01 level 3.5 m, the forward
   // superstructure 9.3 m, the forward bridge 13.8 m, the tower to 26 m with the foretop rangefinder cupola on top, the funnel 19.8 m;
