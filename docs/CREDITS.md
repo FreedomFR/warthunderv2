@@ -26,6 +26,17 @@ Code sous licence MIT.
 
 ## Sources du modèle de dégâts
 
-<!-- À compléter : références (blindage, pénétration, inondation, incendies, explosions de soute...) utilisées pour le modèle de dégâts de `js/game/sim/`. -->
+Pénétration (formule de De Marre calée sur les tables publiées), incidence, blindages inclinés, fusées, soutes et protection contre les torpilles (`js/game/sim/penetration.js`, `damage.js`, `js/game/data/protection.js`). Les valeurs marquées `estimated` sont des estimations.
 
-*(section à remplir)*
+- [NavWeaps](https://www.navweaps.com) : fiches du 16"/50 Mk 7 (US), du 18"/45 Type 94 (Japon), du 15 cm SK C/34 et du 15"/52 allemands (pénétrations, vitesses, retard de fusée), du 8"/55 Mk 12-15 ; pages « Base fuze plate thickness minimums » (épaisseur minimale d'armement d'une fusée de culot, environ 0,07 × calibre), « Penetration index » et « tech-041 » (fusées japonaises).
+- [Nathan Okun, Warship Armor](https://www.navweaps.com/index_nathan.php) : indices de pénétration et blindage.
+- [Naval Gazing](https://www.navalgazing.net) : « Armor, Part 2 » (la vitesse nécessaire augmente avec l'obliquité), « Fuzes, Part 3 » (retards des fusées américaines), « Powder, Part 4 » (cordite contre poudres sans fumée, risque de flash).
+- Articles de Wikipédia sur le *Hood*, le *Taihō*, le *Shinano*, le *Musashi*, les classes *Iowa*, *Yamato*, *Bismarck*, *King George V*, *Littorio* et *Richelieu*, et sur la dernière bataille du *Bismarck* (comment un cuirassé finit par couler : noyage progressif, explosions, chavirement).
+- National WWII Museum (Guadalcanal), history.navy.mil (Samar), Air Force Times (*Johnston*) : comportement des destroyers et des croiseurs sous le feu.
+- Forums de modélistes et pages de contrôle des avaries : seulement des extraits ; les valeurs de contrôle des avaries (`dc`) sont des estimations.
+
+## Sources des effets visuels et sonores (shaders des navires, son)
+
+- Anti-scintillement spéculaire : Kaplanyan *et al.*, [« Filtering Distributions of Normals for Shading Antialiasing »](https://research.nvidia.com/sites/default/files/pubs/2016-06_Filtering-Distributions-of/NDFFiltering.pdf) (NVIDIA, 2016) et [la présentation GDC 2016](https://developer.download.nvidia.com/gameworks/events/GDC2016/akaplanyan_specular_aa.pdf) ; Toksvig (2004).
+- Vieillissement des coques : conseils de modélistes navals (salissure à la flottaison, coulures de rouille dans la zone d'éclaboussures, anneau d'algues ; « mieux vaut en faire trop peu »), usure des arêtes et saleté dans les creux guidées par la courbure et l'occlusion.
+- Son : forme d'onde de souffle de Friedlander et onde en N d'un projectile supersonique (littérature d'acoustique des armes) ; conception d'explosions en couches (claquement, corps, grondement grave ; la distance supprime d'abord les aigus et le front) ; spatialisation Web Audio (PannerNode HRTF, [MDN](https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API/Web_audio_spatialization_basics)).
