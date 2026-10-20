@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased — GitHub Pages
+
+- **Publication**: `tools/site.mjs` assembles the files of the site (the game as the single minified page, the wiki, the viewer and `js/`: 2.2 MB, 114 files) and `.github/workflows/pages.yml` publishes them on GitHub Pages at every change of `main`, after `npm test` and `npm run build`. The log endpoint of the dev server is only called on `localhost`; the wiki links its credits to the repository.
+
 ## Unreleased — sound, second pass
 
 - **Audio code split** (bit-identical at the time of the move): `audio/synth.js` (720 lines in one object) is now `synth/{core,guns,impacts,explosions,engines,aircraft,ambience}.js` merged by `synth.js` (same exports), and `audio.js` keeps the engine (bus, `play`, geometry) while the event mapping is `audio/events.js`, the continuous voices and the shell / bomb announcements `audio/loops.js`, the physics of propagation `audio/propagation.js`.
