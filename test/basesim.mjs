@@ -108,6 +108,8 @@ const run = (w, secs, on) => { const t1 = w.time + secs; while (w.time < t1) { w
   const af = w.bases.find((b) => b.layout.kind === 'airfield' && b.team === 0);
   const es = still(w.addShip('kagero', 1, af.layout.x + Math.cos(0.7) * 22000, af.layout.z + Math.sin(0.7) * 22000, 0));
   still(w.addShip('fletcher', 0, af.layout.x - 20000, af.layout.z, 0));
+  // the other side's air group stays on the ground: this is about the raid of the first
+  for (const b of w.bases) if (b.team === 1) for (const q of b.parked) if (q) q.svc = 1e9;
   const types = new Set(af.parked.filter(Boolean).map((p) => p.typeKey));
   const c = {}, phases = new Set();
   let nan = 0, bombs = 0, underground = 0;

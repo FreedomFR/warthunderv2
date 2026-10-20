@@ -149,7 +149,7 @@ function decide(world, base) {
   for (let i = 0; i < n; i++) {
     const p = bs[i];
     p.wave = wave; p.target = targets[i >= 3 && targets[1] ? 1 : 0]; p.group = i;
-    p.cruiseAlt = base.layout.y + 2400 + world.rng() * 700; p.role = 'level';
+    p.cruiseAlt = base.layout.y + Math.min(perfOf(p).bombAlt ?? 2800, 3500) - 600 + world.rng() * 600; p.role = 'level';
     wave.planes.push(p); air.queue.push(p);
   }
   const fs = base.parked.filter((p) => ready(p, 'fighter'));
@@ -301,7 +301,7 @@ export function stepBasePlane(world, p, dt) {
     case 'groundRun': {
       // the run: the speed builds so as to be airborne after 60 to 70 per cent of the runway; the tail comes up, then the nose
       p.eng = 1;
-      const vto = pf.vto ?? 38, L = Math.max(300, p.runLen * 0.58), a = vto * vto / (2 * L);
+      const vto = pf.vto ?? 38, L = clamp(Math.min(pf.runLen ?? p.runLen * 0.58, p.runLen * 0.85), 250, 2000), a = vto * vto / (2 * L);
       p.speed += a * dt;
       p.rs += F.D * p.speed * dt; p.rt += (0 - p.rt) * Math.min(1, dt * 1.5);
       const w = F.toW(p.rs, p.rt); p.x = w[0]; p.z = w[1];
@@ -394,6 +394,8 @@ const atan2h = (vx, vz) => Math.atan2(vx, -vz);
 
 function stepAir(world, p, dt, base, F, pf, T) {
   p.fuel -= dt;
+  // the bomb bay doors are open from a little before the target until the stick has gone
+  if (!p.fighter) p.bay = approach(p.bay || 0, p.phase === 'run' && (p.ordnance || p.stick > 0) && p._fs && Math.hypot((p.target ? p.target.x : 0) - p.x, (p.target ? p.target.z : 0) - p.z) < p._fs.d + 900 ? 1 : 0, 0.5 * dt);
   let hdg = p.heading, gam = 0, spd = pf.vc, o = {};
   const rng = world.rng, wave = p.wave;
   // the fuel, the battle is over, the wave is turned back: go home
@@ -444,13 +446,12 @@ function stepAir(world, p, dt, base, F, pf, T) {
         const along = (p.x - sx) * fx + (p.z - sz) * fz;
         spd = clamp(lead.speed - along * 0.12, pf.vc * 0.6, pf.vc * 1.25);
         gam = clamp((lead.y + so[2] - p.y) / 320, -0.06, 0.08);
-        if (lead.phase !== 'cruise') p.phase = lead.phase === 'run' ? 'run' : p.phase;
         break;
       }
       hdg = atan2h(dx, dz);
       gam = clamp((p.cruiseAlt - p.y) / 1100, -0.05, 0.07);
       spd = pf.vc;
-      if (range < 12000 && p.y > p.cruiseAlt - 350 && (!wave || wave.assessed)) { p.phase = 'run'; p.t = 0; p.stick = 0; }
+      if (range < 12000 && (p.y > p.cruiseAlt - 350 || range < 7500) && (!wave || wave.assessed)) { p.phase = 'run'; p.t = 0; p.stick = 0; }
       else if (range < 12000 && p.t > 300) { p.phase = 'run'; p.t = 0; }
       break;
     }
@@ -464,9 +465,9 @@ function stepAir(world, p, dt, base, F, pf, T) {
       const ax = tgt.x + tgt.vx * (fs.t + 1) + p.aimErr[0] * err, az = tgt.z + tgt.vz * (fs.t + 1) + p.aimErr[1] * err;
       const dx = ax - p.x, dz = az - p.z, range = Math.hypot(dx, dz);
       hdg = atan2h(dx, dz);
-      gam = clamp((p.cruiseAlt - p.y) / 900, -0.05, 0.05);
+      gam = clamp((p.cruiseAlt - p.y) / 900, -0.05, 0.015);
       spd = pf.bombSpeed ?? pf.vc;
-      o = { bankMax: 14 * D2R };
+      o = { bankMax: (range > 3500 ? 28 : 12) * D2R };
       // the stick: released so that it is centred on the aim point, one bomb after the other
       const aligned = Math.abs(wrapPi(hdg - p.heading)) < 0.05, vh = Math.hypot(p.vx, p.vz), stickLen = 0.2 * Math.max(0, (p.spec.bombKg || 1000) / 260 - 1) * vh;
       if (p.ordnance && p.stick === 0 && range < fs.d + stickLen * 0.5 + 6 && range > fs.d - 400 && aligned && p.y > 600) beginStick(p);
