@@ -15,7 +15,7 @@ const result = await build({
   entryPoints: [path.join(root, 'js/main.js')],
   bundle: true, minify: true, format: 'esm', target: 'es2022', write: false, legalComments: 'none',
   // the offline trailer director is only used by tools/trailer, not shipped in the single-file page
-  external: ['./trailer.js', './trailerScenes.js'],
+  external: ['./trailer.js', './trailerScenes.js', './trailerScenes020.js'],
 });
 const js = result.outputFiles[0].text.replace(/<\/script/gi, '<\\/script');
 const minPage = page

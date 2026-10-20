@@ -101,13 +101,16 @@ Les chiffres du wiki sont lus dans les mêmes fiches (`js/game/data/specs/`) que
 
 ## Bande-annonce
 
-[![Bande-annonce de la version 0.1.0 (aperçu animé)](docs/trailer-v0.1.0.gif)](docs/trailer-v0.1.0.mp4)
+[![Bande-annonce de la version 0.2.0 (aperçu animé)](docs/trailer-v0.2.0.gif)](docs/trailer-v0.2.0.mp4)
 
-▶ [**Voir la bande-annonce complète** (MP4, 89 s, 1920×1080, **60 images/s**, 36 Mo)](docs/trailer-v0.1.0.mp4) ·
-▶ [Comparatif 0.1.0 / 0.2.0](docs/comparatif-0.1.0-0.2.0.mp4) (89 s) · ▶ [Comparatif 0.0.1 / 0.1.0](docs/comparatif-0.0.1-0.1.0.mp4) (48 s) · ▶ [bande-annonce 0.0.1](docs/trailer-v0.0.1.mp4) (48 s)
+▶ [**Voir la bande-annonce complète 0.2.0** (MP4, 87 s, 1920×1080, **60 images/s**, 31 Mo)](docs/trailer-v0.2.0.mp4) ·
+▶ [Comparatif 0.1.0 / 0.2.0](docs/comparatif-0.1.0-0.2.0.mp4) (89 s, côte à côte)
 
-Toutes les images sont rendues par le jeu lui-même, image par image, les sons sont ceux du jeu et la musique est synthétisée par programme. Les plans sont
-cadrés par script (`js/trailerScenes.js`) ; voir `tools/trailer/README.md` pour refaire la vidéo.
+Les versions précédentes : ▶ [bande-annonce 0.1.0](docs/trailer-v0.1.0.mp4) (89 s) · ▶ [comparatif 0.0.1 / 0.1.0](docs/comparatif-0.0.1-0.1.0.mp4) (48 s) · ▶ [bande-annonce 0.0.1](docs/trailer-v0.0.1.mp4) (48 s)
+
+Toutes les images du jeu sont rendues par le jeu lui-même, image par image (carte graphique), les sons sont ceux du jeu et la musique est synthétisée par programme ;
+les écrans du wiki, du visualiseur et de l'interface téléphone sont de vraies captures. Les plans sont cadrés par script (`js/trailerScenes.js`, `js/trailerScenes020.js`) ;
+voir `tools/trailer/README.md` pour refaire les vidéos.
 
 ## Les navires
 

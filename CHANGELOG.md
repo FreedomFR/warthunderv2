@@ -1,17 +1,32 @@
 # Changelog
 
-## Unreleased — v0.2.0 videos
+## 0.2.0 — islands, new effects, a damage model from the tables, wiki, viewer and phone (20 October 2026)
 
+The headlines (the details are in the sections below):
+
+- **Islands and forests**: rocks, hilly and mountainous islands drawn from the seed, procedural forests by climate, ships that run aground, shells that burst on slopes, a line of sight and arcs tested against the relief.
+- **A new damage model**: De Marre penetration calibrated on published tables, armour obliquity, inclined belts, fuzes (delay, arming thickness, duds), magazine risk by powder, torpedo protection per ship, counter-flooding, capsizing.
+- **Effects redone**: muzzle blast in three stages, sea splashes in stages, fires with tongues of flame, a particle pool that no longer drops the flashes of a shot (and a setting for its size).
+- **Aircraft**: a hit volume for every type, redone cockpits with working dials, carrier operations (lifts, folding wings, wires), a take-off camera, aircraft that keep flying after the battle.
+- **Ship shader and sound**: specular anti-aliasing, oil-canning, rust tears, salt; blast waves, ear shock, air absorption, variants, loudness calibration, binaural option.
+- **Tools**: a wiki with a tech tree of the 30 ships, a 3D viewer to turn around every ship and aircraft, a touch interface for phones, the game, the wiki and the viewer online (`main` and `dev`) on GitHub Pages.
+- **Videos**: a new trailer `docs/trailer-v0.2.0.mp4` and a side-by-side comparison with 0.1.0 `docs/comparatif-0.1.0-0.2.0.mp4`.
+
+### v0.2.0 videos
+
+- **Trailer 0.2.0**: `docs/trailer-v0.2.0.mp4` (87 s, 1920×1080, 60 frames per second, 31 MB), its animated preview and its poster. Recorded on the GPU, frame by frame, with the game's own sounds and a synthesised score
+  (`tools/trailer/edit-0.2.0.json`, `score-0.2.0.json`, `record-0.2.0.sh`). Six acts: islands and forests, fire and splashes, the damage model, aircraft and cockpit, the wiki / the viewer / the phone interface (real captures), the finale.
+  New scenes in `js/trailerScenes020.js` (`isles`, `isle_fire`, `shellcam`, `cockpit`, `capsize`, `split`); `tools/trailer/screens.mjs` records the interfaces with the browser's screencast; `assemble.mjs` keeps the shape of a picture that is not 16:9.
 - **Comparison with 0.1.0**: `docs/comparatif-0.1.0-0.2.0.mp4` (89 s, 1920×540: two 960×540 pictures side by side, sound of the 0.1.0 trailer). The left half is the 0.1.0 trailer, the right half
   the same scenes, seeds and cuts (`tools/trailer/edit-0.1.0.json`) re-recorded with the current game (960×540, 60 frames per second, on the GPU: about 10 minutes for the 16 scenes), so the new damage model,
   fire, explosion, splash and muzzle effects, ship shader and islands can be compared shot by shot (the battles diverge since the damage model changed). New tool `tools/trailer/compare.mjs`
   (half-size edit with the titles scaled, then `hstack` and a label in each corner).
 
-## Unreleased — phone: closing the panels
+### phone: closing the panels
 
 - **The settings panel could not be closed on a phone**: the desktop button that toggles it is hidden there, and the panel covered the menu. The top bar and the menu now sit above every panel, and the settings and the fleet setup have a cross to close them (the scoreboard and the help close from the menu or by a tap, as before).
 
-## Unreleased — phone interface
+### phone interface
 
 - **Touch interface** for phones (`ui/mobile.js`, `ui/mobileStyle.js`, `device.js`): compact top bar and menu, camera row that scrolls, information panels opened on demand, full-screen fleet setup, a virtual stick and buttons for the free camera and the map, a landscape full-screen button, the screen kept awake in battle. The desktop interface is unchanged.
 - **Phone performance**: pixel density capped at 1.5 (`createEngine` option `maxDpr`), start at the medium quality rung, 20000 particles by default.
@@ -19,15 +34,15 @@
 - Fixed: the "Wiki" and "Visualiseur" links of the setup panel were drawn in the browser's default blue.
 - Test: `test/mobile.mjs`.
 
-## Unreleased — dev version online
+### dev version online
 
 - **The `dev` branch is published too**, in `/dev/` of the same GitHub Pages site (`main` stays at the root), with a "Version dev" badge. `tools/site.mjs --main <dir> --dev <dir>` assembles both; the workflow runs the tests of the pushed branch, then publishes both versions from their committed files (`naval.html` must be rebuilt before committing, as before).
 
-## Unreleased — GitHub Pages
+### GitHub Pages
 
 - **Publication**: `tools/site.mjs` assembles the files of the site (the game as the single minified page, the wiki, the viewer and `js/`: 2.2 MB, 114 files) and `.github/workflows/pages.yml` publishes them on GitHub Pages at every change of `main`, after `npm test` and `npm run build`. The log endpoint of the dev server is only called on `localhost`; the wiki links its credits to the repository.
 
-## Unreleased — sound, second pass
+### sound, second pass
 
 - **Audio code split** (bit-identical at the time of the move): `audio/synth.js` (720 lines in one object) is now `synth/{core,guns,impacts,explosions,engines,aircraft,ambience}.js` merged by `synth.js` (same exports), and `audio.js` keeps the engine (bus, `play`, geometry) while the event mapping is `audio/events.js`, the continuous voices and the shell / bomb announcements `audio/loops.js`, the physics of propagation `audio/propagation.js`.
 - **Variants**: every one-shot has 3 or 4 variants (different noise and different parameters: pitch of the boom, cut-offs, echo delays, the modes of the ringing plate, the number of secondary blasts), the library picks one at random and never the same one twice in a row, and builds them all in the background after the first click (no sound is synthesised in the middle of a fight). Guns are pitched by calibre ((reference / calibre)^0.3), the barrels of a turret go off a few hundredths of a second apart.
@@ -42,7 +57,7 @@
 - `test/audio.mjs`: levels against the targets and their order, variants that differ and never repeat, loops that wrap, firing notes of 9, 14 and 18 cylinders, N-wave length, ISO 9613-1 values, shell timing, turret and breech voices, the low-pass closing with distance.
 
 
-## Unreleased — damage model
+### damage model
 
 How ships take hits, resist them and are lost, rebuilt on published figures. It stays deterministic for a seed (the world's generator only). The events the renderer and the interface consume are unchanged;
 what was added is backward compatible (`shellHit.result` may now be `dud`, `shellHit.stage`, `impact.delay`, the `counterFlood` event, `explosion.avgas`).
@@ -90,7 +105,7 @@ what was added is backward compatible (`shellHit.result` may now be `dud`, `shel
 - Naval History and Heritage Command, Battle off Samar (https://history.navy.mil/browse-by-topic/wars-conflicts-and-operations/world-war-ii/1944/samar.html) and the Air Force Times piece on the Johnston (https://www.airforcetimes.com/off-duty/military-culture/2019/11/13/david-without-a-slingshot-a-daring-dive-into-deep-depths-reminds-us-of-tin-can-heroism): armour-piercing shells through destroyers' 3/8 in skin without bursting, Hoel lost after more than forty hits.
 - Damage control by navy and carrier fires: the Finescale forum thread on Japanese and US carrier damage control (https://forum.finescale.com/t/japanese-carriers-vs-u-s-carriers-damage-control/198914) and Tekeli's essay on carrier losses (https://www.tekeli.li/wwii/carrierloss.html), read as search excerpts only (a small Japanese damage-control division, US foam and inert-gas systems, Midway hangars full of unstowed ordnance): the `dc` figures are estimates in that spirit.
 - Not found in a source and marked `estimated` in `data/protection.js`: the design resistance of the cruisers' and carriers' side protection, the share of fuzes that fail, the Japanese delay for 8 in shells.
-## Unreleased — muzzle flames
+### muzzle flames
 
 - **Main guns showed no flame in a long battle** (only the foam on the water did): the particle pool (24000) was full after about a minute and every new particle was dropped, the muzzle fireballs included, while the sea foam (a separate clipmap) kept being stamped. The main load was the vapour trail of the shells in flight: one puff per simulated step and per shell, and hundreds of shells (secondary guns, AA) are in the air at once. The trail is now one puff every 22 to 60 m of flight (larger puffs), the pool holds 40000, and the peak in an 18-ship battle at normal speed falls from saturation to about 26000.
 - **Particle pool** (`render/particles.js`): when full, fireballs, flames, flashes, tracers and fire take the place of one of the oldest-looking puffs of smoke or spray instead of being lost; the effects emit less smoke as the pool fills (`fill()`), and the muzzle smoke clouds are thinner.
@@ -100,11 +115,11 @@ what was added is backward compatible (`shellHit.result` may now be `dud`, `shel
 - **Sound** (`audio.js`, `audio/synth.js`), after published work on blast waves and on layered explosion design: the click of a gun report is now the front of a blast wave (Friedlander shape: a sharp positive pulse then a short negative phase); a heavy gun fired within a few hundred metres of the listener **shocks the ears** (the whole mix ducks and goes dull, then recovers in about three seconds); the **cockpit canopy muffles** everything outside; a **bow wave** loop (hiss under a slow swell, slaps on the stem) follows the ships under way and grows with their speed; a **binaural option** ("Son binaural (casque)" in the settings: HRTF panner for the loud sounds, off by default).
 - Tests: `test/particles.mjs` (a full pool, priority of the flashes of a shot, the capacity setting), `test/effects.mjs` (every event of a fifteen minute fleet battle goes through the effects without an exception or a NaN).
 
-## Unreleased — take-off camera
+### take-off camera
 
 - **Automatic camera at a take-off or a landing**: the director cuts to an aircraft that takes off (or lands) and picked at random one of the three views of an aircraft; the "victim" view looks from the bridge of the ship the aircraft will attack, which is 20 km away from a carrier deck: the screen showed an empty sea and sky and the aircraft was a dot. A take-off or a landing is now only seen in the chase or the fly-past views, and the victim view is kept for an aircraft that is within 7 km of its target and not on a deck or assembling. Measured in the browser: the camera was 21.8 km from the aircraft in that view, 27 m in the chase view.
 
-## Unreleased — cameras, cockpit, end of battle, effects
+### cameras, cockpit, end of battle, effects
 
 - **Automatic camera**: it cut again at every frame while the ship it followed was going down: a ship that sinks is not `alive`, and the director took that for "gone" and picked a new ship, a new kind of shot and a new orbit at each frame (the sinking ship being the most interesting one, it picked her again). It now follows a ship down to the end of her sinking (16 s at most) and cuts when her time is up or she is gone.
 - **Camera following an aircraft**: in the chase and fly-past views it followed the nose of the aircraft: a damaged aircraft that tumbles, spins or loops as it falls turned the camera round it in loops. It now follows the direction the aircraft is going, smoothed (more slowly for a falling one). The fighters that escort and patrol rocked from bank to bank at 70 degrees (58 degrees on average): station keeping is now flown at 42 degrees and the patrol at 32 degrees.
@@ -118,24 +133,24 @@ what was added is backward compatible (`shellHit.result` may now be `dud`, `shel
   - **Muzzle blast**: a ring of foam spreading from under the muzzle and a halo of condensation for the heavy guns. **Steel hits**: sparks fall less fast; a shell that bursts inside makes smoke and flame jet from the openings for two or three seconds.
 - Tests: `test/cockpit.mjs` (the 18 cockpits), `test/airops.mjs` (the end of the battle, the gunners' fields), `test/fighters.mjs`. The camera fixes were measured in the browser (a pose trace through a sinking ship, planes followed through a landing).
 
-## Unreleased — aircraft hit volumes
+### aircraft hit volumes
 
 - **Aircraft had no hit volume at all**: a round of light AA, a burst of flak, a burst of a fighter's guns or of a rear gunner hit with a fixed chance, whatever the type, the aspect, the speed or where the rounds went. A Swordfish and a Zero were the same target, head-on or from above, crossing at 100 m/s or coming straight in; a gun that was late with its lead hit as often as one that was on.
 - **Now** (`sim/airhit.js`): an aircraft is an ellipsoid the size of its fuselage, the planes of its wings (two for a biplane), its tail and fin, and what a gun sees of it is the **area it presents along the line of fire** (head-on 3-8 m2, from the side 8-22, from above 26-79; an Avenger shows 1.8 times the side of a Dauntless, a Swordfish 2.2 times the top of a Zero). The rounds land in a Gaussian pattern round the point they were laid on (dispersion and laying error grow with the range; the ship's roll adds to it), and the chance that a round hits is what the area covers of that pattern at the place where the aircraft is when the round gets there: **light AA** (the barrels' real direction against the aircraft's position after the time of flight, the rounds leaving with the ship's speed: a crosser that is not led is missed, a nearer aircraft is hit more), **fighters' guns** (fixed along the nose: the pilot lays them by flying; a target that breaks away is not where the line puts it) and **rear gunners** (laid by eye, with an imperfect lead). **Flak** judges a burst from the outline of the aircraft, not from its centre.
 - Calibrated so that raids come out as before: over nine raids of fifteen minutes (three seeds, three pairs of carrier groups) 144 / 177 / 53 aircraft were shot down by AA / fighters / gunners against 146 / 179 / 59, and 65 % of the aircraft launched were lost in both. The fighters landed again a little more often (9 of the aircraft in three battles). `test/planehit.mjs` (areas, pattern, light AA on different types and courses) is part of `npm test`.
 
-## Unreleased — hit volumes
+### hit volumes
 
 - **Shells hit the air above and around the superstructure**: the whole superstructure was one box (the *Iowa*'s was 16 m long, 24 m wide and 27 m high, the *Fletcher*'s as wide as the hull), and the gun houses were discs of 1.3-2.4 m radius when the real turret is 8-11 m across: a shell burst, left its scar and did its damage in empty air beside a funnel, between two towers or above a low deckhouse, and the faces of the turrets were missed. A new audit (`test/hitbox.mjs`) traces random shell paths through the hit volumes and through the triangles that are drawn, for the 30 ships: **27 % of the hits were on nothing** and 32 % of them were more than 3.5 m from the surface that is drawn; and only 42 % of the scars of a battle lay on the surface.
 - **Now**: the superstructure is the set of blocks, prisms and cylinders the model is built from (found through a grid of the plan; the struts of the masts are left out), each destroyable part (funnel, bridge, mast, director) is hit through its own solids, and the gun houses and light AA mounts are the box of the house that is drawn, turned with the mount (7 % of the margin). The shell is followed to the surface it went in by (bisection on the last step of 1.2 m) and the normal of the scar is that of the face it struck (the side of a round funnel), not a guess from one big box. The ship's heading, **pitch and roll** are taken into account (a ship that heels while she sinks was hit where her upright self would be: 0 of 5 shells at 23 degrees of roll found their place, 5 of 5 now). The deck is struck at its own height (the margin goes from 0.3 to 0.15 m).
 - Measured on the 30 ships (5 000 paths): hits on nothing 27 % -> 2.2 %, hits more than 6 m off the drawn surface 14 % -> 2.3 %, the burst is 0.10 m (median) from the drawn surface along the path, scars on the drawn surface 42 % -> 90 %, paths through a drawn solid that the shell crossed unhindered 3 % (thin parts: rails, ladders, struts). Battles last as long as before (10.4 minutes on average in 8 random ones). `test/hitbox.mjs` is part of `npm test`.
 
-## Unreleased — sinking and camera fixes
+### sinking and camera fixes
 
 - **A ship that was listing, trimmed or sagging stood up and rose out of the water when a torpedo finished her**: the trim (up to 12 degrees by the bow or stern) and the sag of a flooded hull (2-3 m) were applied only while she was afloat, so both vanished in one frame at the moment she was lost, and the sinking then started from an upright ship. They now ease out (a few seconds for the trim, about ten for the sag) while the sinking motion takes over. Two related jumps are gone too: a hit on the other side no longer reverses the way she capsizes (`listSide` is kept once she is lost, and she goes over to the side she was already leaning to), and a hull that breaks in two while it sinks goes on from the depth it had instead of coming back to the surface. `test/damage.mjs` finishes three flooded ships with a torpedo from the other side and checks that the pose changes by no more than a few centimetres a tick and that the roll keeps its direction.
 - **Camera swept through the hull when the ship under it was lost just after a cut to her bridge**: the automatic director cuts to the bridge of a ship and, a moment later, she blows up or capsizes; the bridge view then turned into the outside view without a cut and the camera flew from the bridge to 450 m out through the hull and the fireball, swinging round by 160 degrees. A change between the bridge view and any other, whatever the cause, is now a cut.
 
-## Unreleased — carrier air operations
+### carrier air operations
 
 - **Take-off and assembly**: an aircraft used to turn towards the target as soon as its wheels left the deck, still a few metres over the flight deck. It now flies straight ahead and climbs until it is clear of the bow (150 m past it and 60 m above the deck), then flies a circle over the sea ahead of the carrier (on the side away from the landing circuit, a radius that follows the speed of the type, a different height for each section) until the last aircraft of the wave, escort included, has taken off and is in the circle; then the strike forms up behind its leaders and sets off. A patrol (CAP) climbs straight ahead and goes to its station. Assembly takes one to three minutes of a launch (real strikes took far longer: 15 minutes for the *Yorktown*'s group at Midway, an hour and a half for the *Enterprise* and *Hornet*).
 - **Arrester wire**: the wire used to grab the aircraft with a constant deceleration from the first instant (a jolt, then about 10 m/s2) and the nose dipped sharply. The pull now builds up and fades again (half a sine: jerk under 15 m/s3), peaks at 0.7-1 g and pays out over 20-70 m, in 2.5-4 s; the nose dips less. `test/deckops.mjs` checks the peak deceleration, the duration and the jerk.
@@ -166,7 +181,7 @@ what was added is backward compatible (`shellHit.result` may now be `dud`, `shel
   (m/s. Top and cruise speeds, stall and take-off figures are those published; the approach, climb and circuit speeds are about 1.2 times the stall speed or estimates; the 360-degree turn time is published for none of the types, so the turn comes from the speed and the steepest bank. No published figures were found for the Ju 87 C and the Bf 109 T (the Ju 87 B and a secondary source stand in), nor for the arrester gear of the time: its stopping distance comes from the 20-35 m quoted for the Ju 87 C.)
 - Tests: `test/deckops.mjs` (straight climb, assembly, the wire), `test/airops.mjs` (speeds of the types, formation of Skuas and Swordfish) and the formation checks adapted to the assembly.
 
-## Unreleased — islands
+### islands
 
 - **Islands of every size and height**: rocks (45-150 m of radius, 7-38 m high), small hilly islands (260-760 m, up to 120 m) and large mountainous ones (1.1-2.3 km, up to 560 m, some with a crater), lobed and stretched coasts, a shelf that falls 12 m for every 100 m. They are generated from the seed (`sim/terrain.js`: one analytic height field per island, sampled on a grid for the simulation) with the fleets' start and the axis between them kept clear; the menu has a selector (none / a few / archipelago) and `?islands=0|1|2`. Each island has a biome (green, arid, rock, volcanic).
 - **Rendering**: one mesh per island built from the same field (`model/islandMesh.js`, `render/islandVisual.js`), a terrain material in the ship shader (grain, strata on steep ground, wet sand, no weathering), surf lines re-stamped on the foam map along the coast near the camera, a camera that cannot go under the ground, shell and torpedo impacts on the land (flash, dust, earth chunks, sound).
@@ -177,7 +192,7 @@ what was added is backward compatible (`shellHit.result` may now be `dud`, `shel
   - Drawing (`render/vegetationVisual.js`): within 105 m each plant is an instance (the cards do not cast shadows, the rest does), within 300 m and 1 km one mesh per square of 80 m, beyond one mesh per square of 640 m with a part of the plants; meshes are built when needed (7 ms a frame at most) and released when the camera goes away. 60 images/s on the RTX 3080 even inside a forest. `?trees=0` turns the plants off; the quality level shortens the distances.
   - `test/vegetation.mjs` (placement, climates, budgets of triangles, stamping) is part of `npm test`.
 - `test/islands.mjs` (generation, line of sight, grounding, shells and torpedoes, the AI, six battles among islands) is part of `npm test`.
-## Unreleased — wiki and viewer
+### wiki and viewer
 
 ### 3D viewer (`viewer.html`)
 

@@ -25,6 +25,7 @@ if (qs.has('preview')) {
     // offline trailer recorder (tools/trailer): scripted scenes, see js/trailer.js
     const { Trailer } = await import('./trailer.js');
     const { SCENES } = await import('./trailerScenes.js');
+    Object.assign(SCENES, (await import('./trailerScenes020.js')).SCENES_020);
     const T = new Trailer(game);
     T.sink = (...a) => window.__sink(...a);
     window.__trailer = { T, scenes: Object.keys(SCENES), run: async (name) => { await SCENES[name](T); await T.finish(name); }, music: (spec) => T.music(spec) };

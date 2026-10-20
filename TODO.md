@@ -1,6 +1,6 @@
 # Reste à faire
 
-État au 19 octobre 2026 : **version 0.1.1** (flottes qui naviguent en formation, chasseurs et groupes aériens, pont d'envol animé, tirs et DCA calculés sur la géométrie des navires, sillages, livrées vérifiées ; la 0.1.0 : les 30 navires et tous les avions relevés sur plans).
+État au 20 octobre 2026 : **version 0.2.0** (îles et forêts, modèle de dégâts d'après les tables, effets refaits, cockpits, wiki, visualiseur 3D, interface téléphone, site en ligne ; la 0.1.1 : flottes qui naviguent en formation, chasseurs et groupes aériens, pont d'envol animé, tirs et DCA calculés sur la géométrie des navires, sillages, livrées vérifiées ; la 0.1.0 : les 30 navires et tous les avions relevés sur plans).
 Cases cochées = fait et vérifié ; cases vides = à faire. Les points marqués *(limite)* sont des choses que je ne sais pas faire
 (ou pas vérifier) depuis l'environnement de développement actuel.
 

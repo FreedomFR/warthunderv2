@@ -45,7 +45,8 @@ if (dry) process.exit(0);
 const gradeVF = edit.grade ?? 'eq=contrast=1.05:saturation=1.08:gamma=0.98,unsharp=5:5:0.45:5:5:0.0';
 for (const c of clips) {
   const frames = Math.round(c.dur * FPS), first = Math.round((c.from || 0) * FPS);
-  const vf = [`scale=${W}:${H}:flags=lanczos`, gradeVF];
+  // a picture that is not 16:9 (the phone interface) keeps its shape, with bars
+  const vf = [`scale=${W}:${H}:flags=lanczos:force_original_aspect_ratio=decrease`, `pad=${W}:${H}:(ow-iw)/2:(oh-ih)/2:color=0x0b0f14`, gradeVF];
   if (c.speed && c.speed !== 1) vf.push(`setpts=PTS/${c.speed}`);
   if (c.fadeIn) vf.push(`fade=t=in:st=0:d=${c.fadeIn}${c.fadeFrom === 'white' ? ':color=white' : ''}`);
   if (c.fadeOut) vf.push(`fade=t=out:st=${(c.dur - c.fadeOut).toFixed(3)}:d=${c.fadeOut}${c.fadeTo === 'white' ? ':color=white' : ''}`);

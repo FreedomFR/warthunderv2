@@ -31,3 +31,22 @@ Notes on the v0.0.1 edit (`edit.json`):
 * `--music file.wav` and `--frames dir` override the paths of the edit list; `--keep` keeps the intermediate clips.
 * Recording takes about 10 s per 720p frame on 4 CPU cores (software rendering): the 48 s trailer is 1 150 frames, about 3 hours.
 * Two shots are staged for the camera (the bomb of `dive_b`, the torpedo of `torp_b`): the weapon starts close to its target, the hit is the game's own model.
+
+## v0.2.0
+
+The trailer `docs/trailer-v0.2.0.mp4` (87 s, 1920×1080, 60 fps) and the comparison with 0.1.0:
+
+```
+node server.mjs 8080 &
+tools/trailer/record-0.2.0.sh out/f60                                    # every scene, on the GPU (Windows Node under WSL2, see CLAUDE.md): about 45 min, 18 GB
+GPU=hardware WSLENV=GPU "/mnt/c/Program Files/nodejs/node.exe" tools/trailer/screens.mjs out/screens wiki viewer phone   # the interfaces (screencast), then move out/screens/screens/* to out/f60/screens/
+GPU=hardware WSLENV=GPU "/mnt/c/Program Files/nodejs/node.exe" tools/trailer/music.mjs out/music_020 tools/trailer/score-0.2.0.json
+node tools/trailer/assemble.mjs tools/trailer/edit-0.2.0.json            # -> docs/trailer-v0.2.0.mp4
+```
+
+* `js/trailerScenes020.js` — the new scenes: `isles` (a column along a green island: from the air, from the water, over the canopy), `isle_fire` (the guns really fire, the bursts on the
+  hillside are shells thrown there because the line-of-fire rule does not let a flat trajectory end on a slope), `shellcam` (an armour-piercing shell followed to its target), `cockpit`
+  (the pilot's seat in the take-off run and in the dive), `capsize`, `split`.
+* `tools/trailer/screens.mjs` — records the wiki, the viewer and the phone interface with the browser's screencast (JPEG frames, resampled to a constant frame rate): do not run it while a scene is recording, the GPU is shared.
+* `assemble.mjs` keeps the shape of a picture that is not 16:9 (bars) and `compare.mjs` makes the side-by-side comparison.
+
