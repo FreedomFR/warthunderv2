@@ -53,12 +53,12 @@ export function spawnMountDebris(world, ship, mountIdx, power = 1) {
 }
 
 /** Scrap metal: plates, beams, chunks. */
-export function spawnScrap(world, x, y, z, n, speed, vx0 = 0, vz0 = 0, burn = 0.6) {
-  const rng = world.rng;
+export function spawnScrap(world, x, y, z, n, speed, vx0 = 0, vz0 = 0, burn = 0.6, o = {}) {
+  const rng = o.rng || world.rng, sz = o.size ?? 1;
   for (let i = 0; i < n; i++) {
     const a = rng() * 6.283, el = 0.3 + rng() * 1.15, sp = speed * (0.35 + 0.8 * rng());
     make(world, {
-      kind: 'scrap', scrap: Math.floor(rng() * 3), size: 0.8 + rng() * 1.8,
+      kind: 'scrap', scrap: Math.floor(rng() * 3), size: (0.8 + rng() * 1.8) * sz,
       x, y, z, vx: vx0 + Math.cos(a) * Math.cos(el) * sp, vy: Math.sin(el) * sp, vz: vz0 + Math.sin(a) * Math.cos(el) * sp,
       wp: (rng() - 0.5) * 9, wr: (rng() - 0.5) * 9, wh: (rng() - 0.5) * 6, burn: burn * rng(), ttl: 20, drag: 0.04,
     });

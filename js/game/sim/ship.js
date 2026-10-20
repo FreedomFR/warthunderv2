@@ -1,7 +1,8 @@
 // A ship in the simulation: kinematics, wave response, damage state and weapon mounts.
 // A ship never decides anything itself: it executes its `cmd` (ShipCommand), which is written by a
 // controller (AI today, a human tomorrow — see controllers/).
-import { clamp, wrapPi, approach, KN, D2R, sat, smoothstep } from '../math.js';
+import { clamp, wrapPi, approach, KN, D2R, sat, smoothstep, makeRng } from '../math.js';
+import { spawnScrap } from './debris.js';
 import { createModules, createCompartments, AA_HP, AA_ROUNDS, blast } from './modules.js';
 import { planeTypeFor } from '../model/planes.js';
 
@@ -291,6 +292,12 @@ export class Ship {
     const sc = { x: lx, y: ly, z: lz, nx: nx / l, ny: ny / l, nz: nz / l, r, k, spin: this.world.rng() * 6.28 };
     if (this.scars.length >= 54) this.scars.shift();
     this.scars.push(sc);
+    // a burst that tears a hole in the plating throws pieces of it out (a cosmetic stream of random numbers: the battle does not depend on it)
+    if (k >= 1 && r >= 0.55 && this.state !== 'sunk') {
+      const w = this.toWorld(lx, ly, lz, [0, 0, 0]);
+      this.cosRng ||= makeRng(this.id * 7919 + 5);
+      spawnScrap(this.world, w[0], w[1], w[2], Math.min(7, 1 + Math.round(r * 2)), 9 + r * 6, this.vx, this.vz, 0.8, { rng: this.cosRng, size: 0.25 + r * 0.22 });
+    }
   }
 
   /** Aircraft drawn on the deck park: the full park to begin with, then whatever the deck crew have spotted (see sim/deck.js); never more than the air group allows. */

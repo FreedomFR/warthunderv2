@@ -425,7 +425,7 @@ export function resolveShellHit(world, ship, shell, hit) {
     if (part === 'mount') damageMount(world, ship, cur.mount, P * 0.6, owner, false);
     detonate(world, ship, lx - (thinSkin ? ldx * 1.2 : 0), ly - (thinSkin ? ldy * 1.2 : 0), lz - (thinSkin ? ldz * 1.2 : 0), P * (thinSkin ? 0.85 : 1), thinSkin ? 'inside' : 'outside', owner, 'shell', kind, cal, cur, { ...fx, angle, thin: thinSkin });
     report(kind === 'bounce' ? 'shatter' : thinSkin ? 'pen' : 'burst', dmg);
-    ship.addScar(lx, ly, lz, nrm[0], nrm[1], nrm[2], scarR * (kind === 'bounce' ? 0.6 : 1), kind === 'bounce' ? 0 : (rng() < 0.4 ? 2 : 1));
+    ship.addScar(lx, ly, lz, nrm[0], nrm[1], nrm[2], scarR * (kind === 'bounce' ? 0.6 : 1.7), kind === 'bounce' ? 0 : (rng() < 0.4 ? 2 : 1));      // a high-explosive burst opens a bigger hole than an armour-piercing shell going in
     if (lx < -L * 0.38 && part !== 'super' && rng() < 0.04) ship.rudderJam = (rng() < 0.5 ? -1 : 1) * 0.6;
     if (owner) { owner.damageDealt += dmg; owner.shotsHit++; }
     ship.applyDamage(dmg, owner, 'shell');

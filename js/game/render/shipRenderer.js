@@ -3,7 +3,8 @@
 import { SHIP, SHIP_SHADOW } from '../../wgsl/ship.js';
 import { VERTEX_STRIDE } from '../model/meshbuilder.js';
 
-const INST_FLOATS = 28;          // 4 x vec4 matrix + tint + misc + paint
+const INST_FLOATS = 32;          // 4 x vec4 matrix + tint + misc + paint + holes (first, count)
+const MAX_HOLES = 8192;          // spheres cut out of the plating this frame (see setHoles)
 const MAX_INSTANCES = 32768;
 const GU = GPUBufferUsage;
 
@@ -14,6 +15,9 @@ export class ShipRenderer {
     this.meshes = [];
     this.instData = new Float32Array(MAX_INSTANCES * INST_FLOATS);
     this.instBuf = this.device.createBuffer({ size: this.instData.byteLength, usage: GU.VERTEX | GU.COPY_DST, label: 'ship instances' });
+    this.holeData = new Float32Array(MAX_HOLES * 4);
+    this.holeBuf = this.device.createBuffer({ size: this.holeData.byteLength, usage: GU.STORAGE | GU.COPY_DST, label: 'ship holes' });
+    this.nHoles = 0; this.holeBase = 0; this.holeCount = 0;
     this.count = 0;
     this.paint = [0, 0, 0, 0];     // livery of the instances queued next (camouflage, seed, nation, palette); see setPaint()
     this.casting = true;           // do the instances queued next cast sun shadows (ships far from the shadow focus do not)
@@ -41,6 +45,7 @@ export class ShipRenderer {
             { shaderLocation: 7, offset: 64, format: 'float32x4' },
             { shaderLocation: 8, offset: 80, format: 'float32x4' },
             { shaderLocation: 9, offset: 96, format: 'float32x4' },
+            { shaderLocation: 10, offset: 112, format: 'float32x4' },
           ] },
         ],
       },
@@ -62,6 +67,7 @@ export class ShipRenderer {
         { binding: 6, resource: sh.view },
         { binding: 7, resource: sh.sampler },
         { binding: 8, resource: { buffer: sh.ubo } },
+        { binding: 9, resource: { buffer: this.holeBuf } },
       ],
     });
     // depth-only shadow pass (same vertex / instance layouts)
@@ -108,10 +114,20 @@ export class ShipRenderer {
   /** Livery for the instances added from now on: [camouflage pattern, seed, nation id, palette]; pass nothing to reset. */
   setPaint(p) { const q = this.paint; q[0] = p ? p[0] : 0; q[1] = p ? p[1] : 0; q[2] = p ? p[2] : 0; q[3] = p ? p[3] : 0; }
 
+  /**
+   * Holes blown in the plating of the instances added from now on: `list` is [x, y, z, radius] per hole, in the frame of the ship (the same for every piece of a ship);
+   * the fragments inside a sphere are cut away (a ragged edge, charred, glowing where the ship burns). Pass nothing to stop (the gun mounts and the aircraft have none).
+   */
+  setHoles(list, n = 0) {
+    if (!list || !n || this.nHoles + n > MAX_HOLES) { this.holeBase = 0; this.holeCount = 0; return; }
+    this.holeData.set(list.subarray(0, n * 4), this.nHoles * 4);
+    this.holeBase = this.nHoles; this.holeCount = n; this.nHoles += n;
+  }
+
   /** Start collecting instances for a new frame. */
   begin() {
     for (const m of this.meshes) { m.n = 0; m.n2 = 0; }
-    this.count = 0;
+    this.count = 0; this.nHoles = 0; this.holeBase = 0; this.holeCount = 0;
   }
 
   /**
@@ -138,6 +154,7 @@ export class ShipRenderer {
     d[o + 20] = fire; d[o + 21] = rnd; d[o + 22] = cutX; d[o + 23] = cutSide;
     const pt = this.paint;
     d[o + 24] = pt[0]; d[o + 25] = pt[1]; d[o + 26] = pt[2]; d[o + 27] = pt[3];
+    d[o + 28] = this.holeBase; d[o + 29] = this.holeCount; d[o + 30] = 0; d[o + 31] = 0;
     if (cast) mesh.n++; else mesh.n2++;
     this.count++;
   }
@@ -152,6 +169,7 @@ export class ShipRenderer {
       if (m.n2) { d.set(m.cpu2.subarray(0, m.n2 * INST_FLOATS), o); o += m.n2 * INST_FLOATS; }
     }
     if (o) this.device.queue.writeBuffer(this.instBuf, 0, d, 0, o);
+    if (this.nHoles) this.device.queue.writeBuffer(this.holeBuf, 0, this.holeData, 0, this.nHoles * 4);
   }
 
   /** Render all queued instances into the sun shadow map. */

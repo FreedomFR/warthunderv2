@@ -5,6 +5,8 @@ import { getMountModel } from '../model/mounts.js';
 import { MeshBuilder, MAT, rgb } from '../model/meshbuilder.js';
 import { mat4Ship, mat4Frame, mat4Mul, mountMatrices } from '../math.js';
 
+const HOLES_MAX = 54;          // holes per ship from the scars (as many as a ship keeps)
+const HOLE_R_MAX = 3.4;        // m
 const M32 = new Float32Array(16), H32 = new Float32Array(16), G32 = new Float32Array(16);
 const F64 = new Float64Array(16), M64 = new Float64Array(16), SEC = new Float64Array(16), TR = new Float64Array(16), TMP = new Float64Array(16);
 const H64 = new Float64Array(16), G64 = new Float64Array(16), SP = new Float64Array(16), SQ = new Float64Array(16);
@@ -149,6 +151,46 @@ export class ShipVisuals {
     } else this.addSection(ship, S64, tint, dmg, fire, rnd, 0, 0);
   }
 
+  /**
+   * The holes blown in a ship: the scars of the shells that burst on it (and the bombs) are cut out of the plating, the rest stay decals on it. { list: Float32Array [x, y, z, r]..., n }.
+   * Rebuilt only when the ship has got a new scar.
+   */
+  holesOf(ship) {
+    const sc = ship.scars, ps = ship.partState;
+    // a part that is damaged but still there (state 1) is riddled too: it gets a few holes of its own
+    let pk = '';
+    if (ps) for (let i = 0; i < ps.length; i++) if (ps[i] === 1) pk += i + ',';
+    if ((!sc || !sc.length) && !pk) return null;
+    const key = (sc ? sc.length + ':' + (sc.length ? sc[sc.length - 1].spin : 0) : '') + '|' + pk;
+    if (ship._holeKey === key) return ship._holes;
+    const list = [];
+    if (sc) {
+      for (let i = sc.length - 1; i >= 0; i--) {
+        const q = sc[i];
+        q._hole = q.k >= 1 && q.r >= 0.45;
+        if (!q._hole) continue;
+        const R = Math.min(HOLE_R_MAX, q.r * 1.45);
+        list.push(q.x - q.nx * R * 0.12, q.y - q.ny * R * 0.12, q.z - q.nz * R * 0.12, R);
+      }
+    }
+    if (ps) {
+      const parts = ship.model.parts;
+      for (let i = 0; i < ps.length && list.length < 4 * 2 * HOLES_MAX; i++) {
+        if (ps[i] !== 1 || !parts[i]) continue;
+        const bb = parts[i].bb, hx = (bb[3] - bb[0]) / 2, hy = (bb[4] - bb[1]) / 2, hz = (bb[5] - bb[2]) / 2;
+        const cx = (bb[0] + bb[3]) / 2, cy = (bb[1] + bb[4]) / 2, cz = (bb[2] + bb[5]) / 2, R = Math.max(0.3, Math.min(1.7, Math.min(hx, hz) * 0.5 + hy * 0.06));
+        for (let k = 0; k < 3; k++) {
+          const a = Math.sin(i * 12.9898 + k * 78.233) * 43758.5453, u = (a - Math.floor(a)) * 2 - 1, v = ((a * 7.1) % 1 + 1) % 1 * 2 - 1, side = k % 2 ? 1 : -1;
+          list.push(cx + u * hx * 0.6, cy + v * hy * 0.55, cz + side * hz, R);
+        }
+      }
+    }
+    if (sc) for (let i = 0; i < sc.length; i++) if (sc[i]._hole === undefined) sc[i]._hole = false;
+    ship._holeKey = key;
+    ship._holes = list.length ? { list: new Float32Array(list), n: list.length / 4 } : null;
+    return ship._holes;
+  }
+
   /** The matrix of a radar or a director of a ship, turned about its axis: the radar sweeps at its rate, the director follows the first main turret that can still train. */
   turnedPart(ship, S, def) {
     const clock = ship.world ? ship.world.time : performance.now() / 1000;
@@ -172,6 +214,8 @@ export class ShipVisuals {
     const lod = ship.lod | 0;                 // 0 everything, 1 no light AA, 2 hull / bridge / funnels / main guns only
     for (let i = 0; i < 16; i++) M32[i] = S[i];
     r.setPaint(model.paint);
+    const holes = this.holesOf(ship);
+    if (holes) r.setHoles(holes.list, holes.n);
     r.add(rm.hull, M32, tint, dmg, fire, rnd, cutX, half);
     const near = ship.near !== false;
     if (near && rm.fine) r.add(rm.fine, M32, tint, dmg, fire, rnd, cutX, half);
@@ -202,6 +246,7 @@ export class ShipVisuals {
     }
     for (let i = 0; i < 16; i++) M32[i] = S[i];
     r.setPaint(null);
+    r.setHoles(null);
     // main and secondary mounts
     const mounts = ship.mounts;
     for (let i = 0; i < model.mounts.length; i++) {
@@ -236,7 +281,7 @@ export class ShipVisuals {
     // scars
     if (ship.scars) {
       for (const sc of ship.scars) {
-        if (!inHalf(sc.x)) continue;
+        if (!inHalf(sc.x) || sc._hole) continue;
         mat4Frame(F64, sc.x + sc.nx * 0.06, sc.y + sc.ny * 0.06, sc.z + sc.nz * 0.06, sc.nx, sc.ny, sc.nz, sc.r, sc.spin);
         mat4Mul(TMP, S, F64);
         for (let k = 0; k < 16; k++) M32[k] = TMP[k];

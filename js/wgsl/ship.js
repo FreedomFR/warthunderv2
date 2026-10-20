@@ -26,6 +26,7 @@ export const SHIP = FRAME_WGSL + ATMO_CORE_WGSL + HAZE_WGSL + SHADOW_STRUCT_WGSL
 @group(0) @binding(6) var shadowTex: texture_depth_2d;
 @group(0) @binding(7) var shadowSamp: sampler_comparison;
 @group(0) @binding(8) var<uniform> SH: ShadowU;
+@group(0) @binding(9) var<storage, read> holeBuf: array<vec4f>;      // holes blown in the plating: xyz = centre (ship frame), w = radius
 ` + SHADOW_FUNC_WGSL + SKY_RENDER_FUNCS + PALETTE_WGSL + GLYPH_WGSL + /* wgsl */ `
 const ENV_MAXMIP: f32 = ${ENV_MIPS - 1}.0;
 
@@ -40,6 +41,7 @@ struct VIn {
   @location(7) tint: vec4f,    // rgb = team colour, a = damage (soot) 0..1
   @location(8) misc: vec4f,    // x = fire glow, y = per-ship random, z = cut plane (local x), w = cut side (+1 bow part, -1 stern part, 0 whole)
   @location(9) paint: vec4f,   // x = camouflage pattern, y = pattern seed, z = nation (ensign), w = camouflage palette
+  @location(10) holes: vec4f,  // x = first hole of the ship in holeBuf, y = how many
 };
 struct VOut {
   @builtin(position) pos: vec4f,
@@ -52,6 +54,7 @@ struct VOut {
   @location(6) misc: vec4f,
   @location(7) lnrm: vec3f,
   @location(8) paint: vec4f,
+  @location(9) holes: vec4f,
 };
 
 @vertex fn vs(v: VIn) -> VOut {
@@ -89,6 +92,7 @@ struct VOut {
   o.tint = v.tint;
   o.misc = v.misc;
   o.paint = v.paint;
+  o.holes = v.holes;
   return o;
 }
 
@@ -391,6 +395,20 @@ fn gauge(kind: u32, uv: vec2f, ias: f32, alt: f32, hdg: f32, vsi: f32, bank: f32
   let fw = max(fwidth(lp.x) + fwidth(lp.y) + fwidth(lp.z), 1e-4);   // local-space pixel footprint
   let up = abs(in.lnrm.y);
 
+  // ---- holes blown in the plating: a ragged round piece is cut away (and with it the boats, the rails and the fittings that stood there), the rim is charred ----
+  var holeEdge = 0.0;
+  let hn = u32(in.holes.y + 0.5);
+  if (hn > 0u && mat <= 9u && mat != 2u) {
+    let hb = u32(in.holes.x + 0.5);
+    for (var hi = 0u; hi < hn; hi = hi + 1u) {
+      let h = holeBuf[hb + hi];
+      let rag = 1.0 + 0.32 * gnoise(vec2f(lp.x * 1.6 + lp.z * 0.8 + h.w * 3.1, lp.y * 1.9 + h.x * 0.37 + lp.z * 0.5));
+      let dd = length(lp - h.xyz) / (h.w * rag);
+      if (dd < 1.0) { discard; }
+      holeEdge = max(holeEdge, 1.0 - smoothstep(1.0, 1.16, dd));
+    }
+  }
+
   // ---- broad weathering (large scale mottling + vertical rust / water streaks) ----
   let mott = gnoise(vec2f(lp.x * 0.11 + in.misc.y * 13.0, lp.z * 0.11 + lp.y * 0.07));
   let fineN = gnoise(vec2f(lp.x * 1.3 + lp.y * 0.9, lp.z * 1.7 - lp.y * 1.1));
@@ -630,6 +648,12 @@ fn gauge(kind: u32, uv: vec2f, ias: f32, alt: f32, hdg: f32, vsi: f32, bank: f32
   }
   N = bumpNormal(N, in.rel, hgt);
   albedo *= weather;
+  // the inside of a ship seen through a hole (the back of the plating) is dark; the torn rim is black and glows where the ship burns
+  if (hn > 0u && mat <= 5u) {
+    if (!ff) { albedo *= 0.2; }
+    albedo = mix(albedo, vec3f(0.012), holeEdge * 0.93);
+    emissive += vec3f(1.0, 0.27, 0.04) * holeEdge * holeEdge * (0.1 + max(in.misc.x, 0.0) * 0.9);
+  }
   // grime collects where the baked occlusion is strong (under overhangs, in corners) and the paint fades on the faces that look up
   if (mat <= 5u) {
     albedo *= mix(0.8, 1.0, smoothstep(0.25, 0.85, in.ao));
