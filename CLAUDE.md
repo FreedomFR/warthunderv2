@@ -41,6 +41,7 @@ Software rendering is slow: 10–25 s per frame at 800×450 with the ocean on; a
 | 3D viewer, wiki | `viewer.html` + `js/viewer.js`, `js/viewer/` (scene, controls, panel, state = the debug link, subjects); `wiki.html` + `js/wiki.js`, `js/wiki/` (data adapter, tiers, layout, tree, card, profile = silhouettes drawn from the specs); test `test/wiki.mjs` |
 | Damage model | `sim/penetration.js` (De Marre, obliquity, fuzes), `sim/damage.js` (hit resolution), `data/protection.js` (belt inclination, torpedo protection, navy powder / fuzes / damage control; `estimated` marks guesses), `tools/damagecheck.mjs` (balance: duels, `zones`, `torp`), `test/realism.mjs` |
 | Trailer | `js/trailer*.js`, `tools/trailer/` (`record.mjs`, `assemble.mjs`, `edit.json`; needs ffmpeg), scene `firetest` films a salvo |
+| Island bases (look) | `js/game/model/baseMesh.js` (`buildBaseModel(layout, nation, { biome })`: ground work, decoration, one entry per part and gun), `baseParts.js` (hangar, tower, tank, barracks, radar, magazine, post: intact / ruin / fine / spin groups), `baseGuns.js` (emplacements, mount specs), `baseKit.js` (paints by nation, helpers); `js/game/render/baseVisual.js` (`BaseVisuals`, drawn from `BaseState`); `test/basemesh.mjs`; layout and state in `sim/bases.js` |
 | Reference photographs | `tools/refs/` (see its README) |
 | README pictures | `docs/*.jpg`: the interface ones from `tools/screenshots.mjs` (GPU), the others from the trailer scenes' frames and the preview scene (see CHANGELOG 0.1.0) |
 

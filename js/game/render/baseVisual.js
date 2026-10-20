@@ -80,6 +80,16 @@ export class BaseVisuals {
     }
   }
 
+  /** The base nearest to `cam` within `range` metres, as { x, y, z, L (its size) } for the sun shadow to focus on when no ship is near, or null. */
+  focusNear(cam, range = 2500) {
+    let best = null, bd = range;
+    for (const it of this.items) {
+      const d = Math.hypot(it.layout.x - cam.x, it.model.ref - cam.y, it.layout.z - cam.z) - it.model.radius * 0.5;
+      if (d < bd) { bd = d; best = it; }
+    }
+    return best ? { x: best.layout.x, y: best.model.ref, z: best.layout.z, L: Math.min(best.model.radius * 1.4, 700) } : null;
+  }
+
   /** The state of the base with this layout among `states` (or the visuals' own). */
   _stateOf(it, states, k) {
     if (!states) return it.state;

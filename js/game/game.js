@@ -378,6 +378,8 @@ export class Game {
       let bd = 2500;
       for (const s of w.ships) if (s.state !== 'sunk' && dist(s) < bd) { bd = dist(s); focus = s; }
     }
+    // no ship near: the shadows fall on the base the camera is over
+    if (!focus) { const bf = this.baseVisuals.focusNear(cam, 2500); if (bf) focus = { x: bf.x, y: bf.y, z: bf.z, stats: { L: bf.L }, model: { topY: 14 }, state: 'base' }; }
     if (!focus) return off();
     const d = dist(focus);
     const R = clamp(d * 0.8 + focus.stats.L * 0.55, 170, 800);

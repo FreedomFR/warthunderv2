@@ -14,7 +14,7 @@ import { makeRng } from '../math.js';
 import { glyphIndex } from './glyphs.js';
 import { buildPartMesh } from './baseParts.js';
 import { buildEmplacement, gunMountSpec } from './baseGuns.js';
-import { C, shade, mix, palOf, earthOf, dirtOf, slab, bar, disc, vehicle, drums, flagStaff, mast, hash2 } from './baseKit.js';
+import { C, shade, mix, palOf, earthOf, dirtOf, slab, bar, disc, vehicle, drums, flagStaff, mast, camoNet, hash2 } from './baseKit.js';
 import { roofRail } from './details.js';
 
 const PI = Math.PI;
@@ -239,6 +239,7 @@ function batterySite(L, loc, pal, rng, g, gf, d, df) {
   vehicle(df, -70, 0.12, 12, 0.2, 'truck', vcol);
   vehicle(df, -58, 0.12, -22, 0.9, 'jeep', vcol);
   drums(df, -62, 0.1, span - 16, 3, 2, 0.3, '#5c6048');
+  camoNet(df, -64, 12, 6.5, 3.8, 3.2, 0.2, [pal.roof, pal.roof2, pal.roof3, pal.wall], L.id);
   drums(df, -66, 0.1, -span + 18, 2, 2, 1.0, '#7a4a3a');
 }
 

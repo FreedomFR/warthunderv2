@@ -24,7 +24,7 @@ export const dirtOf = (biome) => DIRT[biome] || DIRT.green;
 
 export const C = rgb;
 export const DARK = '#1b1d1f';
-export const CHAR = '#26231f';
+export const CHAR = '#34302b';
 export const RUST = '#5b4332';
 
 /** A cheap deterministic hash in [0, 1) of two numbers. */
@@ -165,6 +165,24 @@ export function sandbags(b, x0, z0, x1, z1, y, rows, col, thick = 0.5) {
       b.pop();
     }
   }
+}
+
+/** A camouflage net on four poles over (x, z): a sagging grid of patches in the colours `cols`, a few of them missing (half sizes hx, hz, height h). */
+export function camoNet(b, x, z, hx, hz, h, yaw, cols, seed = 0) {
+  b.push().translate(x, 0, z);
+  if (yaw) b.rotateY(-yaw);
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) b.cylinder(sx * (hx - 0.2), 0, sz * (hz - 0.2), 0.05, 0.05, h - 0.1, C('#4a4639'), MAT.HULL, { seg: 5 });
+  const nx = Math.max(3, Math.round(hx * 2 / 1.6)), nz = Math.max(3, Math.round(hz * 2 / 1.6));
+  const P = (i, j) => {
+    const u = i / nx, v = j / nz, sag = Math.sin(u * Math.PI) * Math.sin(v * Math.PI) * 0.35;
+    return [-hx + 2 * hx * u, h - 0.2 - sag + 0.15 * (hash2(i * 7 + seed, j * 3) - 0.5), -hz + 2 * hz * v];
+  };
+  for (let i = 0; i < nx; i++) for (let j = 0; j < nz; j++) {
+    if (hash2(i * 13 + seed, j * 5 + 1) < 0.14) continue;
+    const c = C(cols[Math.floor(hash2(i, j * 17 + seed) * cols.length) % cols.length]);
+    b.quad(P(i, j), P(i + 1, j), P(i + 1, j + 1), P(i, j + 1), c, MAT.CANVAS, [0, h - 3, 0], 1);
+  }
+  b.pop();
 }
 
 /** A flag staff with the national ensign streaming along -x. */
