@@ -4,7 +4,7 @@
 import { MeshBuilder, MAT } from './meshbuilder.js';
 import { makeRng } from '../math.js';
 import { mountDims } from './mounts.js';
-import { C, shade, mix, slab, bar, disc, ring, smoothQuad, sandbags, hash2 } from './baseKit.js';
+import { C, shade, slab, bar, disc, ring, smoothQuad, sandbags, hash2 } from './baseKit.js';
 
 const PI = Math.PI;
 

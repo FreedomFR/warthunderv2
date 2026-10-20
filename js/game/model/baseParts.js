@@ -8,7 +8,7 @@
 import { MeshBuilder, MAT } from './meshbuilder.js';
 import { makeRng } from '../math.js';
 import { roofRail } from './details.js';
-import { C, shade, mix, DARK, CHAR, RUST, slab, bar, poly, loftX, capX, disc, flagStaff, mast, drums, sandbags, hash2 } from './baseKit.js';
+import { C, shade, mix, DARK, CHAR, RUST, slab, bar, loftX, capX, disc, flagStaff, mast, sandbags } from './baseKit.js';
 
 const PI = Math.PI;
 const GLASS = '#0d141a';
