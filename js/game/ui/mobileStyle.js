@@ -5,7 +5,7 @@ body.mobile #ui { padding: env(safe-area-inset-top) env(safe-area-inset-right) e
 
 /* the desktop top bar is replaced by a compact one (its buttons stay in the page: the menu presses them) */
 body.mobile #topbar { display: none; }
-#mbar { position: fixed; top: max(8px, env(safe-area-inset-top)); left: max(8px, env(safe-area-inset-left)); right: max(8px, env(safe-area-inset-right)); display: flex; gap: 8px; align-items: center; pointer-events: none; z-index: 20; }
+#mbar { position: fixed; top: max(8px, env(safe-area-inset-top)); left: max(8px, env(safe-area-inset-left)); right: max(8px, env(safe-area-inset-right)); display: flex; gap: 8px; align-items: center; pointer-events: none; z-index: 60; }
 #mbar > * { pointer-events: auto; }
 #mbar .mb { min-width: 46px; height: 42px; border-radius: 12px; font-size: 16px; font-weight: 700; padding: 0 12px; background: #0b0f14c8; border: 1px solid #ffffff26; backdrop-filter: blur(6px); }
 #mbar .mb:active { background: #e2a04e55; }
@@ -13,7 +13,7 @@ body.mobile #topbar { display: none; }
 #mbar .grow { flex: 1; }
 
 /* the menu */
-#mmenu { position: fixed; top: calc(max(8px, env(safe-area-inset-top)) + 50px); right: max(8px, env(safe-area-inset-right)); width: min(330px, calc(100vw - 16px)); max-height: calc(100vh - 80px); overflow-y: auto; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 10px; z-index: 30; }
+#mmenu { position: fixed; top: calc(max(8px, env(safe-area-inset-top)) + 50px); right: max(8px, env(safe-area-inset-right)); width: min(330px, calc(100vw - 16px)); max-height: calc(100vh - 80px); overflow-y: auto; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 10px; z-index: 70; }
 #mmenu button, #mmenu a { min-height: 46px; font-size: 15px; border-radius: 10px; display: flex; align-items: center; justify-content: center; text-align: center; color: inherit; text-decoration: none; background: #ffffff14; border: 1px solid #ffffff2a; padding: 6px; }
 #mmenu button:active, #mmenu a:active { background: #e2a04e55; }
 #mmenu button.on { background: #e2a04e44; border-color: var(--amber); }
@@ -36,16 +36,20 @@ body.mobile .lab { font-size: 10.5px; }
 body.mobile .lab .lbar { width: 26px; }
 
 /* panels over the whole screen */
-body.mobile #setup { left: 0; top: 0; width: 100vw; max-height: 100vh; height: 100vh; border-radius: 0; padding: max(12px, env(safe-area-inset-top)) max(14px, env(safe-area-inset-right)) 18px max(14px, env(safe-area-inset-left)); box-sizing: border-box; z-index: 40; }
+body.mobile #setup { left: 0; top: 0; width: 100vw; max-height: 100vh; height: 100vh; border-radius: 0; padding: max(12px, env(safe-area-inset-top)) max(14px, env(safe-area-inset-right)) 18px max(14px, env(safe-area-inset-left)); box-sizing: border-box; padding-top: calc(max(8px, env(safe-area-inset-top)) + 54px); z-index: 40; }
 body.mobile #setup .btn, body.mobile #setup select { min-height: 42px; font-size: 15px; }
 body.mobile #setup a.btn { display: flex; align-items: center; justify-content: center; }
 body.mobile #setup .ico { width: 38px; height: 38px; font-size: 18px; }
-body.mobile #settings { left: 8px; right: 8px; top: calc(max(8px, env(safe-area-inset-top)) + 50px); width: auto; max-height: calc(100vh - 70px); z-index: 35; }
+body.mobile #settings { left: 8px; right: 8px; top: calc(max(8px, env(safe-area-inset-top)) + 50px); width: auto; max-height: calc(100vh - 70px); z-index: 42; }
 body.mobile #settings label.slider { min-height: 40px; }
 body.mobile #settings input[type=range] { height: 28px; }
-body.mobile #results, body.mobile #score, body.mobile #help { min-width: 0; width: calc(100vw - 20px); max-width: none; max-height: 88vh; box-sizing: border-box; font-size: 12px; z-index: 36; }
+body.mobile #results, body.mobile #score, body.mobile #help { min-width: 0; width: calc(100vw - 20px); max-width: none; max-height: 88vh; box-sizing: border-box; font-size: 12px; z-index: 42; }
 body.mobile #score { top: 56px; }
 body.mobile #banner { font-size: 22px; }
+
+/* the cross that closes a panel (the desktop buttons that toggled them are not on screen) */
+.mclose { position: sticky; top: 0; float: right; z-index: 2; width: 42px; height: 42px; margin: -4px -6px 4px 8px; border-radius: 12px; font-size: 20px; line-height: 1; background: #ffffff1c; border: 1px solid #ffffff33; }
+.mclose:active { background: #e2a04e55; }
 
 /* virtual stick and buttons of the free camera and the map */
 #joy { position: fixed; left: max(24px, env(safe-area-inset-left)); bottom: 72px; width: 124px; height: 124px; border-radius: 50%; background: #0b0f1488; border: 2px solid #ffffff33; touch-action: none; z-index: 14; }
@@ -55,7 +59,7 @@ body.mobile #banner { font-size: 22px; }
 #jbtns button.on, #jbtns button:active { background: #e2a04e88; border-color: var(--amber); }
 
 /* a hint to turn the phone */
-#mhint { position: fixed; left: 12px; right: 12px; top: 40%; z-index: 50; text-align: center; padding: 16px; font-size: 15px; }
+#mhint { position: fixed; left: 12px; right: 12px; top: 40%; z-index: 80; text-align: center; padding: 16px; font-size: 15px; }
 #mhint button { margin: 10px 6px 0; min-height: 42px; padding: 0 16px; border-radius: 10px; font-size: 15px; }
 
 /* short screens (a phone in landscape): everything a little tighter */
