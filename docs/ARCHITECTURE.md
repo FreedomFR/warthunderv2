@@ -267,6 +267,17 @@ npm test                               # sans carte graphique
 - Pour reprendre avec Claude Code : le fichier `CLAUDE.md` décrit le projet, les commandes, l'organisation du code et la méthode des lots
   « fidélité » ; `TODO.md` liste ce qu'il reste à faire.
 
+## Sur téléphone
+
+Sur un appareil dont le pointeur principal est tactile, téléphone ou tablette (`js/game/device.js`, `?mobile=1` / `?mobile=0` pour forcer), `body.mobile` active l'interface tactile ; l'interface de bureau n'est pas modifiée.
+
+- **Interface** (`ui/mobile.js`, style dans `ui/mobileStyle.js`) : barre compacte (pause, vitesse, horloge, menu ☰), menu en grille (flottes, fiche du navire, équipes, impacts, noms, tableau, son, réglages, plein écran, aide, wiki, visualiseur), caméras en une rangée qui défile, panneaux d'information ouverts à la demande, configuration des flottes en plein écran.
+- **Gestes** : un doigt fait tourner la caméra, deux doigts zooment (pincement), un appui sélectionne un navire. En caméra libre et en vue tactique, un **joystick** à gauche déplace la caméra (il appuie sur les touches `W A S D` de la caméra), et trois boutons montent, descendent, accélèrent.
+- **Performance** : densité de pixels plafonnée à 1,5 (un téléphone en annonce 3 à 4), qualité de départ « moyenne » (la qualité automatique monte ou descend ensuite), 20 000 particules au plus par défaut.
+- **Plein écran** : bouton du menu (verrouille le paysage quand le navigateur l'autorise) ; l'écran reste allumé en combat (Wake Lock). Un conseil s'affiche une fois quand le téléphone est tenu droit.
+- **Installation** : `manifest.webmanifest` et les icônes permettent « Ajouter à l'écran d'accueil » dans Chrome : le jeu s'ouvre alors en plein écran, en paysage.
+- **Test** : `test/mobile.mjs` (détection, plafond de densité, touches du joystick). Les gestes et la mise en page ont été vérifiés avec l'émulation d'un S24 Ultra (tactile, 915×412 et 412×915) sur une carte graphique de bureau : la vitesse réelle d'un téléphone n'a pas pu être mesurée.
+
 ## Publier le site
 
 Le jeu tourne entièrement dans le navigateur du visiteur : un hébergement de fichiers statiques suffit (GitHub Pages), sans programme serveur. Deux versions sont en ligne : `main` (stable) à la racine et `dev` (en cours de validation) dans `/dev/`, avec un badge « Version dev » en bas à gauche.

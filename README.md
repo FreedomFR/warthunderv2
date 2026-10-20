@@ -28,6 +28,8 @@ Il faut un Chrome (ou Edge) récent avec WebGPU et une carte graphique correcte.
 3. Changer de caméra avec les touches `1` à `9`, regarder les navires de près, puis **Lancer le combat** : tous les navires sont pilotés par l'IA,
    jusqu'à ce qu'il ne reste qu'une équipe. `Espace` met en pause, `,` et `.` ralentissent ou accélèrent le temps.
 
+**Sur téléphone** : ouvrir l'adresse ci-dessous dans Chrome (Android récent, WebGPU) ; l'interface devient tactile (menu, joystick de caméra libre, plein écran en paysage). « Ajouter à l'écran d'accueil » l'installe comme une application. Détails : [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#sur-téléphone).
+
 **En ligne** : le jeu, le wiki et le visualiseur sont sur <https://freedomfr.github.io/warthunderv2/> (version stable, `main`) et <https://freedomfr.github.io/warthunderv2/dev/> (version en cours de validation, `dev`) ; voir [la publication](docs/ARCHITECTURE.md#publier-le-site).
 
 Si la machine est lente : `H` (Réglages) → « Résolution de rendu ». Le même panneau règle le nombre maximal de particules (flammes, fumées, gerbes : plus il est haut, moins elles disparaissent dans les grosses batailles) et le son binaural pour casque. Sur un portable, forcer Chrome sur la carte graphique dédiée.

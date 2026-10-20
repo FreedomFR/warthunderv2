@@ -9,6 +9,7 @@ import { IslandVisuals } from './render/islandVisual.js';
 import { VegetationVisuals } from './render/vegetationVisual.js';
 import { Terrain } from './sim/terrain.js';
 import { PlaneVisuals } from './render/aircraftVisual.js';
+import { isMobile } from './device.js';
 import { Particles, K, DEFAULT_MAX } from './render/particles.js';
 import { Effects } from './render/effects.js';
 import { CameraRig } from './ui/cameras.js';
@@ -52,13 +53,14 @@ export class Game {
     let saved = null;
     try { saved = localStorage.getItem('naval.quality'); } catch (e) { /* storage blocked */ }
     this.qualityMode = QUALITY_MODES.includes(qs.get('quality') || saved) ? (qs.get('quality') || saved) : 'auto';
-    this.qLevel = this.qualityMode === 'auto' ? 0 : { high: 0, medium: 2, low: 4 }[this.qualityMode];
+    // a phone starts at the medium rung and lets the adaptive quality go up or down from there
+    this.qLevel = this.qualityMode === 'auto' ? (isMobile() ? 2 : 0) : { high: 0, medium: 2, low: 4 }[this.qualityMode];
     this.fxScale = 1;
     this.userShadows = this.shadowsOn;
     this.slowT = 0; this.fastT = 0;
     let pmax = 0;
     try { pmax = Number(localStorage.getItem('naval.particles')) || 0; } catch (e) { /* storage blocked */ }
-    this.particleMax = Number(qs.get('particles')) || pmax || DEFAULT_MAX;
+    this.particleMax = Number(qs.get('particles')) || pmax || (isMobile() ? 20000 : DEFAULT_MAX);
     this.applyQuality();
   }
 

@@ -3,10 +3,12 @@ import { createEngine } from './engine.js';
 import { Game } from './game/game.js';
 import { PRESETS } from './game/scenarios.js';
 import { TEAM_COLORS } from './game/sim/world.js';
+import { isMobile, maxPixelRatio } from './game/device.js';
 
 const canvas = document.getElementById('c');
 const qs = new URLSearchParams(location.search);
-const engine = await createEngine(canvas);
+if (isMobile()) document.body.classList.add('mobile');
+const engine = await createEngine(canvas, { maxDpr: maxPixelRatio() });
 window.__engine = engine;
 
 if (qs.has('preview')) {
@@ -18,6 +20,7 @@ if (qs.has('preview')) {
   window.__game = game;
   const { createUI } = await import('./game/ui/ui.js');
   game.ui = createUI(game);
+  if (isMobile()) (await import('./game/ui/mobile.js')).initMobile(game, game.ui);
   if (qs.has('trailer')) {
     // offline trailer recorder (tools/trailer): scripted scenes, see js/trailer.js
     const { Trailer } = await import('./trailer.js');
