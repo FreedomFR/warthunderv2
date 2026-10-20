@@ -104,7 +104,7 @@ Les chiffres du wiki sont lus dans les mêmes fiches (`js/game/data/specs/`) que
 [![Bande-annonce de la version 0.1.0 (aperçu animé)](docs/trailer-v0.1.0.gif)](docs/trailer-v0.1.0.mp4)
 
 ▶ [**Voir la bande-annonce complète** (MP4, 89 s, 1920×1080, **60 images/s**, 36 Mo)](docs/trailer-v0.1.0.mp4) ·
-▶ [Comparatif 0.0.1 / 0.1.0](docs/comparatif-0.0.1-0.1.0.mp4) (48 s) · ▶ [bande-annonce 0.0.1](docs/trailer-v0.0.1.mp4) (48 s)
+▶ [Comparatif 0.1.0 / 0.2.0](docs/comparatif-0.1.0-0.2.0.mp4) (89 s) · ▶ [Comparatif 0.0.1 / 0.1.0](docs/comparatif-0.0.1-0.1.0.mp4) (48 s) · ▶ [bande-annonce 0.0.1](docs/trailer-v0.0.1.mp4) (48 s)
 
 Toutes les images sont rendues par le jeu lui-même, image par image, les sons sont ceux du jeu et la musique est synthétisée par programme. Les plans sont
 cadrés par script (`js/trailerScenes.js`) ; voir `tools/trailer/README.md` pour refaire la vidéo.

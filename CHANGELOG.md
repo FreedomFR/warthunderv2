@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased — v0.2.0 videos
+
+- **Comparison with 0.1.0**: `docs/comparatif-0.1.0-0.2.0.mp4` (89 s, 1920×540: two 960×540 pictures side by side, sound of the 0.1.0 trailer). The left half is the 0.1.0 trailer, the right half
+  the same scenes, seeds and cuts (`tools/trailer/edit-0.1.0.json`) re-recorded with the current game (960×540, 60 frames per second, on the GPU: about 10 minutes for the 16 scenes), so the new damage model,
+  fire, explosion, splash and muzzle effects, ship shader and islands can be compared shot by shot (the battles diverge since the damage model changed). New tool `tools/trailer/compare.mjs`
+  (half-size edit with the titles scaled, then `hstack` and a label in each corner).
+
 ## Unreleased — phone: closing the panels
 
 - **The settings panel could not be closed on a phone**: the desktop button that toggles it is hidden there, and the panel covered the menu. The top bar and the menu now sit above every panel, and the settings and the fleet setup have a cross to close them (the scoreboard and the help close from the menu or by a tap, as before).
