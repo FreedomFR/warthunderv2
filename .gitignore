@@ -15,3 +15,6 @@ Thumbs.db
 
 # local renders (reference views, firing tests)
 /out/
+
+# the published site, assembled by tools/site.mjs
+/_site/

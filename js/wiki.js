@@ -41,7 +41,7 @@ function header(active) {
 
 function footer() {
   return h('footer', {}, 'Les chiffres sont lus directement dans les fiches techniques du jeu (js/game/data/specs/) : cette page ne peut pas être en retard sur le jeu. ',
-    'Les valeurs marquées « ≈ » sont des estimations de la fiche. Sources et crédits des plans et photographies : ', h('a', { href: 'docs/CREDITS.md' }, 'docs/CREDITS.md'), '.');
+    'Les valeurs marquées « ≈ » sont des estimations de la fiche. Sources et crédits des plans et photographies : ', h('a', { href: 'https://github.com/FreedomFR/warthunderv2/blob/main/docs/CREDITS.md' }, 'docs/CREDITS.md'), '.');
 }
 
 function pageTree(nation) {

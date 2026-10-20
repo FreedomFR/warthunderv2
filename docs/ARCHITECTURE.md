@@ -266,3 +266,13 @@ npm test                               # sans carte graphique
 - La bande-annonce (`tools/trailer`) demande aussi `ffmpeg` ; les planches de comparaison (`tools/refs/sheet.py`) demandent Python et Pillow.
 - Pour reprendre avec Claude Code : le fichier `CLAUDE.md` décrit le projet, les commandes, l'organisation du code et la méthode des lots
   « fidélité » ; `TODO.md` liste ce qu'il reste à faire.
+
+## Publier le site
+
+Le jeu tourne entièrement dans le navigateur du visiteur : un hébergement de fichiers statiques suffit (GitHub Pages), sans programme serveur.
+
+- `node tools/site.mjs` assemble `_site/` : `index.html` (le jeu, version minifiée en un seul fichier, issue de `npm run build`), `wiki.html`, `viewer.html` et `js/` (sans les fichiers de la bande-annonce). Pour l'essayer : `cd _site && python3 -m http.server 8095`.
+- `.github/workflows/pages.yml` publie ce dossier à chaque fusion dans `main` : `npm ci`, `npm test` (rien n'est publié si un test échoue), `npm run build`, `tools/site.mjs`, puis le déploiement. Il peut aussi être lancé à la main (onglet Actions).
+- Réglage à faire une seule fois : *Settings → Pages → Build and deployment → Source : GitHub Actions*.
+- Adresse : `https://freedomfr.github.io/warthunderv2/`. Il faut un navigateur avec WebGPU (Chrome ou Edge récent) et le site doit être servi en HTTPS, ce que GitHub Pages fait.
+

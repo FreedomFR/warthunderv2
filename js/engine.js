@@ -69,7 +69,8 @@ export const MAX_STAMPS = 384;     // foam stamps per frame
 
 function log(msg) {
   console.log(msg);
-  try { fetch('/__log', { method: 'POST', body: String(msg) }).catch(() => {}); } catch (e) { /* offline */ }
+  // the dev server keeps a copy of the log; a published site has no such endpoint
+  if (/^(localhost|127\.|\[::1\])/.test(location.hostname)) try { fetch('/__log', { method: 'POST', body: String(msg) }).catch(() => {}); } catch (e) { /* offline */ }
 }
 
 // ----------------------------------------------------------------------------------------
