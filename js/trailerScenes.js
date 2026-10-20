@@ -7,11 +7,11 @@ import { BY_ID } from './game/data/ships.js';
 import { PLANES } from './game/model/planes.js';
 
 /** world point `fwd` ahead of / `side` to starboard of a ship (heading only, no roll or pitch) at absolute height y */
-const H = (s, fwd, side, y) => [s.x + Math.sin(s.heading) * fwd + Math.cos(s.heading) * side, y, s.z - Math.cos(s.heading) * fwd + Math.sin(s.heading) * side];
-const P3 = (s, dy = 0) => [s.x, s.y + dy, s.z];
+export const H = (s, fwd, side, y) => [s.x + Math.sin(s.heading) * fwd + Math.cos(s.heading) * side, y, s.z - Math.cos(s.heading) * fwd + Math.sin(s.heading) * side];
+export const P3 = (s, dy = 0) => [s.x, s.y + dy, s.z];
 
 /** Free the ships from the AI: they sail straight at the given speed (a film set, no battle). */
-function sail(ships, knots) {
+export function sail(ships, knots) {
   for (const s of ships) {
     s.controller = null;
     s.speed = knots * KN;
@@ -22,7 +22,7 @@ function sail(ships, knots) {
 
 
 /** Surface ships keep sailing and manoeuvring but hold their gunfire (an air attack scene without a naval battle around it). */
-function quiet(ships) {
+export function quiet(ships) {
   for (const s of ships) {
     const c = s.controller;
     if (!c) continue;
@@ -31,15 +31,15 @@ function quiet(ships) {
   }
 }
 
-const unit = (x, y, z) => { const l = Math.hypot(x, y, z) || 1; return [x / l, y / l, z / l]; };
-const dist2 = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
+export const unit = (x, y, z) => { const l = Math.hypot(x, y, z) || 1; return [x / l, y / l, z / l]; };
+export const dist2 = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
 /** exponential smoothing of a camera vector (state kept by the caller) */
-const damp = (cur, want, k) => (cur ? cur.map((v, i) => v + (want[i] - v) * k) : want.slice());
+export const damp = (cur, want, k) => (cur ? cur.map((v, i) => v + (want[i] - v) * k) : want.slice());
 
 /**
  * Camera behind and above a flying thing. get() returns the object ({x,y,z,vx,vy,vz}) or null (the last pose is then kept).
  */
-function chaseCam(get, back, up, side, ahead, fov, rate = 14) {
+export function chaseCam(get, back, up, side, ahead, fov, rate = 14) {
   let pos = null, look = null, last = null;
   return (t, T) => {
     const o = get() || last;
@@ -54,7 +54,7 @@ function chaseCam(get, back, up, side, ahead, fov, rate = 14) {
 }
 
 /** Camera behind and above a flying thing but looking at another point (the victim). */
-function followCam(get, getLook, back, up, side, fov, rate = 12) {
+export function followCam(get, getLook, back, up, side, fov, rate = 12) {
   let pos = null, look = null, last = null;
   return () => {
     const o = get() || last;
@@ -68,7 +68,7 @@ function followCam(get, getLook, back, up, side, fov, rate = 12) {
 }
 
 /** the first aircraft matching pred */
-const findPlane = (T, pred) => T.w.planes.find(pred) || null;
+export const findPlane = (T, pred) => T.w.planes.find(pred) || null;
 
 /** A fleet action: two columns of five on opposite courses, shots from the air, from the water and on the enemy as the hits land. */
 async function fleetBattle(T, tag, seed, look, blue, red) {
@@ -228,7 +228,7 @@ export const SCENES = {
     await T.until(() => T.w.planes.some((p) => p.owner === essex && p.phase === 'takeoff'), { max: 30, dt: 1 / 12 });
     // B: chase the first aircraft off the bow
     let first = null;
-    const airborne = () => (first = (first && T.w.planes.includes(first) ? first : findPlane(T, (p) => p.owner === essex && p.phase === 'cruise')) || first);
+    const airborne = () => (first = (first && T.w.planes.includes(first) ? first : findPlane(T, (p) => p.owner === essex && (p.phase === 'assemble' || p.phase === 'cruise'))) || first);
     await T.until(() => !!airborne(), { max: 30, dt: 1 / 12 });
     await T.shot('carrier_b', 3.6, chaseCam(airborne, 26, 7, 9, 40, 46));
   },
@@ -263,9 +263,9 @@ export const SCENES = {
     await T.shot('deck_lift_b', 5, (t) => ({ p: at(lift.x + 20 - t * 1.2, fdY + 3.2, lift.z + 15), l: at(lift.x - 3, fdY + 2.2, lift.z), fov: 32 }));
     // ---- the queue and the run ----
     await T.until(() => mine((p) => p.phase === 'takeoff'), { max: 90, dt: 1 / 12 });
-    await T.shot('deck_run', 6.5, rig([startX + 42, 8, -(dp.hw + 22)], () => { const p = mine((q) => q.phase === 'takeoff') || mine((q) => q.phase === 'cruise'); return p ? [p.x, p.y + 1, p.z] : at(startX + 20, fdY + 2, 0); }, 36));
+    await T.shot('deck_run', 6.5, rig([startX + 42, 8, -(dp.hw + 22)], () => { const p = mine((q) => q.phase === 'takeoff') || mine((q) => q.phase === 'assemble' || q.phase === 'cruise'); return p ? [p.x, p.y + 1, p.z] : at(startX + 20, fdY + 2, 0); }, 36));
     // ---- the strike is gone; the deck crew spot the park again from the hangar ----
-    await T.until(() => ship.air.wave > 0 && T.w.planes.filter((p) => p.owner === ship && p.wave && p.phase === 'cruise').length >= 6 && !T.w.planes.some((p) => p.owner === ship && !p.service && (p.phase === 'queue' || p.phase === 'takeoff')), { max: 200, dt: 1 / 12 });
+    await T.until(() => ship.air.wave > 0 && T.w.planes.filter((p) => p.owner === ship && p.wave && (p.phase === 'assemble' || p.phase === 'cruise')).length >= 6 && !T.w.planes.some((p) => p.owner === ship && !p.service && (p.phase === 'queue' || p.phase === 'takeoff')), { max: 200, dt: 1 / 12 });
     ship.air.cooldown = 1e9;
     await T.until(() => T.w.planes.some((p) => p.service === 'respot' && p.ds === 'taxi'), { max: 200, dt: 1 / 12 });
     await T.shot('deck_respot', 8, rig([px + 55, 14, 26], () => { const p = T.w.planes.find((q) => q.service === 'respot'); return p ? [p.x, p.y, p.z] : at(px, fdY, 0); }, 38));

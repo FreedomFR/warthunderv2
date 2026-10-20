@@ -1,6 +1,7 @@
 // Gunnery (fire control, turret slewing, salvos) and torpedo launching.
 import { clamp, wrapPi, approach, D2R, KN } from '../math.js';
 import { gunBallistics, solve } from './ballistics.js';
+import { V_EXP, effectiveThickness, spacedPlates, fuzeThickness } from './penetration.js';
 import { mountDims } from '../model/mounts.js';
 import { clearElev, clearMax, pathClear, inArcRel } from '../model/clearance.js';
 
@@ -91,7 +92,11 @@ function feasible(ship, m, target, out) {
   // the barrel must clear the towers and the other mounts at the elevation the shot needs
   const phi = m.rec.arcC + clamp(rel, m.rec.arcMin, m.rec.arcMax);
   const lo = clearElev(m.rec, phi);
-  return out.elev >= (lo > 0.001 ? lo - 0.01 : -1) && out.elev <= clearMax(m.rec, phi) + 0.01;
+  if (!(out.elev >= (lo > 0.001 ? lo - 0.01 : -1) && out.elev <= clearMax(m.rec, phi) + 0.01)) return false;
+  // an island between the guns and the target: the shell would burst on its slope
+  const T = ship.world && ship.world.terrain;
+  if (T && T.arcBlocked(out.px, out.py, out.pz, out.px + Math.sin(out.bearing) * out.range, out.pz - Math.cos(out.bearing) * out.range, Math.max(out.elev, 0), m.gun.v0)) return false;
+  return true;
 }
 
 const _alt = {};
@@ -224,29 +229,32 @@ export function shellChoice(ship, m, target, solu) {
   if (!g.ap || !ts || !ts.armor) return { type: m.ammo.HE > 0 || !hasAP ? 'HE' : 'AP', values: { AP: 0, HE: 1 } };
   const b = ball(m), lk = b.lookup(solu.range) || { vImpact: g.v0 * 0.7, fall: 0.15 };
   const kg = g.shellKg, cal = g.cal;
-  const penAP = g.pen0 * Math.pow(lk.vImpact / g.v0, 1.43);
+  const penAP = g.pen0 * Math.pow(lk.vImpact / g.v0, V_EXP);
   // the aspect: how square the target's side is to the line of fire
   const dx = target.x - ship.x, dz = target.z - ship.z, dl = Math.hypot(dx, dz) || 1;
   const along = Math.abs((dx * Math.sin(target.heading) - dz * Math.cos(target.heading)) / dl);
   const beam = Math.sqrt(Math.max(0, 1 - along * along));
-  const cosBelt = Math.max(beam * Math.cos(lk.fall), 0.17), cosDeck = Math.max(Math.sin(lk.fall), 0.17);
-  const effBelt = ts.armor.belt / cosBelt, effDeck = ts.armor.deck / cosDeck;
+  const ar = ts.armor, incl = (ar.incl || 0) * D2R;
+  // an inclined belt faces a falling shell more squarely; a deck is struck at the angle of fall
+  const cosBelt = clamp(beam * Math.cos(lk.fall) * Math.cos(incl) + Math.sin(lk.fall) * Math.sin(incl), 0.17, 1), cosDeck = Math.max(Math.sin(lk.fall), 0.17);
+  const ang = (c) => Math.acos(Math.min(1, c)) * 57.3;
+  const effBelt = effectiveThickness(Math.max(ar.belt, ar.skin), ang(cosBelt));
+  const effDeck = spacedPlates([ar.weather, ar.deck].filter((x) => x > 0).map((x) => effectiveThickness(x, ang(cosDeck))));
   const sg = (x) => 1 / (1 + Math.exp(-x));
   const soft = ts.softness ?? 1;
-  const deg = (c) => Math.acos(Math.min(1, c)) * 57.3;
+  const deg = ang;
   // a plate: [expected damage of AP, of HE] per kg of shell
   const plate = (armor, eff, cosA, zone) => {
-    const thin = eff < cal * 0.12;
+    const thin = armor < fuzeThickness(cal, deg(cosA));
     const glance = armor > cal * 0.08 ? clamp((deg(cosA) - 68) / 14, 0, 1) : 0;
     const pPen = sg((penAP - eff) / Math.max(0.12 * eff, 8));
     const ap = glance * 0.035 + (1 - glance) * (thin ? 0.06 * soft : pPen * 0.95 * zone + (1 - pPen) * 0.035);
     const he = 0.2 * soft * (eff > cal * 0.5 ? 0.1 : 0.55);
     return [ap, he];
   };
-  const belt = plate(ts.armor.belt, effBelt, cosBelt, 0.8), deck = plate(ts.armor.deck, effDeck, cosDeck, 0.7);
+  const belt = plate(ar.belt, effBelt, cosBelt, 0.8), deck = plate(Math.max(ar.deck, ar.weather), effDeck, cosDeck, 0.7);
   // the upperworks: little armour, AP often goes through without bursting, HE bursts on them
-  const sup = ts.armor.citadel * 0.15 + 12, supEff = Math.min(30, sup) / 0.7;
-  const superAP = supEff < cal * 0.12 ? 0.06 * soft : 0.95 * 0.25, superHE = 0.2 * soft;
+  const superAP = ar.sup < fuzeThickness(cal, 45) ? 0.06 * soft : 0.95 * 0.25, superHE = 0.2 * soft;
   // where the hits will go: the belt in proportion to the beam aspect, the deck at long range (steep fall), the rest on the upperworks
   const wBelt = 0.4 * beam, wDeck = 0.1 + 0.4 * clamp((lk.fall - 0.12) / 0.4, 0, 1), wSup = Math.max(0.15, 1 - wBelt - wDeck);
   const wt = wBelt + wDeck + wSup;

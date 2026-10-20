@@ -49,6 +49,7 @@ export class World {
     this.kills = [];
     this._enemyCache = new Map();
     this.fleets = new Map();     // the captain of each team's fleet (sim/fleet.js)
+    this.terrain = null;         // the islands (sim/terrain.js), or null
     this.timeLimit = 3600;
     this.lastCombatT = 0;        // last time a ship damaged another (used by the AI to break stalemates)
   }
@@ -85,6 +86,7 @@ export class World {
     this.events.length = 0; this.time = 0; this.lastCombatT = 0; this.state = 'setup'; this.winner = null; this.kills.length = 0;
     this.nameCounts.clear();
     this.fleets.clear();
+    this.terrain = null;
   }
 
   // ---- queries ----------------------------------------------------------------------------------------
@@ -146,10 +148,10 @@ export class World {
       s.update(dt);
     }
     this.collisions(dt);
-    if (this.state === 'running') {
-      for (const s of this.ships) if (s.alive) { updateGunnery(s, this, dt); updateTorpedoes(s, this, dt); }
-      updateAir(this, dt);
-    }
+    if (this.terrain) this.grounding(dt);
+    if (this.state === 'running') for (const s of this.ships) if (s.alive) { updateGunnery(s, this, dt); updateTorpedoes(s, this, dt); }
+    // once the battle is won the guns fall silent but the air goes on: the aircraft in the air go home and land (or ditch), the decks go on working
+    if (this.state === 'running' || this.state === 'finished') updateAir(this, dt);
     this.stepShells(dt);
     this.stepTorpedoes(dt);
     stepDebris(this, dt);
@@ -181,6 +183,17 @@ export class World {
           if (ship.state === 'afloat' || ship.sinkDepth < 3) resolveShellHit(this, ship, s, hit);
           done = true;
           break;
+        }
+      }
+      if (!done && this.terrain && s.y > -5) {
+        // the ground: a shell that goes into a slope bursts there
+        for (const f of [0.34, 0.67, 1]) {
+          const x = s.px + (s.x - s.px) * f, y = s.py + (s.y - s.py) * f, z = s.pz + (s.z - s.pz) * f, gh = this.terrain.heightAt(x, z);
+          if (gh > 0 && y <= gh) {
+            this.events.push({ type: 'landImpact', x, y: gh, z, cal: s.gun.cal, shell: s.type, dx: s.vx, dz: s.vz });
+            done = true;
+            break;
+          }
         }
       }
       if (!done && s.y <= 0 && s.vy < 0) {
@@ -218,7 +231,11 @@ export class World {
       t.x += t.vx * dt; t.z += t.vz * dt;
       t.travel += t.speed * dt; t.age += dt;
       let done = false;
-      if (t.travel > t.range) done = true;
+      if (this.terrain && this.terrain.heightAt(t.x, t.z) > -2.5) {
+        // the shore: it runs aground and explodes
+        this.events.push({ type: 'landImpact', x: t.x, y: 0, z: t.z, cal: 533, shell: 'HE', dx: t.vx, dz: t.vz, torpedo: true });
+        done = true;
+      } else if (t.travel > t.range) done = true;
       else if (t.travel > 90) {
         for (const ship of this.ships) {
           if (ship.state !== 'afloat') continue;
@@ -276,6 +293,33 @@ export class World {
             this.events.push({ type: 'collision', x: (c.px + c.qx) / 2, z: (c.pz + c.qz) / 2, power: rv });
           }
         }
+      }
+    }
+  }
+
+  /** Ships on the ground: pushed back out, slowed down, hurt by the speed at which they hit it. */
+  grounding(dt) {
+    const T = this.terrain;
+    for (const s of this.ships) {
+      if (s.state === 'sunk') continue;
+      const st = s.stats, fx = Math.sin(s.heading), fz = -Math.cos(s.heading), rx = -fz, rz = fx;
+      const pts = [];
+      for (const [lx, lz] of [[0.49, 0], [-0.49, 0], [0.3, 0.4], [0.3, -0.4], [-0.25, 0.4], [-0.25, -0.4], [0.05, 0.45], [0.05, -0.45]]) {
+        const a = lx * st.L, b = lz * st.B;
+        pts.push([s.x + fx * a + rx * b, s.z + fz * a + rz * b]);
+      }
+      const g = T.grounding(pts, st.D * 0.8);
+      if (!g) continue;
+      // out of the ground, along its slope
+      const push = clamp(g.pen / Math.max(g.slope, 0.04), 1, 40);
+      s.x += g.nx * push * Math.min(1, dt * 6); s.z += g.nz * push * Math.min(1, dt * 6);
+      const vn = s.vx * g.nx + s.vz * g.nz;                // negative: she is going into it
+      s.speed *= Math.exp(-dt * 1.2);
+      if (vn < -1 && (s._groundT ?? 0) <= this.time) {
+        s._groundT = this.time + 1.5;
+        const e = vn * vn * st.dispFull * 0.012;
+        if (s.alive) s.applyDamage(e, null, 'collision');
+        this.events.push({ type: 'collision', x: g.x, z: g.z, power: -vn, land: true });
       }
     }
   }

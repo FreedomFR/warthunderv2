@@ -1,0 +1,49 @@
+# Publishes two versions of the project on GitHub Pages: `main` at the root of the site and `dev` in /dev/.
+# Runs every time `main` or `dev` changes. The pages are rebuilt from the committed files (naval.html is built and committed with the code).
+# One-time settings: Settings > Pages > Source = "GitHub Actions"; the environment "github-pages" must allow the branches main and dev.
+name: Pages
+
+on:
+  push:
+    branches: [main, dev]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      # the workflow and the assembly script come from the branch that was pushed
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          path: src/main
+      - uses: actions/checkout@v4
+        with:
+          ref: dev
+          path: src/dev
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      # nothing is published if the tests of the pushed branch fail (the tests need no installed package)
+      - run: npm test
+        working-directory: src/${{ github.ref_name }}
+      - run: node tools/site.mjs --main src/main --dev src/dev --out _site
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deployment
+        uses: actions/deploy-pages@v4

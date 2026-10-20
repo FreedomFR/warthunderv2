@@ -95,7 +95,7 @@ fn vnoise(p: vec2f) -> f32 {
       let n = vnoise(q) * 0.5 + vnoise(q * 2.1 + vec2f(5.0, 2.0)) * 0.3 + vnoise(q * 4.4 + vec2f(9.0, 7.0)) * 0.2;
       let r = d / (0.7 + 0.42 * n);
       let dens = smoothstep(1.0, 0.3, r) * (0.5 + 0.75 * n);
-      alpha = clamp(dens, 0.0, 1.0) * in.col.a;
+      alpha = clamp(dens, 0.0, 1.0) * in.col.a * smoothstep(0.0, 0.05, in.misc.w);      // (it comes in over the first part of its life: smoke does not pop out of the flames)
       // light comes from the sun side of the screen: bright rim facing it, dark body, shaded far side
       let sd = vec2f(dot(normalize(F.sunDir.xyz), normalize(F.camRight.xyz)), dot(normalize(F.sunDir.xyz), normalize(F.camUp.xyz)));
       let facing = clamp(0.5 + 0.9 * dot(in.uv, sd) * (0.4 + n), 0.0, 1.0);
@@ -103,17 +103,42 @@ fn vnoise(p: vec2f) -> f32 {
       let amb = textureSampleLevel(envCube, sampC, vec3f(0.0, 1.0, 0.0), ENV_MAXMIP - 2.0).rgb;
       let lit = sunE * 0.085 * (0.25 + 0.95 * facing) * mix(0.55, 1.0, n) + amb * (0.55 + 0.4 * facing);
       rgb = rgb * lit * mix(0.7, 1.15, smoothstep(0.1, 0.9, d));
+      // young dark smoke over a fire is lit from below by the flames: an orange base that fades in a second or two (the dark colours only)
+      let dark = clamp(1.0 - dot(in.col.rgb, vec3f(0.33)) * 3.0, 0.0, 1.0);
+      rgb += vec3f(1.0, 0.36, 0.08) * 0.55 * dark * (1.0 - smoothstep(0.0, 0.1, in.misc.w)) * (1.0 - 0.5 * d);
     }
     case 1u: {   // fire / glow (additive)
-      let n = vnoise(in.uv * 3.0 + vec2f(seed * 9.0, F.camPos.w * 2.0));
+      // (the pattern climbs: its coordinate falls with the time, so that the detail rises with the hot gas instead of sinking)
+      let n = vnoise(in.uv * 3.0 + vec2f(seed * 9.0, -F.camPos.w * 2.4));
       add = pow(smoothstep(1.0, 0.0, d), 1.7) * (0.65 + 0.7 * n) * in.col.a;
+    }
+    case 6u: {   // a tongue of flame: a teardrop that narrows to a flickering tip, eroded by noise that rises faster than the flame; hot at the foot
+      let age = clamp(in.misc.w, 0.0, 1.0);
+      let tt = F.camPos.w;
+      let y01 = in.uv.y * 0.5 + 0.5;
+      let p = vec2f(in.uv.x * 1.7 + seed * 13.0, y01 * 2.6 - tt * (2.4 + seed * 1.6) + seed * 7.0);
+      let warp = vnoise(p * 1.5 + vec2f(3.0, -tt * 0.9)) - 0.5;
+      let n = vnoise(p + vec2f(warp * 1.1, 0.0)) * 0.6 + vnoise(p * 2.4 + vec2f(5.0, -tt * 3.3)) * 0.4;
+      let halfW = pow(max(1.0 - y01, 0.0), 0.62) * 0.8 + 0.05;
+      let xr = abs(in.uv.x + warp * 0.55 * y01) / halfW;
+      let tip = smoothstep(1.0, 0.45, y01 + (0.75 - n) * 0.5 * y01);
+      let body = smoothstep(1.0, 0.15, xr) * tip * smoothstep(0.0, 0.12, y01);
+      // the colour runs from a yellow-white foot through orange to a dark red tip (the tint of the particle, which cools with its age, scales it)
+      var hc = mix(vec3f(1.0, 0.8, 0.4), vec3f(1.0, 0.42, 0.08), smoothstep(0.0, 0.5, y01));
+      hc = mix(hc, vec3f(0.5, 0.07, 0.02), smoothstep(0.45, 1.0, y01));
+      rgb = hc * in.col.rgb;
+      add = body * (0.35 + 0.8 * n) * in.col.a;
     }
     case 2u: {   // water spray: whiter, crisper
       let n = vnoise(in.uv * 3.5 + vec2f(seed * 13.0, seed * 2.0));
-      alpha = smoothstep(1.0, 0.45, d) * (0.5 + 0.6 * n) * in.col.a;
+      let n2 = vnoise(in.uv * 8.0 + vec2f(seed * 5.0, seed * 23.0));
+      alpha = smoothstep(1.0, 0.5, d) * clamp(0.2 + 0.9 * n + 0.5 * (n2 - 0.5), 0.0, 1.0) * in.col.a;
       let sunE = sunIlluminance() * sunVis[0];
       let amb = textureSampleLevel(envCube, sampC, vec3f(0.0, 1.0, 0.0), ENV_MAXMIP - 2.0).rgb;
-      rgb = rgb * (amb * 1.1 + sunE * 0.09);
+      // lit from the sun's side: the edge facing it is bright, the far side a little shaded
+      let sd2 = vec2f(dot(normalize(F.sunDir.xyz), normalize(F.camRight.xyz)), dot(normalize(F.sunDir.xyz), normalize(F.camUp.xyz)));
+      let face = clamp(0.55 + 0.7 * dot(in.uv, sd2), 0.0, 1.3);
+      rgb = rgb * (amb * 1.15 + sunE * 0.1 * face) * 1.25;
     }
     case 3u: {   // tracer streak (additive): hot head, fading tail
       let along = in.uv.x * 0.5 + 0.5;

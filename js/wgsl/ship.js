@@ -69,6 +69,14 @@ struct VOut {
     let dzdu = (cos(ph) * (-6.5) + 0.35 * cos(ph * 2.3 + 1.7) * (-6.5 * 2.3)) * amp + (sin(ph) + 0.35 * sin(ph * 2.3 + 1.7)) * 0.11 * min(len, 6.0);
     lnrm = normalize(vec3f(dzdu / len * 1.0, 0.0, 1.0));
   }
+  if (vmat == 14u || vmat == 15u) {
+    // wind on the foliage: a gust travelling across the island (the phase follows the position), the amplitude baked in the vertex (metres / 0.6)
+    let amp = select(v.col.b, v.nrm.w, vmat == 15u) * 0.6;
+    let ph = F.camPos.w * 1.45 + v.misc.y * 40.0 + dot(v.pos.xz, vec2f(0.7, 0.55)) * 0.045;
+    let gust = sin(ph) + 0.42 * sin(ph * 2.7 + 1.3);
+    lpos.x += 0.8 * gust * amp; lpos.z += 0.6 * gust * amp; lpos.y -= abs(gust) * amp * 0.12;
+    if (vmat == 15u) { lpos += v.nrm.xyz * sin(F.camPos.w * 6.5 + dot(v.pos, vec3f(5.1, 7.3, 3.9))) * 0.035 * min(1.0, amp * 6.0); }
+  }
   let rel = (M * vec4f(lpos, 1.0)).xyz;
   var o: VOut;
   o.pos = F.viewProj * vec4f(rel, 1.0);
@@ -202,20 +210,182 @@ fn ggx(nh: f32, a: f32) -> f32 {
   return a2 / (PI * d * d + 1e-6);
 }
 
+// ---- vegetation ----
+// colour of a foliage family at shade t (0 dark .. 1 light), sRGB 0..1
+fn leafPal(fam: u32, t: f32) -> vec3f {
+  var a = vec3f(32.0, 64.0, 22.0); var b = vec3f(84.0, 112.0, 38.0);
+  switch (fam) {
+    case 1u: { a = vec3f(20.0, 46.0, 34.0); b = vec3f(44.0, 80.0, 56.0); }
+    case 2u: { a = vec3f(36.0, 80.0, 24.0); b = vec3f(92.0, 124.0, 42.0); }
+    case 3u: { a = vec3f(22.0, 62.0, 22.0); b = vec3f(58.0, 108.0, 36.0); }
+    case 4u: { a = vec3f(100.0, 116.0, 56.0); b = vec3f(152.0, 152.0, 84.0); }
+    case 5u: { a = vec3f(36.0, 60.0, 40.0); b = vec3f(64.0, 92.0, 58.0); }
+    case 6u: { a = vec3f(38.0, 70.0, 30.0); b = vec3f(76.0, 108.0, 44.0); }
+    case 7u: { a = vec3f(84.0, 64.0, 34.0); b = vec3f(122.0, 94.0, 48.0); }
+    case 8u: { a = vec3f(110.0, 102.0, 58.0); b = vec3f(164.0, 146.0, 86.0); }
+    default: {}
+  }
+  return mix(a, b, clamp(t, 0.0, 1.0)) / 255.0;
+}
+fn shapeFam(shape: u32) -> u32 {
+  switch (shape) { case 1u: { return 1u; } case 2u: { return 2u; } case 3u: { return 6u; } case 4u: { return 4u; } case 5u: { return 3u; } case 6u: { return 8u; } default: { return 0u; } }
+}
+// the cut-out of a card of leaves (uv: u across, v from the base to the tip): x = opacity (0 / 1), y = shade 0..1 (veins, individual leaflets)
+fn leafMask(shape: u32, uv: vec2f) -> vec2f {
+  let w = (uv.x - 0.5) * 2.0;
+  var m = 0.0; var sh = 0.5;
+  switch (shape) {
+    case 0u: {   // a twig of broad leaflets in opposite pairs, a leaflet at the tip
+      let y = uv.y * 5.2;
+      let side = select(-1.0, 1.0, w > 0.0);
+      let ys = y + select(0.0, 0.5, w > 0.0);
+      let cell = floor(ys); let fy = fract(ys) - 0.5;
+      let e = length(vec2f((abs(w) - 0.5) / 0.48, fy / 0.62 * (1.0 + 0.5 * abs(fy))));
+      let tip = length(vec2f(w / 0.4, (uv.y - 0.9) / 0.1));
+      let rib = select(0.0, 1.0, abs(w) < 0.045 && uv.y < 0.95);
+      m = max(max(1.0 - smoothstep(0.82, 1.0, e), 1.0 - smoothstep(0.85, 1.0, tip)), rib);
+      sh = 0.35 + 0.55 * hash21(vec2f(cell, side * 3.0)) + 0.2 * (1.0 - abs(abs(w) - 0.5) * 2.0);
+    }
+    case 1u: {   // a spray of needles fanning out from the base
+      let p = vec2f(w, uv.y + 0.04);
+      let ang = atan2(p.x, p.y);
+      let r = length(p);
+      let line = abs(fract(ang * 13.0) - 0.5) * 2.0;
+      m = select(0.0, 1.0, line > 0.58 && r < 1.0 && abs(ang) < 1.05) ;
+      sh = 0.4 + 0.5 * hash21(vec2f(floor(ang * 13.0), 2.0));
+    }
+    case 2u: {   // a palm frond: the rachis and the pinnate leaflets hanging on both sides
+      let k = fract(uv.y * 15.0 - abs(w) * 4.5);
+      let leaflet = k < 0.72 && abs(w) > 0.05 && abs(w) < 1.0 - 0.3 * uv.y;
+      let rib = abs(w) < 0.06;
+      m = select(0.0, 1.0, leaflet || rib);
+      sh = select(0.3 + 0.6 * k, 0.9, rib);
+    }
+    case 4u: {   // fine bipinnate leaves (acacia): rows of tiny leaflets
+      let k = abs(fract(uv.y * 8.0 - abs(w) * 1.6) - 0.5);
+      let fine = abs(fract(w * 5.0 + uv.y * 8.0) - 0.5);
+      m = select(0.0, 1.0, (k < 0.26 && fine < 0.4 && abs(w) > 0.06) || abs(w) < 0.05);
+      sh = 0.3 + 0.7 * hash21(vec2f(floor(uv.y * 8.0), floor(w * 5.0)));
+    }
+    case 5u: {   // a fan of simple pointed leaves (tropical canopy) with their veins
+      let p = vec2f(w * 0.5, uv.y);
+      for (var k = 0; k < 5; k++) {
+        let a = (f32(k) - 2.0) * 0.5;
+        let ca = cos(a); let sa = sin(a);
+        let q = vec2f(p.x * ca - p.y * sa, p.x * sa + p.y * ca);
+        let hw = 0.2 * sin(3.14159 * clamp(q.y / 0.98, 0.0, 1.0));
+        if (q.y > 0.0 && abs(q.x) < hw) { m = 1.0; sh = 0.6 + 0.25 * select(0.0, 1.0, abs(q.x) < 0.012) - 0.15 * smoothstep(0.7, 1.0, abs(fract(q.y * 8.0 - abs(q.x) * 14.0) - 0.5) * 2.0) + 0.1 * f32(k % 2); }
+      }
+    }
+    default: {   // 3 / 6: a tuft of small leaves (rounded, ragged)
+      let c = (uv - 0.5) * 2.0;
+      let n = gnoise(uv * 11.0 + 3.0);
+      let leaf = abs(fract(uv * 7.0 + n) - 0.5);
+      let r = length(c);
+      m = select(0.0, 1.0, r + n * 0.45 < 0.92 && (leaf.x < 0.32 || leaf.y < 0.26));
+      if (shape == 6u) { m = select(0.0, m, n > -0.18); }
+      sh = 0.3 + 0.6 * clamp(0.5 + 1.4 * n, 0.0, 1.0);
+    }
+  }
+  return vec2f(m, sh);
+}
+
+// ---- the instruments of a cockpit ----
+const TAU2: f32 = 6.2831853;
+// a needle from the centre of a dial at the angle a (clockwise from the top), length len, half width w
+fn needle(p: vec2f, a: f32, len: f32, w: f32) -> f32 {
+  let d = vec2f(sin(a), cos(a));
+  let t = dot(p, d);
+  let dist = abs(p.x * d.y - p.y * d.x);
+  return select(0.0, 1.0 - smoothstep(w * 0.55, w, dist), t > -0.16 * len && t < len);
+}
+// ticks round a dial: count of them over the sweep from a0 to a1 (clockwise from the top), between the radii r0 and r1
+fn ticks(p: vec2f, a0: f32, a1: f32, count: f32, r0: f32, r1: f32, w: f32) -> f32 {
+  let r = length(p);
+  var ang = atan2(p.x, p.y);
+  if (ang < a0 - 0.01 && a0 < 0.0) { ang += TAU2; }
+  let u = (ang - a0) / (a1 - a0) * count;
+  let d = abs(u - round(u)) * (a1 - a0) / count * r;
+  let inside = select(0.0, 1.0, ang >= a0 - 0.01 && ang <= a1 + 0.01 && r > r0 && r < r1);
+  return inside * (1.0 - smoothstep(w * 0.6, w, d));
+}
+fn rot2(p: vec2f, a: f32) -> vec2f { let c = cos(a); let s = sin(a); return vec2f(p.x * c - p.y * s, p.x * s + p.y * c); }
+// a dial: rgb and 1 inside the face, 0 outside. kind: 0 airspeed, 1 artificial horizon, 2 altimeter, 3 compass, 4 climb, 5 revolutions, 6 clock, 7 engine gauge
+fn gauge(kind: u32, uv: vec2f, ias: f32, alt: f32, hdg: f32, vsi: f32, bank: f32, pitch: f32, rpm: f32) -> vec4f {
+  let p = (uv - 0.5) * 2.0;
+  let r = length(p);
+  if (r > 1.0) { return vec4f(0.0); }
+  let ink = vec3f(0.78, 0.76, 0.68);
+  if (r > 0.9) { return vec4f(vec3f(0.07, 0.07, 0.075) * (0.8 + 0.5 * smoothstep(0.9, 1.0, r)), 1.0); }     // the bezel
+  var col = vec3f(0.012, 0.013, 0.012);
+  var m = 0.0;
+  var red = 0.0;
+  if (kind == 0u) {
+    let a = -2.3 + 4.6 * clamp(ias / 140.0, 0.0, 1.0);
+    m = max(ticks(p, -2.3, 2.3, 14.0, 0.72, 0.86, 0.025) , 0.8 * ticks(p, -2.3, 2.3, 28.0, 0.78, 0.86, 0.014));
+    red = ticks(p, 2.3 * 0.86, 2.3, 1.0, 0.62, 0.9, 0.03);
+    m = max(m, needle(p, a, 0.78, 0.05));
+  } else if (kind == 1u) {
+    let q = rot2(p, -bank);
+    let off = -pitch * 1.4;
+    let sky = q.y > off;
+    col = select(vec3f(0.17, 0.11, 0.05), vec3f(0.12, 0.26, 0.44), sky);
+    let line = 1.0 - smoothstep(0.012, 0.03, abs(q.y - off));
+    let ladder = (1.0 - smoothstep(0.01, 0.02, abs(fract((q.y - off) / 0.24 + 0.5) - 0.5) * 0.24)) * select(0.0, 1.0, abs(q.x) < 0.2) * step(0.12, abs(q.y - off));
+    m = max(line, ladder * 0.8);
+    // the fixed aircraft and the bank marks
+    let wing = (1.0 - smoothstep(0.02, 0.04, abs(p.y))) * select(0.0, 1.0, abs(p.x) > 0.12 && abs(p.x) < 0.55) + (1.0 - smoothstep(0.03, 0.06, length(p)));
+    col = mix(col, vec3f(1.0, 0.55, 0.1), clamp(wing, 0.0, 1.0));
+    m = max(m, ticks(p, -1.05, 1.05, 4.0, 0.76, 0.9, 0.03));
+  } else if (kind == 2u) {
+    m = ticks(p, -3.14159, 3.14159, 10.0, 0.74, 0.88, 0.03);
+    m = max(m, 0.7 * ticks(p, -3.14159, 3.14159, 50.0, 0.8, 0.88, 0.014));
+    m = max(m, needle(p, fract(alt / 1000.0) * TAU2, 0.8, 0.045));
+    m = max(m, needle(p, fract(alt / 10000.0) * TAU2, 0.5, 0.07));
+  } else if (kind == 3u) {
+    // the card turns with the heading; the lubber line is fixed
+    let q = rot2(p, -hdg);
+    m = max(ticks(q, -3.14159, 3.14159, 36.0, 0.72, 0.88, 0.02), ticks(q, -3.14159, 3.14159, 12.0, 0.66, 0.88, 0.03));
+    let north = (1.0 - smoothstep(0.03, 0.07, abs(q.x))) * select(0.0, 1.0, q.y > 0.3 && q.y < 0.62);
+    red = north;
+    col = mix(col, vec3f(1.0, 0.8, 0.1), (1.0 - smoothstep(0.015, 0.03, abs(p.x))) * select(0.0, 1.0, p.y > 0.55 && p.y < 0.9));
+  } else if (kind == 4u) {
+    m = ticks(p, -2.3, 2.3, 10.0, 0.72, 0.86, 0.03);
+    m = max(m, needle(p, -1.5708 + clamp(vsi / 10.0, -1.0, 1.0) * 2.2, 0.78, 0.05));
+  } else if (kind == 5u) {
+    m = ticks(p, -2.4, 2.4, 12.0, 0.72, 0.86, 0.03);
+    red = ticks(p, 2.4 * 0.82, 2.4, 1.0, 0.62, 0.9, 0.03);
+    m = max(m, needle(p, -2.4 + 4.8 * clamp(rpm, 0.0, 1.0), 0.78, 0.05));
+  } else if (kind == 6u) {
+    m = ticks(p, -3.14159, 3.14159, 12.0, 0.74, 0.88, 0.03);
+    m = max(m, needle(p, 0.9 + F.camPos.w * 0.0001, 0.5, 0.055));
+    m = max(m, needle(p, 4.1, 0.78, 0.035));
+  } else {
+    m = ticks(p, -1.6, 1.6, 6.0, 0.7, 0.86, 0.04);
+    m = max(m, needle(p, -0.4 + 0.5 * sin(F.camPos.w * 0.3 + hdg), 0.7, 0.07));
+  }
+  col = mix(col, ink, clamp(m, 0.0, 1.0));
+  col = mix(col, vec3f(0.9, 0.12, 0.08), clamp(red, 0.0, 1.0));
+  return vec4f(col, 1.0);
+}
+
 @fragment fn fs(in: VOut, @builtin(front_facing) ff: bool) -> @location(0) vec4f {
   if (in.misc.w != 0.0 && (in.local.x - in.misc.z) * in.misc.w < 0.0) { discard; }
   var N = normalize(in.nrm);
-  if (!ff) { N = -N; }
+  let matId = u32(in.col.a * 255.0 + 0.5);
+  if (!ff && (matId <= 14u || matId == 17u)) { N = -N; }
   let Ng = N;                                              // geometric normal (shadow offset), before any bump
   let dist = length(in.rel);
   let V = -in.rel / dist;
   let Ld = F.sunDir.xyz;
   let mat = u32(in.col.a * 255.0 + 0.5);
-  if (mat == 2u && in.misc.x < 0.0) { discard; }                 // open canopy in the cockpit view
+  if ((mat == 2u || mat == 17u) && in.misc.x < 0.0) { discard; }                 // open canopy in the cockpit view
   var albedo = srgb2lin(in.col.rgb);
   var rough = 0.74;
   var metal = 0.0;
   var emissive = vec3f(0.0);
+  var trans = 0.0;
+  var interior = 0.0;                                        // lit by the sky more than by the sun (a cockpit)                                           // light let through foliage
   var f0 = vec3f(0.035);
   let lp = in.local;
   let fw = max(fwidth(lp.x) + fwidth(lp.y) + fwidth(lp.z), 1e-4);   // local-space pixel footprint
@@ -243,6 +413,13 @@ fn ggx(nh: f32, a: f32) -> f32 {
       weather *= 1.0 - 0.18 * seam;
       // overlapping strakes: each plate stands a little proud of the one below it
       hgt = (0.05 * smoothstep(0.0, 0.1, fract(y / 1.9)) + 0.02 * smoothstep(0.0, 0.05, fract((lp.x + 1.3) / 7.5))) * fadeS * nearFade;
+      // oil-canning: thin plating sags a little between the frames (every 1.1 m along the hull), more on some plates than on others
+      if (abs(in.lnrm.z) > 0.5) {
+        let fp = lp.x / 1.1 + 0.37;
+        let dish = 0.5 - 0.5 * cos(6.2831853 * fract(fp));
+        let amp = 0.35 + 0.65 * hash21(vec2f(floor(fp * 0.5), floor(y / 1.9) + in.misc.y * 17.0));
+        hgt -= 0.012 * dish * amp * nearFade * (1.0 - smoothstep(0.03, 0.2, fw));
+      }
       // scuttles (portholes): a row of dark discs along the topsides, only resolved when close
       if (abs(in.lnrm.z) > 0.65 && y > 1.6 && y < 6.5) {
         let px = (fract((lp.x + in.misc.y * 3.0) / 3.1) - 0.5) * 3.1;
@@ -256,12 +433,27 @@ fn ggx(nh: f32, a: f32) -> f32 {
       }
       let rustStreak = smoothstep(0.35, 0.8, streakN) * smoothstep(-0.2, 2.5, y) * 0.35;
       albedo = mix(albedo, albedo * vec3f(1.1, 0.7, 0.5) * 0.9, rustStreak * 0.5);
+      // a rust tear runs down from each scuttle and from the lower edge of the deck, broken up by noise (little: a ship in service is painted often)
+      if (abs(in.lnrm.z) > 0.65 && y > 1.0 && y < 6.5) {
+        let px2 = (fract((lp.x + in.misc.y * 3.0) / 3.1) - 0.5) * 3.1;
+        let tearLen = 0.7 + 1.6 * hash21(vec2f(floor((lp.x + in.misc.y * 3.0) / 3.1), 5.0));
+        let below = clamp((3.2 - y) / tearLen, 0.0, 1.0);
+        let tear = (1.0 - smoothstep(0.03, 0.10 + 0.05 * below, abs(px2 + 0.04 * sin(y * 7.0)))) * (1.0 - below) * step(y, 3.2) * step(0.35, hash21(vec2f(floor((lp.x + in.misc.y * 3.0) / 3.1), 9.0)));
+        albedo = mix(albedo, albedo * vec3f(1.05, 0.62, 0.42) * 0.8, tear * 0.55 * (1.0 - smoothstep(0.05, 0.25, fw)));
+      }
+      // sea salt dries into a pale crust in the splash zone, thickest low on the hull and streaked downwards
+      let saltBand = (1.0 - smoothstep(1.2, 4.2, y)) * smoothstep(0.5, 0.9, y);
+      let saltN = smoothstep(-0.1, 0.55, streakN + 0.5 * fineN);
+      albedo = mix(albedo, mix(albedo, vec3f(0.62, 0.62, 0.58), 0.55), saltBand * saltN * 0.38);
       // anti-fouling red below the waterline, dark boot topping just above it
       let boot = 1.0 - smoothstep(0.45, 0.55, y);
       let red = 1.0 - smoothstep(-0.7, -0.55, y);
       let bootCol = albedo * 0.22;
       albedo = mix(albedo, bootCol, boot);
       albedo = mix(albedo, vec3f(0.19, 0.05, 0.04), red);
+      // a thin band of green-brown growth at the waterline, between the boot topping and the anti-fouling
+      let growth = smoothstep(-0.12, 0.05, y) * (1.0 - smoothstep(0.12, 0.38, y));
+      albedo = mix(albedo, vec3f(0.07, 0.10, 0.04) * (0.7 + 0.6 * fineN), growth * 0.5);
       rough = 0.72;
     }
     case 0u: {   // painted steel (superstructure, funnels, turret houses)
@@ -335,10 +527,114 @@ fn ggx(nh: f32, a: f32) -> f32 {
       albedo = vec3f(0.78, 0.78, 0.74);
       rough = 0.8;
     }
+    case 12u: {  // the ground of an island: the soil colour is in the vertex, the grain is added here
+      let tf = 1.0 - smoothstep(40.0, 420.0, dist);
+      let g1 = clamp(0.5 + 0.9 * gnoise(lp.xz * 0.21), 0.0, 1.0);
+      let g2 = clamp(0.5 + 0.9 * gnoise(lp.xz * 0.55 + 7.0), 0.0, 1.0);
+      let g3 = clamp(0.5 + 0.9 * gnoise(lp.xz * 2.1 + 3.0), 0.0, 1.0);
+      let steep = smoothstep(0.35, 0.75, 1.0 - up);
+      // strata and crumbled rock on the steep ground, tufts and patches on the gentle one
+      let strata = sin(lp.y * 0.9 + g1 * 5.0 + lp.x * 0.05) * 0.5 + 0.5;
+      albedo *= (0.78 + 0.4 * g1) * (0.9 + 0.2 * g2 * tf + 0.08 * g3 * tf);
+      albedo *= mix(1.0, 0.72 + 0.4 * strata, steep * 0.7);
+      // the sand next to the water is wet and darker
+      albedo *= mix(0.62, 1.0, smoothstep(0.0, 1.4, lp.y));
+      hgt = (0.16 * (g2 - 0.5) + 0.05 * (g3 - 0.5)) * tf;
+      rough = mix(0.93, 0.7, (1.0 - smoothstep(0.0, 0.8, lp.y)) * 0.7);
+      weather = 1.0;
+    }
+    case 13u: {  // bark: furrows running along the trunk
+      let fur = gnoise(vec2f((lp.x + lp.z * 0.7) * 7.0, lp.y * 0.55));
+      let fur2 = gnoise(vec2f((lp.x - lp.z * 0.8) * 15.0 + 3.0, lp.y * 1.8));
+      let nf = 1.0 - smoothstep(20.0, 160.0, dist);
+      albedo *= 0.74 + 0.55 * clamp(0.5 + fur + 0.4 * fur2, 0.0, 1.0);
+      hgt = (0.5 * fur + 0.25 * fur2) * 0.07 * nf;
+      rough = 0.93; weather = 1.0;
+    }
+    case 14u: {  // the crown of a tree: lumps of foliage worn into leaves at the edge, lit from behind
+      let rc = u32(in.col.r * 255.0 + 0.5);
+      let fam = rc >> 4u;
+      let shade = f32(rc & 15u) / 15.0;
+      let nw = abs(in.lnrm) + vec3f(0.05);
+      let f1 = 2.7;
+      let nA = gnoise(lp.yz * f1 + 1.0); let nB = gnoise(lp.xz * f1 + 5.0); let nC = gnoise(lp.xy * f1 + 9.0);
+      let leafN = (nA * nw.x + nB * nw.y + nC * nw.z) / (nw.x + nw.y + nw.z);
+      let nA2 = gnoise(lp.yz * 8.5 + 2.0); let nB2 = gnoise(lp.xz * 8.5 + 7.0); let nC2 = gnoise(lp.xy * 8.5 + 4.0);
+      let fineN = (nA2 * nw.x + nB2 * nw.y + nC2 * nw.z) / (nw.x + nw.y + nw.z);
+      let big = gnoise(lp.xz * 0.45 + lp.y * 0.2);
+      let res = 1.0 - smoothstep(0.05, 0.4, fw);                    // leaf scale is only resolved close up
+      let facing = abs(dot(normalize(in.nrm), V));
+      let rim = 1.0 - facing;
+      // the edge of the crown is ragged: leaves missing where the surface turns away
+      let hole = 0.5 + 0.8 * leafN + 0.35 * fineN;
+      if (hole < (rim * 1.5 + 0.06) * (0.25 + 0.75 * res)) { discard; }
+      let t = clamp(shade * 0.7 + 0.15 + 0.6 * leafN + 0.2 * big + 0.15 * fineN * res, 0.0, 1.0) * (0.78 + 0.5 * in.col.g);
+      albedo = srgb2lin(leafPal(fam, t) * mix(vec3f(1.0), vec3f(1.15, 1.1, 0.8), clamp(0.5 + 0.9 * big, 0.0, 1.0) * 0.5)) * (0.78 + 0.5 * in.col.g);
+      albedo *= in.tint.rgb * 2.0;
+      hgt = (0.5 * leafN + 0.25 * fineN) * 0.16 * (1.0 - smoothstep(25.0, 200.0, dist));
+      rough = 0.7; f0 = vec3f(0.02); trans = 0.55; weather = 1.0;
+    }
+    case 15u: {  // a card of leaves with a cut-out
+      let shape = u32(in.col.b * 255.0 + 0.5) >> 4u;
+      let m = leafMask(shape, in.col.rg);
+      if (m.x < 0.5) { discard; }
+      let big = gnoise(lp.xz * 0.6 + lp.y * 0.3);
+      let t = clamp(m.y * 0.8 + 0.25 * big + 0.1, 0.0, 1.0);
+      albedo = srgb2lin(leafPal(shapeFam(shape), t)) * (0.85 + 0.3 * hash21(vec2f(floor(lp.x * 2.0) + floor(lp.y * 2.0), floor(lp.z * 2.0))));
+      albedo *= in.tint.rgb * 2.0;
+      rough = 0.55; f0 = vec3f(0.03); trans = 0.7; weather = 1.0;
+    }
+    case 16u: {  // boulders: speckled stone, moss on the top
+      let g1 = gnoise(lp.xz * 4.2 + lp.y * 2.5); let g2 = gnoise(lp.xy * 11.0 + 3.0);
+      let g3 = gnoise(lp.xz * 0.8 + 11.0);
+      albedo *= (0.72 + 0.5 * clamp(0.5 + g1 + 0.5 * g2, 0.0, 1.0)) * in.tint.rgb * 2.0;
+      let moss = smoothstep(0.35, 0.8, in.lnrm.y) * smoothstep(-0.25, 0.35, g3);
+      albedo = mix(albedo, vec3f(0.05, 0.1, 0.03) * (0.7 + 0.6 * clamp(0.5 + g2, 0.0, 1.0)), moss * 0.6);
+      hgt = (0.5 * g1 + 0.3 * g2) * 0.1 * (1.0 - smoothstep(20.0, 150.0, dist));
+      rough = mix(0.9, 0.97, moss); weather = 1.0;
+    }
+    case 17u: { rough = 0.4; f0 = vec3f(0.05); }
+    case 18u: {  // a dial: drawn from the flight state (paint: speed, height, heading, climb; tint: bank, pitch, revolutions)
+      let kind = u32(in.col.b * 255.0 + 0.5) >> 4u;
+      let gq = gauge(kind, in.col.rg, in.paint.x, in.paint.y, in.paint.z, in.paint.w, in.tint.r, in.tint.g, in.tint.b);
+      if (gq.a < 0.5) { discard; }
+      albedo = gq.rgb * gq.rgb; emissive = gq.rgb * gq.rgb * 0.45;
+      rough = 0.22; f0 = vec3f(0.05); interior = 1.0; weather = 1.0;
+    }
+    case 19u: {  // a reflector sight: the ring, the dot and the marks, lit
+      let q = (in.col.rg - 0.5) * 2.0;
+      let rr = length(q);
+      let ang = atan2(q.x, q.y);
+      var ring = 1.0 - smoothstep(0.035, 0.06, abs(rr - 0.62));
+      ring = max(ring, 1.0 - smoothstep(0.05, 0.09, rr));
+      let tk = abs(fract(ang * 8.0 / TAU2 + 0.5) - 0.5) * TAU2 / 8.0 * rr;
+      if (abs(rr - 0.62) < 0.13 && tk < 0.02) { ring = 1.0; }
+      ring = max(ring, (1.0 - smoothstep(0.012, 0.025, abs(q.x))) * select(0.0, 1.0, abs(q.y) > 0.14 && abs(q.y) < 0.4));
+      ring = max(ring, (1.0 - smoothstep(0.012, 0.025, abs(q.y))) * select(0.0, 1.0, abs(q.x) > 0.14 && abs(q.x) < 0.4));
+      if (ring < 0.35) { discard; }
+      albedo = vec3f(0.0); emissive = vec3f(1.0, 0.42, 0.1) * 3.5 * ring; interior = 1.0; weather = 1.0;
+    }
+    case 20u: {  // the blur of a propeller: a dark disc seen through a screen of dither, streaked by the blades
+      let q = (in.col.rg - 0.5) * 2.0;
+      let rr = length(q);
+      if (rr > 1.0) { discard; }
+      let blades = f32(u32(in.col.b * 255.0 + 0.5) >> 4u);
+      let streak = 0.5 + 0.5 * sin(atan2(q.y, q.x) * blades);
+      let alpha = (0.025 + 0.09 * streak) * smoothstep(0.08, 0.3, rr) * (1.0 - 0.6 * smoothstep(0.85, 1.0, rr)) + 0.1 * (1.0 - smoothstep(0.04, 0.16, rr));
+      let h = f32(pcgHash(u32(in.pos.x) * 1973u + u32(in.pos.y) * 9277u + u32(F.camPos.w * 90.0) * 26699u) >> 8u) * (1.0 / 16777216.0);
+      if (h > alpha) { discard; }
+      albedo = vec3f(0.03); rough = 0.85; interior = 1.0; weather = 1.0;
+    }
+    case 21u: { rough = 0.82; interior = 1.0; weather = 1.0; }
     default: { rough = 0.74; }
   }
   N = bumpNormal(N, in.rel, hgt);
   albedo *= weather;
+  // grime collects where the baked occlusion is strong (under overhangs, in corners) and the paint fades on the faces that look up
+  if (mat <= 5u) {
+    albedo *= mix(0.8, 1.0, smoothstep(0.25, 0.85, in.ao));
+    albedo = mix(albedo, albedo * 1.1 + vec3f(0.006), up * select(0.0, 0.35, mat == 0u));
+  }
 
   // wet hull near the waterline: darker and glossier, the spray zone
   let wet = (1.0 - smoothstep(0.0, 2.6, lp.y)) * select(0.0, 1.0, mat == 5u);
@@ -367,7 +663,7 @@ fn ggx(nh: f32, a: f32) -> f32 {
   // ---- lighting ----
   // shadow: surfaces facing away from the sun are already dark; the map handles occlusion by other geometry
   let shadow = shadowAt(in.rel + Ng * 0.35);
-  let sunE = sunIlluminance() * sunVis[0] * shadow;
+  let sunE = sunIlluminance() * sunVis[0] * shadow * mix(1.0, 0.3, interior);
   let NdL = dot(N, Ld);
   // soft terminator: ships have lots of small features, a bit of wrap avoids hard black faces
   let wrap = clamp((NdL + 0.15) / 1.15, 0.0, 1.0);
@@ -379,10 +675,15 @@ fn ggx(nh: f32, a: f32) -> f32 {
   let heightAO = mix(0.72, 1.0, smoothstep(-1.5, 7.0, lp.y));
   let ao = in.ao * heightAO;
   var col = albedo * (diffSun + amb * ao * 1.15);
+  // leaves let the sun through: the side facing away from it glows yellow-green
+  col += albedo * vec3f(1.0, 0.93, 0.5) * sunE * max(-NdL, 0.0) * trans * 0.5 / PI * step(-0.02, Ld.y);
 
   // specular: sun GGX + environment reflection
   let H = normalize(V + Ld);
-  let a = max(rough * rough, 0.02);
+  // specular anti-aliasing: where the normal changes quickly inside a pixel (bumpy plating far away, silhouettes) the highlight is widened instead of sparkling
+  let dNx = dpdx(N); let dNy = dpdy(N);
+  let nVar = min(2.0 * 0.15915494 * 0.25 * (dot(dNx, dNx) + dot(dNy, dNy)), 0.18);
+  let a = sqrt(clamp(max(rough * rough, 0.02) * max(rough * rough, 0.02) + nVar, 0.0004, 1.0));
   let nh = max(dot(N, H), 0.0);
   let nv = max(dot(N, V), 1e-3);
   let nl = max(NdL, 0.0);

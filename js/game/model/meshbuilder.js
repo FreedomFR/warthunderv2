@@ -20,6 +20,16 @@ export const MAT = {
   AIRCRAFT: 9,  // aircraft skins (slightly glossy)
   ENSIGN: 10,   // national ensign: rgb = (u, v, length) of the cloth, drawn and waved by the shader
   GLYPH: 11,    // hull number glyph: rgb = (glyph index, u, v) inside the glyph box
+  TERRAIN: 12,  // the ground of an island: rgb is the colour of the soil, the shader adds the grain
+  BARK: 13,     // trunks and branches: rgb is the bark, the shader adds the furrows
+  LEAF: 14,     // the crown of a tree (lumps of foliage): r = family * 16 + shade, g = tone, b = how much the wind moves it; the shader erodes the edge into leaves
+  CARD: 15,     // a card of leaves with a cut-out: r, g = position on the card, b = leaf shape; the vertex ambient occlusion is the wind amplitude
+  ROCK: 16,     // boulders: rgb is the stone, the shader adds the speckle and the moss
+  CANOPY: 17,   // what is seen from outside only (canopy frames, the pilot): not drawn from the cockpit
+  GAUGE: 18,    // a dial of the instrument panel: r, g = position on the dial, b = the kind of dial; the shader draws it from the flight state
+  SIGHT: 19,    // the glass of a reflector sight: the ring and the dot are drawn by the shader
+  DISC: 20,     // the blur of a propeller seen from the cockpit: a dithered dark disc
+  INTERIOR: 21, // the inside of a cockpit: lit mostly by the sky
 };
 
 import { bakeAO } from './ao.js';
@@ -399,8 +409,9 @@ export class MeshBuilder {
     if (!g) { g = { p: [], n: [], c: [], idx: [] }; this.groups.set(name, g); }
     const base = g.p.length / 3;
     this.p = g.p; this.n = g.n; this.c = g.c; this.idx = g.idx;
-    const i0 = this.idx.length;
+    const i0 = this.idx.length, s0 = this.solids ? this.solids.length : 0;
     fn(this);
+    if (this.solids) for (let i = s0; i < this.solids.length; i++) this.solids[i].part = name;       // the structures of a destroyable piece know which one they belong to
     // an appended call restarts its vertex numbering at 0: shift the new indices
     if (base > 0) for (let i = i0; i < this.idx.length; i++) this.idx[i] += base;
     this.p = saved.p; this.n = saved.n; this.c = saved.c; this.idx = saved.idx;

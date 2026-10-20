@@ -9,7 +9,7 @@ const ok = (c, m) => { console.log(c ? 'PASS' : 'FAIL', m); if (!c) { fail++; pr
 const parse = (s) => s.split(',').map((t) => { const [id, c] = t.split(':'); return { id, count: Number(c || 1) }; });
 
 let landedAll = 0;
-for (const seed of [21, 33]) {
+for (const seed of (process.env.SEEDS ? process.env.SEEDS.split(",").map(Number) : [21, 33, 47])) {
   const w = new World(seed); w.addTeam(0); w.addTeam(1);
   [parse('essex:1,cleveland:2'), parse('shokaku:1,agano:2')].forEach((f, i) => { const s = teamStart(i, 2, 30000); spawnFleet(w, i, f, s.x, s.z, s.heading); });
   for (const s of w.ships) s.cmd.throttle = 0.5;
@@ -20,6 +20,8 @@ for (const seed of [21, 33]) {
   const fReady0 = w.ships.filter((s) => s.air).map((s) => s.air.fReady);
   for (let i = 0; i < 16000; i++) {
     w.update(0.1);
+    // the air war goes on after the last ship of a side is lost (the world stops updating aircraft once the battle is over): the test is about the aircraft
+    if (w.state === 'finished') { w.state = 'running'; w.finishT = 0; }
     for (const e of w.drainEvents()) {
       ev[e.type] = (ev[e.type] || 0) + 1;
       if (e.type === 'planeDown') kills[(e.plane.fighter ? 'F' : 'B') + ':' + e.cause] = (kills[(e.plane.fighter ? 'F' : 'B') + ':' + e.cause] || 0) + 1;
@@ -43,5 +45,5 @@ for (const seed of [21, 33]) {
   ok(stuck.length === 0, `seed ${seed}: no fighter stuck in the deck queue`);
   for (const s of w.ships) if (s.air) ok(s.air.fReady >= 0 && s.air.ready >= 0, `seed ${seed}: ${s.stats.id} air group ${s.air.ready} bombers, ${s.air.fReady} fighters`);
 }
-ok(landedAll >= 2, `${landedAll} fighters landed again (the battle may end before the others get home)`);
+ok(landedAll >= 2, `${landedAll} fighters landed again (the battle may end before the others get home: only a few of them do, and which ones varies a lot)`);
 console.log(fail ? `${fail} fighter checks FAILED` : 'all fighter checks OK');

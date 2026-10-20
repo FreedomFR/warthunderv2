@@ -60,14 +60,17 @@ export function createUI(game) {
   const sepVal = h('output', {}, '12 km');
   const sepInput = h('input', { type: 'range', min: 4, max: 25, step: 0.5, value: 12, oninput: (e) => { game.config.sep = Number(e.target.value) * 1000; sepVal.textContent = e.target.value + ' km'; changed(); } });
   const seedInput = h('input', { type: 'number', value: game.config.seed, style: 'width:84px', onchange: (e) => { game.config.seed = Number(e.target.value) | 0; changed(); } });
+  const islandSel = h('select', { onchange: (e) => { game.config.islands = Number(e.target.value); changed(); } }, [['0', 'Aucune'], ['1', 'Quelques-unes'], ['2', 'Archipel']].map(([v, t]) => h('option', { value: v, selected: Number(v) === game.config.islands }, t)));
   const presetSel = h('select', { onchange: () => {} }, h('option', { value: '' }, '— Choisir un scénario —'), PRESETS.map((p) => h('option', { value: p.id }, p.name)));
   const setup = h('div', { id: 'setup', class: 'panel' },
     h('div', { class: 'title' }, h('span', { class: 'big' }, 'Combat naval'), h('span', { class: 'sub' }, 'Simulation de la Seconde Guerre mondiale')),
+    h('div', { class: 'row' }, h('a', { class: 'btn small', href: 'wiki.html', target: '_blank', title: 'Fiches techniques et arbres par nation' }, 'Wiki des navires'), h('a', { class: 'btn small', href: 'viewer.html', target: '_blank', title: 'Voir chaque navire et avion en 3D' }, 'Visualiseur 3D')),
     h('div', { class: 'row' }, presetSel, h('button', { class: 'btn', onclick: () => loadPreset(presetSel.value) }, 'Charger')),
     teamsBox,
     h('div', { class: 'row' }, h('button', { class: 'btn small', onclick: () => addTeam() }, '+ Équipe'), h('button', { class: 'btn small', onclick: () => randomize() }, 'Flottes aléatoires'), h('button', { class: 'btn small', onclick: () => { game.config.seed = (Math.random() * 1e6) | 0; seedInput.value = game.config.seed; changed(); } }, 'Nouvelle graine')),
     h('label', { class: 'slider' }, h('span', {}, 'Distance entre les flottes'), sepInput, sepVal),
     h('label', { class: 'slider' }, h('span', {}, 'Graine du combat'), seedInput, h('span')),
+    h('label', { class: 'slider' }, h('span', {}, 'Îles'), islandSel, h('span')),
     infoCard,
     h('div', { class: 'row' }, btnSpawn, btnStart),
     h('div', { class: 'hint' }, 'Faites apparaître les flottes pour les voir sur l\'eau, changez de caméra (1-7), puis lancez le combat : l\'IA pilote tous les navires.'),
@@ -232,6 +235,12 @@ export function createUI(game) {
       ...[['auto', 'Automatique'], ['high', 'Haute'], ['medium', 'Moyenne'], ['low', 'Basse']].map(([v, l]) => h('option', { value: v, selected: game.qualityMode === v }, l)));
     settings.append(h('label', { class: 'slider' }, h('span', {}, 'Qualité graphique'), qsel, h('span')));
     settings.append(h('label', { class: 'slider' }, h('span', {}, 'Ombres des navires'), h('input', { type: 'checkbox', checked: game.shadowsOn, onchange: (e) => { game.userShadows = e.target.checked; game.applyQuality(); } }), h('span')));
+    settings.append(h('label', { class: 'slider', title: 'Spatialisation binaurale des sons forts (canons, explosions) : à activer avec un casque.' },
+      h('span', {}, 'Son binaural (casque)'), h('input', { type: 'checkbox', checked: game.audio.hrtf, onchange: (e) => game.audio.setHrtf(e.target.checked) }), h('span')));
+    const pval = h('output', {}, game.particleMax / 1000 + ' k');
+    settings.append(h('label', { class: 'slider', title: 'Plus de particules : flammes, fumées et gerbes ne disparaissent plus dans les grosses batailles, mais le processeur et la carte graphique travaillent plus.' },
+      h('span', {}, 'Particules max'),
+      h('input', { type: 'range', min: 10000, max: 200000, step: 5000, value: game.particleMax, onchange: (e) => game.setParticleMax(Number(e.target.value)), oninput: (e) => { pval.textContent = e.target.value / 1000 + ' k'; } }), pval));
     settings.append(h('label', { class: 'slider' }, h('span', {}, 'Résolution de rendu'), h('input', { type: 'range', min: 0.4, max: 1.5, step: 0.05, value: engine.getRenderScale(), oninput: (e) => { engine.setRenderScale(Number(e.target.value)); scaleVal.textContent = Math.round(e.target.value * 100) + '%'; } }), scaleVal));
     for (const [key, label, min, max, step, kind] of SLIDERS) {
       const val = h('output', {}, String(engine.P[key]));
@@ -330,12 +339,13 @@ export function createUI(game) {
   // ---- hits: a floating tag where the shell struck and a log of the last ones --------------------------------------------------------------
   const RESULT = {
     pen: ['PERCE', '#ff7a45'], over: ['TRAVERSE SANS ÉCLATER', '#ffd24a'], glance: ['RICOCHET', '#9fd0ff'], bounce: ['NE PERCE PAS', '#9fd0ff'],
-    burst: ['ÉCLATE', '#ffb347'], shatter: ['SE BRISE SUR LE BLINDAGE', '#b8c4cf'],
+    dud: ['FUSÉE DÉFAILLANTE', '#c9b8ff'], burst: ['ÉCLATE', '#ffb347'], shatter: ['SE BRISE SUR LE BLINDAGE', '#b8c4cf'],
   };
   const why = (e) => {
     const a = Math.round(e.angle);
     if (e.result === 'glance') return `incidence ${a}° : l'obus ricoche`;
     if (e.result === 'bounce') return `plaque ${Math.round(e.armor)} mm à ${a}° = ${Math.round(e.eff)} mm effectifs > pénétration ${Math.round(e.pen)} mm`;
+    if (e.result === 'dud') return `la fusée ne fonctionne pas : l'obus traverse sans éclater`;
     if (e.result === 'over') return `plaque trop mince (${Math.round(e.eff)} mm) : la fusée n'arme pas`;
     if (e.result === 'shatter') return `plaque ${Math.round(e.armor)} mm à ${a}° : l'obus explosif éclate en surface`;
     if (e.shell === 'HE') return `${a}° · ${e.result === 'pen' ? 'éclate derrière la tôle' : 'éclate au contact'}`;

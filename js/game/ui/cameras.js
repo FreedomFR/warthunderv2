@@ -1,6 +1,8 @@
 // Camera rig: free-fly, chase, orbit, tactical (top-down), bridge, shell-cam and an automatic
 // "director" that cuts between the action. It only writes engine.cam each frame.
 import { clamp, wrapPi, lerp, D2R, TAU } from '../math.js';
+import { cockpitEye } from '../model/cockpit.js';
+import { DECK_PHASES } from '../sim/deck.js';
 
 export const CAMERA_MODES = [
   { id: 'auto', key: '1', name: 'Auto', hint: 'Réalisateur automatique : suit l\'action' },
@@ -21,6 +23,7 @@ export const PLANE_VIEWS = [
 ];
 
 const FOV_DEFAULT = 58 * D2R;
+const _dk = [0, 0, 0], _dk2 = [0, 0, 0];
 
 export class CameraRig {
   constructor(engine, canvas, game) {
@@ -37,7 +40,7 @@ export class CameraRig {
     this.shell = { shell: null, hold: 0, x: 0, y: 0, z: 0, dx: 0, dz: 0, lastImpact: null };
     this.auto = { t: 0, sub: 'follow', hold: 0 };
     this.plane = null;               // followed aircraft
-    this.planeCam = { yaw: 0, pitch: 0, zoom: 1, view: 'chase', t: 0, fix: null, hold: 0, crash: null, look: { yaw: 0, pitch: 0 } };
+    this.planeCam = { yaw: 0, pitch: 0, zoom: 1, view: 'chase', t: 0, fix: null, hold: 0, crash: null, deck: false, g: 0, lastVy: null, lastP: null, look: { yaw: 0, pitch: 0 } };
     this.smooth = { x: 0, y: 0, z: 0, yaw: 0, pitch: 0, init: false, fov: FOV_DEFAULT };
     this.fovWant = FOV_DEFAULT;
     this.dragging = false;
@@ -63,7 +66,7 @@ export class CameraRig {
     }
     if (id === 'auto') { this.auto.t = 0; }
     if (id === 'plane' || id === 'cockpit') { if (!this.plane || !this.planeAlive(this.plane)) this.pickPlane(1); this.planeCam.fix = null; this.planeCam.hold = 0; this.planeCam.look.yaw = 0; this.planeCam.look.pitch = 0; }
-    this.fovWant = id === 'cockpit' ? 75 * D2R : (id === 'bridge' ? (this.bridgeFov ?? FOV_DEFAULT) : FOV_DEFAULT);
+    this.fovWant = id === 'cockpit' ? 66 * D2R : (id === 'bridge' ? (this.bridgeFov ?? FOV_DEFAULT) : FOV_DEFAULT);
     this.game.ui?.onCameraMode?.(id);
   }
 
@@ -168,6 +171,9 @@ export class CameraRig {
     if (mode === 'bridge' && this.target && (this.target.state !== 'afloat' || this.target.exploded)) mode = 'orbit';
     // the automatic director does not put the camera on the bridge of a ship that burns badly or is nearly lost: the screen is black smoke
     else if (mode === 'bridge' && this.mode === 'auto' && this.target && (this.target.fireLevel > 0.4 || this.target.hpFrac < 0.35)) mode = 'follow';
+    // the view that is drawn changed between two frames without a cut of the director (the ship under the camera was lost a moment after the cut to her bridge):
+    // cut too, instead of sweeping from the bridge to the outside through the hull and the fireball
+    if (mode !== this._shown) { if (this._shown === 'bridge' || mode === 'bridge') this.smooth.init = false; this._shown = mode; }
     let px, py, pz, yaw, pitch, roll = 0;
     const tgt = this.target;
     const sm = this.smooth;
@@ -221,6 +227,8 @@ export class CameraRig {
       sm.yaw += wrapPi(yaw - sm.yaw) * k; sm.pitch += (pitch - sm.pitch) * k; sm.roll += wrapPi(roll - (sm.roll || 0)) * k;
     }
     cam.x = sm.x; cam.y = sm.y; cam.z = sm.z; cam.yaw = sm.yaw; cam.pitch = sm.pitch; cam.roll = sm.roll || 0;
+    // stay above the ground of an island
+    if (w.terrain) { const th = w.terrain.heightAt(cam.x, cam.z); if (th > -3 && cam.y < th + 3.5) cam.y = th + 3.5; }
     // stay above the sea
     const wh = this.engine.water.camH || 0;
     if (cam.y < wh + 1.2) cam.y = wh + 1.2;
@@ -332,7 +340,7 @@ export class CameraRig {
     i = (i + dir + list.length) % list.length;
     this.setPlane(list[i]);
   }
-  setPlane(p) { this.plane = p; this.planeCam.fix = null; this.planeCam.t = 0; this.smooth.init = false; this.game.ui?.onPlane?.(p); }
+  setPlane(p) { this.plane = p; this.planeCam.deck = false; this.planeCam.fix = null; this.planeCam.t = 0; this.smooth.init = false; this.game.ui?.onPlane?.(p); }
   nextPlaneView() {
     const pc = this.planeCam;
     const i = PLANE_VIEWS.findIndex((v) => v.id === pc.view);
@@ -347,7 +355,7 @@ export class CameraRig {
     for (const e of events) {
       if (this.mode === 'auto' && (e.type === 'bombDrop' || e.type === 'torpedoDrop' || e.type === 'planeDown') && Math.random() < 0.45 && this.auto.sub !== 'plane') { this.auto.forcePlane = e.plane; this.auto.t = 0; }
       // the director likes a touchdown on the wire and a take-off run (a take-off only when the carrier is in sight)
-      if (this.mode === 'auto' && (e.type === 'planeTouchdown' || e.type === 'planeLaunch') && Math.random() < 0.3 && this.auto.sub !== 'plane') { this.auto.forcePlane = e.plane; this.auto.t = 0; }
+      if (this.mode === 'auto' && (e.type === 'planeTouchdown' || e.type === 'planeLaunch') && Math.random() < 0.3 && this.auto.sub !== 'plane') { this.auto.forcePlane = e.plane; this.auto.t = 0; this.auto.deckShot = true; }
       if (e.type === 'planeCrash' && e.plane === this.plane) {
         pc.crash = { x: e.x, y: Math.max(e.y, 2), z: e.z, dx: Math.sin(e.plane.heading), dz: -Math.cos(e.plane.heading) };
         pc.hold = 3.2;
@@ -371,21 +379,39 @@ export class CameraRig {
       else { this.plane = null; return this.noPlaneView(); }
     }
     const sh = Math.sin(p.heading), ch = Math.cos(p.heading), cp = Math.cos(p.pitch), sp = Math.sin(p.pitch);
-    const fx = sh * cp, fy = sp, fz = -ch * cp;                      // flight direction
-    if (mode === 'cockpit') {
-      // the pilot's eye: at the front of the canopy, high (over the cowling); a biplane's pilot looks over the upper wing. The view banks with the aircraft.
+    // the external views follow the way the aircraft is going, smoothed: an aircraft that tumbles, spins or loops as it falls turns its nose every which way, and a
+    // camera that followed the nose would swing round it in loops
+    const sv = Math.hypot(p.vx, p.vy, p.vz);
+    const ax = sv > 8 ? p.vx / sv : sh * cp, ay = sv > 8 ? p.vy / sv : sp, az = sv > 8 ? p.vz / sv : -ch * cp;
+    if (pc.fdPlane !== p || !pc.fd) { pc.fd = [ax, ay, az]; pc.fdPlane = p; }
+    else {
+      const kd = 1 - Math.exp(-dt * (p.dying ? 2.2 : 6));
+      pc.fd[0] += (ax - pc.fd[0]) * kd; pc.fd[1] += (ay - pc.fd[1]) * kd; pc.fd[2] += (az - pc.fd[2]) * kd;
+      const l = Math.hypot(pc.fd[0], pc.fd[1], pc.fd[2]) || 1; pc.fd[0] /= l; pc.fd[1] /= l; pc.fd[2] /= l;
+    }
+    const fx = pc.fd[0], fy = pc.fd[1], fz = pc.fd[2];                      // flight direction (smoothed)
+    if (mode === 'cockpit' && !p.dying) {
+      // the pilot's eye (where the cockpit is built, model/cockpit.js). The view banks and pitches with the aircraft; the head sinks under positive g and shakes
+      // with the engine and the air; the eye is a little lower at speed.
       const pitchA = p.pitch + (p.aoa || 0), bank = p.bank || 0;
       const yaw = p.heading + pc.look.yaw, pitch = clamp(pitchA + pc.look.pitch, -1.45, 1.45);
-      const sp0 = p.spec, cn = sp0.canopy[0], ry0 = sp0.fus.r * sp0.fus.ar;
-      const ex = cn.x0 + 0.2;
-      let ey = ry0 * 0.78 + cn.h * 1.05;
-      if (sp0.kind === 'bi') ey = Math.max(ey, sp0.wing.gap * 0.55 + sp0.wing.t + 0.35);
+      const E = cockpitEye(p.spec);
+      pc.t += dt;
+      const ga = pc.lastVy == null || pc.lastP !== p ? 0 : (p.vy - pc.lastVy) / Math.max(dt, 1e-3) / 9.81;
+      pc.lastVy = p.vy; pc.lastP = p;
+      pc.g += (clamp(ga, -3, 5) - pc.g) * Math.min(1, dt * 3);
+      const vib = (0.0014 + 0.0035 * clamp(p.speed / 130, 0, 1)) * (p.lost && p.lost.engine ? 0.2 : 1);
+      const tt = pc.t;
+      const hx = Math.sin(tt * 61) * vib * 0.5, hy = Math.sin(tt * 47 + 1.3) * vib + Math.sin(tt * 3.1) * 0.0012 * clamp(p.speed / 100, 0, 1), hz = Math.sin(tt * 53 + 0.4) * vib * 0.7;
+      const ex = E.x + hx, ey = E.y - pc.g * 0.012 + hy, ez = hz;
       // the eye in the aircraft's frame (x forward, y up, z starboard) -> world: pitch, then bank about the flight axis
       const cpA = Math.cos(pitchA), spA = Math.sin(pitchA), cb = Math.cos(bank), sb = Math.sin(bank);
       const ux = -sh * spA * cb + ch * sb, uy = cpA * cb, uz = ch * spA * cb + sh * sb;      // aircraft up
       const f2 = [sh * cpA, spA, -ch * cpA];
-      return { x: p.x + f2[0] * ex + ux * ey, y: p.y + f2[1] * ex + uy * ey, z: p.z + f2[2] * ex + uz * ey, yaw, pitch, roll: bank };
+      const rr = [ch, 0, sh];                                                              // (the right-hand vector, bank ignored: the head moves little)
+      return { x: p.x + f2[0] * ex + ux * ey + rr[0] * ez, y: p.y + f2[1] * ex + uy * ey, z: p.z + f2[2] * ex + uz * ey + rr[2] * ez, yaw, pitch, roll: bank };
     }
+    if (pc.view !== 'victim') { const d = this.deckLanding(p); if (d) return d; }
     pc.t += dt;
     const zoom = pc.zoom;
     if (pc.view === 'chase') {
@@ -414,6 +440,8 @@ export class CameraRig {
     // 'victim': from the deck of the ship the aircraft is attacking
     // (not from a ship that is going down, on fire or smoking heavily, nor when the aircraft is almost overhead: the screen is then a brown smoke or a blank sky)
     let tgt = p.target && p.target.state === 'afloat' && !p.target.exploded && p.target.hpFrac > 0.4 && p.target.fireLevel < 0.35 ? p.target : null;
+    // the view from the deck of the victim is for an aircraft that is attacking or about to: from a ship far away it would look at an empty sky
+    if (tgt && (Math.hypot(p.x - tgt.x, p.z - tgt.z) > 7000 || DECK_PHASES.has(p.phase) || p.phase === 'assemble')) tgt = null;
     if (tgt) {
       const b = tgt.model.bridge || { x: 0, y: tgt.model.topY * 0.6, z: 0 };
       const q = [0, 0, 0];
@@ -431,6 +459,28 @@ export class CameraRig {
     }
     pc.view = 'chase';
     return null;
+  }
+
+  /**
+   * An aircraft landing on a carrier is followed from the deck, beside the wires on the side away from the island (where the landing signal officer stands):
+   * from the turn into the groove until it has stopped and taxied clear. The camera is fixed to the ship, so that the pitching of the deck and the stop on the
+   * wire are seen as they are. Returns null when the aircraft is not landing (the usual chase view applies).
+   */
+  deckLanding(p) {
+    const pc = this.planeCam, ship = p.owner, dp = ship && ship.model && ship.model.deckPoints;
+    if (!ship || !ship.alive || !dp || !dp.x1 || !(p.phase === 'final' || p.phase === 'rollout' || p.phase === 'taxiIn')) { if (pc.deck) { pc.deck = false; this.smooth.init = false; } return null; }
+    ship.toLocal(p.x, p.y, p.z, _dk);
+    const lx = _dk[0];
+    if (!pc.deck) {
+      if (!((p.phase === 'final' && lx >= dp.x0 - 480) || p.phase === 'rollout')) return null;
+      pc.deck = true; this.smooth.init = false;
+    }
+    if (p.phase === 'taxiIn' && lx > dp.x0 + 190) { pc.deck = false; this.smooth.init = false; return null; }
+    const isl = ship.model.island, side = isl && isl.z < 0 ? 1 : -1;
+    ship.toWorld(dp.x0 + 46, ship.model.fdY + 4.2, side * (dp.hw + 10), _dk2);
+    const dist = Math.hypot(p.x - _dk2[0], p.y - _dk2[1], p.z - _dk2[2]);
+    this.fovWant = clamp(2 * Math.atan(46 / Math.max(dist, 1)), 14 * D2R, 62 * D2R);
+    return this.lookAt(_dk2[0], _dk2[1], _dk2[2], p.x, p.y + 0.8, p.z);
   }
 
   /** Nothing in the air: look at the flight deck of a carrier that is about to launch (or the nearest one). */
@@ -459,18 +509,24 @@ export class CameraRig {
     }
     if (planeShot) {
       this.setPlane(planeShot);
-      this.planeCam.view = ['chase', 'side', 'victim', 'chase'][Math.floor(Math.random() * 4)];
+      // (a take-off or a landing is seen from outside, not from the ship the aircraft will attack, which is tens of kilometres away)
+      const views = a.deckShot ? ['chase', 'side', 'chase'] : ['chase', 'side', 'victim', 'chase'];
+      a.deckShot = false;
+      this.planeCam.view = views[Math.floor(Math.random() * views.length)];
       this.planeCam.yaw = (Math.random() - 0.5) * 0.5; this.planeCam.pitch = Math.random() * 0.1; this.planeCam.zoom = 0.8 + Math.random() * 0.6;
       this.planeCam.hold = 0; this.planeCam.crash = null; this.planeCam.fix = null;
       a.sub = 'plane'; a.t = 6 + Math.random() * 5;
       this.smooth.init = false;
       return a.sub;
     }
-    if (a.t <= 0 || !this.target || !this.target.alive) {
+    // a new shot when this one has run its time or the ship is gone (a ship that is going down is followed to the end of her sinking: she is not 'alive',
+    // and taking that for 'gone' made the director cut again at every frame)
+    const t0 = this.target, gone = !t0 || t0.state === 'sunk' || (t0.state === 'sinking' && t0.sinkT > 16) || (t0.state !== 'afloat' && t0.state !== 'sinking');
+    if (a.t <= 0 || gone) {
       // look for the most interesting ship: recently hit / firing / burning
       let best = null, bs = -1;
       for (const s of w.ships) {
-        if (!s.alive && !(s.state === 'sinking' && s.sinkT < 14)) continue;
+        if (!s.alive && !(s.state === 'sinking' && s.sinkT < 12)) continue;
         let sc = Math.random() * 1.5 + s.stats.score * 0.3;
         if (w.time - s.lastHitT < 8) sc += 5;
         if (s.mounts.some((m) => m.reload > m.gun.reload - 3)) sc += 3;

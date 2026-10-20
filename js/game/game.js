@@ -5,8 +5,12 @@ import { spawnFleet, teamStart } from './sim/formation.js';
 import { getModel } from './model/cache.js';
 import { ShipRenderer } from './render/shipRenderer.js';
 import { ShipVisuals } from './render/shipVisual.js';
+import { IslandVisuals } from './render/islandVisual.js';
+import { VegetationVisuals } from './render/vegetationVisual.js';
+import { Terrain } from './sim/terrain.js';
 import { PlaneVisuals } from './render/aircraftVisual.js';
-import { Particles, K } from './render/particles.js';
+import { isMobile } from './device.js';
+import { Particles, K, DEFAULT_MAX } from './render/particles.js';
 import { Effects } from './render/effects.js';
 import { CameraRig } from './ui/cameras.js';
 import { lightMatrix } from './render/shadows.js';
@@ -33,7 +37,7 @@ export class Game {
     this.state = 'setup';            // setup | ready | running | finished
     this.paused = false;
     this.timeScale = 1;
-    this.config = { teams: [], sep: 12000, seed: opts.seed || 1 };
+    this.config = { teams: [], sep: 12000, seed: opts.seed || 1, islands: opts.islands ?? 1 };      // islands: 0 none, 1 a few, 2 an archipelago
     this.renderModels = new Map();
     this.ui = null;
     this.shakeT = 0;
@@ -49,11 +53,22 @@ export class Game {
     let saved = null;
     try { saved = localStorage.getItem('naval.quality'); } catch (e) { /* storage blocked */ }
     this.qualityMode = QUALITY_MODES.includes(qs.get('quality') || saved) ? (qs.get('quality') || saved) : 'auto';
-    this.qLevel = this.qualityMode === 'auto' ? 0 : { high: 0, medium: 2, low: 4 }[this.qualityMode];
+    // a phone starts at the medium rung and lets the adaptive quality go up or down from there
+    this.qLevel = this.qualityMode === 'auto' ? (isMobile() ? 2 : 0) : { high: 0, medium: 2, low: 4 }[this.qualityMode];
     this.fxScale = 1;
     this.userShadows = this.shadowsOn;
     this.slowT = 0; this.fastT = 0;
+    let pmax = 0;
+    try { pmax = Number(localStorage.getItem('naval.particles')) || 0; } catch (e) { /* storage blocked */ }
+    this.particleMax = Number(qs.get('particles')) || pmax || (isMobile() ? 20000 : DEFAULT_MAX);
     this.applyQuality();
+  }
+
+  /** Capacity of the particle pool (a setting; saved for the next visit). */
+  setParticleMax(n) {
+    this.particleMax = n;
+    try { localStorage.setItem('naval.particles', String(n)); } catch (e) { /* storage blocked */ }
+    this.particles?.setMax(n);
   }
 
   get autoScale() { return this.canAuto && this.qualityMode === 'auto'; }
@@ -73,12 +88,14 @@ export class Game {
     if (this.canAuto) this.engine.setRenderScale(q.scale);
     this.shadowsOn = this.userShadows && q.shadows;
     this.ui?.onRenderScale?.(this.engine.getRenderScale());
+    this.vegetation?.setQuality(this.qLevel);
   }
 
   async init() {
     const e = this.engine;
     this.shipRenderer = new ShipRenderer(e);
     this.particles = new Particles(e);
+    this.particles.setMax(this.particleMax);
     await Promise.all([this.shipRenderer.ready, this.particles.ready]);
     this.effects = new Effects(e, this.particles, this);
     this.camera = new CameraRig(e, this.canvas, this);
@@ -86,6 +103,10 @@ export class Game {
     this.shipVisuals = new ShipVisuals(this.shipRenderer);
     this.planeVisuals = new PlaneVisuals(this.shipRenderer);
     this.shipVisuals.planes = this.planeVisuals;
+    this.islandVisuals = new IslandVisuals(this.shipRenderer, e);
+    this.vegetation = new VegetationVisuals(this.shipRenderer, e);
+    this.vegetation.enabled = new URLSearchParams(location.search).get('trees') !== '0';
+    this.vegetation.setQuality(this.qLevel);
 
     e.hooks.update = (dt, now) => this.update(dt, now);
     e.hooks.prepare = () => this.prepare();
@@ -108,6 +129,15 @@ export class Game {
       const s = teamStart(i, teams.length, this.config.sep);
       spawnFleet(w, i, t.entries.filter((x) => x.count > 0), s.x, s.z, s.heading);
     });
+    // the islands of this battle: the same seed gives the same sea; the fleets and the axis between them are kept clear
+    {
+      const starts = teams.map((_, i) => teamStart(i, teams.length, this.config.sep));
+      const keep = starts.map((q) => ({ x: q.x, z: q.z, r: 4800 }));
+      const axis = starts.length >= 2 ? [starts[0].x, starts[0].z, starts[1].x, starts[1].z] : null;
+      w.terrain = Terrain.generate(this.config.seed, this.config.islands, keep, axis, clamp(this.config.sep * 0.9 + 5000, 9000, 21000));
+      this.islandVisuals.set(w.terrain);
+      this.vegetation.set(w.terrain);
+    }
     this.state = 'ready';
     this.paused = false;
     // show the first fleet from a pleasant angle (unless the player is just editing the fleets)
@@ -132,6 +162,8 @@ export class Game {
 
   reset() {
     this.world.clear();
+    this.islandVisuals.set(null);
+    this.vegetation.set(null);
     this.particles.n = 0;
     this.camera.target = null;
     this.camera.setMode('free');
@@ -233,6 +265,8 @@ export class Game {
     const r = this.shipRenderer, cam = this.engine.cam, w = this.world;
     r.begin();
     this.particles.beginFrame();
+    this.islandVisuals.add(cam);
+    this.vegetation.add(cam);
     for (const s of w.ships) {
       if (s.state === 'sunk') continue;
       const team = w.teams[s.team];
@@ -307,11 +341,16 @@ export class Game {
       else this.particles.streak(s.x, s.y, s.z, ux, uy, uz, len * (1 + d / 8000) * 0.8, wid * 1.15, 1, 0.84, 0.46, k * (1 + fresh));
       // a bright head
       this.particles.streak(s.x, s.y, s.z, ux, uy, uz, len * 0.18, wid * 1.5, 1, 0.95, 0.8, k * 0.9);
-      // vapour trail: one puff per simulated step, only for the shells near enough to matter
-      if (running && s._trailT !== w.time && d < 6000 && s.age > 0.04) {
-        s._trailT = w.time;
+      // vapour trail: one puff every few tens of metres of flight (not one per simulated step: hundreds of shells in the air would fill the particle pool and starve the muzzle flashes)
+      if (running && s._trailT !== w.time && d < 4500 && s.age > 0.04) {
         const cs = clamp(cal / 300, 0.3, 1.5), tr = this.effects.emitScale ?? 1;
-        if (Math.random() < tr) this.particles.add({ kind: K.SMOKE, x: s.x, y: s.y, z: s.z, vx: 0, vy: 0.3, vz: 0, s0: 0.35 * cs, s1: (ap ? 2.2 : 3.2) * cs, life: 1.4, r: 0.9, g: 0.9, b: 0.92, a0: ap ? 0.07 : 0.11, a1: 0, drag: 0.6, wind: 0.5 });
+        const gap = 22 + 40 * (1 - cs / 1.5);
+        s._trailD = (s._trailD ?? gap) + sp * Math.max(0, w.time - (s._trailT ?? w.time - 1 / 60));
+        s._trailT = w.time;
+        if (s._trailD >= gap) {
+          s._trailD = 0;
+          if (Math.random() < tr) this.particles.add({ kind: K.SMOKE, x: s.x, y: s.y, z: s.z, vx: 0, vy: 0.3, vz: 0, s0: 0.5 * cs, s1: (ap ? 3 : 4.2) * cs, life: 1.4, r: 0.9, g: 0.9, b: 0.92, a0: ap ? 0.09 : 0.14, a1: 0, drag: 0.6, wind: 0.5 });
+        }
       }
     }
     this.particles.upload();

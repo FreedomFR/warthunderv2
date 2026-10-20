@@ -1,6 +1,7 @@
 // Draws aircraft (in flight, crashing, parked on a flight deck) and the ordnance in flight.
 import { getPlaneModel, getFloatplaneModel, buildOrdnanceMeshes, hookPivot, GROUND_PITCH } from '../model/planes.js';
-import { mat4Ship, mat4Mul, mat4RotX } from '../math.js';
+import { mat4Ship, mat4Mul, mat4RotX, mat4YawPitchAt } from '../math.js';
+import { getCockpit } from '../model/cockpit.js';
 import { MeshBuilder, MAT, rgb } from '../model/meshbuilder.js';
 import { LIFT_DEPTH } from '../sim/deck.js';
 
@@ -97,6 +98,7 @@ export class PlaneVisuals {
       for (let i = 0; i < 16; i++) P32[i] = P64[i];
       r.add(m.mesh.prop, P32, tint, 0, 0, rnd);
     }
+    if (p.inCockpit) this.addCockpit(p, m, S64, S32, tint);
     if (p.gearDown && m.mesh.gear) r.add(m.mesh.gear, S32, tint, dmg, fire, rnd);
     if (p.hook > 0.01 && m.mesh.hook) {
       // the arrester hook, hinged under the rear fuselage: tucked along the belly, or down at ~35 degrees
@@ -107,6 +109,50 @@ export class PlaneVisuals {
       r.add(m.mesh.hook, P32, tint, dmg, fire, rnd);
     }
     if (p.ordnance && m.mesh.ordnance) r.add(m.mesh.ordnance, S32, tint, 0, 0, rnd);
+  }
+
+  /**
+   * What is seen from the pilot's seat besides the aircraft: the panel with its dials (they read the flight state: paint = speed, height, heading, climb; tint = bank, pitch,
+   * revolutions), the stick that follows the controls, the blur of the propeller.
+   */
+  addCockpit(p, m, S64, S32, tint) {
+    const r = this.r, ck = getCockpit(p.typeKey, m.pm.spec);
+    this.cockpits ||= new Map();
+    let h = this.cockpits.get(p.typeKey);
+    if (!h) {
+      h = { interior: r.createMesh(ck.interior, 'cockpit ' + p.typeKey), stick: r.createMesh(ck.stick, 'stick ' + p.typeKey), disc: ck.disc ? r.createMesh(ck.disc, 'prop disc ' + p.typeKey) : null };
+      this.cockpits.set(p.typeKey, h);
+    }
+    const lost = p.lost || {};
+    const rpm = lost.engine ? 0 : p.eng != null ? p.eng : 0.74 + 0.16 * Math.max(0, Math.min(1, (p.speed - 45) / 70));
+    const dyn = [p.bank * 255, p.pitch * 255, rpm * 255];
+    r.setCasting(false);
+    r.setPaint([p.speed, p.y, p.heading, p.vy]);
+    r.add(h.interior, S32, dyn, 0, 0, 0);
+    // the stick: it leans with the rate at which the pilot turns the aircraft (a little lag, so that it is seen to move)
+    const c = p._ck || (p._ck = { bank: p.bank, pitch: p.pitch, age: p.age, sr: 0, sp: 0 });
+    const dt = Math.max(1e-3, p.age - c.age);
+    if (p.age !== c.age) {
+      const kr = 1 - Math.exp(-dt * 6);
+      c.sr += (Math.max(-1, Math.min(1, (p.bank - c.bank) / dt * 0.9)) - c.sr) * kr;
+      c.sp += (Math.max(-1, Math.min(1, (p.pitch - c.pitch) / dt * 1.6)) - c.sp) * kr;
+      c.bank = p.bank; c.pitch = p.pitch; c.age = p.age;
+    }
+    const pv = ck.pivot;
+    mat4YawPitchAt(Q64, pv[0], pv[1], pv[2], 0, -c.sp * 0.28);       // pulled back = the top of the stick towards the pilot
+    mat4RotX(RX, c.sr * 0.3);
+    mat4Mul(H64, Q64, RX);
+    mat4Mul(P64, S64, H64);
+    for (let i = 0; i < 16; i++) P32[i] = P64[i];
+    r.add(h.stick, P32, dyn, 0, 0, 0);
+    if (h.disc && !lost.engine) {
+      mat4RotX(RX, p.spin || 0);
+      mat4Mul(P64, S64, RX);
+      for (let i = 0; i < 16; i++) P32[i] = P64[i];
+      r.add(h.disc, P32, dyn, 0, 0, 0);
+    }
+    r.setPaint(null);
+    r.setCasting(true);
   }
 
   /** A detached piece of an aircraft (wing, tail) tumbling through the air. p: { typeKey, piece, x,y,z, heading,pitch,roll } */

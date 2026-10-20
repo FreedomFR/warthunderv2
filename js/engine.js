@@ -69,7 +69,8 @@ export const MAX_STAMPS = 384;     // foam stamps per frame
 
 function log(msg) {
   console.log(msg);
-  try { fetch('/__log', { method: 'POST', body: String(msg) }).catch(() => {}); } catch (e) { /* offline */ }
+  // the dev server keeps a copy of the log; a published site has no such endpoint
+  if (/^(localhost|127\.|\[::1\])/.test(location.hostname)) try { fetch('/__log', { method: 'POST', body: String(msg) }).catch(() => {}); } catch (e) { /* offline */ }
 }
 
 // ----------------------------------------------------------------------------------------
@@ -451,7 +452,7 @@ export async function createEngine(canvas, options = {}) {
 
   function resize() {
     const fw = Number(qs.get('w')) || 0, fh = Number(qs.get('h')) || 0;
-    const dpr = window.devicePixelRatio || 1;
+    const dpr = Math.min(window.devicePixelRatio || 1, options.maxDpr || Infinity);
     const w = fw || Math.max(1, Math.round(canvas.clientWidth * dpr * renderScale));
     const h = fh || Math.max(1, Math.round(canvas.clientHeight * dpr * renderScale));
     if (w === W && h === H) return;
@@ -867,7 +868,7 @@ export async function createEngine(canvas, options = {}) {
       if (hooks.preMain) hooks.preMain(enc);
       const rp = enc.beginRenderPass(mainPass);
       if (hooks.drawOpaque) hooks.drawOpaque(rp);
-      if (nodeCount && qs.get('ocean') !== '0') {      // ?ocean=0: model previews without the sea (much faster on a software rasteriser)
+      if (nodeCount && engine.showOcean) {      // ?ocean=0: model previews without the sea (much faster on a software rasteriser); the 3D viewer toggles it
         rp.setPipeline(oceanPipe);
         rp.setBindGroup(0, bgOcean[foamCur]);
         rp.setVertexBuffer(0, instBuf);
@@ -994,6 +995,8 @@ export async function createEngine(canvas, options = {}) {
 
   const engine = {
     device, canvas, P, qs, cam, hooks, water, foam, shadow, stats, hasTS, offscreen,
+    /** draw the ocean surface (off: sky only) */
+    showOcean: qs.get('ocean') !== '0',
     /** shared GPU resources for game pipelines (same pass layout as the ocean) */
     gpu: {
       device, HDR, DEPTH, MSAA, swapFormat, frameUBO, transView, skyView, sampClamp, sampRepeat, envCubeView, sunVisBuf,

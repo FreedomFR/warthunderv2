@@ -5,7 +5,7 @@ spec sheets, AI-only combat, many cameras, modular damage, procedural sound. No 
 
 **The owner speaks French: answer in French** (code, comments, commit messages and CHANGELOG are in English; README and TODO in French).
 Read `TODO.md` for what is left to do and `CHANGELOG.md` for what changed. The owner asked to push to GitHub after every major change;
-work on a branch and open a pull request into `main`, and never push to `main` unless asked to.
+work on a feature branch and open the pull request into `dev` (not `main`); once the owner has validated what is in `dev` they ask for it to be put on `main` (a pull request `dev` -> `main`), and they tag the release themselves. Never push to `main` or `dev` directly unless asked to.
 
 ## Run and check
 
@@ -37,6 +37,8 @@ Software rendering is slow: 10–25 s per frame at 800×450 with the ocean on; a
 | Gun turrets | `js/game/model/mounts.js`: `FAMILY` (measured dimensions per turret type), `mountDims()`, house builders |
 | Firing | `js/game/sim/weapons.js` (muzzle position of each barrel, `recoilCurve`, `muzzle` event), `js/game/render/effects.js` (`muzzle`, `blast`), `render/particles.js` + `js/wgsl/particles.js` (particle kinds incl. `FIREBALL`) |
 | Simulation | `js/game/sim/` (world, ship, ai, aircraft, modules/damage, explosions); `test/` |
+| 3D viewer, wiki | `viewer.html` + `js/viewer.js`, `js/viewer/` (scene, controls, panel, state = the debug link, subjects); `wiki.html` + `js/wiki.js`, `js/wiki/` (data adapter, tiers, layout, tree, card, profile = silhouettes drawn from the specs); test `test/wiki.mjs` |
+| Damage model | `sim/penetration.js` (De Marre, obliquity, fuzes), `sim/damage.js` (hit resolution), `data/protection.js` (belt inclination, torpedo protection, navy powder / fuzes / damage control; `estimated` marks guesses), `tools/damagecheck.mjs` (balance: duels, `zones`, `torp`), `test/realism.mjs` |
 | Trailer | `js/trailer*.js`, `tools/trailer/` (`record.mjs`, `assemble.mjs`, `edit.json`; needs ffmpeg), scene `firetest` films a salvo |
 | Reference photographs | `tools/refs/` (see its README) |
 | README pictures | `docs/*.jpg`: the interface ones from `tools/screenshots.mjs` (GPU), the others from the trailer scenes' frames and the preview scene (see CHANGELOG 0.1.0) |

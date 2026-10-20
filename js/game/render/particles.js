@@ -2,7 +2,7 @@
 import { PARTICLES } from '../../wgsl/particles.js';
 
 const GU = GPUBufferUsage;
-const MAX = 24000;
+export const DEFAULT_MAX = 40000;      // live particles at once; the setting 'Particules max' changes it (setMax), the memory grows with it
 const MAX_TRANSIENT = 3000;
 const INST = 16;           // floats per instance
 const F = 24;              // floats per particle in the pool
@@ -10,20 +10,34 @@ const F = 24;              // floats per particle in the pool
 const X = 0, Y = 1, Z = 2, VX = 3, VY = 4, VZ = 5, AGE = 6, LIFE = 7, S0 = 8, S1 = 9, R = 10, G = 11, B = 12, A0 = 13, A1 = 14,
   ROT = 15, ROTV = 16, GRAV = 17, DRAG = 18, KIND = 19, SEED = 20, STRETCH = 21, WIND = 22;
 
-export const K = { SMOKE: 0, FIRE: 1, SPRAY: 2, TRACER: 3, FLASH: 4, FIREBALL: 5 };
+export const K = { SMOKE: 0, FIRE: 1, SPRAY: 2, TRACER: 3, FLASH: 4, FIREBALL: 5, FLAME: 6 };      // FLAME: an upright tongue of flame (does not turn with the camera roll or spin)
 
 export class Particles {
   constructor(engine) {
     this.engine = engine; this.device = engine.device;
-    this.pool = new Float32Array(MAX * F);
+    this.max = 0;
+    this.pool = new Float32Array(0);
     this.n = 0;
-    this.inst = new Float32Array((MAX + MAX_TRANSIENT) * INST);
-    this.buf = this.device.createBuffer({ size: this.inst.byteLength, usage: GU.VERTEX | GU.COPY_DST, label: 'particles' });
+    this.setMax(DEFAULT_MAX);
     this.count = 0;
     this.tr = new Float32Array(MAX_TRANSIENT * INST);
     this.nT = 0;                    // transient instances (tracers), rebuilt every frame
     this.wind = [3, 0];
     this.ready = this._init();
+  }
+
+  /** Change the capacity of the pool (the particles alive are kept, the oldest-looking ones go first if there are more than the new size). */
+  setMax(max) {
+    max = Math.max(2000, Math.min(400000, Math.round(max)));
+    if (max === this.max) return;
+    const pool = new Float32Array(max * F);
+    this.n = Math.min(this.n, max);
+    pool.set(this.pool.subarray(0, this.n * F));
+    this.pool = pool; this.max = max;
+    this.inst = new Float32Array((max + MAX_TRANSIENT) * INST);
+    this._order = null;
+    this.buf?.destroy?.();
+    this.buf = this.device.createBuffer({ size: this.inst.byteLength, usage: GU.VERTEX | GU.COPY_DST, label: 'particles' });
   }
 
   async _init() {
@@ -59,8 +73,30 @@ export class Particles {
    * Spawn a particle. o: { kind, x, y, z, vx, vy, vz, s0, s1 (size m), life (s), r, g, b, a0, a1, rot, rotV, grav, drag, wind (0..1), stretch }
    */
   add(o) {
-    if (this.n >= MAX) return;
-    const p = this.pool, i = this.n++ * F;
+    let n = this.n;
+    if (n >= this.max) {
+      // the pool is full: what shows the shot (fireballs, flames, flashes, tracers) takes the place of one of the oldest-looking puffs of smoke or spray instead of being lost
+      if (o.kind !== K.FIREBALL && o.kind !== K.FLASH && o.kind !== K.FLAME && o.kind !== K.TRACER && o.kind !== K.FIRE) return;
+      const q = this.pool;
+      let best = -1, ba = 0.3;
+      for (let k = 0; k < 24; k++) {
+        const i = (Math.random() * n) | 0, kd = q[i * F + KIND];
+        if (kd !== K.SMOKE && kd !== K.SPRAY) continue;
+        const a = q[i * F + AGE] / q[i * F + LIFE];
+        if (a > ba) { ba = a; best = i; }
+      }
+      if (best < 0) return;
+      this._write(best, o);
+      return;
+    }
+    this._write(this.n++, o);
+  }
+
+  /** How full the pool is, 0..1: the effects emit less as it fills, the smoke and the spray first. */
+  fill() { return this.n / this.max; }
+
+  _write(idx, o) {
+    const p = this.pool, i = idx * F;
     p[i + X] = o.x; p[i + Y] = o.y; p[i + Z] = o.z;
     p[i + VX] = o.vx || 0; p[i + VY] = o.vy || 0; p[i + VZ] = o.vz || 0;
     p[i + AGE] = 0; p[i + LIFE] = o.life;
@@ -113,8 +149,14 @@ export class Particles {
   upload() {
     const cam = this.engine.cam;
     const p = this.pool, d = this.inst;
-    for (let i = 0; i < this.n; i++) {
-      const o = i * F, q = i * INST;
+    // the particles that cover what is behind them (smoke, spray, fireballs) are drawn first, then the ones that add light (flames, flashes, tracers): a flame is
+    // seen in front of the smoke that hangs over it instead of being hidden by it
+    const order = this._order && this._order.length >= this.n ? this._order : (this._order = new Uint32Array(this.max));
+    let ia = 0, ib = this.n;
+    for (let i = 0; i < this.n; i++) { const k = p[i * F + KIND]; if (k === K.SMOKE || k === K.SPRAY || k === K.FIREBALL) order[ia++] = i; else order[--ib] = i; }
+    for (let j = 0; j < this.n; j++) {
+      const i = order[j];
+      const o = i * F, q = j * INST;
       const t = p[o + AGE] / p[o + LIFE];
       const size = p[o + S0] + (p[o + S1] - p[o + S0]) * Math.sqrt(t);
       const k = p[o + KIND];
@@ -123,7 +165,7 @@ export class Particles {
       else a = p[o + A0] * Math.pow(1 - t, 1.5) + p[o + A1] * t;
       d[q] = p[o + X] - cam.x; d[q + 1] = p[o + Y] - cam.y; d[q + 2] = p[o + Z] - cam.z; d[q + 3] = size;
       // fire cools from yellow to dark red as it ages
-      if (k === K.FIRE) {
+      if (k === K.FIRE || k === K.FLAME) {
         d[q + 4] = p[o + R]; d[q + 5] = p[o + G] * (1 - 0.7 * t); d[q + 6] = p[o + B] * (1 - 0.95 * t);
       } else { d[q + 4] = p[o + R]; d[q + 5] = p[o + G]; d[q + 6] = p[o + B]; }
       d[q + 7] = a;

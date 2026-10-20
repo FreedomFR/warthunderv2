@@ -67,6 +67,38 @@ for (const spec of ALL_SHIPS) {
   const far = s.comps[s.comps.length - 1];
   ok(near.water[1] > far.water[1] + 0.02, `the compartments near the hit are flooded (${near.water[1].toFixed(2)}) more than the stern ones (${far.water[1].toFixed(2)})`);
 }
+// ---- a ship that lists, trims and sags is finished by a torpedo from the other side: she goes on from the pose she had (no jump upright, no roll to the other side) ----
+for (const id of ['cleveland', 'fletcher', 'iowa']) {
+  const { w, s } = mk(id, 5);
+  // flooded on the starboard side for a minute (kept alive)
+  for (let i = 0; i < 600; i++) { if (i % 10 === 0) s.flood(20, s.stats.B / 2, s.stats.maxHp * 0.02); s.hp = Math.max(s.hp, s.stats.maxHp * 0.5); s.update(0.1); }
+  const before = { roll: s.roll, pitch: s.pitch, y: s.y };
+  // finished by a torpedo on the port side
+  s.hp = 1;
+  const q = [0, 0, 0]; s.toWorld(20, 0, -s.stats.B / 2, q);
+  resolveTorpedoHit(w, s, { warhead: 400, owner: null }, q[0], q[2]);
+  ok(s.state === 'sinking' && Math.abs(before.pitch) + Math.abs(before.roll) + Math.abs(s.settleCur) > 0.15, `${id}: sunk by the second torpedo after leaning ${before.roll.toFixed(2)} rad, trimmed ${before.pitch.toFixed(2)} rad and sagging ${s.settleCur.toFixed(1)} m (${s.sinkMode})`);
+  let jumpRoll = 0, jumpPitch = 0, jumpY = 0, prev = { roll: before.roll, pitch: before.pitch, y: before.y }, reversed = false;
+  const dir = Math.sign(before.roll) || 1;
+  for (let i = 0; i < 100 && s.state === 'sinking'; i++) {
+    s.update(0.1);
+    jumpRoll = Math.max(jumpRoll, Math.abs(s.roll - prev.roll)); jumpPitch = Math.max(jumpPitch, Math.abs(s.pitch - prev.pitch)); jumpY = Math.max(jumpY, Math.abs(s.y - prev.y));
+    if (i < 40 && Math.abs(before.roll) > 0.05 && s.roll * dir < before.roll * dir * 0.3 - 0.02) reversed = true;
+    prev = { roll: s.roll, pitch: s.pitch, y: s.y };
+  }
+  ok(jumpRoll < 0.04 && jumpPitch < 0.03 && jumpY < 0.45, `${id}: no jump while she goes down (per tick: roll ${jumpRoll.toFixed(3)} rad, pitch ${jumpPitch.toFixed(3)} rad, height ${jumpY.toFixed(2)} m)`);
+  ok(!reversed, `${id}: she keeps rolling the way she was leaning`);
+}
+// ---- the same when the hull breaks in two after she has begun to sink ----
+{
+  const { w, s } = mk('cleveland', 9);
+  s.destroy(null, 'bow');
+  for (let i = 0; i < 80; i++) s.update(0.1);
+  const d0 = s.sinkDepth, y0 = s.y;
+  w.breakInTwo(s, 5);
+  s.update(0.1);
+  ok(!!s.split && Math.abs(s.y - y0) < 1.2 && s.sinkDepth >= d0 - 0.01, `a ship that breaks in two while sinking does not come back up (height ${y0.toFixed(1)} -> ${s.y.toFixed(1)} m)`);
+}
 // ---- bombs: penetrate a light cruiser's deck and burst below, burst on a battleship's armoured deck ----
 {
   const run = (id) => {
@@ -108,7 +140,7 @@ for (const spec of ALL_SHIPS) {
     const { w, s } = mk(id, 11);
     for (let i = 0; i < 20; i++) w.update(0.1);
     const g = s.stats.main, owner = w.addShip('iowa', 0, 8000, 0, 0);
-    // a shell flying at 1000 m from the side: its incidence on a vertical plate is the angle between its path and the plate normal
+    // a shell flying at 1000 m from the side: its incidence is the angle between its path and the plate normal (Iowa's belt leans 19 degrees, so a flat shell meets it at 19)
     const a = angleDeg * Math.PI / 180;
     const sp = type === 'AP' ? g.v0 * 0.72 : g.v0 * 0.72;
     // heading 0: starboard is +x, forward is -z; the shell flies towards port, its path turned `a` away from the plate normal
@@ -121,7 +153,7 @@ for (const spec of ALL_SHIPS) {
     return { ev: ev.find((e) => e.type === 'shellHit'), imp: ev.find((e) => e.type === 'impact') };
   };
   const side = shoot('iowa', 'AP', 0, null);
-  ok(side.ev && side.ev.angle < 5 && ['pen', 'bounce', 'over'].includes(side.ev.result), `shell report: ${side.ev && side.ev.shell} ${side.ev && side.ev.cal} mm at ${side.ev && side.ev.angle.toFixed(0)} deg, plate ${side.ev && side.ev.armor} mm (${side.ev && side.ev.eff.toFixed(0)} effective) against ${side.ev && side.ev.pen.toFixed(0)} mm of penetration: ${side.ev && side.ev.result}`);
+  ok(side.ev && side.ev.angle > 15 && side.ev.angle < 22 && ['pen', 'bounce', 'over'].includes(side.ev.result), `shell report: ${side.ev && side.ev.shell} ${side.ev && side.ev.cal} mm at ${side.ev && side.ev.angle.toFixed(0)} deg, plate ${side.ev && side.ev.armor} mm (${side.ev && side.ev.eff.toFixed(0)} effective) against ${side.ev && side.ev.pen.toFixed(0)} mm of penetration: ${side.ev && side.ev.result}`);
   let glances = 0; for (let i = 0; i < 20; i++) if (shoot('iowa', 'AP', 80, null).ev.result === 'glance') glances++;
   ok(glances >= 10, `at 80 degrees an armour-piercing shell mostly glances off (${glances}/20)`);
   const he = shoot('iowa', 'HE', 0, null); ok(he.ev && ['burst', 'shatter', 'pen'].includes(he.ev.result) && he.ev.shell === 'HE', `an HE shell reports its burst (${he.ev && he.ev.result})`);
