@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased — phone interface
+
+- **Touch interface** for phones (`ui/mobile.js`, `ui/mobileStyle.js`, `device.js`): compact top bar and menu, camera row that scrolls, information panels opened on demand, full-screen fleet setup, a virtual stick and buttons for the free camera and the map, a landscape full-screen button, the screen kept awake in battle. The desktop interface is unchanged.
+- **Phone performance**: pixel density capped at 1.5 (`createEngine` option `maxDpr`), start at the medium quality rung, 20000 particles by default.
+- **Installable**: `manifest.webmanifest` and icons (full screen, landscape); `tools/site.mjs` publishes them.
+- Fixed: the "Wiki" and "Visualiseur" links of the setup panel were drawn in the browser's default blue.
+- Test: `test/mobile.mjs`.
+
 ## Unreleased — dev version online
 
 - **The `dev` branch is published too**, in `/dev/` of the same GitHub Pages site (`main` stays at the root), with a "Version dev" badge. `tools/site.mjs --main <dir> --dev <dir>` assembles both; the workflow runs the tests of the pushed branch, then publishes both versions from their committed files (`naval.html` must be rebuilt before committing, as before).

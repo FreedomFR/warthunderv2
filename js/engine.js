@@ -452,7 +452,7 @@ export async function createEngine(canvas, options = {}) {
 
   function resize() {
     const fw = Number(qs.get('w')) || 0, fh = Number(qs.get('h')) || 0;
-    const dpr = window.devicePixelRatio || 1;
+    const dpr = Math.min(window.devicePixelRatio || 1, options.maxDpr || Infinity);
     const w = fw || Math.max(1, Math.round(canvas.clientWidth * dpr * renderScale));
     const h = fh || Math.max(1, Math.round(canvas.clientHeight * dpr * renderScale));
     if (w === W && h === H) return;
