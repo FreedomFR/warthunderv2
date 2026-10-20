@@ -3,6 +3,7 @@
 // the simulation: ships run aground where the water is shallower than their draught, shells burst on the slopes and are stopped by them, torpedoes explode on the
 // shore, aircraft fly into the mountains, and the line of sight is blocked. The render builds its mesh from the same function (model/islandMesh.js).
 import { makeRng, clamp, TAU } from '../math.js';
+import { placeBases } from './bases.js';
 
 const SHELF_SLOPE = 0.12;          // the sea floor falls 12 m for every 100 m off the coast
 const DEEP = -90;                  // the depth where the shelf ends (and the grid stops)
@@ -41,7 +42,7 @@ function makeHeight(sp) {
   for (let k = 2; k <= 7; k++) harm.push({ k, a: rng.range(0.4, 1) * 0.36 / Math.pow(k, 0.72), p: rng.range(0, TAU) });
   const c = Math.cos(sp.phi), s = Math.sin(sp.phi), meanScale = (1 + sp.e) / 2;
   const crater = sp.biome === 'volcanic' && sp.kind !== 'rock';
-  return (u, v) => {
+  const raw = (u, v) => {
     const a = (u * c + v * s) / sp.e, b = -u * s + v * c;
     const q0 = Math.hypot(a, b) / sp.r0;
     const th = Math.atan2(b, a);
@@ -65,12 +66,34 @@ function makeHeight(sp) {
     h = Math.min(h, sp.H * 1.2);
     return Math.max(h, 0);
   };
+  if (!sp.pads || !sp.pads.length) return raw;
+  // levelled ground (the sites of the bases): inside a rectangle the ground is at the height of the pad, round it the land blends back into the island
+  return (u, v) => {
+    let h = raw(u, v);
+    for (const p of sp.pads) h += (p.y - h) * padWeight(p, sp.x + u, sp.z + v);
+    return h;
+  };
+}
+
+/**
+ * How much of the ground at world (x, z) belongs to a pad: 1 inside its rectangle (centre p.x, p.z, axis angle p.ang in the x-z plane, half length hl along it, half width hw),
+ * falling to 0 over `blend` metres outside.
+ */
+export function padWeight(p, x, z) {
+  const dx = x - p.x, dz = z - p.z, ca = Math.cos(p.ang), sa = Math.sin(p.ang);
+  const a = Math.abs(dx * ca + dz * sa) - p.hl, b = Math.abs(-dx * sa + dz * ca) - p.hw;
+  const d = Math.hypot(Math.max(a, 0), Math.max(b, 0));
+  if (d >= p.blend) return 0;
+  const t = 1 - d / p.blend;
+  return t * t * (3 - 2 * t);
 }
 
 export class Island {
   /** sp: { id, x, z, kind, seed, r0, H, e, phi, biome } */
   constructor(sp) {
     Object.assign(this, sp);
+    this.sp = sp;
+    this.pads = sp.pads || [];
     this.fn = makeHeight(sp);
     // the box that holds the coast and the shelf: a stretched, lobed island reaches 1.5 times its radius along its long axis
     this.R = sp.r0 * sp.e * 1.5 + 500;
@@ -89,6 +112,20 @@ export class Island {
     let rs = 0;
     for (let j = 0; j < this.N; j++) for (let i = 0; i < this.N; i++) if (g[j * this.N + i] > -SAFE_DEPTH) rs = Math.max(rs, Math.hypot(-this.R + i * this.cell, -this.R + j * this.cell));
     this.rSafe = rs;
+  }
+
+  /** A copy of this island with levelled pads (see padWeight): the same island, the same seed, with the ground flattened where the bases stand. */
+  withPads(pads) {
+    const is = new Island({ ...this.sp, pads });
+    is.Rb = this.Rb;
+    return is;
+  }
+
+  /** 0..1: how much the ground at world (x, z) is levelled ground of a base (trees do not grow there, the ground is paved or mown). */
+  padAt(x, z) {
+    let w = 0;
+    for (const p of this.pads) w = Math.max(w, padWeight(p, x, z));
+    return w;
   }
 
   /** The height at world (x, z) (sea level 0; negative under water). */
@@ -124,6 +161,7 @@ export class Island {
 export class Terrain {
   constructor(islands = []) {
     this.islands = islands;
+    this.bases = [];             // the military bases on the islands (sim/bases.js)
   }
 
   get empty() { return this.islands.length === 0; }
@@ -266,7 +304,7 @@ export class Terrain {
    * Islands for a battle. density 0 = none, 1 = a few, 2 = an archipelago; `keepOut`: [{ x, z, r }] circles to leave clear (the fleets at the start);
    * `axis`: [x0, z0, x1, z1], the line between the fleets: the big islands stay clear of it so that the fleets can meet.
    */
-  static generate(seed, density = 1, keepOut = [], axis = null, radius = 21000) {
+  static generate(seed, density = 1, keepOut = [], axis = null, radius = 21000, o = {}) {
     if (!density) return new Terrain([]);
     const rng = makeRng((seed | 0) * 2654435761 + 977);
     const plan = density === 1
@@ -300,6 +338,9 @@ export class Terrain {
         break;
       }
     }
-    return new Terrain(islands);
+    const terrain = new Terrain(islands);
+    // military bases: `o.bases` 0 none, 1 an airfield and a battery for every team that can have them, 2 more batteries; `o.starts` [{ x, z, nation }] the fleets
+    if (o.bases && o.starts) placeBases(terrain, { seed, level: o.bases, starts: o.starts });
+    return terrain;
   }
 }

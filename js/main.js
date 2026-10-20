@@ -15,7 +15,7 @@ if (qs.has('preview')) {
   const { runPreview } = await import('./preview.js');
   await runPreview(engine, qs.get('preview').split(','), qs);
 } else {
-  const game = new Game(engine, canvas, { seed: Number(qs.get('seed')) || (Math.random() * 1e6) | 0, islands: qs.has('islands') ? Number(qs.get('islands')) : 1 });
+  const game = new Game(engine, canvas, { seed: Number(qs.get('seed')) || (Math.random() * 1e6) | 0, islands: qs.has('islands') ? Number(qs.get('islands')) : 1, bases: qs.has('bases') ? Number(qs.get('bases')) : 1 });
   await game.init();
   window.__game = game;
   const { createUI } = await import('./game/ui/ui.js');
