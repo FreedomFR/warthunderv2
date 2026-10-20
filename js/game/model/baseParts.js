@@ -8,7 +8,7 @@
 import { MeshBuilder, MAT } from './meshbuilder.js';
 import { makeRng } from '../math.js';
 import { roofRail } from './details.js';
-import { C, shade, mix, DARK, CHAR, RUST, slab, bar, poly, loftX, capX, disc, flagStaff, mast, drums, sandbags, hash2 } from './baseKit.js';
+import { C, shade, mix, DARK, CHAR, RUST, slab, bar, loftX, capX, disc, flagStaff, mast, sandbags } from './baseKit.js';
 
 const PI = Math.PI;
 const GLASS = '#0d141a';
@@ -89,7 +89,7 @@ function hangar(b, P, ruin) {
   const dw = Wd - 5, dh = arch ? Math.min(wallH + rise * 0.55, h * 0.64) : wallH - 0.3;
   if (ruin) {
     const r = P.rrng, burnt = mix(wall, C(CHAR), 0.6);
-    slab(b, 0, -0.6, 0, D + 0.9, 1.9, Wd + 0.9, shade(conc, 0.7), MAT.CANVAS);
+    slab(b, 0, -0.6, 0, D + 0.9, 1.9, Wd + 0.9, shade(conc, 0.82), MAT.CANVAS);
     scorch(b, r, hx, hz, 4, 0.36);
     brokenWall(b, r, -hx, -hz, -hx, hz, 0.5, wallH * 0.95, burnt, 0.3);
     const l1 = r.range(0.35, 0.85) * D, l2 = r.range(0.2, 0.7) * D;
@@ -98,6 +98,20 @@ function hangar(b, P, ruin) {
     for (const sz of [-1, 1]) bar(b, hx - 0.5, hx, 0.3, dh + r.range(-1.5, 1.2), sz * (dw / 2 + 0.4), sz * (hz), burnt, MAT.CANVAS);
     // the roof has come down: sheets lying on the floor and the ribs standing
     for (let i = 0; i < 6; i++) fallen(b, r.range(-0.7, 0.7) * hx, r.range(0.5, 2.0), r.range(-0.7, 0.7) * hz, r.range(5, 11), 0.18, r.range(3, 7), r.range(-0.5, 0.5), r.range(-0.5, 0.5), r.range(0, PI), shade(C(roofPick(P, r)), 0.5), MAT.HULL);
+    // sections of the roof that came down in one piece, and the ribs of the arch still standing
+    for (let i = 0; i < 2; i++) {
+      b.push().translate(r.range(-0.55, 0.55) * hx, 0.3, r.range(-0.45, 0.45) * hz).rotateY(r.range(0, PI)).rotateX(r.range(-0.3, 0.3));
+      const prof = [], a0 = r.range(-0.9, -0.2), a1 = a0 + r.range(0.9, 1.5), rr = Math.min(hz * 0.8, 9);
+      for (let k = 0; k <= 7; k++) { const a = a0 + (a1 - a0) * k / 7; prof.push([Math.sin(a) * rr, Math.cos(a) * rr * 0.55]); }
+      const col = shade(C(roofPick(P, r)), 0.42);
+      loftX(b, -r.range(2.5, 5), r.range(2.5, 5), prof, () => col, MAT.HULL, [-2, 0]);
+      b.pop();
+    }
+    for (let i = 0; i < 3; i++) {
+      const x = -hx + (i + 0.5) * D / 3 * r.range(0.6, 1), sz = i % 2 ? 1 : -1, hgt = r.range(5, 9);
+      b.beam([x, -0.2, sz * hz * 0.98], [x, hgt * 0.7, sz * hz * 0.8], 0.28, 0.28, shade(C(RUST), 0.9), MAT.HULL);
+      b.beam([x, hgt * 0.7, sz * hz * 0.8], [x + r.range(-1, 1), hgt, sz * hz * 0.4], 0.24, 0.24, shade(C(RUST), 0.8), MAT.HULL);
+    }
     for (let i = 0; i < 4; i++) twisted(b, r, r.range(-0.8, 0.8) * hx, r.range(-1, 1) * hz * 0.9, r.range(5, 11), shade(C(RUST), 1.0));
     for (const sz of [-1, 1]) for (let k = 0; k < 2; k++) fallen(b, hx + 0.5 + k * 1.5, 0.45, sz * r.range(4, 12), 0.35, dh * 0.9, 0.9 * Wd / 7, 1.35, 0, 0, shade(door, 0.6), MAT.HULL);
     rubble(b, r, hx * 0.85, hz * 0.85, 14, burnt);
@@ -154,10 +168,10 @@ function hangar(b, P, ruin) {
 function tower(b, P, ruin) {
   const { D, Wd, h, pal } = P;
   const hx = D / 2, hz = Wd / 2, wall = C(pal.trim), dark = C(pal.door), roof = C(pal.roof);
-  const baseH = Math.min(7, h * 0.3), shaft = Math.min(2.3, hx * 0.42), cabY = h - 5.0, cab = Math.min(hx * 0.62, 3.4);
+  const baseH = Math.min(7, h * 0.3), shaft = Math.min(1.7, hx * 0.31), cabY = h - 5.0, cab = Math.min(hx * 0.68, 3.8);
   if (ruin) {
     const r = P.rrng, burnt = mix(wall, C(CHAR), 0.55);
-    slab(b, 0, -0.5, 0, D + 1, 1.6, Wd + 1, shade(C(pal.conc), 0.7), MAT.CANVAS);
+    slab(b, 0, -0.5, 0, D + 1, 1.6, Wd + 1, shade(C(pal.conc), 0.82), MAT.CANVAS);
     scorch(b, r, hx, hz, 4, 0.32);
     brokenWall(b, r, -hx, -hz, hx, -hz, 0.6, baseH * 0.9, burnt, 0.2);
     brokenWall(b, r, -hx, hz, hx, hz, 0.6, baseH * 0.8, burnt, 0.2);
@@ -211,10 +225,10 @@ function tank(b, P, ruin) {
     disc(b, 0, 0.05, 0, bundIn - 0.2, shade(C(CHAR), 0.75), MAT.CANVAS, { salt: 3 }, 20);
     disc(b, rr.range(-1, 1), 0.07, rr.range(-1, 1), r * 0.8, C('#0c0b0a'), MAT.CANVAS, { salt: 9 }, 14);
     ringWall(b, bundIn, bundOut, 1.0, conc, shade(conc, 0.6));
-    raggedRing(b, rr, r, h * 0.42, shade(col, 0.52));
+    raggedRing(b, rr, r, h * 0.36, shade(mix(col, C(RUST), 0.5), 0.8));
     // the roof, fallen in and leaning against the wall
-    b.push().translate(r * 0.2, 1.4, -r * 0.3).rotateX(0.5).rotateZ(0.28);
-    b.cyl(0, 0, 0, r * 0.92, r * 0.92, r * 0.88, r * 0.88, 0.35, shade(col, 0.5), MAT.HULL, { seg: 18 });
+    b.push().translate(r * 0.1, 1.0, -r * 0.1).rotateX(0.3).rotateZ(0.16);
+    b.cyl(0, 0, 0, r * 0.95, r * 0.95, r * 0.9, r * 0.9, 0.35, shade(col, 0.55), MAT.HULL, { seg: 18 });
     b.pop();
     for (let i = 0; i < 5; i++) fallen(b, rr.range(-1, 1) * r, rr.range(0.3, 1.2), rr.range(-1, 1) * r, rr.range(2, 5), 0.1, rr.range(1.5, 3), rr.range(-0.6, 0.6), rr.range(-0.6, 0.6), rr.range(0, PI), shade(col, 0.45), MAT.HULL);
     for (let i = 0; i < 2; i++) twisted(b, rr, rr.range(-1, 1) * r * 0.8, rr.range(-1, 1) * r * 0.8, rr.range(2.5, 5), C(RUST));
@@ -263,7 +277,7 @@ function barracks(b, P, ruin) {
   const { D, Wd, h, pal } = P, hx = D / 2, hz = Wd / 2, wallH = h * 0.56, wall = C(pal.hut), roof = C(pal.hutRoof), trim = C(pal.trim);
   if (ruin) {
     const r = P.rrng, burnt = mix(wall, C(CHAR), 0.62);
-    slab(b, 0, -0.2, 0, D + 0.6, 0.8, Wd + 0.6, shade(C(pal.conc), 0.65), MAT.CANVAS);
+    slab(b, 0, -0.2, 0, D + 0.6, 0.8, Wd + 0.6, shade(C(pal.conc), 0.8), MAT.CANVAS);
     scorch(b, r, hx, hz, 4, 0.22);
     brokenWall(b, r, -hx, -hz, hx, -hz, 0.3, wallH * 0.75, burnt, 0.1);
     brokenWall(b, r, -hx, hz, hx * 0.3, hz, 0.3, wallH * 0.7, burnt, 0.1);
@@ -389,7 +403,7 @@ function post(b, P, ruin) {
   const lowH = h * 0.42, cabY0 = h * 0.78, tw = Math.min(hz * 0.5, 2.6);
   if (ruin) {
     const r = P.rrng, burnt = mix(conc, C(CHAR), 0.5);
-    slab(b, 0, -0.4, 0, D + 1, 1.0, Wd + 1, shade(conc, 0.6), MAT.CANVAS);
+    slab(b, 0, -0.4, 0, D + 1, 1.0, Wd + 1, shade(conc, 0.78), MAT.CANVAS);
     scorch(b, r, hx, hz, 4, 0.2);
     brokenWall(b, r, -hx, -hz, hx, -hz, 0.8, lowH * 0.9, burnt, 0.1);
     brokenWall(b, r, -hx, hz, hx, hz, 0.8, lowH * 0.8, burnt, 0.1);

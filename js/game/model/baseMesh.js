@@ -14,8 +14,7 @@ import { makeRng } from '../math.js';
 import { glyphIndex } from './glyphs.js';
 import { buildPartMesh } from './baseParts.js';
 import { buildEmplacement, gunMountSpec } from './baseGuns.js';
-import { C, shade, mix, palOf, earthOf, dirtOf, slab, bar, disc, vehicle, drums, flagStaff, mast, hash2 } from './baseKit.js';
-import { roofRail } from './details.js';
+import { C, shade, palOf, earthOf, dirtOf, slab, disc, vehicle, drums, flagStaff, mast, camoNet, hash2 } from './baseKit.js';
 
 const PI = Math.PI;
 const Y_SHOULDER = 0.1, Y_ROAD = 0.115, Y_TAXI = 0.13, Y_RUNWAY = 0.145, Y_APRON = 0.155, Y_MARK = 0.19, Y_STAIN = 0.2;
@@ -52,8 +51,6 @@ function glyph(b, ch, cx, cz, w, h, dir, y, mat = MAT.GLYPH) {
   const ny = e1[1] * e2[0] - e1[0] * e2[1];            // y component of (e1 x e2) in (x, z): ex*... sign decides the facing
   if (ny > 0) b.quadIdx(ids[0], ids[1], ids[2], ids[3]); else b.quadIdx(ids[0], ids[3], ids[2], ids[1]);
 }
-
-const wrapHeading = (a) => ((a % (PI * 2)) + PI * 2) % (PI * 2);
 
 /** The runway: asphalt in patches of slightly different tone, the rubber of the landings, the edge lines, the centre dashes, the thresholds and the numbers. */
 function runway(g, gf, rw, pal, rng, headingDeg) {
@@ -239,6 +236,7 @@ function batterySite(L, loc, pal, rng, g, gf, d, df) {
   vehicle(df, -70, 0.12, 12, 0.2, 'truck', vcol);
   vehicle(df, -58, 0.12, -22, 0.9, 'jeep', vcol);
   drums(df, -62, 0.1, span - 16, 3, 2, 0.3, '#5c6048');
+  camoNet(df, -64, 12, 6.5, 3.8, 3.2, 0.2, [pal.roof, pal.roof2, pal.roof3, pal.wall], L.id);
   drums(df, -66, 0.1, -span + 18, 2, 2, 1.0, '#7a4a3a');
 }
 

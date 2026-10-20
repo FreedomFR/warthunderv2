@@ -12,6 +12,26 @@ Airfields with heavy bombers, coastal batteries, anti-aircraft guns: the islands
 - **Bombs and shells that fall on the ground** of an island (also on bare ground: throws up earth), `landImpact` events for them.
 - Tools: `tools/baseshots.mjs` (pictures of the bases in a running battle, with helpers to put the camera beside a base or an aircraft); tests `test/basesim.mjs` (batteries, damage, chain explosions, ships against batteries, a whole sortie, no two on the runway, fuel, AA, determinism).
 
+## Unreleased — island bases (look)
+
+What is seen of the military bases of the islands (the layout and the live state are in `sim/bases.js`):
+
+- **Base models** (`model/baseMesh.js`, `baseParts.js`, `baseGuns.js`, `baseKit.js`): `buildBaseModel(layout, nation, { biome })` draws the layout with plain buffers (no GPU needed). The flat work lies a few centimetres above the
+  levelled ground: the asphalt runway (patches of tone, the rubber of the landings, edge lines, dashed centre line, eight threshold bars and the runway numbers in the glyphs of the hull numbers, read from the approach end),
+  taxiways with a yellow centre line, the concrete apron cut in slabs with joints and oil stains where the aircraft park, packed-earth shoulders and roads (coloured after the biome of the island: green, arid, rock, volcanic), the yard and
+  the tracks of a battery. Upright decoration: windsocks, flag poles with the ensign of the nation (the tower and the barracks / the post), floodlights, radio masts; up close: runway lamps, fences round the fuel dump, the barracks
+  and the battery, trucks, fuel bowsers, jeeps, stacks of drums, camouflage nets.
+- **Buildings**, painted in the camouflage of the nation (USA olive drab, Japan dark green, UK green and brown, Germany grey-green, France khaki, Italy sand): hangars (arched or gabled by nation, roof in bands of paint, pilasters,
+  windows under the eaves, big sliding doors, one pushed aside by a different amount from one hangar to the next), the control tower (offices, shaft, glazed cab on a balcony with a rail, mast, flag), fuel tanks in a bund (stair that winds
+  round the shell, pipework), barracks, the radar (lattice tower and hut; the antenna is a separate mesh that turns), the earth-covered magazines and bunkers (blast door between wing walls), the fire-control post of a battery with its rangefinder.
+  Every building also has a **ruin** (walls broken to a jagged top, the roof come down in sheets and arch sections, bent beams, a scorch mark, a crater for a magazine) drawn when its `partState` is 2; a damaged one (1) is drawn scorched with a glow.
+- **Guns**: the coastal guns are twin turrets of the ship families (Type 3 20 cm, Drh LC/34 203, Zara 203, Algerie 203, County 8 in; a generic 305 mm turret for the USA) on a concrete barbette inside a ring wall with a bank of earth, sandbags, ready lockers
+  and the entrance of the magazine; the light AA mounts (Bofors, Type 96) stand in a round pit of sandbags with ammunition boxes. They follow `guns[i].train / elev / recoil`; a gun that is not `alive` droops and smokes.
+- **BaseVisuals** (`render/baseVisual.js`): `set(terrain)`, `add(cam, states, { teams, time, shadow })` (frustum culling, detail up close, the aircraft of `parked[]` through `PlaneVisuals`), wired in `game.js` next to `islandVisuals`.
+  The sun shadow focuses on the nearest base when no ship is near (`focusNear`). The ground of a pad takes the colour of the biome (`islandMesh.js`).
+- Test `test/basemesh.mjs` (in `npm test`): the models of 39 bases of six nations build, finite vertices and unit normals, an intact and a ruined mesh for every building, sane triangle counts, the flat work within 0.5 m of the ground,
+  the antennas turn, `BaseVisuals` with a stand-in renderer queues ruins, scorched parts, moving guns and parked aircraft.
+
 ## Unreleased — ships: no collisions, things that turn
 
 - **Collision audit** (`tools/audit/overlap.mjs`, `model/layout.js`, `test/overlap.mjs` in `npm test`): every gun house and light AA mount is sampled in the volume of the mesh that is drawn and compared with the structures, funnels, masts and the other houses round it. The first run found **262 houses buried** (counting the pedestals): once the pedestal and the barbette of a mount are taken out, **53 pairs of light AA mounts stood in each other** (some at the very same spot), five secondary turrets of the Iowa, Yamato, Bismarck, Graf Zeppelin and Littorio were sunk in a deckhouse by up to 1.3 m, and the boats could stand in a turret.
