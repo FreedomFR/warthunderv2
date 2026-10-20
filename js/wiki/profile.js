@@ -91,13 +91,15 @@ function drawMasts(out, spec, X, y, base, line) {
 export function aircraftTop(spec) {
   const L = spec.L, S = spec.span, w = spec.wing, t = spec.tail, fr = spec.fus.r;
   const pad = 1.2, W = Math.max(S, t.span) + pad * 2, H = L + pad * 2;
-  const nose = L * 0.46, tailEnd = nose - L;                     // model x of nose / tail (origin near the centre of gravity)
+  const heavy = !!spec.engines;                                  // a multi-engine bomber: the real fuselage stations and one nacelle and propeller per engine
+  const nose = heavy ? spec.cg : L * 0.46, tailEnd = nose - L;   // model x of nose / tail (origin near the centre of gravity)
   const X = (mx) => f1(pad + (nose - mx));                         // model x -> svg y (nose at the top)
   const Z = (mz) => f1(W / 2 + mz);
   const body = [];
   // fuselage: widest around a third from the nose
   const N = 14, left = [], right = [];
-  for (let i = 0; i <= N; i++) {
+  if (heavy) for (const [d, , rz] of spec.body) { left.push(`${Z(-rz)},${X(nose - d)}`); right.push(`${Z(rz)},${X(nose - d)}`); }
+  else for (let i = 0; i <= N; i++) {
     const u = i / N, mx = nose - u * L;
     const r = fr * (u < 0.35 ? 0.55 + 0.45 * Math.sin((u / 0.35) * Math.PI / 2) : 1 - 0.8 * Math.pow((u - 0.35) / 0.65, 1.6));
     left.push(`${Z(-r)},${X(mx)}`); right.push(`${Z(r)},${X(mx)}`);
@@ -111,9 +113,15 @@ export function aircraftTop(spec) {
   };
   body.push(wing(t.x, t.span, t.chord, t.chord * 0.6, 0.2, '#6c7a8a'));
   body.push(wing(w.x, S, w.cr, w.ct, w.sweep || 0, '#8393a5'));
+  if (heavy) for (const e of spec.engines) {
+    if (e.nose) continue;
+    const x0 = X(nose - e.d), len = (e.aft ?? e.d + e.len + 2.6) - e.d;
+    body.push(`<rect x="${Z(e.z - e.r)}" y="${x0}" width="${f1(e.r * 2)}" height="${f1(len)}" rx="${f1(e.r * 0.9)}" fill="#a9b6c4" stroke="rgba(255,255,255,.6)" stroke-width=".08"/>`);
+  }
   if (spec.kind === 'bi') body.push(wing(w.x + (w.stagger || 0.3), S * 0.92, w.cr * 0.9, w.ct * 0.9, w.sweep || 0, '#9aa8b8'));
   body.push(`<path d="${fus}" fill="#a9b6c4" stroke="rgba(255,255,255,.6)" stroke-width=".08"/>`);
-  body.push(`<ellipse cx="${Z(0)}" cy="${X(nose + 0.05)}" rx="${f1(spec.prop ? spec.prop.r : 1.4)}" ry=".12" fill="rgba(255,255,255,.55)"/>`);
+  if (heavy) for (const e of spec.engines) body.push(`<ellipse cx="${Z(e.z)}" cy="${X(nose - e.d)}" rx="${f1(spec.prop.r)}" ry=".12" fill="rgba(255,255,255,.55)"/>`);
+  else body.push(`<ellipse cx="${Z(0)}" cy="${X(nose + 0.05)}" rx="${f1(spec.prop ? spec.prop.r : 1.4)}" ry=".12" fill="rgba(255,255,255,.55)"/>`);
   // national marking
   const mark = { USA: '#3c5a9a', Japan: '#bc002d', UK: '#c8102e', Germany: '#111', France: '#0055a4', Italy: '#009246' }[spec.nation] || '#999';
   body.push(`<circle cx="${Z(S * 0.28)}" cy="${X(w.x)}" r="${f1(S * 0.05)}" fill="${mark}"/><circle cx="${Z(-S * 0.28)}" cy="${X(w.x)}" r="${f1(S * 0.05)}" fill="${mark}"/>`);

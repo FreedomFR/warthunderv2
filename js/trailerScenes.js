@@ -323,7 +323,7 @@ export const SCENES = {
     const pick = (type, phases) => T.w.planes.find((p) => p.typeKey === type && phases.includes(p.phase) && !p.dying && !p.hidden && p.y > 8);
     for (const [tag, phases] of [['cruise', ['cruise']], ['attack', ['rollin', 'dive', 'run', 'ip', 'pullout']]]) {
       for (const type of Object.keys(PLANES)) {
-        if (PLANES[type].float) continue;
+        if (PLANES[type].float || PLANES[type].role === 'level') continue;      // the bombers of the airfields do not fly from these carriers
         const ok = await T.until(() => pick(type, phases), { max: 300, dt: 1 / 12 });
         const p = pick(type, phases);
         if (!ok || !p) { T.log('planecams: no', type, tag); continue; }

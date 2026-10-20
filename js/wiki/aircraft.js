@@ -1,4 +1,4 @@
-// "Aviation": the carrier aircraft of every nation and the catapult floatplanes of cruisers and battleships.
+// "Aviation": the carrier aircraft of every nation, the catapult floatplanes of cruisers and battleships and the land-based bombers of the island airfields.
 import { h } from '../viewer/dom.js';
 import { AIRCRAFT, NATIONS, ROLE_NAMES, fr } from './data.js';
 import { flagSVG, ACCENTS } from './flags.js';
@@ -30,6 +30,6 @@ export function renderAircraft({ onOpen }) {
   }
   refresh();
   wrap.append(chipsN, chipsR, grid,
-    h('p', { class: 'note' }, 'Les porte-avions embarquent les appareils de leur nation (bombardier en piqué, torpilleur, chasseur) ; les croiseurs et les cuirassés ont leur hydravion sur la catapulte. Les dimensions sont celles des appareils réels.'));
+    h('p', { class: 'note' }, 'Les porte-avions embarquent les appareils de leur nation (bombardier en piqué, torpilleur, chasseur) ; les croiseurs et les cuirassés ont leur hydravion sur la catapulte ; les bombardiers terrestres (B-17, G4M, Lancaster, He 111, SM.79, LeO 451) décollent des pistes des îles. Les dimensions sont celles des appareils réels.'));
   return wrap;
 }

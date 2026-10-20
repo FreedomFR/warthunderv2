@@ -68,7 +68,7 @@ function render(route) {
     main = h('div', {}, h('h1', {}, 'Comparatif des navires'), h('p', { class: 'lead' }, 'Les 30 navires côte à côte : filtrez par nation et par type, triez par n\'importe quelle colonne.'), renderCompare({ onOpen: openShip }));
   } else if (route.view === 'air') {
     active = 'air';
-    main = h('div', {}, h('h1', {}, 'Aviation embarquée'), h('p', { class: 'lead' }, 'Les avions des porte-avions et les hydravions des croiseurs et cuirassés, modélisés d\'après les appareils réels.'), renderAircraft({ onOpen: openAircraft }));
+    main = h('div', {}, h('h1', {}, 'Aviation'), h('p', { class: 'lead' }, 'Les avions des porte-avions, les hydravions des croiseurs et cuirassés et les bombardiers des bases aériennes des îles, modélisés d\'après les appareils réels.'), renderAircraft({ onOpen: openAircraft }));
   } else {
     active = 'tree';
     main = pageTree(route.nation);
@@ -82,7 +82,7 @@ function parse() {
   if (first === 'comparatif') return { view: 'cmp', id: parts[1], page: 'cmp' };
   if (first === 'aviation') {
     let id = parts[1];
-    if (id) id = id.startsWith('float-') ? 'float:' + id.slice(6) : 'plane:' + id;
+    if (id) id = id.startsWith('float-') ? 'float:' + id.slice(6) : id.startsWith('plane-') ? 'plane:' + id.slice(6) : 'plane:' + id;      // the link of a card is #/aviation/plane-<key>
     return { view: 'air', id, page: 'air' };
   }
   const nation = nationBySlug(first) || NATIONS.find((n) => n.id === lastNation);

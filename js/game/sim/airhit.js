@@ -9,13 +9,22 @@ const cache = new Map();
 export function airframe(typeKey, spec = PLANES[typeKey]) {
   let f = cache.get(typeKey);
   if (f) return f;
-  const w = spec.wing, t = spec.tail, bi = spec.kind === 'bi';
-  const b = Math.max(spec.fus.r, spec.engine ? spec.engine.r * 0.95 : 0), c = Math.max(spec.fus.r * spec.fus.ar, b);
+  const w = spec.wing, t = spec.tail, bi = spec.kind === 'bi', eng = spec.engines;
+  // a multi-engine aircraft's engines hang on the wings: the body is the fuselage alone, the nacelles add to what is seen from ahead (a disc each) and from above
+  const b = Math.max(spec.fus.r, spec.engine && !eng ? spec.engine.r * 0.95 : 0), c = Math.max(spec.fus.r * spec.fus.ar, b);
   const a = spec.L / 2 * 0.92;
   const chord = (w.cr + w.ct) / 2;
-  const wing = spec.span * chord * (bi ? (w.lowerShort ? 1.78 : 2) : 1) * 0.92;      // the two wings of a biplane, a little less than the box they span
-  const edge = (spec.span * (w.t ?? 0.3) * 0.6 + t.span * 0.12) * (bi ? 2 : 1) * 0.9 + (spec.gear === 'fixedbig' ? 1.2 : spec.gear === 'fixed' ? 0.7 : 0);   // the thickness of the wings and the tailplane seen from ahead, the wheels of a fixed undercarriage
-  f = { a, b, c, wing, edge, tail: t.span * t.chord * 0.9, fin: t.fin * t.finChord * 0.55, halfSpan: spec.span / 2, halfLen: spec.L / 2, strut: bi ? (w.gap || 1.5) * spec.span * 0.06 : 0 };
+  let wing = spec.span * chord * (bi ? (w.lowerShort ? 1.78 : 2) : 1) * 0.92;      // the two wings of a biplane, a little less than the box they span
+  if (w.plan) {            // a wing drawn as panels: the area of the panels, the nacelles that stick out of its leading edge added
+    wing = 0;
+    for (let i = 0; i + 1 < w.plan.length; i++) wing += ((w.plan[i][2] - w.plan[i][1]) + (w.plan[i + 1][2] - w.plan[i + 1][1])) / 2 * (w.plan[i + 1][0] - w.plan[i][0]) * spec.span;
+    wing *= 0.95;
+  }
+  let nac = 0, nacTop = 0;
+  if (eng) for (const e of eng) if (!e.nose) { nac += Math.PI * e.r * e.r; nacTop += 2 * e.r * Math.max(0, (e.aft ?? e.d + e.len + 2.6) - e.d - 2.5) * 0.7; }
+  const finN = t.fins ? t.fins.length : 1;
+  const edge = (spec.span * (w.t ?? 0.3) * 0.6 + t.span * 0.12) * (bi ? 2 : 1) * 0.9 + (spec.gear === 'fixedbig' ? 1.2 : spec.gear === 'fixed' ? 0.7 : 0) + nac * 0.8;   // the thickness of the wings and the tailplane seen from ahead, the wheels of a fixed undercarriage, the engines
+  f = { a, b, c, wing: wing + nacTop, edge, tail: t.span * t.chord * 0.9, fin: t.fin * t.finChord * 0.55 * finN, halfSpan: spec.span / 2, halfLen: spec.L / 2, strut: bi ? (w.gap || 1.5) * spec.span * 0.06 : 0 };
   cache.set(typeKey, f);
   return f;
 }

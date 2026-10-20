@@ -2,6 +2,7 @@
 // display records (French labels, number formatting, tiers, statistic sections). Nothing is copied: the wiki never goes out of date.
 import { ALL_SHIPS, BY_ID, NATIONS, TYPES, typeName } from '../game/data/ships.js';
 import { PLANES, floatplaneSpec, planeTypeFor } from '../game/model/planes.js';
+import { PERF } from '../game/sim/airperf.js';
 import { shipName, ROLE_NAMES } from '../viewer/subjects.js';
 import { tierOf } from './tiers.js';
 
@@ -220,16 +221,24 @@ function makeAircraft(key, spec) {
 export const AIRCRAFT = aircraftRecords();
 export const AIRCRAFT_BY_KEY = Object.fromEntries(AIRCRAFT.map((a) => [a.key, a]));
 
+const ENGINE_KIND = { radial: 'en étoile', inline: 'en ligne' };
 export function aircraftSections(a) {
-  const s = a.spec;
+  const s = a.spec, pf = a.key.startsWith('plane:') ? PERF[a.key.slice(6)] : null, kmh = (v) => unit(Math.round(v * 3.6 / 5) * 5, 'km/h', 0);
+  const level = s.role === 'level';
   const rows = [
     ['Nation', NATIONS.find((n) => n.id === s.nation).name],
     ['Rôle', a.roleName],
-    ['Configuration', s.kind === 'bi' ? 'biplan' : 'monoplan'],
+    ['Configuration', (s.kind === 'bi' ? 'biplan' : 'monoplan') + (s.engines ? `, ${s.engines.length}${NB}moteurs ${ENGINE_KIND[s.engine.type] || ''}` : '')],
     ['Longueur', unit(s.L, 'm', 2)],
     ['Envergure', unit(s.span, 'm', 2)],
     s.mass ? ['Masse (modèle du jeu)', unit(s.mass, 't')] : null,
-    s.bombKg ? ['Charge', `une bombe de ${fr(s.bombKg, 0)}${NB}kg`] : (s.role === 'torp' ? ['Charge', 'une torpille'] : null),
+    level ? ['Charge', `${fr(s.bombKg, 0)}${NB}kg de bombes en soute`] : s.bombKg ? ['Charge', `une bombe de ${fr(s.bombKg, 0)}${NB}kg`] : (s.role === 'torp' ? ['Charge', 'une torpille'] : null),
+    pf ? ['Vitesse maximale', kmh(pf.vmax)] : null,
+    pf ? ['Vitesse de croisière', kmh(pf.vc)] : null,
+    level && pf ? ['Altitude de bombardement', unit(pf.bombAlt, 'm', 0)] : null,
+    level && pf ? ['Plafond pratique', unit(pf.ceil, 'm', 0)] : null,
+    level && pf ? ['Roulement au décollage', unit(pf.runLen, 'm', 0)] : null,
+    level ? ['Mise en œuvre', 'bases aériennes des îles (piste de 800 à 1 200 m)'] : null,
     s.role === 'fighter' ? ['Armement', 'mitrailleuses d\'aile et de capot (traçantes)'] : null,
     s.siren ? ['Particularité', 'sirène « trompettes de Jéricho » en piqué'] : null,
     a.users.length ? [s.role === 'float' ? 'Embarqué sur' : 'Porte-avions', a.users.map((r) => r.name).join(', ')] : null,

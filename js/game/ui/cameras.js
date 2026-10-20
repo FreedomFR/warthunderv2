@@ -409,7 +409,7 @@ export class CameraRig {
       const vib = (0.0014 + 0.0035 * clamp(p.speed / 130, 0, 1)) * (p.lost && p.lost.engine ? 0.2 : 1);
       const tt = pc.t;
       const hx = Math.sin(tt * 61) * vib * 0.5, hy = Math.sin(tt * 47 + 1.3) * vib + Math.sin(tt * 3.1) * 0.0012 * clamp(p.speed / 100, 0, 1), hz = Math.sin(tt * 53 + 0.4) * vib * 0.7;
-      const ex = E.x + hx, ey = E.y - pc.g * 0.012 + hy, ez = hz;
+      const ex = E.x + hx, ey = E.y - pc.g * 0.012 + hy, ez = (E.z || 0) + hz;
       // the eye in the aircraft's frame (x forward, y up, z starboard) -> world: pitch, then bank about the flight axis
       const cpA = Math.cos(pitchA), spA = Math.sin(pitchA), cb = Math.cos(bank), sb = Math.sin(bank);
       const ux = -sh * spA * cb + ch * sb, uy = cpA * cb, uz = ch * spA * cb + sh * sb;      // aircraft up
