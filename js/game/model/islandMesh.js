@@ -77,7 +77,9 @@ export function buildIslandMesh(island) {
     const x = x0 + i * rc, z = z0 + j * rc;
     const n = vn(x / 14, z / 14, seed) * 0.6 + vn(x / 3.7, z / 3.7, seed + 5) * 0.4;
     const n2 = vn(x / 90, z / 90, seed + 9);
-    const col = groundColour(island.biome, h, slope, h / top, n, n2, cover(island, island.x + x, island.z + z, h, slope), climateOf(island));
+    let col = groundColour(island.biome, h, slope, h / top, n, n2, cover(island, island.x + x, island.z + z, h, slope), climateOf(island));
+    // the levelled ground of a base: mown grass and packed earth, not forest
+    if (island.pads.length) { const pw = island.padAt(island.x + x, island.z + z); if (pw > 0) col = mix(col, [116 + 14 * n, 120 + 12 * n, 84 + 10 * n], pw * 0.85); }
     // hollows are darker: the ground round a vertex higher than it is
     const lap = (at(i - 1, j) + at(i + 1, j) + at(i, j - 1) + at(i, j + 1)) / 4 - h;
     const ao = clamp(1 - lap / (rc * 1.2), 0.5, 1);

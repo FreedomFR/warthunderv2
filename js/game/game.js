@@ -8,6 +8,7 @@ import { ShipVisuals } from './render/shipVisual.js';
 import { IslandVisuals } from './render/islandVisual.js';
 import { VegetationVisuals } from './render/vegetationVisual.js';
 import { Terrain } from './sim/terrain.js';
+import { BY_ID } from './data/ships.js';
 import { PlaneVisuals } from './render/aircraftVisual.js';
 import { isMobile } from './device.js';
 import { Particles, K, DEFAULT_MAX } from './render/particles.js';
@@ -37,7 +38,7 @@ export class Game {
     this.state = 'setup';            // setup | ready | running | finished
     this.paused = false;
     this.timeScale = 1;
-    this.config = { teams: [], sep: 12000, seed: opts.seed || 1, islands: opts.islands ?? 1 };      // islands: 0 none, 1 a few, 2 an archipelago
+    this.config = { teams: [], sep: 12000, seed: opts.seed || 1, islands: opts.islands ?? 1, bases: opts.bases ?? 1 };      // islands: 0 none, 1 a few, 2 an archipelago; bases: 0 none, 1 an airfield and a battery for each team, 2 fortified
     this.renderModels = new Map();
     this.ui = null;
     this.shakeT = 0;
@@ -134,7 +135,8 @@ export class Game {
       const starts = teams.map((_, i) => teamStart(i, teams.length, this.config.sep));
       const keep = starts.map((q) => ({ x: q.x, z: q.z, r: 4800 }));
       const axis = starts.length >= 2 ? [starts[0].x, starts[0].z, starts[1].x, starts[1].z] : null;
-      w.terrain = Terrain.generate(this.config.seed, this.config.islands, keep, axis, clamp(this.config.sep * 0.9 + 5000, 9000, 21000));
+      const nation = (t) => { const c = {}; for (const e of t.entries) { const n = BY_ID[e.id]?.nation; if (n) c[n] = (c[n] || 0) + (e.count || 1); } return Object.keys(c).sort((a, b) => c[b] - c[a])[0] || 'USA'; };
+      w.terrain = Terrain.generate(this.config.seed, this.config.islands, keep, axis, clamp(this.config.sep * 0.9 + 5000, 9000, 21000), { bases: this.config.bases, starts: starts.map((q, i) => ({ x: q.x, z: q.z, nation: nation(teams[i]) })) });
       this.islandVisuals.set(w.terrain);
       this.vegetation.set(w.terrain);
     }
