@@ -167,6 +167,7 @@ export class Game {
 
   reset() {
     this.world.clear();
+    this.camera.director.reset();
     this.islandVisuals.set(null);
     this.baseVisuals.set(null);
     this.vegetation.set(null);

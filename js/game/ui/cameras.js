@@ -3,6 +3,7 @@
 import { clamp, wrapPi, lerp, D2R, TAU } from '../math.js';
 import { cockpitEye } from '../model/cockpit.js';
 import { DECK_PHASES } from '../sim/deck.js';
+import { Director } from './director.js';
 
 export const CAMERA_MODES = [
   { id: 'auto', key: '1', name: 'Auto', hint: 'Réalisateur automatique : suit l\'action' },
@@ -38,7 +39,9 @@ export class CameraRig {
     this.tactical = { x: 0, z: 0, alt: 6000, yaw: 0 };
     this.bridge = { yaw: 0, pitch: -0.02 };
     this.shell = { shell: null, hold: 0, x: 0, y: 0, z: 0, dx: 0, dz: 0, lastImpact: null };
-    this.auto = { t: 0, sub: 'follow', hold: 0 };
+    this.auto = { t: 0, sub: 'follow', hold: 0, held: 0, idle: 0 };
+    this.director = new Director(this);
+    this.versus = null; this.wide = { az: 0, k: 1 }; this.baseShot = null;
     this.plane = null;               // followed aircraft
     this.planeCam = { yaw: 0, pitch: 0, zoom: 1, view: 'chase', t: 0, fix: null, hold: 0, crash: null, deck: false, g: 0, lastVy: null, lastP: null, look: { yaw: 0, pitch: 0 } };
     this.smooth = { x: 0, y: 0, z: 0, yaw: 0, pitch: 0, init: false, fov: FOV_DEFAULT };
@@ -210,6 +213,12 @@ export class CameraRig {
         px = r.x; py = r.y; pz = r.z; yaw = r.yaw; pitch = r.pitch; roll = r.roll || 0;
         break;
       }
+      case 'versus': case 'reverse': case 'wide': {
+        const r = mode === 'wide' ? this.computeWide(dt) : this.computeVersus(dt);
+        if (!r) { px = cam.x; py = cam.y; pz = cam.z; yaw = cam.yaw; pitch = cam.pitch; break; }
+        px = r.x; py = r.y; pz = r.z; yaw = r.yaw; pitch = r.pitch;
+        break;
+      }
       case 'base': {
         const r = this.computeBase(dt);
         if (!r) { px = cam.x; py = cam.y; pz = cam.z; yaw = cam.yaw; pitch = cam.pitch; break; }
@@ -358,6 +367,7 @@ export class CameraRig {
   /** Events that interest the aircraft cameras (a followed aircraft crashing, a bomb being released...). */
   onEvents(events) {
     const pc = this.planeCam;
+    this.director.note(events, this.game.world.time);
     for (const e of events) {
       if (this.mode === 'auto' && (e.type === 'bombDrop' || e.type === 'torpedoDrop' || e.type === 'planeDown') && Math.random() < 0.45 && this.auto.sub !== 'plane') { this.auto.forcePlane = e.plane; this.auto.t = 0; }
       // the director likes a touchdown on the wire and a take-off run (a take-off only when the carrier is in sight)
@@ -528,11 +538,152 @@ export class CameraRig {
     return this.lookAt(f.x + Math.sin(s.az) * s.dist, f.y + s.h, f.z - Math.cos(s.az) * s.dist, f.x, f.y + 6, f.z);
   }
 
-  /** Automatic director: chooses a ship and a shot every few seconds. */
+  /** A shot of the ruins at a place where something big has just blown up (a base put out of action). */
+  ruinsAt(x, z) {
+    const T = this.game.world.terrain, y = T ? Math.max(0, T.heightAt(x, z)) : 0;
+    return { kind: 'ruins', base: null, fire: { x, y, z }, az: Math.random() * TAU, dist: 220 + Math.random() * 200, h: 70 + Math.random() * 70, fov: 50 };
+  }
+
+  /** The camera for a ship that fires on another: from behind and above the shooter (`versus`), or from beyond the target, shells coming in (`reverse`). */
+  computeVersus(dt) {
+    const v = this.versus, A = v && v.ship;
+    if (!A || A.state === 'sunk') return null;
+    const B = A.cmd.main.target;
+    if (!B || !B.alive) return null;
+    const dx = B.x - A.x, dz = B.z - A.z, d = Math.hypot(dx, dz) || 1, ux = dx / d, uz = dz / d, px = -uz, pz = ux;
+    if (!v.reverse) {
+      const back = A.stats.L * 0.95 + 90 + 60 * v.k, side = (A.stats.B * 0.9 + 14) * v.side;
+      const cx = A.x - ux * back + px * side, cz = A.z - uz * back + pz * side, cy = 15 + A.stats.L * 0.05 + 12 * v.k;
+      const k = clamp(0.45 + 0.25 * Math.min(1, 5000 / d), 0.4, 0.7);
+      return this.lookAt(cx, cy, cz, A.x + dx * k, A.model.topY * 0.3, A.z + dz * k);
+    }
+    const L = B.stats ? B.stats.L : 200, beyond = L * 0.5 + 150 + 80 * v.k, side = 70 * v.side;
+    const cx = B.x + ux * beyond + px * side, cz = B.z + uz * beyond + pz * side, cy = 24 + 26 * v.k;
+    return this.lookAt(cx, cy, cz, B.x - ux * Math.min(d, 600) * 0.15, (B.model ? B.model.topY : 10) * 0.3, B.z - uz * Math.min(d, 600) * 0.15);
+  }
+
+  /** An establishing shot: the group of the subject ship seen from high and a long way off, the camera circling slowly (the whole battle would be a few pixels). */
+  computeWide(dt) {
+    const wd = this.wide, t = this.target;
+    if (!t) return null;
+    wd.az += dt * 0.06;
+    // (not too high: above a thousand metres or so the sea and the sky lose their detail)
+    const R = (800 + t.stats.L * 2.4) * wd.k, h = clamp(R * 0.14 + 50, 110, 320);
+    return this.lookAt(t.x + Math.sin(wd.az) * R, h, t.z - Math.cos(wd.az) * R, t.x + t.vx * 6, 8, t.z + t.vz * 6);
+  }
+
+  /** A reaction to a big moment: the ship that blows up or goes down seen from a good way off, or the ruins of a base. */
+  react(m, now) {
+    const a = this.auto, w = this.game.world, D = this.director;
+    m.seen = true;
+    let ship = m.ship && m.ship.state !== 'sunk' ? m.ship : null;
+    if (!ship) {
+      let bd = 1e9;
+      for (const s of w.ships) { const d = Math.hypot(s.x - m.x, s.z - m.z); if (s.state !== 'sunk' && d < bd) { bd = d; ship = s; } }
+      if (!ship || bd > 2500 || m.kind === 'basedown' || m.kind === 'basefire') ship = null;
+    }
+    this.smooth.init = false;
+    if (!ship) {
+      this.baseShot = this.ruinsAt(m.x, m.z);
+      a.sub = 'base'; a.t = 5.5 + Math.random() * 2.5; a.held = 0;
+      this.fovWant = this.baseShot.fov * D2R;
+      D.started('base', null, now);
+      return;
+    }
+    this.setTarget(ship);
+    // from the side, high enough to see the whole ship and the smoke over her
+    const o = this.orbit;
+    o.az = Math.random() * TAU; o.el = 0.18 + Math.random() * 0.2; o.zoom = 1.5 + Math.random() * 0.9;
+    this.fovWant = FOV_DEFAULT;
+    a.sub = 'orbit'; a.t = 5.5 + Math.random() * 2.5; a.held = 0;
+    D.started('event', ship, now);
+  }
+
+  /** Is the current shot still worth keeping? (the ship gone, hidden behind an island, nothing in flight for a shell cam) */
+  shotBad(dt, sub) {
+    const a = this.auto, D = this.director, w = this.game.world, cam = this.engine.cam, t0 = this.target;
+    const shipShot = sub === 'follow' || sub === 'orbit' || sub === 'bridge' || sub === 'shell' || sub === 'tactical' || sub === 'wide';
+    if (shipShot) {
+      const gone = !t0 || t0.state === 'sunk' || (t0.state === 'sinking' && t0.sinkT > 16) || (t0.state !== 'afloat' && t0.state !== 'sinking');
+      if (gone) return true;
+    }
+    if (sub === 'versus' || sub === 'reverse') {
+      const A = this.versus && this.versus.ship;
+      if (!A || A.state === 'sunk' || !A.cmd.main.target || !A.cmd.main.target.alive) return true;
+    }
+    if (sub === 'shell') {
+      const sc = this.shell;
+      a.idle = !sc.shell && sc.hold <= 0 ? (a.idle || 0) + dt : 0;
+      if (a.idle > 2.4) return true;
+    }
+    if (sub === 'base' && !this.baseShot) return true;
+    // an island between the camera and what is to be seen
+    const subj = sub === 'versus' || sub === 'reverse' ? (this.versus && this.versus.reverse ? this.versus.ship.cmd.main.target : this.versus && this.versus.ship) : t0;
+    if ((shipShot && sub !== 'tactical' && sub !== 'wide') || sub === 'versus' || sub === 'reverse') {
+      if (subj && subj.model && D.hidden(cam, subj)) D.bad += dt; else D.bad = Math.max(0, D.bad - dt * 2);
+      if (D.bad > 0.7) return true;
+    }
+    return false;
+  }
+
+  /** Choose the next shot (not an aircraft shot, those are handled by updateAuto). */
+  newShot(now) {
+    const a = this.auto, w = this.game.world, D = this.director;
+    // a battery that is firing, or the ruins of a base that has been bombed: cut to it (now and then)
+    if (w.state === 'running' && w.bases.length && Math.random() < 0.1) {
+      const shot = this.pickBaseShot();
+      if (shot) { this.baseShot = shot; a.sub = 'base'; a.t = D.length('base'); a.held = 0; this.fovWant = (shot.fov || 50) * D2R; this.smooth.init = false; D.started('base', null, now); return; }
+    }
+    // the most interesting ship
+    let best = null, bs = -1e9;
+    for (const s of w.ships) {
+      if (!s.alive && !(s.state === 'sinking' && s.sinkT < 12)) continue;
+      const sc = D.interest(s, now, this.target);
+      if (sc > bs) { bs = sc; best = s; }
+    }
+    if (best) this.setTarget(best);
+    const subject = this.target;
+    const ctx = D.weights(subject, now);
+    const kind = D.pickKind(ctx.weights);
+    this.fovWant = FOV_DEFAULT;
+    this.smooth.init = false;
+    this.shell.shell = null; this.shell.hold = 0;
+    const tg = ctx.target;
+    // the camera goes on the side opposite the enemy, so that the enemy is seen beyond the ship
+    const brg = tg && tg.alive ? Math.atan2(tg.x - subject.x, -(tg.z - subject.z)) : null;
+    const side = Math.random() < 0.5 ? -1 : 1;
+    switch (kind) {
+      case 'follow': {
+        this.follow.pitch = Math.random() * 0.15; this.follow.zoom = 0.7 + Math.random() * 0.9;
+        this.follow.yaw = brg == null ? (Math.random() - 0.5) * 1.4 : clamp(wrapPi(brg + Math.PI - (this.follow.headingS + Math.PI)) * 0.5 + side * 0.5, -1.6, 1.6);
+        break;
+      }
+      case 'orbit': {
+        this.orbit.az = brg == null ? Math.random() * TAU : brg + Math.PI + side * (0.5 + Math.random() * 0.6);
+        this.orbit.el = 0.08 + Math.random() * 0.3; this.orbit.zoom = 0.7 + Math.random();
+        break;
+      }
+      case 'tactical': {
+        this.tactical.x = subject.x; this.tactical.z = subject.z; this.tactical.alt = 1800 + Math.random() * 1500;
+        break;
+      }
+      case 'versus': this.versus = { ship: subject, reverse: false, side, k: Math.random() }; this.fovWant = (46 + Math.random() * 10) * D2R; break;
+      case 'reverse': this.versus = { ship: subject, reverse: true, side, k: Math.random() }; this.fovWant = (34 + Math.random() * 10) * D2R; break;
+      case 'wide': this.wide = { az: Math.random() * TAU, k: 0.85 + Math.random() * 0.3 }; this.fovWant = 46 * D2R; break;
+      default: break;
+    }
+    a.sub = kind; a.t = D.length(kind); a.held = 0; a.idle = 0;
+    D.started(kind, subject, now);
+  }
+
+  /** Automatic director: the shots follow the action (see ui/director.js). */
   updateAuto(dt) {
-    const a = this.auto, w = this.game.world;
-    a.t -= dt;
+    const a = this.auto, w = this.game.world, D = this.director, now = w.time;
+    a.t -= dt; a.held = (a.held || 0) + dt;
     if (a.sub === 'plane' && !this.planeAlive(this.plane) && this.planeCam.hold <= 0) a.t = 0;
+    // a big moment (a magazine, a ship breaking in two, a base put out of action): cut to it at once
+    const big = a.sub === 'plane' && this.planeCam.hold > 0 ? null : D.interrupt(now, a.held);
+    if (big) { this.react(big, now); return a.sub; }
     // an aircraft is attacking (dive, torpedo run) or has been shot down: cut to it
     let planeShot = null;
     if (a.t <= 0) {
@@ -550,44 +701,14 @@ export class CameraRig {
       this.planeCam.view = views[Math.floor(Math.random() * views.length)];
       this.planeCam.yaw = (Math.random() - 0.5) * 0.5; this.planeCam.pitch = Math.random() * 0.1; this.planeCam.zoom = 0.8 + Math.random() * 0.6;
       this.planeCam.hold = 0; this.planeCam.crash = null; this.planeCam.fix = null;
-      a.sub = 'plane'; a.t = 6 + Math.random() * 5;
+      a.sub = 'plane'; a.t = 6 + Math.random() * 5; a.held = 0;
       this.smooth.init = false;
+      D.started('plane', null, now);
       return a.sub;
     }
-    // a battery that is firing, or the ruins of a base that has been bombed: cut to it (now and then)
-    if (a.t <= 0 && w.state === 'running' && w.bases.length && Math.random() < 0.2) {
-      const shot = this.pickBaseShot();
-      if (shot) { this.baseShot = shot; a.sub = 'base'; a.t = 5 + Math.random() * 4; this.fovWant = (shot.fov || 50) * D2R; this.smooth.init = false; return a.sub; }
-    }
-    if (a.sub === 'base' && a.t > 0 && this.baseShot) return a.sub;
-    // a new shot when this one has run its time or the ship is gone (a ship that is going down is followed to the end of her sinking: she is not 'alive',
-    // and taking that for 'gone' made the director cut again at every frame)
-    const t0 = this.target, gone = !t0 || t0.state === 'sunk' || (t0.state === 'sinking' && t0.sinkT > 16) || (t0.state !== 'afloat' && t0.state !== 'sinking');
-    if (a.t <= 0 || gone) {
-      // look for the most interesting ship: recently hit / firing / burning
-      let best = null, bs = -1;
-      for (const s of w.ships) {
-        if (!s.alive && !(s.state === 'sinking' && s.sinkT < 12)) continue;
-        let sc = Math.random() * 1.5 + s.stats.score * 0.3;
-        if (w.time - s.lastHitT < 8) sc += 5;
-        if (s.mounts.some((m) => m.reload > m.gun.reload - 3)) sc += 3;
-        if (s.state === 'sinking') sc += 6;
-        sc += s.fires.length * 0.4;
-        if (s === this.target) sc -= 2.5;
-        if (sc > bs) { bs = sc; best = s; }
-      }
-      if (best) this.setTarget(best);
-      const kinds = ['follow', 'follow', 'orbit', 'bridge', 'shell', 'shell', 'tactical'];
-      a.sub = kinds[Math.floor(Math.random() * kinds.length)];
-      if (w.state !== 'running') a.sub = 'orbit';
-      a.t = 8 + Math.random() * 7;
-      this.fovWant = FOV_DEFAULT;
-      this.follow.yaw = (Math.random() - 0.5) * 1.4; this.follow.pitch = Math.random() * 0.15; this.follow.zoom = 0.7 + Math.random() * 0.9;
-      this.orbit.az = Math.random() * TAU; this.orbit.el = 0.08 + Math.random() * 0.3; this.orbit.zoom = 0.7 + Math.random();
-      this.smooth.init = false;
-      if (a.sub === 'tactical') { const c = this.focusPoint(); this.tactical.x = this.target?.x ?? c.x; this.tactical.z = this.target?.z ?? c.z; this.tactical.alt = 1800 + Math.random() * 1500; }
-      this.shell.shell = null; this.shell.hold = 0;
-    }
+    // a shot that has gone bad is dropped once it has been seen for a moment
+    if (a.t > 0 && a.held > 1.2 && this.shotBad(dt, a.sub)) a.t = 0;
+    if (a.t <= 0) this.newShot(now);
     if (a.sub === 'tactical') { this.tactical.x += ((this.target?.x ?? this.tactical.x) - this.tactical.x) * Math.min(1, dt * 0.6); this.tactical.z += ((this.target?.z ?? this.tactical.z) - this.tactical.z) * Math.min(1, dt * 0.6); }
     return a.sub;
   }
