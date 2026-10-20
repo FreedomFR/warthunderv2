@@ -44,6 +44,7 @@ export class Ship {
     this.name = name;
     this.x = x; this.z = z; this.heading = heading;
     this.speed = 0; this.yawRate = 0; this.rudder = 0;
+    this.propAngle = 0;             // the screws, for the eye: turned by the speed (see render/shipVisual.js)
     this.cmd = makeCommand();
     this.controller = null;
 
@@ -419,6 +420,8 @@ export class Ship {
       this.yawRate *= Math.max(0, 1 - dt * 0.4);
       this.heading += this.yawRate * dt;
     }
+    // a screw turns about five times a second at full speed (a turn per frame stays under a quarter of the angle between two blades)
+    this.propAngle = (this.propAngle + this.speed / Math.max(1, st.maxSpeed) * 30 * dt) % (Math.PI * 2);
     const fx = Math.sin(this.heading), fz = -Math.cos(this.heading);
     this.vx = fx * this.speed; this.vz = fz * this.speed;
     this.x += this.vx * dt; this.z += this.vz * dt;

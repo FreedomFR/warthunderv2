@@ -7,6 +7,8 @@ import { buildHull } from './hull.js';
 import * as PT from './parts.js';
 import { makeRng } from '../math.js';
 import { computeClearance, inFoot, barrelBlocked } from './clearance.js';
+import { clearHouses, houseRect } from './layout.js';
+import { defaultScrews } from './screws.js';
 import { paintOf, hullNumber, LIVERY, MARKS, PALETTES } from './livery.js';
 import * as DT from './details.js';
 import { mountDims } from './mounts.js';
@@ -117,6 +119,10 @@ const AA_TYPES = {
   f20: { v: 'oerlikon', n: 1, cal: 20, bore: 65, label: 'Flak 20 mm' },
 };
 
+/** What turns on a ship (the screws and the rudders are in `model.spinners`): a search radar sweeps round (rad/s, by kind) and a fire-control director follows the guns. */
+const radarSpin = (o) => (o.kind === 'yagi' ? undefined : { x: o.x, y: o.y, z: o.z || 0, rate: o.kind === 'dish' ? 1.9 : o.kind === 'box' ? 1.2 : 0.8 });
+const dirTrack = (o) => ({ track: { x: o.x, y: o.y, z: o.z || 0 } });
+
 function kindOf(desc, ...words) { return words.some((w) => new RegExp(w, 'i').test(desc || '')); }
 
 /**
@@ -200,13 +206,15 @@ export function buildShipModel(spec, tw = {}) {
   //   props: [{ f, z (a prop off the centreline has its twin on the other side), depth (shaft axis below the waterline), d, blades,
   //             toF (where the shaft enters the hull or its bossing), strutF (shaft bracket), skeg: true (the shaft runs in a skeg) }]
   //   rudders: [{ f, z, top, bottom (depths below the waterline), chord }]
-  model.shafts = []; model.rudders = [];
+  model.shafts = []; model.rudders = []; model.spinners = [];
   // tw.bulb: a bulbous forefoot { f0, f1 (its extent from the bow), y (centre below the waterline), h, w }
   if (tw.bulb) { const q = tw.bulb; b.sphere((X(q.f0) + X(q.f1)) / 2, -q.y, 0, (X(q.f0) - X(q.f1)) / 2, q.h / 2, q.w / 2, rgb(pal.boot), MAT.SKIN, { seg: 16, rings: 10 }); }
-  for (const pr of tw.props || []) {
+  // a class whose underwater body was not measured gets the screws and the rudder its shafts and draught call for (for the eye: the damage model keeps its own shafts)
+  const dflt = tw.props ? null : defaultScrews(spec);
+  for (const pr of tw.props || dflt?.props || []) {
     for (const sg of pr.z ? [1, -1] : [0]) {
       const x = X(pr.f), z = sg * Math.abs(pr.z || 0), y = -pr.depth, xe = X(pr.toF ?? pr.f - 0.08);
-      PT.propeller(b, { x, y, z, d: pr.d, blades: pr.blades, hand: sg || 1, phase: sg * 0.4 });
+      { const id = 'spin' + model.spinners.length; b.group(id, () => PT.propeller(b, { x, y, z, d: pr.d, blades: pr.blades, hand: sg || 1, phase: sg * 0.4 })); model.spinners.push({ id, kind: 'prop', x, y, z, side: sg }); }
       b.rod(x + pr.d * 0.1, xe, y, z, pr.d * 0.06, pr.d * 0.07, rgb('#77706a'), MAT.HULL, { seg: 10 });
       if (pr.skeg) b.block({ x0: X(pr.f - 0.004) , x1: xe, hw: 0.6, zc: z, y0: y - pr.d * 0.1, y1: y + pr.d * 0.45, tx0: X(pr.f - 0.004) }, rgb(pal.boot), MAT.SKIN);
       else if (pr.strutF) {
@@ -214,13 +222,13 @@ export function buildShipModel(spec, tw = {}) {
         b.beam([xs, y, z], top, 0.35, 0.9, rgb(pal.boot), MAT.HULL);
         b.beam([xs, y, z], [xs, y + pr.d * 0.5, z * 1.15], 0.35, 0.9, rgb(pal.boot), MAT.HULL);
       }
-      model.shafts.push({ x: (x + xe) / 2, z, y, hx: Math.abs(xe - x) / 2, side: Math.sign(z) });
+      if (!dflt) model.shafts.push({ x: (x + xe) / 2, z, y, hx: Math.abs(xe - x) / 2, side: Math.sign(z) });
     }
   }
-  for (const r of tw.rudders || []) {
+  for (const r of tw.rudders || (tw.props ? null : dflt?.rudders) || []) {
     for (const sg of r.z ? [1, -1] : [0]) {
-      PT.rudder(b, { x: X(r.f), z: sg * Math.abs(r.z || 0), y0: -r.bottom, y1: -r.top, chord: r.chord }, pal);
-      model.rudders.push({ x: X(r.f), z: sg * Math.abs(r.z || 0) });
+      { const o = { x: X(r.f), z: sg * Math.abs(r.z || 0), y0: -r.bottom, y1: -r.top, chord: r.chord }, id = 'spin' + model.spinners.length; b.group(id, () => PT.rudder(b, o, pal)); model.spinners.push({ id, kind: 'rudder', x: o.x + o.chord * 0.25, y: o.y1, z: o.z }); }
+      if (!dflt) model.rudders.push({ x: X(r.f), z: sg * Math.abs(r.z || 0) });
     }
   }
   let topY = Y(0) + 4;
@@ -278,6 +286,14 @@ export function buildShipModel(spec, tw = {}) {
     note(y1);
   }
 
+  const supportBelow = (x, z, y) => {
+    const hb = hull.halfBeamDeck(x);
+    let base = Math.abs(z) < hb ? Y(x) - hull.camber * Math.pow(z / (hb || 1), 2) : -9;
+    for (const s of b.solids) if (s[3] <= y + 0.1 && s[3] > base && inFoot(s, x, z, 0.3)) base = s[3];
+    return base;
+  };
+  // the foot of a mast or of one of its legs: it stands on the roof under it, not in the air above it (a base measured on the plan can float over a deck that the model builds lower)
+  const lowerBase = (x, z, y) => { const sp = supportBelow(x, z, y + 0.15); return y - sp > 0.5 && y - sp < 30 ? sp : y; };
   const funnelTops = [];
   // -------- funnels --------
   for (let i = 0; i < Math.min(fCount, fF.length); i++) {
@@ -285,9 +301,11 @@ export function buildShipModel(spec, tw = {}) {
     if (carrier) continue;
     // tw.funnels[i]: measured { lx, lz (m), y0 (base above the deck), h, rake, top (top / base size) }
     const fw = tw.funnels?.[i] || {};
-    const y0 = Y(x) + (fw.y0 ?? houseH);
+    let y0 = Y(x) + (fw.y0 ?? houseH);
     const small = tw.funnelScale ? tw.funnelScale[i] ?? 1 : 1;
-    const fh = (fw.h ?? tw.funnelH ?? fun.heightAboveDeckM ?? (t === 'DD' ? 11 : 18)) * small;
+    let fh = (fw.h ?? tw.funnelH ?? fun.heightAboveDeckM ?? (t === 'DD' ? 11 : 18)) * small;
+    // a funnel stands on what is under it (a deckhouse, or the deck itself where there is none): a base that would float above it is brought down and the funnel keeps its top
+    { const base = supportBelow(x, 0, y0 + 0.2); if (y0 - base > 0.4 && y0 - base < 4) { fh += y0 - base; y0 = base; } }
     const flx = fw.lx ?? funLx * (tw.funnelX?.[i] ?? 1), flz = fw.lz ?? funLz * (tw.funnelZ?.[i] ?? 1);
     const top = fw.top ?? tw.funnelTop ?? 0.88, rake = fw.rake ?? tw.funnelRake ?? fh * 0.14;
     const fo = { x, y0, h: fh, lx: flx, lz: flz, topLx: flx * top, topLz: flz * top, rake, band: tw.funnelBand, capSlope: fw.capSlope, pipes: fw.pipes };
@@ -298,14 +316,6 @@ export function buildShipModel(spec, tw = {}) {
   }
 
   // what a mount stands on: the highest roof or deck under it (within 1 m of its footprint centre)
-  const supportBelow = (x, z, y) => {
-    const hb = hull.halfBeamDeck(x);
-    let base = Math.abs(z) < hb ? Y(x) - hull.camber * Math.pow(z / (hb || 1), 2) : -9;
-    for (const s of b.solids) if (s[3] <= y + 0.1 && s[3] > base && inFoot(s, x, z, 0.3)) base = s[3];
-    return base;
-  };
-  // the foot of a mast or of one of its legs: it stands on the roof under it, not in the air above it (a base measured on the plan can float over a deck that the model builds lower)
-  const lowerBase = (x, z, y) => { const sp = supportBelow(x, z, y + 0.15); return y - sp > 0.5 && y - sp < 30 ? sp : y; };
   // -------- bridge tower / island --------
   if (!carrier) {
     const x = X(towerF);
@@ -326,7 +336,7 @@ export function buildShipModel(spec, tw = {}) {
     // tw.dir0: measured main director { dx, w, l, h }; tw.foremast: { dx, y0 (base above the deck) }
     const d0 = tw.dir0 || {};
     const dirO = { x: x + (d0.dx ?? 0.3), y, z: 0, w: d0.w ?? topW * 0.7, l: d0.l ?? topW * 0.75, h: d0.h ?? (t === 'DD' ? 1.6 : 2.4), kind: tw.dirKind || dirKind };
-    part('director0', 'director', 'Directeur de tir avant', () => PT.director(b, dirO, pal), () => b.cylinder(dirO.x, dirO.y, 0, 0.5, 0.4, dirO.y + 0.7, rgb(charred(pal)), MAT.DARK, { seg: 6 }));
+    part('director0', 'director', 'Directeur de tir avant', () => PT.director(b, dirO, pal), () => b.cylinder(dirO.x, dirO.y, 0, 0.5, 0.4, dirO.y + 0.7, rgb(charred(pal)), MAT.DARK, { seg: 6 }), dirTrack(dirO));
     y += t === 'DD' ? 2.0 : 3.0;
     if (tw.foremast?.y0 != null) y = Y(x) + tw.foremast.y0;
     const mx = x + (tw.foremast?.dx ?? -0.8);
@@ -368,8 +378,9 @@ export function buildShipModel(spec, tw = {}) {
     }
     // radar
     const rkind = ['USA', 'UK'].includes(spec.nation) ? 'bedspring' : 'box';
-    part('radar0', 'radar', 'Radar de veille', () => PT.radar(b, { x: mx, y: Math.max(mastTopY - 3.5, y), z: 0, kind: rkind, w: Math.min(7, 0.2 * B + 2) }, pal));
-    part('radar1', 'radar', 'Radar de surface', () => PT.radar(b, { x: x + 2, y: r.tops[Math.max(0, tiers.length - 2)], z: topW * 0.2, kind: 'dish' }, pal));
+    const ro0 = { x: mx, y: Math.max(mastTopY - 3.5, y), z: 0, kind: rkind, w: Math.min(7, 0.2 * B + 2) }, ro1 = { x: x + 2, y: r.tops[Math.max(0, tiers.length - 2)], z: topW * 0.2, kind: 'dish' };
+    part('radar0', 'radar', 'Radar de veille', () => PT.radar(b, ro0, pal), undefined, { spin: radarSpin(ro0) });
+    part('radar1', 'radar', 'Radar de surface', () => PT.radar(b, ro1, pal), undefined, { spin: radarSpin(ro1) });
     note(mastTopY + 2);
     // candidate eyes for the bridge camera: outside the front face of every tier, at window height, on the wings and a little ahead (picked in bridgeEye())
     {
@@ -601,7 +612,7 @@ export function buildShipModel(spec, tw = {}) {
     part('director' + (i + 1), 'director', d.label || 'Directeur de tir', () => {
       if (ped > 0) b.cylinder(x, y, z, pr, pr * 0.9, y + ped, rgb(pal.sup), MAT.HULL, { seg: 12 });
       PT.director(b, o, pal);
-    }, () => b.cylinder(x, y, z, 0.6, 0.45, y + Math.max(0.8, ped * 0.5), rgb(charred(pal)), MAT.DARK, { seg: 6 }));
+    }, () => b.cylinder(x, y, z, 0.6, 0.45, y + Math.max(0.8, ped * 0.5), rgb(charred(pal)), MAT.DARK, { seg: 6 }), dirTrack(o));
     note(o.y + o.h + 1);
   }
 
@@ -622,14 +633,23 @@ export function buildShipModel(spec, tw = {}) {
   // -------- AA guns, boats, rails, clutter --------
   // tw.aa: the measured layout [{ k (AA_TYPES key), f, z (m off the centreline; a mount off the centreline has its twin on the other
   // side), y (m above the deck, or the flight deck of a carrier), one: true for a single mount on one side }]; otherwise spread at random
+  // two light mounts never share a spot: a measured mount that would stand in another one slides fore or aft along its deck until it is clear (and is left out
+  // when there is no room), and a mount that is not measured is only put where no other is
+  const aaTaken = (x, y, z, rad) => model.aaMounts.some((m) => Math.abs(m.y - y) < 2.2 && Math.hypot(m.x - x, m.z - z) < (m.rad || 0.9) + rad) || model.tubes.some((q) => Math.abs(q.y - y) < 2.4 && Math.abs(q.x - x) < 2.8 && Math.abs(q.z - z) < 2.8);
   for (const a of tw.aa || []) {
-    const ty = AA_TYPES[a.k], x = X(a.f);
+    const ty = AA_TYPES[a.k], x0 = X(a.f), rad = ty.tub ? ty.tub * 0.55 : 0.55;
     for (const sg of a.z && !a.one ? [1, -1] : [a.z < 0 ? -1 : 1]) {
-      let z = a.one ? a.z : sg * Math.abs(a.z || 0), y;
-      [z, y] = landOn(x, z, (carrier ? fdY : Y(x)) + (a.y || 0));
+      let placed = null;
+      for (const dx of [0, 0.6, -0.6, 1.2, -1.2, 1.8, -1.8, 2.5, -2.5]) {
+        const x = x0 + dx;
+        const [z, y] = landOn(x, a.one ? a.z : sg * Math.abs(a.z || 0), (carrier ? fdY : Y(x)) + (a.y || 0));
+        if (!aaTaken(x, y, z, rad)) { placed = { x, y, z }; break; }
+      }
+      if (!placed) continue;
+      const { x, y, z } = placed;
       if (ty.tub && !a.noTub) PT.tub(b, x, y - 0.05, z, ty.tub, 0.95, pal);
       pedestal(x, z, y, 0.7);
-      model.aaMounts.push({ variant: ty.v, cal: ty.cal, n: ty.n, bore: ty.bore, x, y, z, yaw0: z ? Math.sign(z) * Math.PI / 2 : (a.f < 0.5 ? 0 : Math.PI), label: ty.label });
+      model.aaMounts.push({ variant: ty.v, cal: ty.cal, n: ty.n, bore: ty.bore, x, y, z, rad, yaw0: z ? Math.sign(z) * Math.PI / 2 : (a.f < 0.5 ? 0 : Math.PI), label: ty.label });
       model.aa.push([x, y + 1.2, z]);
       note(y + 3);
     }
@@ -658,7 +678,7 @@ export function buildShipModel(spec, tw = {}) {
       if (t === 'DD') DT.depthCharges(b, hull, X(0.93), pal);
       const nb = tw.boats ? 0 : L > 150 ? 2 : 1;
       // nothing of the clutter stands on a gun: a boat slides along the deck to the nearest free spot, rafts and ventilators are left out where a mount is
-      const nearGun = (x, z, rx, rz) => model.mounts.some((m) => Math.abs(m.x - x) < rx + m.cal / 100 && Math.abs(m.z - z) < rz + m.cal / 100 && m.y > Y(m.x) - 1) || model.aaMounts.some((m) => Math.abs(m.x - x) < rx + 0.8 && Math.abs(m.z - z) < rz + 0.8 && m.y > Y(m.x) - 1);
+      const nearGun = (x, z, rx, rz) => model.mounts.some((m) => { if (!(m.y > Y(m.x) - 1)) return false; const q = houseRect(model, m); return x + rx > q.x0 - 0.5 && x - rx < q.x1 + 0.5 && z + rz > q.z0 - 0.5 && z - rz < q.z1 + 0.5; }) || model.aaMounts.some((m) => Math.abs(m.x - x) < rx + 0.8 && Math.abs(m.z - z) < rz + 0.8 && m.y > Y(m.x) - 1);
       for (let i = 0; i < nb; i++) for (const sg of [-1, 1]) {
         const len = L > 150 ? 10.5 : 7.5, z = sg * (model.house ? model.house.hw * 0.74 : hull.halfBeamDeck(X(0.46)) * 0.66);
         let x = X(0.46 + i * 0.075);
@@ -718,7 +738,7 @@ export function buildShipModel(spec, tw = {}) {
       // and with a free field of fire outboard (the guns that stand against a wall have none)
       const yaw = sg * Math.PI / 2;
       if (!carrier && supportBelow(x, z, y) < y - 0.6) continue;     // it stands on a deck or a roof, not beyond the edge of one
-      if (!crowded(x, y, z) && !crowdedByGuns(x, y, z) && ![-1, -0.5, 0, 0.5, 1].some((d) => [0.1, 0.45].some((e) => barrelBlocked(b.solids, x, y, z, yaw + d, e, 3.2)))) spot = { x, y, z, sg };
+      if (!crowded(x, y, z) && !crowdedByGuns(x, y, z) && !aaTaken(x, y, z, 1.1) && ![-1, -0.5, 0, 0.5, 1].some((d) => [0.1, 0.45].some((e) => barrelBlocked(b.solids, x, y, z, yaw + d, e, 3.2)))) spot = { x, y, z, sg };
     }
     if (!spot) continue;
     const { x, y, z, sg } = spot;
@@ -727,7 +747,7 @@ export function buildShipModel(spec, tw = {}) {
     const pick = AA_KINDS[spec.nation] || AA_KINDS.USA;
     let rr = rnd() * (L > 150 ? 1 : 0.8), kd = pick[pick.length - 1];
     for (const k of pick) { rr -= k.w; if (rr <= 0) { kd = k; break; } }
-    model.aaMounts.push({ variant: kd.v, cal: kd.cal, n: kd.n, bore: kd.bore, x, y, z, yaw0: sg * Math.PI / 2 + (rnd() - 0.5) * 0.4, label: kd.label });
+    model.aaMounts.push({ variant: kd.v, cal: kd.cal, n: kd.n, bore: kd.bore, x, y, z, rad: kd.n >= 3 ? 1.1 : 0.7, yaw0: sg * Math.PI / 2 + (rnd() - 0.5) * 0.4, label: kd.label });
     model.aa.push([x, y + 1.2, z]);
   }
 
@@ -746,11 +766,14 @@ export function buildShipModel(spec, tw = {}) {
   model.topY = topY;
   model.radius = Math.hypot(L / 2, topY);
   if (model.bridge) bridgeEye(model, b.solids, L);
+  // a gun house that is sunk in a deckhouse slides a few tenths of a metre along its deck before the arcs are worked out
+  clearHouses(model, b.solids, hull, supportBelow, { carrier });
   computeClearance(model, b.solids, hull);
   model.solids = b.solids;                 // kept for the audit (tools/audit.mjs)
   b.solids = null;
   const built = b.build();
   model.mesh = built;
+  for (const sp of model.spinners) sp.mesh = built.groups[sp.id];
   for (const p of model.parts) { p.mesh = built.groups[p.id]; p.ruin = p.hasRuin ? built.groups[p.id + '_ruin'] : null; p.fineMesh = p.hasFine ? built.groups[p.id + '_fine'] : null; }
   model.fine = built.groups.fine || null;
   return model;
@@ -830,9 +853,10 @@ function buildCarrier(b, model, spec, hull, pal, tw, X, Y, fdY, rnd, note, part)
   const my0 = ti.mastY0 ?? ih, imx = ti.mastF != null ? X(ti.mastF) : ix + il * 0.1, imh = ti.mastTop != null ? ti.mastTop - my0 : 14;
   part('mast0', 'mast', 'Mât de l\'îlot', () => { PT.poleMast(b, { x: imx, y0: fdY + my0, h: imh, z: iz, r: 0.3, yards: [[0.6, 7]] }, pal); PT.ensign(b, { x: imx - 0.5, y: fdY + my0 + imh * 0.75, z: iz, len: clamp(L * 0.02, 3, 6) }); }, () => b.cylinder(imx, fdY + my0, iz, 0.4, 0.25, fdY + my0 + 2.5, dark, MAT.DARK, { seg: 6 }));
   const rdx = ti.radarF != null ? X(ti.radarF) : imx;
-  part('radar0', 'radar', 'Radar de veille', () => PT.radar(b, { x: rdx, y: fdY + (ti.radarY ?? my0 + imh * 0.57), z: iz, kind: ti.radarKind || (['USA', 'UK'].includes(spec.nation) ? 'bedspring' : 'box'), w: 6 }, pal));
+  const rco = { x: rdx, y: fdY + (ti.radarY ?? my0 + imh * 0.57), z: iz, kind: ti.radarKind || (['USA', 'UK'].includes(spec.nation) ? 'bedspring' : 'box'), w: 6 };
+  part('radar0', 'radar', 'Radar de veille', () => PT.radar(b, rco, pal), undefined, { spin: radarSpin(rco) });
   const dgx = ti.dirF != null ? X(ti.dirF) : ix + il * 0.2, dgy = ti.dirY ?? ih;
-  part('director0', 'director', 'Directeur de tir', () => PT.director(b, { x: dgx, y: fdY + dgy, z: iz, w: 3.4, l: 3.2, h: 2.2, kind: spec.nation === 'Japan' ? 'drum' : 'box' }, pal), () => b.cylinder(dgx, fdY + dgy, iz, 0.5, 0.4, fdY + dgy + 0.7, dark, MAT.DARK, { seg: 6 }));
+  part('director0', 'director', 'Directeur de tir', () => PT.director(b, { x: dgx, y: fdY + dgy, z: iz, w: 3.4, l: 3.2, h: 2.2, kind: spec.nation === 'Japan' ? 'drum' : 'box' }, pal), () => b.cylinder(dgx, fdY + dgy, iz, 0.5, 0.4, fdY + dgy + 0.7, dark, MAT.DARK, { seg: 6 }), dirTrack({ x: dgx, y: fdY + dgy, z: iz }));
   note(fdY + my0 + imh + 2);
   model.island = { x: ix, z: iz, y: fdY + ih };
   // the bridge camera looks out of the front of the island, over the flight deck
