@@ -107,6 +107,11 @@ export function initMobile(game, ui) {
   function closeHint() { hint.classList.add('hidden'); try { localStorage.setItem('naval.mobileHint', '1'); } catch (e) { /* storage blocked */ } }
   if (!seen && innerHeight > innerWidth) hint.classList.remove('hidden');
 
+  // ---- the panels that the desktop buttons open get a cross to close them ----
+  const closer = (id, fn) => { const panel = document.getElementById(id); if (panel) panel.prepend(el('button', { class: 'mclose', 'aria-label': 'Fermer', onclick: fn }, '✕')); };
+  closer('settings', () => document.getElementById('settings').classList.add('hidden'));
+  closer('setup', () => document.getElementById('setup').classList.add('collapsed'));
+
   document.getElementById('ui').append(bar, menu, joy, jbtns, hint);
 
   // ---- every frame ----

@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased — phone: closing the panels
+
+- **The settings panel could not be closed on a phone**: the desktop button that toggles it is hidden there, and the panel covered the menu. The top bar and the menu now sit above every panel, and the settings and the fleet setup have a cross to close them (the scoreboard and the help close from the menu or by a tap, as before).
+
 ## Unreleased — phone interface
 
 - **Touch interface** for phones (`ui/mobile.js`, `ui/mobileStyle.js`, `device.js`): compact top bar and menu, camera row that scrolls, information panels opened on demand, full-screen fleet setup, a virtual stick and buttons for the free camera and the map, a landscape full-screen button, the screen kept awake in battle. The desktop interface is unchanged.
