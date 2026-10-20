@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased — dev version online
+
+- **The `dev` branch is published too**, in `/dev/` of the same GitHub Pages site (`main` stays at the root), with a "Version dev" badge. `tools/site.mjs --main <dir> --dev <dir>` assembles both; the workflow runs the tests of the pushed branch, then publishes both versions from their committed files (`naval.html` must be rebuilt before committing, as before).
+
 ## Unreleased — GitHub Pages
 
 - **Publication**: `tools/site.mjs` assembles the files of the site (the game as the single minified page, the wiki, the viewer and `js/`: 2.2 MB, 114 files) and `.github/workflows/pages.yml` publishes them on GitHub Pages at every change of `main`, after `npm test` and `npm run build`. The log endpoint of the dev server is only called on `localhost`; the wiki links its credits to the repository.

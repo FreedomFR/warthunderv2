@@ -269,10 +269,9 @@ npm test                               # sans carte graphique
 
 ## Publier le site
 
-Le jeu tourne entièrement dans le navigateur du visiteur : un hébergement de fichiers statiques suffit (GitHub Pages), sans programme serveur.
+Le jeu tourne entièrement dans le navigateur du visiteur : un hébergement de fichiers statiques suffit (GitHub Pages), sans programme serveur. Deux versions sont en ligne : `main` (stable) à la racine et `dev` (en cours de validation) dans `/dev/`, avec un badge « Version dev » en bas à gauche.
 
-- `node tools/site.mjs` assemble `_site/` : `index.html` (le jeu, version minifiée en un seul fichier, issue de `npm run build`), `wiki.html`, `viewer.html` et `js/` (sans les fichiers de la bande-annonce). Pour l'essayer : `cd _site && python3 -m http.server 8095`.
-- `.github/workflows/pages.yml` publie ce dossier à chaque fusion dans `main` : `npm ci`, `npm test` (rien n'est publié si un test échoue), `npm run build`, `tools/site.mjs`, puis le déploiement. Il peut aussi être lancé à la main (onglet Actions).
-- Réglage à faire une seule fois : *Settings → Pages → Build and deployment → Source : GitHub Actions*.
-- Adresse : `https://freedomfr.github.io/warthunderv2/`. Il faut un navigateur avec WebGPU (Chrome ou Edge récent) et le site doit être servi en HTTPS, ce que GitHub Pages fait.
-
+- `node tools/site.mjs` assemble `_site/` pour ce dossier : `index.html` (le jeu, la page unique minifiée `naval.html`, construite avec `npm run build` et commitée avec le code), `wiki.html`, `viewer.html` et `js/` (sans les fichiers de la bande-annonce). Avec `--main <dossier> --dev <dossier>`, il assemble les deux versions comme le fait le workflow. Pour l'essayer : `cd _site && python3 -m http.server 8095`.
+- `.github/workflows/pages.yml` publie les deux versions à chaque modification de `main` ou de `dev` : il lance `npm test` sur la branche modifiée (rien n'est publié si un test échoue) puis déploie. Il peut aussi être lancé à la main (onglet Actions). **`naval.html` doit donc être reconstruit avant de commiter** : le site publie le fichier commité.
+- Réglages faits une seule fois : *Settings → Pages → Source : GitHub Actions*, et l'environnement `github-pages` autorise les branches `main` et `dev`.
+- Adresses : `https://freedomfr.github.io/warthunderv2/` (main) et `https://freedomfr.github.io/warthunderv2/dev/` (dev). Il faut un navigateur avec WebGPU (Chrome ou Edge récent) ; GitHub Pages sert en HTTPS, ce que WebGPU exige.
