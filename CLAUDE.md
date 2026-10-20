@@ -34,6 +34,7 @@ Software rendering is slow: 10–25 s per frame at 800×450 with the ocean on; a
 |---|---|
 | Ship data (spec sheets) | `js/game/data/specs/<nation>.js` (fields marked `estimated` are guesses), `ships.js` |
 | Ship meshes | `js/game/model/shipbuilder.js` (`buildShipModel(spec, tweaks)`), per-ship hand tuning in `tweaks.js`, paint in `livery.js` |
+| Collisions, what turns | `model/layout.js` (how a house sits among the structures: `buriedIn`, `clearHouses`), `tools/audit/overlap.mjs` (the audit; `npm test` runs it), `model/screws.js` (screws and rudders of the classes without measured ones), `render/shipVisual.js` (`spinAbout`: screws, rudders, radars, directors) |
 | Gun turrets | `js/game/model/mounts.js`: `FAMILY` (measured dimensions per turret type), `mountDims()`, house builders |
 | Firing | `js/game/sim/weapons.js` (muzzle position of each barrel, `recoilCurve`, `muzzle` event), `js/game/render/effects.js` (`muzzle`, `blast`), `render/particles.js` + `js/wgsl/particles.js` (particle kinds incl. `FIREBALL`) |
 | Simulation | `js/game/sim/` (world, ship, ai, aircraft, modules/damage, explosions); `test/` |

@@ -7,7 +7,19 @@ import { mat4Ship, mat4Frame, mat4Mul, mountMatrices } from '../math.js';
 
 const M32 = new Float32Array(16), H32 = new Float32Array(16), G32 = new Float32Array(16);
 const F64 = new Float64Array(16), M64 = new Float64Array(16), SEC = new Float64Array(16), TR = new Float64Array(16), TMP = new Float64Array(16);
-const H64 = new Float64Array(16), G64 = new Float64Array(16);
+const H64 = new Float64Array(16), G64 = new Float64Array(16), SP = new Float64Array(16), SQ = new Float64Array(16);
+
+/** S * T(p) * R * T(-p): the matrix of a piece that turns about a vertical ('y') or a longitudinal ('x') axis through the point p of the ship. */
+export function spinAbout(out, S, axis, angle, px, py, pz) {
+  const c = Math.cos(angle), s = Math.sin(angle);
+  SP.fill(0); SP[15] = 1;
+  if (axis === 'y') { SP[0] = c; SP[2] = s; SP[5] = 1; SP[8] = -s; SP[10] = c; }       // the same sense as the yaw of a mount (math.js mat4YawPitchAt)
+  else { SP[0] = 1; SP[5] = c; SP[6] = s; SP[9] = -s; SP[10] = c; }
+  SP[12] = px - (SP[0] * px + SP[4] * py + SP[8] * pz);
+  SP[13] = py - (SP[1] * px + SP[5] * py + SP[9] * pz);
+  SP[14] = pz - (SP[2] * px + SP[6] * py + SP[10] * pz);
+  mat4Mul(out, S, SP);
+}
 
 /** A battle scar: scorched disc with torn petals (radius 1, lying on the XZ plane). */
 function buildScarMesh() {
@@ -96,6 +108,7 @@ export class ShipVisuals {
         intact: r.createMesh(p.mesh, model.id + ' ' + p.id), ruin: p.ruin ? r.createMesh(p.ruin, model.id + ' ' + p.id + ' ruin') : null,
         fine: p.fineMesh ? r.createMesh(p.fineMesh, model.id + ' ' + p.id + ' fine') : null, cx: (p.bb[0] + p.bb[3]) / 2,
       })),
+      spinners: (model.spinners || []).map((sp) => ({ ...sp, gpu: r.createMesh(sp.mesh, model.id + ' ' + sp.id) })),
       mounts: new Map(), aa: new Map(),
     };
     for (const m of model.mounts) {
@@ -136,6 +149,22 @@ export class ShipVisuals {
     } else this.addSection(ship, S64, tint, dmg, fire, rnd, 0, 0);
   }
 
+  /** The matrix of a radar or a director of a ship, turned about its axis: the radar sweeps at its rate, the director follows the first main turret that can still train. */
+  turnedPart(ship, S, def) {
+    const clock = ship.world ? ship.world.time : performance.now() / 1000;
+    let yaw;
+    if (def.spin) yaw = clock * def.spin.rate;
+    else {
+      yaw = 0;
+      const ms = ship.mounts, rec = ship.model.mounts;
+      if (ms) for (let i = 0; i < rec.length; i++) if (rec[i].group === 'main' && ms[i] && !ms[i].wrecked && !ms[i].gone) { yaw = rec[i].arcC + ms[i].trainRel; break; }
+    }
+    const o = def.spin || def.track;
+    spinAbout(SQ, S, 'y', yaw, o.x, o.y, o.z);
+    for (let k = 0; k < 16; k++) G32[k] = SQ[k];
+    return G32;
+  }
+
   addSection(ship, S, tint, dmg, fire, rnd, half, cutX) {
     const r = this.r, model = ship.model;
     const rm = this.forModel(model);
@@ -154,10 +183,24 @@ export class ShipVisuals {
       const st = ship.partState ? ship.partState[i] : 0;
       if (st === 2) { if (p.ruin) r.add(p.ruin, M32, tint, 1, 0.55, rnd); }
       else {
-        r.add(p.intact, M32, tint, st === 1 ? Math.max(dmg, 0.6) : dmg, st === 1 ? Math.max(fire, 0.3) : fire, rnd);
-        if (near && p.fine) r.add(p.fine, M32, tint, st === 1 ? Math.max(dmg, 0.6) : dmg, st === 1 ? Math.max(fire, 0.3) : fire, rnd);
+        // a radar sweeps round, a director turns with the guns: the part is drawn turned about its own axis
+        const def = model.parts[i], pm = (def.spin || def.track) && lod < 2 ? this.turnedPart(ship, S, def) : M32;
+        r.add(p.intact, pm, tint, st === 1 ? Math.max(dmg, 0.6) : dmg, st === 1 ? Math.max(fire, 0.3) : fire, rnd);
+        if (near && p.fine) r.add(p.fine, pm, tint, st === 1 ? Math.max(dmg, 0.6) : dmg, st === 1 ? Math.max(fire, 0.3) : fire, rnd);
       }
     }
+    // the screws and the rudders (under the water: seen from a low angle, in the model viewer, on a wreck that rolls over)
+    if (lod < 1) {
+      const clock = ship.world ? ship.world.time : performance.now() / 1000;
+      for (const sp of rm.spinners) {
+        if (!inHalf(sp.x)) continue;
+        if (sp.kind === 'prop') spinAbout(SQ, S, 'x', (ship.propAngle ?? clock * 6) * (sp.side < 0 ? -1 : 1), sp.x, sp.y, sp.z);
+        else spinAbout(SQ, S, 'y', -(ship.rudder || 0) * 0.6, sp.x, sp.y, sp.z);
+        for (let k = 0; k < 16; k++) M32[k] = SQ[k];
+        r.add(sp.gpu, M32, tint, dmg, fire, rnd, cutX, half);
+      }
+    }
+    for (let i = 0; i < 16; i++) M32[i] = S[i];
     r.setPaint(null);
     // main and secondary mounts
     const mounts = ship.mounts;
