@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Visualiseur 3D — Combat naval</title>
+<link rel="icon" href="data:,">
+<style>
+  :root { --amber: #e2a04e; --ink: #e8e2d6; --bg: #0b0f14d8; --line: #ffffff1a; }
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; color: var(--ink); font: 13px/1.35 system-ui, "Segoe UI", sans-serif; }
+  #c { position: fixed; inset: 0; width: 100%; height: 100%; display: block; cursor: grab; touch-action: none; }
+  #ui { position: fixed; inset: 0; pointer-events: none; }
+  #ui > * { pointer-events: auto; }
+  .hidden { display: none !important; }
+  .panel { background: var(--bg); backdrop-filter: blur(8px); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; box-shadow: 0 8px 30px #0008; }
+  .hud { background: #0b0f14b8; backdrop-filter: blur(5px); border-radius: 9px; border: 1px solid #ffffff12; }
+  button, select, input { font: inherit; color: inherit; }
+  select { background: #1a2029; border: 1px solid #ffffff22; border-radius: 6px; padding: 5px 6px; outline: none; max-width: 100%; }
+  select option, select optgroup { background: #151a21; color: var(--ink); }
+  input[type=range] { accent-color: var(--amber); min-width: 0; }
+  .btn { background: #ffffff14; border: 1px solid #ffffff2a; border-radius: 7px; padding: 7px 10px; cursor: pointer; text-decoration: none; color: var(--ink); display: inline-block; transition: background .12s; }
+  .btn:hover { background: #ffffff26; }
+  .btn.primary { background: #e2a04e33; border-color: #e2a04e88; }
+  .btn.primary:hover { background: #e2a04e55; }
+  .btn.small { padding: 4px 8px; font-size: 12px; }
+  .btn.on { background: #e2a04e55; border-color: var(--amber); }
+  .ico { background: #ffffff12; border: 1px solid #ffffff22; border-radius: 6px; width: 30px; height: 30px; cursor: pointer; padding: 0; font-size: 20px; line-height: 1; }
+  .ico:hover { background: #ffffff2a; }
+  .title { font-weight: 700; color: var(--amber); margin-bottom: 6px; font-size: 15px; }
+
+  #top { position: fixed; left: 12px; top: 12px; display: flex; gap: 6px; align-items: center; padding: 6px; max-width: calc(100vw - 24px); box-sizing: border-box; }
+  #top .back { color: var(--amber); text-decoration: none; padding: 0 8px; white-space: nowrap; }
+  #top select { flex: 1; min-width: 0; width: 340px; }
+  #info { position: fixed; left: 12px; top: 62px; display: flex; flex-direction: column; gap: 1px; padding: 6px 10px; background: #0b0f14a0; border-radius: 9px; pointer-events: none !important; }
+  #info b { font-size: 17px; }
+  #info span { opacity: .8; }
+  #info a { color: var(--amber); pointer-events: auto; margin-top: 3px; }
+  #side { position: fixed; right: 12px; top: 12px; width: 290px; max-height: calc(100vh - 100px); overflow: auto; display: none; box-sizing: border-box; }
+  #side.open { display: block; }
+  details { border-bottom: 1px solid var(--line); padding: 4px 0 8px; }
+  details:last-child { border-bottom: 0; }
+  summary { cursor: pointer; font-weight: 600; color: var(--amber); padding: 4px 0; }
+  .grp { display: flex; flex-direction: column; gap: 6px; margin: 4px 0; }
+  .grp.wrap { flex-direction: row; flex-wrap: wrap; }
+  .chk { display: flex; align-items: center; gap: 4px; padding: 2px 0; }
+  .rng { display: grid; grid-template-columns: 1fr 100px 40px; gap: 6px; align-items: center; margin: 3px 0; }
+  .rng output { text-align: right; opacity: .75; font-variant-numeric: tabular-nums; }
+  .hint { font-size: 11.5px; opacity: .6; margin-top: 6px; }
+  #bar { position: fixed; bottom: 12px; left: 50%; transform: translateX(-50%); display: flex; gap: 6px; padding: 6px; flex-wrap: wrap; justify-content: center; max-width: 96vw; box-sizing: border-box; }
+  #toast { position: fixed; bottom: 70px; left: 50%; transform: translateX(-50%); background: #0b0f14ee; border: 1px solid var(--line); padding: 7px 14px; border-radius: 8px; opacity: 0; transition: opacity .25s; pointer-events: none !important; max-width: 90vw; text-align: center; }
+  #toast.on { opacity: 1; }
+  #help { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); max-width: 640px; width: calc(100vw - 32px); box-sizing: border-box; cursor: pointer; max-height: 88vh; overflow: auto; }
+  .helpgrid { display: grid; grid-template-columns: 200px 1fr; gap: 6px 14px; margin-top: 6px; }
+  .helpgrid b { color: var(--amber); font-weight: 600; }
+  #status { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; font-size: 16px; background: #0b0f14aa; pointer-events: none; z-index: 5; }
+  #status.on { display: flex; }
+  #err { position: fixed; inset: 0; display: none; padding: 40px; color: #f88; font: 16px system-ui; white-space: pre-wrap; background: #000; z-index: 10; }
+
+  /* embedded in the wiki */
+  body.embed #top { padding: 0; background: none; border: 0; backdrop-filter: none; left: 8px; top: 8px; }
+  body.embed #top select { width: auto; max-width: 70vw; font-size: 12px; }
+  body.embed #info { display: none; }
+  body.embed #bar { bottom: 8px; padding: 4px; }
+  body.embed .btn { padding: 4px 8px; font-size: 12px; }
+  body.embed #toast { bottom: 52px; }
+
+  @media (max-width: 760px) {
+    #side { left: 8px; right: 8px; top: auto; bottom: 100px; width: auto; max-height: 48vh; }
+    #bar { left: 8px; right: 8px; bottom: 8px; transform: none; max-width: none; gap: 5px; }
+    #bar .btn { flex: 1 1 auto; padding: 8px 6px; font-size: 12.5px; text-align: center; }
+    #toast { bottom: 104px; }
+    #info { top: 56px; }
+    #info b { font-size: 16px; }
+    .helpgrid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="ui"></div>
+<div id="status" class="on">Chargement…</div>
+<div id="err"></div>
+<script type="module" src="js/viewer.js"></script>
+</body>
+</html>

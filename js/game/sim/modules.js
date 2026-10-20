@@ -197,7 +197,11 @@ export function damageModule(world, ship, m, amount, owner, cause) {
     onModuleDestroyed(world, ship, m, owner, cause);
     return true;
   }
-  if (m.hp < m.maxHp * 0.5 && m.state === 0) { m.state = 1; if (m.part != null && ship.partState[m.part] === 0) ship.partState[m.part] = 1; }
+  if (m.hp < m.maxHp * 0.5 && m.state === 0) {
+    m.state = 1;
+    if (m.part != null && ship.partState[m.part] === 0) ship.partState[m.part] = 1;
+    if (m.kind === 'avgas') ship.startAvgasLeak(m, world);
+  }
   return false;
 }
 
@@ -213,7 +217,7 @@ export function damageMount(world, ship, m, amount, owner, penetrated) {
     ship.refreshArmament();
     // ammunition fire in the turret; a fire reaching the magazine below is the classic way to lose a ship
     if (penetrated || world.rng() < 0.3) {
-      ship.addFire(m.rec.x, m.rec.y + 1.5, m.rec.z, 1.0);
+      ship.addFire(m.rec.x, m.rec.y + 1.5, m.rec.z, 1.0, penetrated && m.rec.kind === 'turret');
       ship.applyDamage(ship.stats.maxHp * (m.rec.group === 'main' ? 0.012 : 0.003), owner, 'turret');
       if (penetrated && m.rec.kind === 'turret') ship.turretFlash(m, world, owner);
     }
@@ -236,7 +240,7 @@ function onModuleDestroyed(world, ship, m, owner, cause) {
   switch (m.kind) {
     case 'engine':
       ship.updatePropulsion();
-      if (rng() < 0.6) ship.addFire(m.x, 2, m.z, 0.8);
+      if (rng() < 0.6) ship.addFire(m.x, 2, m.z, 0.8, true);
       ship.flood(m.x, m.z, 0.15);
       break;
     case 'steering':
@@ -263,7 +267,10 @@ function onModuleDestroyed(world, ship, m, owner, cause) {
     case 'tubes': ship.tubesLost(m, world, owner); break;
     case 'catapult': if (rng() < 0.6) ship.addFire(m.x, m.y, m.z, 0.7); break;
     case 'hangar':
-    case 'avgas': ship.hangarLost(m, world, owner); break;
+    case 'avgas':
+      if (m.kind === 'avgas') ship.startAvgasLeak(m, world);
+      ship.hangarLost(m, world, owner);
+      break;
     case 'flightdeck': ship.deckWrecked = true; break;
     default: break;
   }

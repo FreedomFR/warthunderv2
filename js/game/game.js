@@ -9,7 +9,7 @@ import { IslandVisuals } from './render/islandVisual.js';
 import { VegetationVisuals } from './render/vegetationVisual.js';
 import { Terrain } from './sim/terrain.js';
 import { PlaneVisuals } from './render/aircraftVisual.js';
-import { Particles, K } from './render/particles.js';
+import { Particles, K, DEFAULT_MAX } from './render/particles.js';
 import { Effects } from './render/effects.js';
 import { CameraRig } from './ui/cameras.js';
 import { lightMatrix } from './render/shadows.js';
@@ -56,7 +56,17 @@ export class Game {
     this.fxScale = 1;
     this.userShadows = this.shadowsOn;
     this.slowT = 0; this.fastT = 0;
+    let pmax = 0;
+    try { pmax = Number(localStorage.getItem('naval.particles')) || 0; } catch (e) { /* storage blocked */ }
+    this.particleMax = Number(qs.get('particles')) || pmax || DEFAULT_MAX;
     this.applyQuality();
+  }
+
+  /** Capacity of the particle pool (a setting; saved for the next visit). */
+  setParticleMax(n) {
+    this.particleMax = n;
+    try { localStorage.setItem('naval.particles', String(n)); } catch (e) { /* storage blocked */ }
+    this.particles?.setMax(n);
   }
 
   get autoScale() { return this.canAuto && this.qualityMode === 'auto'; }
@@ -83,6 +93,7 @@ export class Game {
     const e = this.engine;
     this.shipRenderer = new ShipRenderer(e);
     this.particles = new Particles(e);
+    this.particles.setMax(this.particleMax);
     await Promise.all([this.shipRenderer.ready, this.particles.ready]);
     this.effects = new Effects(e, this.particles, this);
     this.camera = new CameraRig(e, this.canvas, this);
@@ -328,11 +339,16 @@ export class Game {
       else this.particles.streak(s.x, s.y, s.z, ux, uy, uz, len * (1 + d / 8000) * 0.8, wid * 1.15, 1, 0.84, 0.46, k * (1 + fresh));
       // a bright head
       this.particles.streak(s.x, s.y, s.z, ux, uy, uz, len * 0.18, wid * 1.5, 1, 0.95, 0.8, k * 0.9);
-      // vapour trail: one puff per simulated step, only for the shells near enough to matter
-      if (running && s._trailT !== w.time && d < 6000 && s.age > 0.04) {
-        s._trailT = w.time;
+      // vapour trail: one puff every few tens of metres of flight (not one per simulated step: hundreds of shells in the air would fill the particle pool and starve the muzzle flashes)
+      if (running && s._trailT !== w.time && d < 4500 && s.age > 0.04) {
         const cs = clamp(cal / 300, 0.3, 1.5), tr = this.effects.emitScale ?? 1;
-        if (Math.random() < tr) this.particles.add({ kind: K.SMOKE, x: s.x, y: s.y, z: s.z, vx: 0, vy: 0.3, vz: 0, s0: 0.35 * cs, s1: (ap ? 2.2 : 3.2) * cs, life: 1.4, r: 0.9, g: 0.9, b: 0.92, a0: ap ? 0.07 : 0.11, a1: 0, drag: 0.6, wind: 0.5 });
+        const gap = 22 + 40 * (1 - cs / 1.5);
+        s._trailD = (s._trailD ?? gap) + sp * Math.max(0, w.time - (s._trailT ?? w.time - 1 / 60));
+        s._trailT = w.time;
+        if (s._trailD >= gap) {
+          s._trailD = 0;
+          if (Math.random() < tr) this.particles.add({ kind: K.SMOKE, x: s.x, y: s.y, z: s.z, vx: 0, vy: 0.3, vz: 0, s0: 0.5 * cs, s1: (ap ? 3 : 4.2) * cs, life: 1.4, r: 0.9, g: 0.9, b: 0.92, a0: ap ? 0.09 : 0.14, a1: 0, drag: 0.6, wind: 0.5 });
+        }
       }
     }
     this.particles.upload();

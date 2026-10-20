@@ -2,7 +2,7 @@
 import { PARTICLES } from '../../wgsl/particles.js';
 
 const GU = GPUBufferUsage;
-const MAX = 24000;
+export const DEFAULT_MAX = 40000;      // live particles at once; the setting 'Particules max' changes it (setMax), the memory grows with it
 const MAX_TRANSIENT = 3000;
 const INST = 16;           // floats per instance
 const F = 24;              // floats per particle in the pool
@@ -15,15 +15,29 @@ export const K = { SMOKE: 0, FIRE: 1, SPRAY: 2, TRACER: 3, FLASH: 4, FIREBALL: 5
 export class Particles {
   constructor(engine) {
     this.engine = engine; this.device = engine.device;
-    this.pool = new Float32Array(MAX * F);
+    this.max = 0;
+    this.pool = new Float32Array(0);
     this.n = 0;
-    this.inst = new Float32Array((MAX + MAX_TRANSIENT) * INST);
-    this.buf = this.device.createBuffer({ size: this.inst.byteLength, usage: GU.VERTEX | GU.COPY_DST, label: 'particles' });
+    this.setMax(DEFAULT_MAX);
     this.count = 0;
     this.tr = new Float32Array(MAX_TRANSIENT * INST);
     this.nT = 0;                    // transient instances (tracers), rebuilt every frame
     this.wind = [3, 0];
     this.ready = this._init();
+  }
+
+  /** Change the capacity of the pool (the particles alive are kept, the oldest-looking ones go first if there are more than the new size). */
+  setMax(max) {
+    max = Math.max(2000, Math.min(400000, Math.round(max)));
+    if (max === this.max) return;
+    const pool = new Float32Array(max * F);
+    this.n = Math.min(this.n, max);
+    pool.set(this.pool.subarray(0, this.n * F));
+    this.pool = pool; this.max = max;
+    this.inst = new Float32Array((max + MAX_TRANSIENT) * INST);
+    this._order = null;
+    this.buf?.destroy?.();
+    this.buf = this.device.createBuffer({ size: this.inst.byteLength, usage: GU.VERTEX | GU.COPY_DST, label: 'particles' });
   }
 
   async _init() {
@@ -59,8 +73,30 @@ export class Particles {
    * Spawn a particle. o: { kind, x, y, z, vx, vy, vz, s0, s1 (size m), life (s), r, g, b, a0, a1, rot, rotV, grav, drag, wind (0..1), stretch }
    */
   add(o) {
-    if (this.n >= MAX) return;
-    const p = this.pool, i = this.n++ * F;
+    let n = this.n;
+    if (n >= this.max) {
+      // the pool is full: what shows the shot (fireballs, flames, flashes, tracers) takes the place of one of the oldest-looking puffs of smoke or spray instead of being lost
+      if (o.kind !== K.FIREBALL && o.kind !== K.FLASH && o.kind !== K.FLAME && o.kind !== K.TRACER && o.kind !== K.FIRE) return;
+      const q = this.pool;
+      let best = -1, ba = 0.3;
+      for (let k = 0; k < 24; k++) {
+        const i = (Math.random() * n) | 0, kd = q[i * F + KIND];
+        if (kd !== K.SMOKE && kd !== K.SPRAY) continue;
+        const a = q[i * F + AGE] / q[i * F + LIFE];
+        if (a > ba) { ba = a; best = i; }
+      }
+      if (best < 0) return;
+      this._write(best, o);
+      return;
+    }
+    this._write(this.n++, o);
+  }
+
+  /** How full the pool is, 0..1: the effects emit less as it fills, the smoke and the spray first. */
+  fill() { return this.n / this.max; }
+
+  _write(idx, o) {
+    const p = this.pool, i = idx * F;
     p[i + X] = o.x; p[i + Y] = o.y; p[i + Z] = o.z;
     p[i + VX] = o.vx || 0; p[i + VY] = o.vy || 0; p[i + VZ] = o.vz || 0;
     p[i + AGE] = 0; p[i + LIFE] = o.life;
@@ -115,7 +151,7 @@ export class Particles {
     const p = this.pool, d = this.inst;
     // the particles that cover what is behind them (smoke, spray, fireballs) are drawn first, then the ones that add light (flames, flashes, tracers): a flame is
     // seen in front of the smoke that hangs over it instead of being hidden by it
-    const order = this._order && this._order.length >= this.n ? this._order : (this._order = new Uint32Array(MAX));
+    const order = this._order && this._order.length >= this.n ? this._order : (this._order = new Uint32Array(this.max));
     let ia = 0, ib = this.n;
     for (let i = 0; i < this.n; i++) { const k = p[i * F + KIND]; if (k === K.SMOKE || k === K.SPRAY || k === K.FIREBALL) order[ia++] = i; else order[--ib] = i; }
     for (let j = 0; j < this.n; j++) {
