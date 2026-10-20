@@ -3,7 +3,7 @@
 import { ALL_SHIPS, BY_ID, NATIONS, TYPES, nationName, typeName } from '../game/data/ships.js';
 import { PLANES, floatplaneSpec } from '../game/model/planes.js';
 
-export const ROLE_NAMES = { dive: 'Bombardier en piqué', torp: 'Torpilleur', fighter: 'Chasseur', float: 'Hydravion embarqué' };
+export const ROLE_NAMES = { dive: 'Bombardier en piqué', torp: 'Torpilleur', fighter: 'Chasseur', float: 'Hydravion embarqué', level: 'Bombardier terrestre' };
 
 // Display names of the 30 classes (the spec sheets carry the English class names).
 export const SHIP_NAMES = {

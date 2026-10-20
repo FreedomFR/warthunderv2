@@ -17,7 +17,8 @@ for (const [k, spec] of Object.entries(PLANES)) {
   if (!mats.has(MAT.GAUGE) || !mats.has(MAT.INTERIOR)) bad.push(k + ': no dials or no interior');
   // everything stays within a couple of metres of the eye (the panel is under the nose, the rails round the seat)
   const bb = c.interior.aabb;
-  if (bb[0] < E.x - 1.5 || bb[3] > E.x + 1.2 || bb[1] < E.y - 1.1 || bb[4] > E.y + 0.5 || Math.abs(bb[2]) > 0.8 || Math.abs(bb[5]) > 0.8) bad.push(`${k}: the cockpit is not round the eye (${bb.map((v) => v.toFixed(1)).join(' ')})`);
+  const zr = spec.engines ? 1.35 : 0.8;      // a bomber's flight deck is wider and the seat is on the left: the walls are measured from the eye
+  if (bb[0] < E.x - 1.5 || bb[3] > E.x + 1.2 || bb[1] < E.y - 1.1 || bb[4] > E.y + 0.5 || Math.abs(bb[2] - E.z) > zr || Math.abs(bb[5] - E.z) > zr) bad.push(`${k}: the cockpit is not round the eye (${bb.map((v) => v.toFixed(1)).join(' ')})`);
   // the panel is ahead of the pilot and below his eyes, the stick is under it
   const dials = [];
   const u = new Uint8Array(c.interior.vertices);

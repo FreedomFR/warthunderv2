@@ -3,9 +3,11 @@
 // the control stick (it moves with the controls), the throttle quadrant, a reflector sight, and the blur of the propeller disc. Built in the frame of the aircraft
 // (x forward, y up, z to starboard), round the eye of the pilot, so it is drawn with the matrix of the aircraft.
 import { MeshBuilder, MAT, rgb, shade } from './meshbuilder.js';
+import { propMounts } from './heavy.js';
 
 /** Where the pilot's eye is in the aircraft's frame, and whether the cockpit is open (a biplane's, a Swordfish's). */
 export function cockpitEye(spec) {
+  if (spec.eye) return { x: spec.eye.x, y: spec.eye.y, z: spec.eye.z, open: false, bi: false };      // a bomber: the left seat of a flight deck, given in the sheet
   const cn = spec.canopy[0], ry0 = spec.fus.r * spec.fus.ar;
   let ey = ry0 * 0.78 + cn.h * 1.05;
   if (spec.kind === 'bi') ey = Math.max(ey, spec.wing.gap * 0.55 + spec.wing.t + 0.35);
@@ -51,6 +53,7 @@ export const GAUGE = { SPEED: 0, HORIZON: 1, ALT: 2, COMPASS: 3, CLIMB: 4, RPM: 
 
 /** The meshes of a cockpit: { interior, stick, disc, eye, pivot } (the stick is built round its pivot; the disc is the blur of the propeller, in the plane of the propeller). */
 export function buildCockpit(spec) {
+  if (spec.engines) return buildHeavyCockpit(spec);
   const E = cockpitEye(spec);
   const eyeP = [E.x, E.y, E.z];
   const P = (x, y, z) => [E.x + x, E.y + y, E.z + z];
@@ -151,6 +154,96 @@ export function buildCockpit(spec) {
     disc = db.build({ ao: false });
   }
   return { interior, stick, disc, eye: E, pivot: P(0.1, -0.62, 0) };
+}
+
+/**
+ * The flight deck of a multi-engine bomber, seen from the pilot's seat (the left one): the wide panel with the pilot's flight instruments and a bank of engine
+ * gauges (a revolution counter and a temperature gauge for each engine), the co-pilot's side of it, the windscreen frames, the pedestal with a throttle lever for
+ * every engine, the overhead switches, the floor and the seat; the yoke is a mesh of its own that turns and slides with the controls (its wheel turns about the column).
+ */
+function buildHeavyCockpit(spec) {
+  const E = cockpitEye(spec), eyeP = [E.x, E.y, E.z];
+  const P = (x, y, z) => [E.x + x, E.y + y, E.z + z];
+  const [wallHex, panelHex, trimHex] = INTERIOR[spec.nation] || INTERIOR.USA;
+  const wall = shade(rgb(wallHex), 0.62), panel = rgb(panelHex), trim = shade(rgb(trimHex), 0.7), metal = rgb('#3a3c3e');
+  const b = new MeshBuilder();
+  const IN = MAT.INTERIOR;
+  const n = spec.engines.length;
+  const hw = 0.92;                                           // half width of the flight deck
+  // the panel: ahead of the pilot, its top leaning back; it runs from the left wall to the pedestal and beyond (the co-pilot's)
+  const tilt = 0.25, uY = [-Math.sin(tilt), Math.cos(tilt), 0];
+  const pz = 0.22, pw = 0.78, ph = 0.24;                     // centre (relative to the eye), half width, half height
+  const panelC = P(0.62, -0.3, pz);
+  slab(b, panelC, [0, 0, 1], uY, pw, ph, panel, IN, eyeP);
+  const top = [panelC[0] + uY[0] * ph, panelC[1] + uY[1] * ph, panelC[2]];
+  b.beam([top[0], top[1], panelC[2] - pw], [top[0], top[1], panelC[2] + pw], 0.03, 0.028, shade(trim, 0.7), IN);
+  slab(b, [top[0] + 0.13, top[1] + 0.012, panelC[2]], [1, 0, 0], [0, 0, 1], 0.16, pw + 0.02, shade(panel, 0.9), IN, eyeP);       // the glare shield
+  const dial = (type, du, dv, r) => {
+    const o = [panelC[0] + uY[0] * dv - 0.006, panelC[1] + uY[1] * dv, panelC[2] + du];
+    const R = [0, 0, r], U = [uY[0] * r, uY[1] * r, 0];
+    face(b, [[o[0] - R[0] - U[0], o[1] - R[1] - U[1], o[2] - R[2] - U[2]], [o[0] + R[0] - U[0], o[1] + R[1] - U[1], o[2] + R[2] - U[2]], [o[0] + R[0] + U[0], o[1] + R[1] + U[1], o[2] + R[2] + U[2]], [o[0] - R[0] + U[0], o[1] - R[1] + U[1], o[2] - R[2] + U[2]]], MAT.GAUGE, type * 16, eyeP);
+  };
+  // the pilot's six flight instruments (in front of him: z = -pz relative to the panel centre)
+  const g = 0.058, sp = g * 2.35, zp = -pz - 0.02;
+  dial(GAUGE.SPEED, zp - sp, 0.1, g); dial(GAUGE.HORIZON, zp, 0.1, g * 1.12); dial(GAUGE.ALT, zp + sp, 0.1, g);
+  dial(GAUGE.COMPASS, zp - sp, -0.06, g); dial(GAUGE.CLIMB, zp, -0.06, g); dial(GAUGE.CLOCK, zp + sp, -0.06, g * 0.8);
+  // the engine gauges in the middle: a revolution counter above a temperature gauge for each engine
+  const ge = 0.036, ps = Math.min(ge * 2.5, 0.5 / n);
+  for (let i = 0; i < n; i++) { const dz = (i - (n - 1) / 2) * ps * 1.15 + 0.3; dial(GAUGE.RPM, dz, 0.1, ge); dial(GAUGE.TEMP, dz, 0.01, ge); }
+  // the co-pilot's: a speed indicator, a horizon and an altimeter, smaller
+  dial(GAUGE.SPEED, 0.62, 0.1, g * 0.8); dial(GAUGE.HORIZON, 0.62, -0.03, g * 0.85); dial(GAUGE.ALT, 0.62 - sp * 0.8, -0.03, g * 0.7);
+  for (let i = -5; i <= 5; i++) b.box(panelC[0] - 0.01 + uY[0] * -0.2, panelC[1] + uY[1] * -0.2, panelC[2] + i * 0.1, 0.012, 0.012, 0.01, i % 3 ? shade(metal, 1.2) : rgb('#7a2a1c'), IN);   // switches and lamps under the dials
+  // the windscreen: pillars, the bow over the top, the centre mullion, the side window frames and the walls
+  const rail = (a, c, w = 0.035) => b.beam(P(...a), P(...c), w, w, shade(trim, 0.9), IN);
+  const y0 = -0.12, yTop = 0.3, xF = 0.7, xB = 0.1;
+  for (const z of [-hw * 0.95, -0.22, 0.38, hw * 0.9]) rail([xF, y0, z], [xB, yTop, z * 0.9], 0.045);
+  rail([xB, yTop, -hw * 0.9], [xB, yTop, hw * 0.85], 0.04);
+  rail([xF, y0 + 0.03, -hw * 0.95], [xF, y0 + 0.03, hw * 0.9], 0.04);
+  for (const s of [-1, 1]) {
+    rail([xB, yTop, s * hw * 0.85], [-0.9, yTop - 0.04, s * hw * 0.95], 0.035);
+    rail([xF - 0.1, y0 - 0.06, s * hw], [-0.9, y0 - 0.06, s * hw], 0.045);
+    rail([-0.3, y0 - 0.06, s * hw * 0.98], [-0.3, yTop - 0.05, s * hw * 0.9], 0.03);
+    slab(b, P(0.0, y0 - 0.52, s * hw), [1, 0, 0], [0, 1, 0], 0.9, 0.28, wall, IN, eyeP, 0.8);
+  }
+  // the pedestal between the seats with a throttle and a mixture lever for each engine, and the trim wheels
+  const pxz = 0.42;
+  b.box(...P(0.25, -0.55, pxz), 0.7, 0.28, 0.2, shade(metal, 0.9), IN);
+  for (let i = 0; i < n; i++) {
+    const zz = pxz + (i - (n - 1) / 2) * 0.045;
+    b.beam(P(0.45 - i * 0.012, -0.42, zz), P(0.4 - i * 0.012, -0.24, zz), 0.013, 0.013, shade(trim, 1.3), IN);
+    b.sphere(...P(0.4 - i * 0.012, -0.23, zz), 0.019, 0.019, 0.019, i % 2 ? rgb('#2a4e8a') : rgb('#8a2a1e'), IN, { seg: 8, rings: 5 });
+  }
+  // the overhead panel
+  slab(b, P(0.25, 0.46, pxz), [1, 0, 0], [0, 0, 1], 0.35, 0.3, shade(panel, 1.1), IN, eyeP);
+  for (let i = -3; i <= 3; i++) b.box(...P(0.25 + (i % 2) * 0.1, 0.44, pxz + i * 0.07), 0.025, 0.025, 0.02, shade(metal, 1.3), IN);
+  // the floor, the seat pan and the back of the seat, the co-pilot's seat
+  slab(b, P(-0.05, -0.74, 0.1), [1, 0, 0], [0, 0, 1], 0.9, hw * 0.98, shade(panel, 1.1), IN, eyeP, 0.8);
+  b.box(...P(-0.34, -0.56, 0), 0.46, 0.07, 0.5, shade(wall, 0.8), IN);
+  b.box(...P(-0.6, -0.2, 0), 0.07, 0.7, 0.5, shade(wall, 0.85), IN);
+  b.box(...P(-0.34, -0.56, 0.86), 0.46, 0.07, 0.5, shade(wall, 0.8), IN);
+  const interior = b.build({ ao: false });
+
+  // the yoke: built round the pivot, where the column enters the panel; the column points at the pilot (-x), the wheel is a ring in the plane across x
+  const sb = new MeshBuilder();
+  const L = 0.5, R = 0.17;
+  sb.beam([0, 0, 0], [-L, 0.02, 0], 0.045, 0.045, shade(metal, 1.1), IN);
+  const ring = [];
+  for (let i = 0; i < 16; i++) { const a = i / 16 * Math.PI * 2; ring.push([-L, 0.04 + Math.sin(a) * R, Math.cos(a) * R * 1.25]); }
+  for (let i = 0; i < 16; i++) sb.beam(ring[i], ring[(i + 1) % 16], 0.028, 0.028, rgb('#1b1b1c'), IN);
+  sb.beam([-L, 0.04, 0], [-L, 0.04 + R, R * 0.2], 0.03, 0.03, shade(metal, 1.0), IN);
+  for (const s of [-1, 1]) sb.beam([-L, 0.04, 0], [-L, 0.04 - R * 0.2, s * R * 1.2], 0.03, 0.03, shade(metal, 1.0), IN);
+  sb.sphere(-L, 0.04, 0, 0.04, 0.04, 0.04, shade(metal, 1.1), IN, { seg: 8, rings: 5 });
+  const stick = sb.build({ ao: false });
+
+  // the blur of one propeller, with its hub at the origin: the aircraft draws it at the place of each engine
+  const db = new MeshBuilder();
+  const r = spec.prop.r, nn = 40, c = [0, 0, 0];
+  const ctr = db.vert(c[0], c[1], c[2], 1, 0, 0, [128, 128, spec.prop.n * 16], MAT.DISC, 1);
+  const rg = [];
+  for (let i = 0; i <= nn; i++) { const a = i / nn * Math.PI * 2; rg.push(db.vert(c[0], Math.cos(a) * r, Math.sin(a) * r, 1, 0, 0, [Math.round(128 + 127 * Math.sin(a)), Math.round(128 + 127 * Math.cos(a)), spec.prop.n * 16], MAT.DISC, 1)); }
+  for (let i = 0; i < nn; i++) db.tri(ctr, rg[i], rg[i + 1]);
+  const disc = db.build({ ao: false });
+  return { interior, stick, disc, discMounts: propMounts(spec), eye: E, pivot: P(0.78, -0.4, 0) };
 }
 
 const cache = new Map();

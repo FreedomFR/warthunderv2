@@ -979,6 +979,92 @@
         "open": 0
       }
     },
+    "b17": {
+      "length": 22.66,
+      "span": 31.62,
+      "top": {
+        "file": "refs/planes/b17g.png",
+        "source": "https://commons.wikimedia.org/wiki/File:Boeing_B-17G_Flying_Fortress_3-view_line_drawing.svg (the planform is a few percent off in one direction: stretched to the real length and span)",
+        "crop": [55, 1020, 2860, 4640],
+        "threshold": 140,
+        "dilate": 5,
+        "flip": true,
+        "aniso": true
+      },
+      "side": {
+        "file": "refs/planes/b17g.png",
+        "source": "same drawing, side view (the wheels and the ground lines are in the silhouette: trust the planform)",
+        "crop": [55, 90, 2860, 905],
+        "threshold": 140,
+        "dilate": 5,
+        "flip": true
+      }
+    },
+    "g4m": {
+      "length": 19.97,
+      "span": 24.89,
+      "top": {
+        "file": "refs/planes/g4m.png",
+        "source": "https://commons.wikimedia.org/wiki/File:Mitsubishi_G4M.svg (stretched to the real length and span)",
+        "crop": [30, 900, 2950, 4610],
+        "threshold": 140,
+        "dilate": 5,
+        "flip": true,
+        "aniso": true
+      },
+      "side": {
+        "file": "refs/planes/g4m.png",
+        "source": "same drawing, side view",
+        "crop": [30, 35, 2950, 825],
+        "threshold": 140,
+        "dilate": 5,
+        "flip": true
+      }
+    },
+    "he111": {
+      "length": 16.4,
+      "span": 22.6,
+      "top": {
+        "file": "refs/planes/he111.png",
+        "source": "https://commons.wikimedia.org/wiki/File:Heinkel_He_111_H-1_3-view_line_drawing.svg (stretched to the real length and span)",
+        "crop": [70, 1030, 2810, 4880],
+        "threshold": 140,
+        "dilate": 5,
+        "flip": true,
+        "aniso": true
+      },
+      "side": {
+        "file": "refs/planes/he111.png",
+        "source": "same drawing, side view",
+        "crop": [60, 125, 2810, 850],
+        "threshold": 140,
+        "dilate": 5,
+        "flip": true
+      }
+    },
+    "lancaster": {
+      "length": 21.13,
+      "span": 31.09,
+      "top": {
+        "file": "refs/planes/lanc.png",
+        "source": "https://commons.wikimedia.org/wiki/File:Avro_Lancaster_3-view_line_drawings.png (the planform is drawn at an angle: rotated, then stretched to the real length and span)",
+        "crop": [0, 130, 640, 960],
+        "preErase": [[300, 0, 640, 80], [0, 745, 240, 830]],
+        "rotate": 157.3,
+        "threshold": 140,
+        "dilate": 3,
+        "flip": true,
+        "aniso": true
+      },
+      "side": {
+        "file": "refs/planes/lanc.png",
+        "source": "same sheet, the side view of the B Mk.I (the wheel is cut off)",
+        "crop": [640, 205, 1265, 332],
+        "threshold": 140,
+        "dilate": 3,
+        "flip": true
+      }
+    },
     "re2001": {
       "length": 8.2,
       "span": 11.0,
