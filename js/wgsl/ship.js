@@ -1,7 +1,7 @@
 // Warship surface shader. Lit with the same sky / sun / aerial-perspective model as the ocean so
 // ships sit in the scene. Everything is procedural (no textures): plating seams, deck planks,
 // weathering, wet hull near the waterline, soot and fire glow when damaged.
-import { FRAME_WGSL, ATMO_CORE_WGSL, HAZE_WGSL, SHADOW_STRUCT_WGSL, SHADOW_FUNC_WGSL, SANE_WGSL, ENV_MIPS } from './common.js';
+import { FRAME_WGSL, ATMO_CORE_WGSL, HAZE_WGSL, SHADOW_STRUCT_WGSL, SHADOW_FUNC_WGSL, SANE_WGSL, NOISE_WGSL, ENV_MIPS } from './common.js';
 import { SKY_RENDER_FUNCS } from './sky.js';
 import { PALETTES } from '../game/model/livery.js';
 import { GLYPH_BITS } from '../game/model/glyphs.js';
@@ -55,6 +55,7 @@ struct VOut {
   @location(7) lnrm: vec3f,
   @location(8) paint: vec4f,
   @location(9) holes: vec4f,
+  @location(10) lcam: vec3f,     // the camera in the frame of the ship (to look into a hole)
 };
 
 @vertex fn vs(v: VIn) -> VOut {
@@ -93,6 +94,7 @@ struct VOut {
   o.misc = v.misc;
   o.paint = v.paint;
   o.holes = v.holes;
+  o.lcam = -(transpose(mat3x3f(v.m0.xyz, v.m1.xyz, v.m2.xyz)) * v.m3.xyz);
   return o;
 }
 
@@ -395,16 +397,18 @@ fn gauge(kind: u32, uv: vec2f, ias: f32, alt: f32, hdg: f32, vsi: f32, bank: f32
   let fw = max(fwidth(lp.x) + fwidth(lp.y) + fwidth(lp.z), 1e-4);   // local-space pixel footprint
   let up = abs(in.lnrm.y);
 
-  // ---- holes blown in the plating: a ragged round piece is cut away (and with it the boats, the rails and the fittings that stood there), the rim is charred ----
+  // ---- holes blown in the plating: inside a ragged round piece the plating is gone, and one looks into a charred hollow (below); the rim is black ----
   var holeEdge = 0.0;
+  var holeIn = -1;
+  var holeR = 1.0;
   let hn = u32(in.holes.y + 0.5);
+  let hb = u32(in.holes.x + 0.5);
   if (hn > 0u && mat <= 9u && mat != 2u) {
-    let hb = u32(in.holes.x + 0.5);
     for (var hi = 0u; hi < hn; hi = hi + 1u) {
       let h = holeBuf[hb + hi];
       let rag = 1.0 + 0.32 * gnoise(vec2f(lp.x * 1.6 + lp.z * 0.8 + h.w * 3.1, lp.y * 1.9 + h.x * 0.37 + lp.z * 0.5));
       let dd = length(lp - h.xyz) / (h.w * rag);
-      if (dd < 1.0) { discard; }
+      if (dd < 1.0 && holeIn < 0) { holeIn = i32(hi); holeR = h.w * rag; }
       holeEdge = max(holeEdge, 1.0 - smoothstep(1.0, 1.16, dd));
     }
   }
@@ -654,7 +658,24 @@ fn gauge(kind: u32, uv: vec2f, ias: f32, alt: f32, hdg: f32, vsi: f32, bank: f32
     albedo = mix(albedo, vec3f(0.012), holeEdge * 0.93);
     emissive += vec3f(1.0, 0.27, 0.04) * holeEdge * holeEdge * (0.1 + max(in.misc.x, 0.0) * 0.9);
   }
-  // grime collects where the baked occlusion is strong (under overhangs, in corners) and the paint fades on the faces that look up
+  // inside the hole: the hollow that the burst has made, seen along the ray of the eye to the far side of the sphere that was cut out: black, scorched, with embers that glow in its cracks
+  if (holeIn >= 0) {
+    let h = holeBuf[hb + u32(holeIn)];
+    let ro = in.lcam;
+    let rd = normalize(lp - in.lcam);
+    let oc = ro - h.xyz;
+    let bq = dot(oc, rd);
+    let tHit = length(lp - in.lcam);
+    let t2 = -bq + sqrt(max(bq * bq - (dot(oc, oc) - holeR * holeR), 0.0));
+    let p2 = ro + rd * t2;
+    let depthIn = clamp((t2 - tHit) / holeR, 0.0, 2.0);
+    let crack = gnoise(p2.xy * 2.1 + p2.z * 1.3) + 0.5 * gnoise(p2.zy * 4.7 + 3.0);
+    let ember = smoothstep(0.3, 0.75, crack) * (1.0 - 0.45 * smoothstep(0.0, 1.6, depthIn));
+    albedo = vec3f(0.016, 0.014, 0.012) * (0.6 + 0.8 * gnoise(p2.xz * 3.0 + p2.y));
+    rough = 0.92; metal = 0.0; f0 = vec3f(0.03); trans = 0.0; interior = 0.85;
+    emissive = vec3f(1.0, 0.3, 0.05) * ember * (0.12 + max(in.misc.x, 0.0) * 1.7);
+    N = normalize(mix(in.rel / dist * -1.0, Ng, 0.35));
+  }  // grime collects where the baked occlusion is strong (under overhangs, in corners) and the paint fades on the faces that look up
   if (mat <= 5u) {
     albedo *= mix(0.8, 1.0, smoothstep(0.25, 0.85, in.ao));
     albedo = mix(albedo, albedo * 1.1 + vec3f(0.006), up * select(0.0, 0.35, mat == 0u));
@@ -736,16 +757,39 @@ fn gauge(kind: u32, uv: vec2f, ias: f32, alt: f32, hdg: f32, vsi: f32, bank: f32
 }
 `;
 
-// Depth-only pass from the sun's point of view.
+// Depth-only pass from the sun's point of view (the holes blown in the plating let the light through).
 export const SHIP_SHADOW = /* wgsl */ `
 struct ShadowU { vp: mat4x4f, p: vec4f };
 @group(0) @binding(0) var<uniform> SH: ShadowU;
+@group(0) @binding(1) var<storage, read> holeBuf: array<vec4f>;
+` + NOISE_WGSL + /* wgsl */ `
 struct VIn {
   @location(0) pos: vec3f,
   @location(3) m0: vec4f, @location(4) m1: vec4f, @location(5) m2: vec4f, @location(6) m3: vec4f,
+  @location(10) holes: vec4f,
 };
-@vertex fn vs(v: VIn) -> @builtin(position) vec4f {
+struct VOut {
+  @builtin(position) pos: vec4f,
+  @location(0) local: vec3f,
+  @location(1) holes: vec4f,
+};
+@vertex fn vs(v: VIn) -> VOut {
   let M = mat4x4f(v.m0, v.m1, v.m2, v.m3);
-  return SH.vp * vec4f((M * vec4f(v.pos, 1.0)).xyz, 1.0);
+  var o: VOut;
+  o.pos = SH.vp * vec4f((M * vec4f(v.pos, 1.0)).xyz, 1.0);
+  o.local = v.pos;
+  o.holes = v.holes;
+  return o;
+}
+@fragment fn fs(in: VOut) {
+  let hn = u32(in.holes.y + 0.5);
+  if (hn == 0u) { return; }
+  let hb = u32(in.holes.x + 0.5);
+  let lp = in.local;
+  for (var hi = 0u; hi < hn; hi = hi + 1u) {
+    let h = holeBuf[hb + hi];
+    let rag = 1.0 + 0.32 * gnoise(vec2f(lp.x * 1.6 + lp.z * 0.8 + h.w * 3.1, lp.y * 1.9 + h.x * 0.37 + lp.z * 0.5));
+    if (length(lp - h.xyz) / (h.w * rag) < 1.0) { discard; }
+  }
 }
 `;

@@ -70,7 +70,7 @@ export class ShipRenderer {
         { binding: 9, resource: { buffer: this.holeBuf } },
       ],
     });
-    // depth-only shadow pass (same vertex / instance layouts)
+    // depth-only shadow pass (same vertex / instance layouts; its fragment stage only cuts the holes)
     const smod = await g.shader(SHIP_SHADOW, 'ship shadow');
     this.shadowPipeline = await this.device.createRenderPipelineAsync({
       label: 'ship shadow', layout: 'auto',
@@ -81,13 +81,15 @@ export class ShipRenderer {
           { arrayStride: INST_FLOATS * 4, stepMode: 'instance', attributes: [
             { shaderLocation: 3, offset: 0, format: 'float32x4' }, { shaderLocation: 4, offset: 16, format: 'float32x4' },
             { shaderLocation: 5, offset: 32, format: 'float32x4' }, { shaderLocation: 6, offset: 48, format: 'float32x4' },
+            { shaderLocation: 10, offset: 112, format: 'float32x4' },
           ] },
         ],
       },
+      fragment: { module: smod, entryPoint: 'fs', targets: [] },
       primitive: { topology: 'triangle-list', cullMode: 'none' },
       depthStencil: { format: 'depth32float', depthWriteEnabled: true, depthCompare: 'less', depthBias: 3, depthBiasSlopeScale: 2.5, depthBiasClamp: 0 },
     });
-    this.shadowBG = this.device.createBindGroup({ layout: this.shadowPipeline.getBindGroupLayout(0), entries: [{ binding: 0, resource: { buffer: sh.ubo } }] });
+    this.shadowBG = this.device.createBindGroup({ layout: this.shadowPipeline.getBindGroupLayout(0), entries: [{ binding: 0, resource: { buffer: sh.ubo } }, { binding: 1, resource: { buffer: this.holeBuf } }] });
   }
 
   /** Upload a built mesh ({vertices, indices, indexCount, aabb}) and return a handle. */

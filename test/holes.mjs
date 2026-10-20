@@ -40,3 +40,21 @@ const holesOf = (ship) => ShipVisuals.prototype.holesOf.call({}, ship);
   A.a.addScar(10, 5, 8, 0, 0, 1, 0.3, 1);
   ok(A.w.debris.length === n, 'a splinter mark throws nothing');
 }
+
+// a high-explosive burst on the hull at the waterline lets the sea in a little: it does not sink the ship by itself
+{
+  const w = new World(3); w.addTeam(0); w.addTeam(1);
+  const [me] = spawnFleet(w, 0, [{ id: 'iowa', count: 1 }], 0, 3000, 0);
+  const [bb] = spawnFleet(w, 1, [{ id: 'baltimore', count: 1 }], 0, 0, Math.PI / 2);
+  w.start();
+  for (const s of [me, bb]) { s.speed = 0; s.controller = { update(sh) { sh.cmd.throttle = 0; sh.cmd.main.fire = false; sh.cmd.sec.fire = false; sh.cmd.torpedo.fire = false; } }; }
+  const gun = me.mounts.find((m) => m.group === 'main').gun;
+  const inflow = () => bb.comps.reduce((a, c) => a + c.inflow[0] + c.inflow[1] + (c.water[0] + c.water[1]) * 100, 0);
+  const before = inflow(), hp0 = bb.hp;
+  for (let k = 0; k < 6; k++) w.spawnShell({ owner: me, gun, type: 'HE', c: 0, x: -50 + k * 20, y: 3.2, z: -400, vx: 0, vy: 0, vz: 700, target: null, aimX: 0, aimZ: 0, group: 'main' });
+  for (let i = 0; i < 60; i++) w.update(0.05);
+  const holes = bb.scars.filter((q) => q.k >= 1 && q.r >= 0.45 && q.y < 1.6).length;
+  ok(holes > 0, `six shells burst on the side of a cruiser at the waterline (${holes} holes)`);
+  ok(inflow() > before, `the sea comes in through them (${inflow().toFixed(1)})`);
+  ok(bb.state === 'afloat' && bb.hp > hp0 * 0.3, `but she is not lost by it (${(bb.hp / hp0 * 100).toFixed(0)} % left)`);
+}
