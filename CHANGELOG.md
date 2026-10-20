@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased — ships: no collisions, things that turn
+
+- **Collision audit** (`tools/audit/overlap.mjs`, `model/layout.js`, `test/overlap.mjs` in `npm test`): every gun house and light AA mount is sampled in the volume of the mesh that is drawn and compared with the structures, funnels, masts and the other houses round it. The first run found **262 houses buried** (counting the pedestals): once the pedestal and the barbette of a mount are taken out, **53 pairs of light AA mounts stood in each other** (some at the very same spot), five secondary turrets of the Iowa, Yamato, Bismarck, Graf Zeppelin and Littorio were sunk in a deckhouse by up to 1.3 m, and the boats could stand in a turret.
+- **Fixed in the builder**: a light AA mount is never put where another one (or a torpedo mount) already is (a measured one slides fore or aft up to 2.5 m, a random one is drawn again; 4 duplicate mounts of the Fantasque and the Soldati are gone); a gun house that is sunk in a structure slides along its deck (up to 0.7 m for a turret, 1.6 m for a lighter mount); a boat, a raft or a ventilator is kept off the real rectangle of a house, not off a circle round its pivot; a funnel whose base floated over a deckhouse that is not there (La Galissonière) now stands on the deck and keeps its top.
+- **Things that turn**: the **screws** turn with the speed of the ship (`propAngle`), the **rudders** follow the helm, the **search radars** sweep round (6 to 18 turns a minute by kind), the **fire-control directors** follow the first main turret that can still train. 21 of the 30 ships had no screw or rudder at all (their underwater body was not measured): they now get the number of shafts their class had, drawn from the draught (for the eye only: the damage model keeps its own shafts and rudders). The screws show from a low angle, in the viewer with the sea off and on a wreck that rolls over; the rest is visible in play.
+- Tests: `test/overlap.mjs`, `test/spin.mjs` (the screws and rudders of every ship, the sense and the pivot of the turning matrix, the screws that turn with the speed).
+
 ## 0.2.0 — islands, new effects, a damage model from the tables, wiki, viewer and phone (20 October 2026)
 
 The headlines (the details are in the sections below):
