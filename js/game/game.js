@@ -6,8 +6,10 @@ import { getModel } from './model/cache.js';
 import { ShipRenderer } from './render/shipRenderer.js';
 import { ShipVisuals } from './render/shipVisual.js';
 import { IslandVisuals } from './render/islandVisual.js';
+import { BaseVisuals } from './render/baseVisual.js';
 import { VegetationVisuals } from './render/vegetationVisual.js';
 import { Terrain } from './sim/terrain.js';
+import { BY_ID } from './data/ships.js';
 import { PlaneVisuals } from './render/aircraftVisual.js';
 import { isMobile } from './device.js';
 import { Particles, K, DEFAULT_MAX } from './render/particles.js';
@@ -37,7 +39,7 @@ export class Game {
     this.state = 'setup';            // setup | ready | running | finished
     this.paused = false;
     this.timeScale = 1;
-    this.config = { teams: [], sep: 12000, seed: opts.seed || 1, islands: opts.islands ?? 1 };      // islands: 0 none, 1 a few, 2 an archipelago
+    this.config = { teams: [], sep: 12000, seed: opts.seed || 1, islands: opts.islands ?? 1, bases: opts.bases ?? 1 };      // islands: 0 none, 1 a few, 2 an archipelago; bases: 0 none, 1 an airfield and a battery for each team, 2 fortified
     this.renderModels = new Map();
     this.ui = null;
     this.shakeT = 0;
@@ -104,6 +106,7 @@ export class Game {
     this.planeVisuals = new PlaneVisuals(this.shipRenderer);
     this.shipVisuals.planes = this.planeVisuals;
     this.islandVisuals = new IslandVisuals(this.shipRenderer, e);
+    this.baseVisuals = new BaseVisuals(this.shipRenderer, e);
     this.vegetation = new VegetationVisuals(this.shipRenderer, e);
     this.vegetation.enabled = new URLSearchParams(location.search).get('trees') !== '0';
     this.vegetation.setQuality(this.qLevel);
@@ -134,8 +137,10 @@ export class Game {
       const starts = teams.map((_, i) => teamStart(i, teams.length, this.config.sep));
       const keep = starts.map((q) => ({ x: q.x, z: q.z, r: 4800 }));
       const axis = starts.length >= 2 ? [starts[0].x, starts[0].z, starts[1].x, starts[1].z] : null;
-      w.terrain = Terrain.generate(this.config.seed, this.config.islands, keep, axis, clamp(this.config.sep * 0.9 + 5000, 9000, 21000));
+      const nation = (t) => { const c = {}; for (const e of t.entries) { const n = BY_ID[e.id]?.nation; if (n) c[n] = (c[n] || 0) + (e.count || 1); } return Object.keys(c).sort((a, b) => c[b] - c[a])[0] || 'USA'; };
+      w.terrain = Terrain.generate(this.config.seed, this.config.islands, keep, axis, clamp(this.config.sep * 0.9 + 5000, 9000, 21000), { bases: this.config.bases, starts: starts.map((q, i) => ({ x: q.x, z: q.z, nation: nation(teams[i]) })) });
       this.islandVisuals.set(w.terrain);
+      this.baseVisuals.set(w.terrain);
       this.vegetation.set(w.terrain);
     }
     this.state = 'ready';
@@ -162,7 +167,9 @@ export class Game {
 
   reset() {
     this.world.clear();
+    this.camera.director.reset();
     this.islandVisuals.set(null);
+    this.baseVisuals.set(null);
     this.vegetation.set(null);
     this.particles.n = 0;
     this.camera.target = null;
@@ -266,6 +273,7 @@ export class Game {
     r.begin();
     this.particles.beginFrame();
     this.islandVisuals.add(cam);
+    this.baseVisuals.add(cam, w.bases, { teams: w.teams, shadow: { active: this.shadowActive, focus: this.shadowFocus, R: this.shadowR } });
     this.vegetation.add(cam);
     for (const s of w.ships) {
       if (s.state === 'sunk') continue;
@@ -370,6 +378,8 @@ export class Game {
       let bd = 2500;
       for (const s of w.ships) if (s.state !== 'sunk' && dist(s) < bd) { bd = dist(s); focus = s; }
     }
+    // no ship near: the shadows fall on the base the camera is over
+    if (!focus) { const bf = this.baseVisuals.focusNear(cam, 2500); if (bf) focus = { x: bf.x, y: bf.y, z: bf.z, stats: { L: bf.L }, model: { topY: 14 }, state: 'base' }; }
     if (!focus) return off();
     const d = dist(focus);
     const R = clamp(d * 0.8 + focus.stats.L * 0.55, 170, 800);

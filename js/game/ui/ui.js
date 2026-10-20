@@ -61,6 +61,7 @@ export function createUI(game) {
   const sepInput = h('input', { type: 'range', min: 4, max: 25, step: 0.5, value: 12, oninput: (e) => { game.config.sep = Number(e.target.value) * 1000; sepVal.textContent = e.target.value + ' km'; changed(); } });
   const seedInput = h('input', { type: 'number', value: game.config.seed, style: 'width:84px', onchange: (e) => { game.config.seed = Number(e.target.value) | 0; changed(); } });
   const islandSel = h('select', { onchange: (e) => { game.config.islands = Number(e.target.value); changed(); } }, [['0', 'Aucune'], ['1', 'Quelques-unes'], ['2', 'Archipel']].map(([v, t]) => h('option', { value: v, selected: Number(v) === game.config.islands }, t)));
+  const baseSel = h('select', { title: 'Terrains d\'aviation et batteries côtières sur les îles (il faut des îles)', onchange: (e) => { game.config.bases = Number(e.target.value); changed(); } }, [['0', 'Aucune'], ['1', 'Quelques-unes'], ['2', 'Fortifiées']].map(([v, t]) => h('option', { value: v, selected: Number(v) === game.config.bases }, t)));
   const presetSel = h('select', { onchange: () => {} }, h('option', { value: '' }, '— Choisir un scénario —'), PRESETS.map((p) => h('option', { value: p.id }, p.name)));
   const setup = h('div', { id: 'setup', class: 'panel' },
     h('div', { class: 'title' }, h('span', { class: 'big' }, 'Combat naval'), h('span', { class: 'sub' }, 'Simulation de la Seconde Guerre mondiale')),
@@ -71,6 +72,7 @@ export function createUI(game) {
     h('label', { class: 'slider' }, h('span', {}, 'Distance entre les flottes'), sepInput, sepVal),
     h('label', { class: 'slider' }, h('span', {}, 'Graine du combat'), seedInput, h('span')),
     h('label', { class: 'slider' }, h('span', {}, 'Îles'), islandSel, h('span')),
+    h('label', { class: 'slider' }, h('span', {}, 'Bases militaires'), baseSel, h('span')),
     infoCard,
     h('div', { class: 'row' }, btnSpawn, btnStart),
     h('div', { class: 'hint' }, 'Faites apparaître les flottes pour les voir sur l\'eau, changez de caméra (1-7), puis lancez le combat : l\'IA pilote tous les navires.'),
@@ -318,6 +320,12 @@ export function createUI(game) {
       if (e.type === 'strikeAbort' || e.type === 'strikeMerged') {
         const tc = world.teams[e.ship.team];
         state.killFeed.push({ t: performance.now(), text: e.type === 'strikeAbort' ? `Le raid de ${e.ship.name} fait demi-tour (${e.left} appareils sur ${e.planned})` : `Le raid de ${e.ship.name} se resserre (${e.left} appareils sur ${e.planned})`, c1: '#ccc', c2: tc ? css(tc.rgb) : '#ccc', v: { name: '' }, killer: null, plane: true });
+        if (state.killFeed.length > 6) state.killFeed.shift();
+        continue;
+      }
+      if (e.type === 'baseDown') {
+        const tc = world.teams[e.base.team];
+        state.killFeed.push({ t: performance.now(), text: `${e.base.layout.kind === 'airfield' ? "L'aérodrome" : 'La batterie côtière'} de ${tc ? tc.name : e.base.nation} est hors de combat`, c1: '#ccc', c2: tc ? css(tc.rgb) : '#ccc', v: { name: '' }, killer: null, plane: true });
         if (state.killFeed.length > 6) state.killFeed.shift();
         continue;
       }

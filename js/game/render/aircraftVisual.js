@@ -75,7 +75,13 @@ export class PlaneVisuals {
     mat4Ship(S64, p.x - cam.x, p.y - cam.y, p.z - cam.z, p.heading, p.pitch + (p.aoa || 0), p.roll);
     for (let i = 0; i < 16; i++) S32[i] = S64[i];
     const r = this.r;
-    if (p.fold > 0.003) {
+    if (p.inCockpit && m.mesh.hull) {
+      // from the pilot's seat of a bomber: no nose and no flight deck skin (it would hide the view), the hull behind him, the tail and the wings with their engines
+      r.add(m.mesh.hull, S32, tint, dmg, fire, rnd);
+      if (!lost || !lost.tail) r.add(m.mesh.tail, S32, tint, dmg, fire, rnd);
+      if (!lost || !lost.wingL) r.add(m.mesh.wingL, S32, tint, dmg, fire, rnd);
+      if (!lost || !lost.wingR) r.add(m.mesh.wingR, S32, tint, dmg, fire, rnd);
+    } else if (p.fold > 0.003) {
       // folded (or folding) wings: the fuselage and the tail as they are, each wing on its own hinge
       r.add(m.mesh.body, S32, tint, dmg, fire, rnd);
       r.add(m.mesh.tail, S32, tint, dmg, fire, rnd);
@@ -92,11 +98,19 @@ export class PlaneVisuals {
       if (!lost.wingL) r.add(m.mesh.wingL, S32, tint, Math.max(dmg, 0.7), fire, rnd);
       if (!lost.wingR) r.add(m.mesh.wingR, S32, tint, Math.max(dmg, 0.7), fire, rnd);
     }
-    if ((!lost || !lost.engine) && !p.inCockpit) {      // the propeller is not drawn from the pilot's seat: a frozen blade would hide the view
-      mat4RotX(RX, p.spin || 0);
-      mat4Mul(P64, S64, RX);
-      for (let i = 0; i < 16; i++) P32[i] = P64[i];
-      r.add(m.mesh.prop, P32, tint, 0, 0, rnd);
+    if (!p.inCockpit) {      // the propeller is not drawn from the pilot's seat: a frozen blade would hide the view
+      // one propeller per engine (lost.engine: all of them, lost.engines[i]: that one); counter-rotating pairs turn the other way
+      const mounts = m.pm.props;
+      for (let k = 0; k < mounts.length; k++) {
+        const mt = mounts[k];
+        if (lost && (lost.engine || (lost.engines && lost.engines[k]) || (mt.z < -0.5 && lost.wingL) || (mt.z > 0.5 && lost.wingR))) continue;      // lost with its engine or with its wing
+        mat4RotX(RX, (p.spin || 0) * mt.dir);
+        RX[12] = mt.x; RX[13] = mt.y; RX[14] = mt.z;
+        mat4Mul(P64, S64, RX);
+        for (let i = 0; i < 16; i++) P32[i] = P64[i];
+        r.add(m.mesh.prop, P32, tint, 0, 0, rnd);
+      }
+      if (p.engFire && m.pm.spec.engines) this.burningEngines(p, m, S64, tint, rnd);
     }
     if (p.inCockpit) this.addCockpit(p, m, S64, S32, tint);
     if (p.gearDown && m.mesh.gear) r.add(m.mesh.gear, S32, tint, dmg, fire, rnd);
@@ -108,7 +122,31 @@ export class PlaneVisuals {
       for (let i = 0; i < 16; i++) P32[i] = P64[i];
       r.add(m.mesh.hook, P32, tint, dmg, fire, rnd);
     }
-    if (p.ordnance && m.mesh.ordnance) r.add(m.mesh.ordnance, S32, tint, 0, 0, rnd);
+    if (m.pm.spec.engines) {
+      // a heavy bomber carries its bombs inside: the doors and the load are seen only while the bay is open (p.bay, 0 closed .. 1 open)
+      if (p.bay > 0.01 && m.mesh.bay) {
+        const by = m.pm.bayPivot[1], k = Math.min(1, p.bay);
+        W64.fill(0); W64[0] = 1; W64[5] = k; W64[10] = k; W64[15] = 1; W64[13] = by * (1 - k);
+        mat4Mul(P64, S64, W64);
+        for (let i = 0; i < 16; i++) P32[i] = P64[i];
+        r.add(m.mesh.bay, P32, tint, dmg, fire, rnd);
+        if (p.ordnance && m.mesh.ordnance) r.add(m.mesh.ordnance, S32, tint, 0, 0, rnd);
+      }
+    } else if (p.ordnance && m.mesh.ordnance) r.add(m.mesh.ordnance, S32, tint, 0, 0, rnd);
+  }
+
+  /** The engines of a multi-engine aircraft that burn (p.engFire[i] > 0): a charred nacelle with glowing patches drawn over the nacelle, a little larger. */
+  burningEngines(p, m, S64, tint, rnd) {
+    const r = this.r, mounts = m.pm.props;
+    for (let k = 0; k < mounts.length; k++) {
+      const mt = mounts[k], g = 1.04;
+      if (!(p.engFire[k] > 0) || !m.mesh['burn' + k] || (p.lost && ((mt.z < -0.5 && p.lost.wingL) || (mt.z > 0.5 && p.lost.wingR)))) continue;
+      W64.fill(0); W64[0] = g; W64[5] = g; W64[10] = g; W64[15] = 1;
+      W64[12] = mt.x * (1 - g); W64[13] = mt.y * (1 - g); W64[14] = mt.z * (1 - g);
+      mat4Mul(P64, S64, W64);
+      for (let i = 0; i < 16; i++) P32[i] = P64[i];
+      r.add(m.mesh['burn' + k], P32, tint, 0.9, Math.min(1, p.engFire[k]), rnd);
+    }
   }
 
   /**
@@ -145,11 +183,17 @@ export class PlaneVisuals {
     mat4Mul(P64, S64, H64);
     for (let i = 0; i < 16; i++) P32[i] = P64[i];
     r.add(h.stick, P32, dyn, 0, 0, 0);
-    if (h.disc && !lost.engine) {
-      mat4RotX(RX, p.spin || 0);
-      mat4Mul(P64, S64, RX);
-      for (let i = 0; i < 16; i++) P32[i] = P64[i];
-      r.add(h.disc, P32, dyn, 0, 0, 0);
+    if (h.disc && !lost.engine) {      // the blur of the propeller of each engine that still runs
+      const mounts = ck.discMounts || [{ x: 0, y: 0, z: 0, dir: 1 }];
+      for (let k = 0; k < mounts.length; k++) {
+        const mt = mounts[k];
+        if ((lost.engines && lost.engines[k]) || (mt.z < -0.5 && lost.wingL) || (mt.z > 0.5 && lost.wingR)) continue;
+        mat4RotX(RX, (p.spin || 0) * mt.dir);
+        RX[12] = mt.x; RX[13] = mt.y; RX[14] = mt.z;
+        mat4Mul(P64, S64, RX);
+        for (let i = 0; i < 16; i++) P32[i] = P64[i];
+        r.add(h.disc, P32, dyn, 0, 0, 0);
+      }
     }
     r.setPaint(null);
     r.setCasting(true);
@@ -239,8 +283,11 @@ export class PlaneVisuals {
     }
   }
 
-  /** An aircraft model placed by a camera-relative matrix M (float64), the wings folded by `fold` (0 spread .. 1 folded), the undercarriage down or not. */
-  addParts(m, M, tint, rnd, fold, gear, dmg = 0, fire = 0) {
+  /**
+   * An aircraft model placed by a camera-relative matrix M (float64), the wings folded by `fold` (0 spread .. 1 folded), the undercarriage down or not.
+   * A multi-engine bomber parked or taxiing is drawn with its propellers (stopped at the angle `spin`, default 0.35 rad; a negative `spin` leaves them out).
+   */
+  addParts(m, M, tint, rnd, fold, gear, dmg = 0, fire = 0, spin = null) {
     const r = this.r;
     for (let i = 0; i < 16; i++) Q32[i] = M[i];
     if (fold > 0.003) {
@@ -253,5 +300,16 @@ export class PlaneVisuals {
       }
     } else r.add(m.mesh.whole, Q32, tint, dmg, fire, rnd);
     if (gear && m.mesh.gear) r.add(m.mesh.gear, Q32, tint, dmg, fire, rnd);
+    if (m.pm.spec.engines && !(spin < 0) && m.mesh.prop) {
+      const mounts = m.pm.props;
+      for (let k = 0; k < mounts.length; k++) {
+        const mt = mounts[k];
+        mat4RotX(RX, (spin ?? 0.35) * mt.dir);
+        RX[12] = mt.x; RX[13] = mt.y; RX[14] = mt.z;
+        mat4Mul(Q64, M, RX);
+        for (let i = 0; i < 16; i++) R32[i] = Q64[i];
+        r.add(m.mesh.prop, R32, tint, 0, 0, rnd);
+      }
+    }
   }
 }

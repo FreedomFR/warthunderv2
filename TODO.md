@@ -97,6 +97,10 @@ Lot 2 (cuirassés et porte-avions des autres nations) : **fait, avec des réserv
 
 - [ ] **Contrôle manuel** : prévu dès le départ (`ShipCommand`, `controllers/manual.js`, testé par `test/manual.mjs`) mais pas encore branché à l'interface : prise de contrôle d'un navire, barre, régime moteur, visée, tir, avions.
 
+- [x] **Bases militaires sur les îles** : aérodromes (piste, hangars, tour, réservoirs, DCA, avions au sol), batteries côtières, gros bombardiers qui décollent, bombardent la flotte et reviennent se poser ; tout est destructible (voir CHANGELOG « military bases »).
+- [ ] **Bases : pistes à améliorer** : les bombardiers attaquent seulement les navires (pas les bases ennemies) ; les chasseurs ne mitraillent pas les avions au sol ; pas de cratères sur la piste (une piste ne se détruit pas) ; les avions détruits ne sont jamais remplacés.
+- [ ] **Bases : les porte-avions n'attaquent pas les bases**, et les navires ne bombardent une base que si elle est à portée de leur artillerie principale (pas de manœuvre pour s'en approcher).
+
 ## 6. Outils et tests
 
 - [x] **Outils de références** rangés dans `tools/refs/` (téléchargement Wikimedia, vues standard, captures, planches ; voir son README) et `CLAUDE.md` pour reprendre le travail depuis un autre poste.

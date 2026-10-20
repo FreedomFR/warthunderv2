@@ -26,6 +26,9 @@ const PAL = {
   volcanic: { sand: [58, 54, 52], low: [64, 60, 58], forest: [48, 52, 44], high: [78, 70, 66], rock: [46, 44, 44], peak: [110, 62, 46] },
 };
 
+// the mown grass and packed earth of the levelled ground of a base, by biome (r, g, b of the darker end; the grain adds up to 14)
+const PAD_GROUND = { green: [104, 114, 74], arid: [150, 130, 92], rock: [100, 104, 88], volcanic: [66, 62, 58] };
+
 /** The colour of the ground: h metres above the sea, slope = rise over run, rel = height as a fraction of the top of the island, n = a grain in 0..1. */
 export function groundColour(biome, h, slope, rel, n, n2, cov = 0, climate = 'temperate') {
   const P = PAL[biome] || PAL.green;
@@ -77,7 +80,9 @@ export function buildIslandMesh(island) {
     const x = x0 + i * rc, z = z0 + j * rc;
     const n = vn(x / 14, z / 14, seed) * 0.6 + vn(x / 3.7, z / 3.7, seed + 5) * 0.4;
     const n2 = vn(x / 90, z / 90, seed + 9);
-    const col = groundColour(island.biome, h, slope, h / top, n, n2, cover(island, island.x + x, island.z + z, h, slope), climateOf(island));
+    let col = groundColour(island.biome, h, slope, h / top, n, n2, cover(island, island.x + x, island.z + z, h, slope), climateOf(island));
+    // the levelled ground of a base: mown grass and packed earth, not forest
+    if (island.pads.length) { const pw = island.padAt(island.x + x, island.z + z); if (pw > 0) { const m = PAD_GROUND[island.biome] || PAD_GROUND.green; col = mix(col, [m[0] + 14 * n, m[1] + 12 * n, m[2] + 10 * n], pw * 0.85); } }
     // hollows are darker: the ground round a vertex higher than it is
     const lap = (at(i - 1, j) + at(i + 1, j) + at(i, j - 1) + at(i, j + 1)) / 4 - h;
     const ao = clamp(1 - lap / (rc * 1.2), 0.5, 1);

@@ -2,7 +2,7 @@
 //   view=dist,azimuthDeg,elevationDeg[,lookY]   heading=deg   elev=gun elevation   yaw=turret train
 //   ruin=1       every destroyable part wrecked        scars=N   N battle scars         split=x   ship broken in two at local x
 //   parked=N     aircraft parked on carriers           gear=1    undercarriage down      ord=1     ordnance hung on planes
-//   bank=deg pitch=deg  attitude of planes   fold=0..1 wings folded   hook=0..1 arrester hook down
+//   bay=0..1 bomb doors of a bomber   eng=0,1,.. engines lost (1)   efire=0,1,.. engines on fire   bank=deg pitch=deg  attitude of planes   fold=0..1 wings folded   hook=0..1 arrester hook down
 import { ShipRenderer } from './game/render/shipRenderer.js';
 import { ShipVisuals } from './game/render/shipVisual.js';
 import { PlaneVisuals } from './game/render/aircraftVisual.js';
@@ -68,7 +68,7 @@ export async function runPreview(engine, ids, qs) {
   const wakeShip = wake && first ? { x: first.x, z: first.z, heading: 0, speed: 15, state: 'afloat', stats: makeStats(BY_ID[first.id]) } : null;
   engine.hooks.update = () => {
     if (wakeShip) { wakeShip.heading = st.heading; addWakeStamps(engine.foam, wakeShip, 100, 0.9); }
-    const tx = items[st.target].x + st.lookX, tz = items[st.target].z, ty = st.lookY;
+    const tx = items[st.target].x + st.lookX, tz = items[st.target].z + (st.lookZ || 0), ty = st.lookY;
     const cx = tx + st.dist * Math.sin(st.az) * Math.cos(st.el), cy = ty + st.dist * Math.sin(st.el), cz = tz - st.dist * Math.cos(st.az) * Math.cos(st.el);
     cam.x = cx; cam.y = Math.max(cy, 3); cam.z = cz;
     const fx = tx - cx, fy = ty - cam.y, fz = tz - cz;
@@ -83,7 +83,8 @@ export async function runPreview(engine, ids, qs) {
         const spec = PLANES[it.plane];
         pv.addPlane({
           typeKey: it.plane, x: it.x, y: Number(qs.get('alt')) || 40, z: it.z, heading: st.heading, pitch: (Number(qs.get('pitch')) || 0) * D2R, roll: (Number(qs.get('bank')) || 0) * D2R,
-          spin: 0.7, gearDown: qs.get('gear') === '1', fold: Number(qs.get('fold')) || 0, hook: Number(qs.get('hook')) || 0, ordnance: qs.get('ord') !== '0', lost: { wingL: qs.get('lost') === 'wing', wingR: false, tail: qs.get('lost') === 'tail', engine: false },
+          spin: 0.7, gearDown: qs.get('gear') === '1', fold: Number(qs.get('fold')) || 0, hook: Number(qs.get('hook')) || 0, ordnance: qs.get('ord') !== '0', bay: Number(qs.get('bay')) || 0, inCockpit: qs.get('cockpit') === '1', speed: 70, bank: 0, age: 0, vy: 0, lost: { wingL: qs.get('lost') === 'wing', wingR: false, tail: qs.get('lost') === 'tail', engine: false, engines: qs.get('eng') ? qs.get('eng').split(',').map((v) => v === '1') : null },
+          engFire: qs.get('efire') && spec.engines ? qs.get('efire').split(',').map(Number) : null,
         }, cam, tint, 0.5, 0, 0);
         continue;
       }
@@ -95,13 +96,14 @@ export async function runPreview(engine, ids, qs) {
   engine.hooks.drawOpaque = (rp) => renderer.draw(rp);
   window.__preview = {
     items, renderer,
-    /** set({dist, az, el (deg), lookY, lookX, target, heading (deg)}) */
+    /** set({dist, az, el (deg), lookY, lookX, lookZ, target, heading (deg)}) */
     set(o) {
       if (o.dist != null) st.dist = o.dist;
       if (o.az != null) st.az = o.az * D2R;
       if (o.el != null) st.el = o.el * D2R;
       if (o.lookY != null) st.lookY = o.lookY;
       if (o.lookX != null) st.lookX = o.lookX;
+      if (o.lookZ != null) st.lookZ = o.lookZ;
       if (o.target != null) st.target = o.target;
       if (o.heading != null) st.heading = o.heading * D2R;
     },

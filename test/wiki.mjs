@@ -29,13 +29,14 @@ for (const r of SHIPS) {
   ok(!/NaN|undefined/.test(shipProfile(r.spec, { full: true })), `${r.id}: full silhouette`);
 }
 ok(describeMounts([{ guns: 3 }, { guns: 3 }, { guns: 3 }]) === '3 affûts triples', 'describeMounts: ' + describeMounts([{ guns: 3 }, { guns: 3 }, { guns: 3 }]));
-ok(AIRCRAFT.length === 18 + 6, 'aircraft records: ' + AIRCRAFT.length);
+ok(AIRCRAFT.length === 18 + 6 + 6, 'aircraft records (18 carrier types, 6 land-based bombers, 6 floatplanes): ' + AIRCRAFT.length);
 for (const a of AIRCRAFT) {
   ok(aircraftSections(a)[0].rows.length >= 5, `${a.key}: rows`);
   ok(!/NaN|undefined/.test(aircraftTop(a.spec)), `${a.key}: top view`);
   ok(isSubject(a.key), `${a.key}: viewer subject`);
 }
-ok(AIRCRAFT.filter((a) => a.key.startsWith('plane:')).every((a) => a.users.length >= 1), 'every carrier aircraft has a carrier');
+ok(AIRCRAFT.filter((a) => a.key.startsWith('plane:') && a.role !== 'level').every((a) => a.users.length >= 1), 'every carrier aircraft has a carrier');
+ok(AIRCRAFT.filter((a) => a.role === 'level').length === 6 && AIRCRAFT.filter((a) => a.role === 'level').every((a) => a.users.length === 0 && aircraftSections(a)[0].rows.some((r) => r.k === 'Altitude de bombardement')), 'the six bombers have no carrier, and their sheet gives the bombing altitude');
 
 // ---- tech tree ----
 for (const compact of [true, false]) {
@@ -62,7 +63,7 @@ for (const compact of [true, false]) {
 }
 
 // ---- viewer link ----
-ok(ALL_KEYS.length === 30 + 24, 'viewer subjects: ' + ALL_KEYS.length);
+ok(ALL_KEYS.length === 30 + 30, 'viewer subjects: ' + ALL_KEYS.length);
 for (const k of ALL_KEYS) ok(isSubject(k) && framing(k).dist > 0, `${k}: subject and framing`);
 const st = defaults('yamato');
 Object.assign(st, { az: 123.4, el: -10.2, dist: 456.7, tx: 12, light: 'coucher', ocean: false, damage: 'ruin', train: 35, parked: 3 });

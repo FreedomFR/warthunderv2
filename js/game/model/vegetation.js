@@ -113,6 +113,7 @@ export function scatter(is, x0, z0, size) {
     if (x < x0 || x >= x0 + size || z < z0 || z >= z0 + size) continue;
     const h = is.heightAt(x, z);
     if (h < 0.5) continue;
+    if (is.pads.length && is.padAt(x, z) > 0.04) continue;           // no trees on the ground of a base (nor in the way of its guns)
     // the slope from the sampled grid (a coarse estimate is enough to decide)
     const sx = (is.heightAt(x + g, z) - is.heightAt(x - g, z)) / (2 * g), sz = (is.heightAt(x, z + g) - is.heightAt(x, z - g)) / (2 * g);
     const slope = Math.hypot(sx, sz);

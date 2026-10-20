@@ -67,9 +67,15 @@ for view in ('top', 'side'):
     ds = silhouette(im, d.get('threshold', 140), True, d.get('dilate', 3), d.get('invert', False), d.get('open', 0))
     ds.save(os.path.join(a.out, f'plane_{a.key}_{view}_drawing.png'))
     bx0, by0, bx1, by1 = bbox(ds)
+    forced = None
+    if d.get('aniso'):
+        # a sheet whose planform is not at one scale in both directions (fitted to the page): stretch it to the real length and the real span
+        ds = ds.crop((bx0, by0, bx1, by1)).resize((round(cfg['length'] * ppm), round(cfg['span'] * ppm)), Image.LANCZOS).point(lambda v: 255 if v > 127 else 0)
+        bx0, by0, bx1, by1 = 0, 0, ds.width, ds.height
+        forced = ppm
     # scale: the drawing's length (x extent) is the real length, or the real span for a view marked scaleBy: span (top view, no propeller disc)
     L = cfg['length']
-    dppm = (by1 - by0) / cfg['span'] if d.get('scaleBy') == 'span' else (bx1 - bx0) / L
+    dppm = forced or ((by1 - by0) / cfg['span'] if d.get('scaleBy') == 'span' else (bx1 - bx0) / L)
     dprof, (dl, dh) = profile(ds, 0, 0, dppm)
     errs = []
     for x, (w, c) in mprof.items():

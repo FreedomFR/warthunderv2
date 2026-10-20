@@ -5,13 +5,18 @@
 //   body   fuselage, engine, canopy, fixed gear     wingL / wingR     tail (rear fuselage + tailplane + fin)
 //   prop   rotating propeller (origin on the engine axis)     gear   retractable undercarriage
 //   ordnance   torpedo or bomb hung under the fuselage
+// The land-based bombers (spec.engines: several engines) are built by heavy.js from the sheets of bomberdata.js with the same groups, plus
+//   prop (one propeller, hub at the origin; propsOf(spec) gives the place of each one)   engN (the nacelle of engine N)   burnN (the same, charred and glowing)
+//   bay (the open bomb doors)   hull (the fuselage from just behind the pilot, drawn instead of the nose and the flight deck when the view is from the pilot's seat)
 import { MeshBuilder, MAT, rgb, shade } from './meshbuilder.js';
+import { drawHeavy, propMounts, bayPivot } from './heavy.js';
+import { HEAVY } from './bomberdata.js';
 
 const PI = Math.PI;
 const D2R = PI / 180;
 
 // ---- paint schemes and national markings -----------------------------------------------------------------
-const PAINT = {
+export const PAINT = {
   USA: { top: '#3b4a63', bot: '#c4c8ca', acc: '#e8e6dc' },
   Japan: { top: '#6c7556', bot: '#bcc0a8', acc: '#d9a23a' },
   UK: { top: '#4b5a44', bot: '#8d9b9e', acc: '#2a2a2a' },
@@ -154,6 +159,8 @@ export const PLANES = {
     tail: { x: -4.0, chord: 1.3, span: 3.7, fin: 1.4, finChord: 1.8, y: 0.15 }, canopy: [{ x0: -0.1, x1: 1.6, tx1: 1.2, h: 0.5 }],
     gear: 'retract', ordnance: null,
   },
+  // ---- land-based bombers: several engines, built by heavy.js from the sheets of bomberdata.js ----
+  ...HEAVY,
 };
 
 /** Floatplane carried on a catapult (Kingfisher, Jake, Walrus, Arado 196, Loire 130, Ro.43 style). */
@@ -166,16 +173,19 @@ const FLOATPLANES = {
   Italy: { name: 'IMAM Ro.43', nation: 'Italy', role: 'float', kind: 'bi', L: 9.7, span: 11.5, fus: { r: 0.5, ar: 1.1, x: -0.4 }, engine: { type: 'radial', r: 0.6, len: 1.0 }, prop: { r: 1.5, n: 3, x: 0 }, wing: { cr: 1.5, ct: 1.3, x: 0.0, y: 0.0, gap: 1.5, dih: 0, sweep: 0.2, t: 0.12, stagger: 0.3 }, tail: { x: -3.9, chord: 1.2, span: 2.4, fin: 1.2, finChord: 1.4, y: 0.2 }, canopy: [{ x0: -0.1, x1: 1.6, tx1: 1.2, h: 0.55 }], gear: 'float' },
 };
 /** Height of the centre of gravity above the ground when the aircraft sits on its wheels. */
-export function groundY(spec) { return spec.fus.r * spec.fus.ar + (spec.gear === 'fixedbig' ? 1.15 : spec.gear === 'float' ? 1.06 : 0.95); }
+export function groundY(spec) { if (spec.groundY) return spec.groundY; return spec.fus.r * spec.fus.ar + (spec.gear === 'fixedbig' ? 1.15 : spec.gear === 'float' ? 1.06 : 0.95); }
+
+/** Where each propeller turns, in the aircraft frame: [{ x, y, z, dir }] (the 'prop' mesh has its hub at the origin). A single engine is modelled on the axis: identity. */
+export function propsOf(spec) { return spec.engines ? propMounts(spec) : [{ x: 0, y: 0, z: 0, dir: 1 }]; }
 
 export function floatplaneSpec(nation) { return FLOATPLANES[nation] || FLOATPLANES.USA; }
 
-/** Which aircraft a nation's carriers fly for a role ('dive' | 'torp' | 'fighter'). */
+/** Which aircraft a nation flies for a role ('dive' | 'torp' | 'fighter' from its carriers, 'level': the land-based bomber of its airfields). */
 export function planeTypeFor(nation, role) {
   const t = {
-    USA: { dive: 'sbd', torp: 'tbf', fighter: 'f6f' }, Japan: { dive: 'd3a', torp: 'b5n', fighter: 'a6m' }, UK: { dive: 'skua', torp: 'swordfish', fighter: 'fulmar' },
-    Germany: { dive: 'ju87', torp: 'fi167', fighter: 'bf109t' }, France: { dive: 'ln401', torp: 'pl10', fighter: 'd520' }, Italy: { dive: 're2001', torp: 're2001t', fighter: 'mc202' },
-  }[nation] || { dive: 'sbd', torp: 'tbf', fighter: 'f6f' };
+    USA: { dive: 'sbd', torp: 'tbf', fighter: 'f6f', level: 'b17' }, Japan: { dive: 'd3a', torp: 'b5n', fighter: 'a6m', level: 'g4m' }, UK: { dive: 'skua', torp: 'swordfish', fighter: 'fulmar', level: 'lancaster' },
+    Germany: { dive: 'ju87', torp: 'fi167', fighter: 'bf109t', level: 'he111' }, France: { dive: 'ln401', torp: 'pl10', fighter: 'd520', level: 'leo451' }, Italy: { dive: 're2001', torp: 're2001t', fighter: 'mc202', level: 'sm79' },
+  }[nation] || { dive: 'sbd', torp: 'tbf', fighter: 'f6f', level: 'b17' };
   return t[role];
 }
 
@@ -214,7 +224,7 @@ function loft(b, st, col, mat, o = {}) {
 }
 
 /** Closed slab from the mid-surface corners A (root LE), B (tip LE), C (tip TE), D (root TE) with thickness th0 / th1. */
-function panel(b, A, B, C, D, th0, th1, top, bot, mat = MAT.AIRCRAFT) {
+export function panel(b, A, B, C, D, th0, th1, top, bot, mat = MAT.AIRCRAFT) {
   const up = (P, t) => [P[0], P[1] + t / 2, P[2]], dn = (P, t) => [P[0], P[1] - t / 2, P[2]];
   const At = up(A, th0), Dt = up(D, th0), Bt = up(B, th1), Ct = up(C, th1);
   const Ab = dn(A, th0), Db = dn(D, th0), Bb = dn(B, th1), Cb = dn(C, th1);
@@ -229,7 +239,7 @@ function panel(b, A, B, C, D, th0, th1, top, bot, mat = MAT.AIRCRAFT) {
 }
 
 /** Flat disc (national marking) lying in a plane. axis 'y' (wing) or 'z' (fuselage side). sign +1/-1 outward. */
-function disc(b, cx, cy, cz, r, axis, sign, col, mat = MAT.AIRCRAFT, lift = 0.012) {
+export function disc(b, cx, cy, cz, r, axis, sign, col, mat = MAT.AIRCRAFT, lift = 0.012) {
   const n = 14;
   const pt = (a, rr) => (axis === 'y' ? [cx + Math.cos(a) * rr, cy + sign * lift, cz + Math.sin(a) * rr] : [cx + Math.cos(a) * rr, cy + Math.sin(a) * rr, cz + sign * lift]);
   const c0 = pt(0, 0);
@@ -242,7 +252,7 @@ function bar(b, cx, cy, cz, hx, hz, axis, sign, col) {
   else b.quad([cx - hx, cy - hz, cz + sign * l], [cx + hx, cy - hz, cz + sign * l], [cx + hx, cy + hz, cz + sign * l], [cx - hx, cy + hz, cz + sign * l], col, MAT.AIRCRAFT, [cx, cy, cz - sign], 1);
 }
 /** National insignia on a surface. */
-function insignia(b, nation, cx, cy, cz, r, axis, sign) {
+export function insignia(b, nation, cx, cy, cz, r, axis, sign) {
   const w = rgb('#f0eee6');
   switch (nation) {
     case 'USA': {
@@ -285,6 +295,7 @@ function insignia(b, nation, cx, cy, cz, r, axis, sign) {
  * Draw (part of) an aircraft into builder b. part: 'whole' | 'body' | 'wingL' | 'wingR' | 'tail' | 'prop' | 'gear' | 'hook' | 'ordnance'.
  */
 export function drawPlane(b, s, { part = 'whole' } = {}) {
+  if (s.engines) return drawHeavy(b, s, part);          // several engines: heavy.js
   const P = PAINT[s.nation] || PAINT.USA;
   const top = rgb(P.top), bot = rgb(P.bot), acc = rgb(P.acc);
   const dark = rgb('#25272a'), glass = rgb('#33485a');
@@ -593,21 +604,23 @@ export function drawBomb(b, x, y, z, kg = 250) {
 const cache = new Map();
 
 /**
- * Build (once) the meshes of an aircraft type. Returns { spec, meshes: { whole, body, wingL, wingR, tail, prop, gear, ordnance } (built
- * mesh descriptors), radius }.
+ * Build (once) the meshes of an aircraft type. Returns { spec, meshes: { whole, body, wingL, wingR, tail, prop, gear, ordnance, ... } (built
+ * mesh descriptors; a bomber has the extra pieces listed at the top), radius, groundY, props: [{ x, y, z, dir }], bayPivot }.
  */
 export function getPlaneModel(typeKey) {
   let m = cache.get(typeKey);
   if (m) return m;
   const spec = PLANES[typeKey];
   const out = {};
-  for (const part of ['whole', 'body', 'wingL', 'wingR', 'tail', 'prop', 'gear', 'hook', 'ordnance']) {
+  const parts = ['whole', 'body', 'wingL', 'wingR', 'tail', 'prop', 'gear', 'hook', 'ordnance'];
+  if (spec.engines) parts.push('bay', 'hull', ...spec.engines.map((e, i) => 'eng' + i), ...spec.engines.map((e, i) => 'burn' + i));      // the open bomb doors, the hull seen from the pilot's seat, the engines as pieces of their own
+  for (const part of parts) {
     const b = new MeshBuilder();
     drawPlane(b, spec, { part });
     out[part] = b.vertexCount ? b.build() : null;
   }
   const ry0 = spec.fus.r * spec.fus.ar;
-  m = { key: typeKey, spec, meshes: out, radius: Math.hypot(spec.span / 2, spec.L / 2), groundY: ry0 + (spec.gear === 'fixedbig' ? 1.15 : 0.95) };
+  m = { key: typeKey, spec, meshes: out, radius: Math.hypot(spec.span / 2, spec.L / 2), groundY: spec.groundY || ry0 + (spec.gear === 'fixedbig' ? 1.15 : 0.95), props: propsOf(spec), bayPivot: spec.bay ? bayPivot(spec) : null };
   cache.set(typeKey, m);
   return m;
 }

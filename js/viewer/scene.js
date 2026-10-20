@@ -151,7 +151,7 @@ export async function createScene(engine, initial) {
         if (subject.kind === 'plane') {
           pv.addPlane({
             typeKey: subject.key.slice(6), x: 0, y: st.alt, z: 0, heading: st.heading * D2R, pitch: st.pitch * D2R, roll: st.bank * D2R,
-            spin: 0.7, gearDown: st.gear, fold: st.fold, hook: st.gear ? 1 : 0, ordnance: st.ord, lost: { wingL: false, wingR: false, tail: false, engine: false },
+            spin: 0.7, gearDown: st.gear, fold: st.fold, hook: st.gear ? 1 : 0, ordnance: st.ord, bay: st.ord ? 1 : 0, lost: { wingL: false, wingR: false, tail: false, engine: false },
           }, cam, TINT, 0.5, 0, 0);
         } else {
           for (let i = 0; i < 16; i++) S32[i] = S[i];
