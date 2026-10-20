@@ -141,9 +141,9 @@ export function createPanel(root, scene, engine, { embed = false } = {}) {
       if (slots) modelBox.append(range('parked', 'Avions sur le pont', 0, slots, 1, (v) => v, (v) => v));
     } else {
       const heavy = kind === 'plane' && !!aircraftSpec(st.subject).engines;      // a bomber from an airfield: no hook, no folding wings, the bombs are in the bay
-      modelBox.append(kind === 'plane' ? check('gear', heavy ? 'Train sorti' : 'Train sorti, crosse baissée') : null, kind === 'plane' ? check('ord', heavy ? 'Soute ouverte, bombes' : 'Bombe ou torpille') : null,
+      modelBox.append(...[kind === 'plane' ? check('gear', heavy ? 'Train sorti' : 'Train sorti, crosse baissée') : null, kind === 'plane' ? check('ord', heavy ? 'Soute ouverte, bombes' : 'Bombe ou torpille') : null,
         kind === 'plane' && !heavy ? range('fold', 'Ailes repliées', 0, 1, 0.05, (v) => Math.round(v * 100) + '%') : null,
-        range('bank', 'Roulis', -90, 90, 1, (v) => v + '°'), range('pitch', 'Assiette', -60, 60, 1, (v) => v + '°'), range('alt', 'Altitude', 5, 120, 1, (v) => v + ' m'));
+        range('bank', 'Roulis', -90, 90, 1, (v) => v + '°'), range('pitch', 'Assiette', -60, 60, 1, (v) => v + '°'), range('alt', 'Altitude', 5, 120, 1, (v) => v + ' m')].filter(Boolean));
     }
   }
   let builtFor = null;
