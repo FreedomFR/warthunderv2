@@ -107,7 +107,6 @@ export class Game {
     this.shipVisuals.planes = this.planeVisuals;
     this.islandVisuals = new IslandVisuals(this.shipRenderer, e);
     this.baseVisuals = new BaseVisuals(this.shipRenderer, e);
-    this.baseVisuals.planes = this.planeVisuals;
     this.vegetation = new VegetationVisuals(this.shipRenderer, e);
     this.vegetation.enabled = new URLSearchParams(location.search).get('trees') !== '0';
     this.vegetation.setQuality(this.qLevel);

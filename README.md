@@ -59,6 +59,7 @@ l'impact), **6 Tactique** (vue de dessus), **7 Libre**, **8 Avions** (suit un av
 - **Dégâts modulaires** : chaufferies, soutes, tourelles, gouvernail, directeurs de tir, DCA, compartiments étanches, inondation, incendies ; les pièces détruites volent et retombent à la mer.
 - **Balistique et conduite de tir réalistes** : secteurs de tir calculés sur la géométrie du navire, anticipation, dispersion qui diminue salve après salve.
 - **Îles et végétation** : rochers, îles vallonnées et montagneuses tirées de la graine, forêts procédurales selon le climat ; les navires s'échouent, les obus éclatent sur les pentes, la ligne de vue est testée.
+- **Bases militaires sur les îles** : aérodromes (piste, hangars, tour, réservoirs, DCA, avions en stationnement) d'où décollent de gros bombardiers qui bombardent la flotte à haute altitude puis reviennent se poser, batteries côtières de gros canons, DCA ; tout se détruit (hangars, réservoirs qui explosent, dépôt de munitions, canons, avions au sol).
 - **Flottes et tactique** : vaisseau amiral, ligne en colonne, écran de destroyers, porte-avions à l'abri derrière la ligne, cible commune.
 - **Explosions et naufrages** : explosion de munitions, coque brisée en deux, nappes de mazout qui brûlent.
 - **Effets** : océan FFT, ciel physique, sillages, gerbes, flammes de bouche à trois temps, fumée, DCA et traçantes.

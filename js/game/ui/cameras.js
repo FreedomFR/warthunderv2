@@ -210,6 +210,12 @@ export class CameraRig {
         px = r.x; py = r.y; pz = r.z; yaw = r.yaw; pitch = r.pitch; roll = r.roll || 0;
         break;
       }
+      case 'base': {
+        const r = this.computeBase(dt);
+        if (!r) { px = cam.x; py = cam.y; pz = cam.z; yaw = cam.yaw; pitch = cam.pitch; break; }
+        px = r.x; py = r.y; pz = r.z; yaw = r.yaw; pitch = r.pitch;
+        break;
+      }
       case 'follow': case 'orbit': case 'bridge': case 'shell': {
         if (!tgt) { px = cam.x; py = cam.y; pz = cam.z; yaw = cam.yaw; pitch = cam.pitch; break; }
         const r = this.compute(mode, tgt, dt);
@@ -493,6 +499,35 @@ export class CameraRig {
     return this.lookAt(cv.x + Math.sin(yaw) * dist, cv.y + 28, cv.z - Math.cos(yaw) * dist, cv.x, cv.y + (cv.model.fdY || 15), cv.z);
   }
 
+  /** A shot of a base worth looking at: a battery that has just fired (from beside the guns, looking along the barrels) or a base that is burning (circling it). */
+  pickBaseShot() {
+    const w = this.game.world, pick = (l) => l[Math.floor(Math.random() * l.length)];
+    const firing = w.bases.filter((b) => !b.inert && b.gun && w.time - b.lastShotT < 5 && b.guns.some((g) => g.kind === 'coastal' && g.alive));
+    const burning = w.bases.filter((b) => !b.inert && b.fires.length > 1);
+    if (firing.length && (!burning.length || Math.random() < 0.6)) {
+      const b = pick(firing), g = pick(b.guns.filter((q) => q.kind === 'coastal' && q.alive));
+      return { kind: 'guns', base: b, gun: g, side: Math.random() < 0.5 ? -1 : 1, dist: 45 + Math.random() * 60, h: 6 + Math.random() * 14, back: 30 + Math.random() * 40, fov: 46 + Math.random() * 12 };
+    }
+    if (burning.length) {
+      const b = pick(burning), f = pick(b.fires);
+      return { kind: 'ruins', base: b, fire: f, az: Math.random() * TAU, dist: 160 + Math.random() * 160, h: 55 + Math.random() * 70, fov: 48 };
+    }
+    return null;
+  }
+
+  computeBase(dt) {
+    const s = this.baseShot;
+    if (!s) return null;
+    if (s.kind === 'guns') {
+      const g = s.gun, yaw = g.heading + g.train, f = [Math.sin(yaw), -Math.cos(yaw)], r = [Math.cos(yaw), Math.sin(yaw)];
+      const th = this.game.world.terrain ? this.game.world.terrain.heightAt(g.x, g.z) : g.y;
+      return this.lookAt(g.x - f[0] * s.back + r[0] * s.side * s.dist, th + s.h, g.z - f[1] * s.back + r[1] * s.side * s.dist, g.x + f[0] * 70, g.y + 5, g.z + f[1] * 70);
+    }
+    s.az += dt * 0.15;
+    const f = s.fire;
+    return this.lookAt(f.x + Math.sin(s.az) * s.dist, f.y + s.h, f.z - Math.cos(s.az) * s.dist, f.x, f.y + 6, f.z);
+  }
+
   /** Automatic director: chooses a ship and a shot every few seconds. */
   updateAuto(dt) {
     const a = this.auto, w = this.game.world;
@@ -519,6 +554,12 @@ export class CameraRig {
       this.smooth.init = false;
       return a.sub;
     }
+    // a battery that is firing, or the ruins of a base that has been bombed: cut to it (now and then)
+    if (a.t <= 0 && w.state === 'running' && w.bases.length && Math.random() < 0.2) {
+      const shot = this.pickBaseShot();
+      if (shot) { this.baseShot = shot; a.sub = 'base'; a.t = 5 + Math.random() * 4; this.fovWant = (shot.fov || 50) * D2R; this.smooth.init = false; return a.sub; }
+    }
+    if (a.sub === 'base' && a.t > 0 && this.baseShot) return a.sub;
     // a new shot when this one has run its time or the ship is gone (a ship that is going down is followed to the end of her sinking: she is not 'alive',
     // and taking that for 'gone' made the director cut again at every frame)
     const t0 = this.target, gone = !t0 || t0.state === 'sunk' || (t0.state === 'sinking' && t0.sinkT > 16) || (t0.state !== 'afloat' && t0.state !== 'sinking');
