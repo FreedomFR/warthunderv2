@@ -323,6 +323,12 @@ export function createUI(game) {
         if (state.killFeed.length > 6) state.killFeed.shift();
         continue;
       }
+      if (e.type === 'baseDown') {
+        const tc = world.teams[e.base.team];
+        state.killFeed.push({ t: performance.now(), text: `${e.base.layout.kind === 'airfield' ? "L'aérodrome" : 'La batterie côtière'} de ${tc ? tc.name : e.base.nation} est hors de combat`, c1: '#ccc', c2: tc ? css(tc.rgb) : '#ccc', v: { name: '' }, killer: null, plane: true });
+        if (state.killFeed.length > 6) state.killFeed.shift();
+        continue;
+      }
       if (e.type === 'shipBreak') {
         state.killFeed.push({ t: performance.now(), text: `${e.ship.name} se brise en deux`, c1: '#ccc', c2: css(world.teams[e.ship.team].rgb), v: { name: '' }, killer: null });
         if (state.killFeed.length > 6) state.killFeed.shift();

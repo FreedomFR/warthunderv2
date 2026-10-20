@@ -26,6 +26,8 @@ function ball(m) {
 
 /** Aim height on a target (m above the waterline): belt for armoured ships, upperworks otherwise. */
 function aimHeight(target) {
+  // a base: the buildings and guns on the ground of the island, which stands at the height of the base
+  if (target.isBase) return target.y + 3;
   return clamp(target.model.topY * 0.16, 2.5, 7);
 }
 
@@ -80,7 +82,7 @@ function neutral(m, dt) {
   m.elev = approach(m.elev, Math.abs(m.trainRel) > 1.5 * D2R ? Math.min(pathClear(m.rec, m.trainRel, 0) + 0.03, 0.7) : 0, rate);
 }
 
-const TYPE_VALUE = { DD: 1.0, CL: 1.3, CA: 1.8, BB: 2.5, CV: 2.3 };
+const TYPE_VALUE = { DD: 1.0, CL: 1.3, CA: 1.8, BB: 2.5, CV: 2.3, BASE: 1.4 };
 
 /** Can mount `m` engage `target` now: a firing solution, the range, the sight and, above all, a bearing inside the mount's arc? Fills `out`. */
 function feasible(ship, m, target, out) {
@@ -103,9 +105,9 @@ const _alt = {};
 /** The best enemy that mount `m` can engage on its own: in its arc and range, valued by class, state and distance. */
 function pickAlt(world, ship, m) {
   let best = null, bs = 0;
-  for (const e of world.enemiesOf(ship)) {
+  for (const e of world.enemiesOf(ship).concat(world.baseTargetsOf(ship))) {
     if (!feasible(ship, m, e, _alt)) continue;
-    const s = TYPE_VALUE[e.stats.type] * (1 + (1 - e.hpFrac) * 0.9) / (0.35 + _alt.range / (m.gun.maxRange * 0.93));
+    const s = TYPE_VALUE[e.stats.type] * (1 + (e.isBase ? 0 : (1 - e.hpFrac) * 0.9)) / (0.35 + _alt.range / (m.gun.maxRange * 0.93));
     if (s > bs) { bs = s; best = e; }
   }
   return best;

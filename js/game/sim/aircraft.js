@@ -13,9 +13,14 @@ import { fighterSteer, fighterFields, bomberDefense, markHunted, FIGHT_PHASES } 
 import { deckOf, planLaunch, settleService, beginRecovery, launching, stepDeck, stepDeckShip, touchdown, clearToLand, deckClearFor, DECK_PHASES } from './deck.js';
 import { segmentNearShip, segmentHit, resolveBombHit, resolveNearMiss, resolveCrashHit } from './damage.js';
 import { spawnPlaneDebris, spawnScrap } from './debris.js';
+import { stepBasePlane, killGroundPlane } from './airfield.js';
+import { bombHitsBase } from './baseops.js';
 
 let nextPlane = 1;
 let nextBomb = 1;
+/** New ids for the aircraft and the bombs made outside this file (sim/airfield.js). */
+export const planeId = () => nextPlane++;
+export const bombId = () => nextBomb++;
 
 
 
@@ -242,7 +247,7 @@ function launches(world, dt) {
   }
 }
 const _w = [0, 0, 0];
-const FIGHT_CTX = { hit: (world, shooter, target, dmg, cal, cause = 'gun') => hitPlane(world, shooter, target, dmg, cal, cause) };
+export const FIGHT_CTX = { hit: (world, shooter, target, dmg, cal, cause = 'gun') => hitPlane(world, shooter, target, dmg, cal, cause) };
 
 // ---- flight ------------------------------------------------------------------------------------------------------
 function flight(world, dt) {
@@ -254,19 +259,19 @@ function flight(world, dt) {
     // the propeller turns with the engine: slowly while it starts up and idles on deck, at full speed from the take-off run on
     p.spin += dt * (p.lost.engine ? 0 : p.eng != null ? (p.eng < 0.02 ? 0 : 3 + 59 * Math.min(1, p.eng * 1.4)) : 62 + (p.speed - 60) * 0.3);
     p.harass = Math.max(0, p.harass - dt * 0.35);
-    const keep = p.dying ? stepDying(world, p, dt) : stepPlane(world, p, dt);
+    const keep = p.dead ? false : p.dying ? stepDying(world, p, dt) : p.base ? stepBasePlane(world, p, dt) : stepPlane(world, p, dt);
     p.roll = p.bank;
     if (!keep) { p.gone = true; arr.splice(i, 1); }
   }
 }
 
-function setVel(p) {
+export function setVel(p) {
   const cp = Math.cos(p.pitch);
   p.vx = Math.sin(p.heading) * cp * p.speed; p.vy = Math.sin(p.pitch) * p.speed; p.vz = -Math.cos(p.heading) * cp * p.speed;
 }
 
 /** Flight dynamics step: heading, flight-path angle and speed towards the commanded values. */
-function guide(p, dt, hdgT, gamT, spdT, o = {}) {
+export function guide(p, dt, hdgT, gamT, spdT, o = {}) {
   const pf = perfOf(p);
   const v = Math.max(p.speed, 28);
   const bankMax = Math.min(o.bankMax ?? pf.bank * D2R, pf.bank * D2R);
@@ -764,6 +769,15 @@ function stepBombs(world, dt) {
       const hit = segmentHit(ship, px, py, pz, b.x, b.y, b.z);
       if (hit) { if (ship.state === 'afloat' || ship.sinkDepth < 3) resolveBombHit(world, ship, b, hit); done = true; break; }
     }
+    // the ground of an island: a base is wrecked by it, bare ground only throws up earth
+    if (!done && world.terrain && b.y < 120) {
+      if (world.bases.length && bombHitsBase(world, b)) done = true;
+      else if (world.terrain.heightAt(b.x, b.z) > 0 && b.y <= world.terrain.heightAt(b.x, b.z)) {
+        const gh = world.terrain.heightAt(b.x, b.z);
+        world.events.push({ type: 'landImpact', x: b.x, y: gh, z: b.z, cal: 130 + Math.sqrt(b.kg) * 7, shell: 'HE', dx: b.vx, dz: b.vz, bomb: true });
+        done = true;
+      }
+    }
     if (!done && b.y <= 0) {
       const f = py / (py - b.y);
       const wx = px + (b.x - px) * f, wz = pz + (b.z - pz) * f;
@@ -779,7 +793,7 @@ function stepBombs(world, dt) {
 function planeThreats(world, ship) {
   const out = [];
   for (const p of world.planes) {
-    if (p.team === ship.team || DECK_PHASES.has(p.phase) || p.y < 2) continue;
+    if (p.team === ship.team || DECK_PHASES.has(p.phase) || p.y < 2 || p.ground) continue;
     const dx = p.x - ship.x, dz = p.z - ship.z, d = Math.hypot(dx, dz);
     if (d > FLAK_RANGE) continue;
     out.push({ p, d });
@@ -938,7 +952,7 @@ function updateAA(world, dt) {
 }
 
 /** The AA shot connects: damage, smoke, fire, or the aircraft is lost. */
-function hitPlane(world, ship, p, dmg, cal, cause = 'aa') {
+export function hitPlane(world, ship, p, dmg, cal, cause = 'aa') {
   if (p.dying || p.phase === 'floating') return;
   p.hp -= dmg;
   world.events.push({ type: 'planeHit', plane: p, ship, x: p.x, y: p.y, z: p.z, cal, dmg });
@@ -955,6 +969,7 @@ function hitPlane(world, ship, p, dmg, cal, cause = 'aa') {
 /** Start the death throes of an aircraft: it falls and burns, and the crash is seen to the end. */
 export function killPlane(world, p, cause, attacker) {
   if (p.dying) return;
+  if (p.ground && p.base) { killGroundPlane(world, p.base, p, attacker, cause); return; }
   const rng = world.rng;
   p.dying = true; p.dyingT = 0; p.cause = cause;
   if (DECK_PHASES.has(p.phase)) { p.dying = false; return; }

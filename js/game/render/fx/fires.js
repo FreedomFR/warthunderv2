@@ -38,6 +38,25 @@ export class FireFx {
     }
   }
 
+  /** The ruins of a base burn for a while: flames over the wreck and a column of black smoke. */
+  updateBaseFires(dt, world, cam) {
+    for (const b of world.bases) {
+      for (const f of b.fires) {
+        const d = Math.hypot(f.x - cam.x, f.z - cam.z);
+        if (d > 9000) continue;
+        const fade = clamp(f.t / 12, 0, 1);
+        f.acc = (f.acc || 0) + dt * (3 + f.r * 0.7) * f.power * fade * this.emitScale * (d > 3500 ? 0.5 : 1);
+        while (f.acc >= 1) {
+          f.acc -= 1;
+          const a = rnd() * 6.283, rad = Math.sqrt(rnd()) * f.r;
+          const x = f.x + Math.cos(a) * rad, z = f.z + Math.sin(a) * rad;
+          this.p.add({ kind: K.FLAME, x, y: f.y + 0.6, z, vy: rr(2, 5), s0: (1.8 + f.r * 0.22) * rr(0.8, 1.3), s1: (1.8 + f.r * 0.22) * 0.5, life: rr(0.5, 1.0), rot: 0, rotV: 0, r: 1, g: 0.5, b: 0.12, a0: 15, a1: 0, drag: 1 });
+          if (rnd() < 0.5) this.p.add({ kind: K.SMOKE, x, y: f.y + 2, z, vx: 0, vy: rr(5, 11), vz: 0, s0: 2.4 + f.r * 0.3, s1: rr(18, 34) + f.r, life: rr(10, 18), r: 0.05, g: 0.048, b: 0.045, a0: 0.6 * f.power, a1: 0, drag: 0.08, wind: 1, grav: -0.5 });
+        }
+      }
+    }
+  }
+
   /** Smoke from the stumps of destroyed funnels and bridges, burning magazine hits... */
   updateWrecks(dt, world, cam) {
     for (const s of world.ships) {

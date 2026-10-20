@@ -2,8 +2,24 @@
 // range and heading, launches torpedoes and air strikes, avoids collisions, withdraws when crippled.
 import { clamp, wrapPi, D2R } from '../../math.js';
 
-const TYPE_VALUE = { DD: 1.0, CL: 1.3, CA: 1.8, BB: 2.5, CV: 2.3 };
+const TYPE_VALUE = { DD: 1.0, CL: 1.3, CA: 1.8, BB: 2.5, CV: 2.3, BASE: 1.4 };
 const MAP_RADIUS = 26000;
+
+/** The base worth shooting at from `ship` (within `reach`, in sight): { bt, s } or null. A battery that has fired on the ship counts for more. */
+function bestBase(ship, world, reach, T, current) {
+  let out = null;
+  for (const bt of world.baseTargetsOf(ship)) {
+    const d = Math.hypot(bt.x - ship.x, bt.z - ship.z);
+    bt._d = d;
+    if (d > reach) continue;
+    if (T && T.blocks(ship.x, ship.model.topY * 0.6, ship.z, bt.x, bt.y + 4, bt.z)) continue;
+    const fired = (bt.base.shotAt.get(ship.id) ?? -1e9) > world.time - 90;
+    let s = TYPE_VALUE.BASE * (fired ? 1.5 : bt.base.layout.kind === 'battery' ? 0.8 : 0.5) / (0.35 + d / reach);
+    if (bt === current) s *= 1.35;
+    if (!out || s > out.s) out = { bt, s };
+  }
+  return out;
+}
 
 export class AIController {
   constructor(opts = {}) {
@@ -32,7 +48,14 @@ export class AIController {
     const fleet = ship.station ? world.fleetOf(ship.team) : null;
     if (fleet && fleet.circle) this.circle = fleet.circle;
     const enemies = world.enemiesOf(ship);
-    if (!enemies.length) { cmd.throttle = 0.35; cmd.main.target = null; cmd.sec.target = null; cmd.torpedo.fire = false; cmd.air.launch = false; return; }
+    if (!enemies.length) {
+      cmd.throttle = 0.35; cmd.torpedo.fire = false; cmd.air.launch = false;
+      // no enemy ship left: the guns still work on a base in reach
+      const cb = bestBase(ship, world, Math.min(st.main.maxRange * 0.93, st.visualRange), world.terrain, cmd.main.target);
+      cmd.main.target = cb ? cb.bt : null; cmd.main.fire = true;
+      cmd.sec.target = cb && cb.bt._d < (st.secs[0] ? st.secs[0].maxRange * 0.9 : 0) ? cb.bt : null; cmd.sec.fire = true;
+      return;
+    }
     for (const e of enemies) e._d = Math.hypot(e.x - ship.x, e.z - ship.z);
     enemies.sort((a, b) => a._d - b._d);
     const nearest = enemies[0];
@@ -53,6 +76,9 @@ export class AIController {
       if (st.type === 'DD' || st.type === 'CL') s *= Math.pow(reach / Math.max(e._d, 1500), 0.7);
       if (s > bs) { bs = s; best = e; }
     }
+    // a base on the shore is a target too, above all a battery that is firing at us
+    const cb = bestBase(ship, world, reach, T, cmd.main.target);
+    if (cb && cb.s > bs) { bs = cb.s; best = cb.bt; }
     cmd.main.target = best;
     cmd.main.fire = true;
     cmd.sec.target = best && best._d < (st.secs[0] ? st.secs[0].maxRange * 0.9 : 0) ? best : null;
@@ -77,7 +103,7 @@ export class AIController {
     cmd.air.launch = !!(ship.air && nearest._d < 75000 && ship.air.ready >= 4);
 
     // ---- navigation ----
-    const ref = best || nearest;
+    const ref = best && !best.isBase ? best : nearest;
     const dx = ref.x - ship.x, dz = ref.z - ship.z, d = ref._d;
     const bearing = Math.atan2(dx, -dz);
     let Rd = {

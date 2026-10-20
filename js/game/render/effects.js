@@ -181,6 +181,7 @@ export class Effects {
     this.updatePlanes(dt, world, cam);
     this.updateDebris(dt, world, cam);
     this.updateSeaFires(dt, world, cam);
+    this.updateBaseFires(dt, world, cam);
     this.updateRings(dt, world, cam);
     this.updateWrecks(dt, world, cam);
   }

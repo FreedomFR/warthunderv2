@@ -19,7 +19,7 @@ const GUN_ROUNDS = 28, GUN_DMG = 0.035;           // the rear gunner: two guns o
 function hostiles(world, p) {
   const out = [];
   for (const q of world.planes) {
-    if (q.team === p.team || q.dying || q.hidden || q.gone || q.y < 12 || q.phase === 'floating' || q.phase === 'queue' || q.phase === 'takeoff' || q.phase === 'rollout' || q.phase === 'taxiIn') continue;
+    if (q.team === p.team || q.dying || q.hidden || q.gone || q.ground || q.y < 12 || q.phase === 'floating' || q.phase === 'queue' || q.phase === 'takeoff' || q.phase === 'rollout' || q.phase === 'taxiIn') continue;
     out.push(q);
   }
   return out;
@@ -197,7 +197,16 @@ const GUN_ARCS = {
   ju87: [{ az: 1.2, up: 1.25, down: -0.45, fin: true }],
   fi167: [{ az: 1.25, up: 1.2, down: -0.5, fin: false }],
   pl10: [{ az: 1.2, up: 1.2, down: -0.5, fin: false }],
+  // the heavy bombers of the airfields (sim/airfield.js): turrets above, below and astern cover nearly the whole sphere (the Lancaster has no belly turret, the Sparviero a ventral gondola)
+  b17: [{ az: 3.14, up: 1.5, down: -1.3, fin: false }],
+  lancaster: [{ az: 3.14, up: 1.5, down: -0.7, fin: false }],
+  g4m: [{ az: 2.4, up: 1.4, down: -0.8, fin: false }],
+  he111: [{ az: 2.2, up: 1.3, down: -0.9, fin: false }],
+  sm79: [{ az: 2.2, up: 1.3, down: -0.8, fin: false }],
+  leo451: [{ az: 2.2, up: 1.3, down: -0.8, fin: false }],
 };
+/** How many times the fire of the single rear gunner (two 7.7 mm) a type puts out: the Fortress has ten .50 in six positions, the Lancaster eight .303. */
+const GUN_MULT = { b17: 5, lancaster: 2.6, g4m: 2.4, he111: 2.2, sm79: 2.2, leo451: 1.8 };
 const GUNNERS = new Set(Object.keys(GUN_ARCS));
 
 /** Can a gunner of this aircraft bear on the point at (dx, dy, dz) from it? */
@@ -247,7 +256,7 @@ export function bomberDefense(world, dt, ctx) {
     const miss = vperp * tof * 0.4;
     const sigma = 6 * 0.001 * rl + 1.2 + (f.evade > 0 ? 14 * tof * tof : 0);
     const area = presentedArea(f, ux, uy, uz);
-    const hits = GUN_ROUNDS * dt * roundHitChance(area, miss, sigma) * (b.tight && b.phase === 'cruise' ? 1.4 : 1);
+    const hits = GUN_ROUNDS * (GUN_MULT[b.typeKey] || 1) * dt * roundHitChance(area, miss, sigma) * (b.tight && b.phase === 'cruise' ? 1.4 : 1);
     const n = Math.floor(hits + world.rng());
     if (n > 0) ctx.hit(world, b.owner, f, GUN_DMG * n * (0.8 + 0.4 * world.rng()), 7.7, 'gunner');
   }

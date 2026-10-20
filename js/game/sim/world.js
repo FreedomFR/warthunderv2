@@ -11,6 +11,7 @@ import { updateAir } from './aircraft.js';
 import { spawnPartDebris, stepDebris } from './debris.js';
 import { magazineExplosion, shipGone, secondaryBlast, breakInTwo } from './explosions.js';
 import { FleetCommand } from './fleet.js';
+import { buildBases, updateBases, shellHitsBase, shellGround } from './baseops.js';
 
 const statsCache = new Map();
 function statsFor(spec) {
@@ -50,6 +51,7 @@ export class World {
     this._enemyCache = new Map();
     this.fleets = new Map();     // the captain of each team's fleet (sim/fleet.js)
     this.terrain = null;         // the islands (sim/terrain.js), or null
+    this._basesFor = null; this._bases = [];
     this.timeLimit = 3600;
     this.lastCombatT = 0;        // last time a ship damaged another (used by the AI to break stalemates)
   }
@@ -87,6 +89,14 @@ export class World {
     this.nameCounts.clear();
     this.fleets.clear();
     this.terrain = null;
+    this._basesFor = null; this._bases = [];
+  }
+
+  /** The military bases of the islands (sim/baseops.js): built from the layouts of the terrain the first time they are needed. */
+  get bases() {
+    const T = this.terrain;
+    if (this._basesFor !== T) { this._basesFor = T; this._bases = T && T.bases && T.bases.length ? buildBases(this, T) : []; }
+    return this._bases;
   }
 
   // ---- queries ----------------------------------------------------------------------------------------
@@ -94,6 +104,12 @@ export class World {
   enemiesOf(ship) {
     const out = [];
     for (const s of this.ships) if (s.team !== ship.team && s.alive) out.push(s);
+    return out;
+  }
+  /** The bases of the other teams that still count, as targets for a ship's guns (a base is not an enemy to hunt down: no victory depends on it). */
+  baseTargetsOf(ship) {
+    const out = [];
+    for (const b of this.bases) if (!b.inert && b.team !== ship.team && b.alive) out.push(b.target);
     return out;
   }
   nearestEnemy(ship, maxRange = 1e9) {
@@ -152,6 +168,7 @@ export class World {
     if (this.state === 'running') for (const s of this.ships) if (s.alive) { updateGunnery(s, this, dt); updateTorpedoes(s, this, dt); }
     // once the battle is won the guns fall silent but the air goes on: the aircraft in the air go home and land (or ditch), the decks go on working
     if (this.state === 'running' || this.state === 'finished') updateAir(this, dt);
+    if (this.state === 'running' || this.state === 'finished') updateBases(this, dt);
     this.stepShells(dt);
     this.stepTorpedoes(dt);
     stepDebris(this, dt);
@@ -186,11 +203,14 @@ export class World {
         }
       }
       if (!done && this.terrain && s.y > -5) {
-        // the ground: a shell that goes into a slope bursts there
+        // the ground: a shell that goes into a slope bursts there (on a base it wrecks what stands there)
+        const bases = this.bases.length > 0;
         for (const f of [0.34, 0.67, 1]) {
           const x = s.px + (s.x - s.px) * f, y = s.py + (s.y - s.py) * f, z = s.pz + (s.z - s.pz) * f, gh = this.terrain.heightAt(x, z);
+          if (bases && shellHitsBase(this, s, x, y, z)) { this.events.push({ type: 'landImpact', x, y, z, cal: s.gun.cal, shell: s.type, dx: s.vx, dz: s.vz }); done = true; break; }
           if (gh > 0 && y <= gh) {
             this.events.push({ type: 'landImpact', x, y: gh, z, cal: s.gun.cal, shell: s.type, dx: s.vx, dz: s.vz });
+            if (bases) shellGround(this, s, x, gh, z);
             done = true;
             break;
           }
