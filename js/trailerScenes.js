@@ -7,11 +7,11 @@ import { BY_ID } from './game/data/ships.js';
 import { PLANES } from './game/model/planes.js';
 
 /** world point `fwd` ahead of / `side` to starboard of a ship (heading only, no roll or pitch) at absolute height y */
-const H = (s, fwd, side, y) => [s.x + Math.sin(s.heading) * fwd + Math.cos(s.heading) * side, y, s.z - Math.cos(s.heading) * fwd + Math.sin(s.heading) * side];
-const P3 = (s, dy = 0) => [s.x, s.y + dy, s.z];
+export const H = (s, fwd, side, y) => [s.x + Math.sin(s.heading) * fwd + Math.cos(s.heading) * side, y, s.z - Math.cos(s.heading) * fwd + Math.sin(s.heading) * side];
+export const P3 = (s, dy = 0) => [s.x, s.y + dy, s.z];
 
 /** Free the ships from the AI: they sail straight at the given speed (a film set, no battle). */
-function sail(ships, knots) {
+export function sail(ships, knots) {
   for (const s of ships) {
     s.controller = null;
     s.speed = knots * KN;
@@ -22,7 +22,7 @@ function sail(ships, knots) {
 
 
 /** Surface ships keep sailing and manoeuvring but hold their gunfire (an air attack scene without a naval battle around it). */
-function quiet(ships) {
+export function quiet(ships) {
   for (const s of ships) {
     const c = s.controller;
     if (!c) continue;
@@ -31,15 +31,15 @@ function quiet(ships) {
   }
 }
 
-const unit = (x, y, z) => { const l = Math.hypot(x, y, z) || 1; return [x / l, y / l, z / l]; };
-const dist2 = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
+export const unit = (x, y, z) => { const l = Math.hypot(x, y, z) || 1; return [x / l, y / l, z / l]; };
+export const dist2 = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
 /** exponential smoothing of a camera vector (state kept by the caller) */
-const damp = (cur, want, k) => (cur ? cur.map((v, i) => v + (want[i] - v) * k) : want.slice());
+export const damp = (cur, want, k) => (cur ? cur.map((v, i) => v + (want[i] - v) * k) : want.slice());
 
 /**
  * Camera behind and above a flying thing. get() returns the object ({x,y,z,vx,vy,vz}) or null (the last pose is then kept).
  */
-function chaseCam(get, back, up, side, ahead, fov, rate = 14) {
+export function chaseCam(get, back, up, side, ahead, fov, rate = 14) {
   let pos = null, look = null, last = null;
   return (t, T) => {
     const o = get() || last;
@@ -54,7 +54,7 @@ function chaseCam(get, back, up, side, ahead, fov, rate = 14) {
 }
 
 /** Camera behind and above a flying thing but looking at another point (the victim). */
-function followCam(get, getLook, back, up, side, fov, rate = 12) {
+export function followCam(get, getLook, back, up, side, fov, rate = 12) {
   let pos = null, look = null, last = null;
   return () => {
     const o = get() || last;
@@ -68,7 +68,7 @@ function followCam(get, getLook, back, up, side, fov, rate = 12) {
 }
 
 /** the first aircraft matching pred */
-const findPlane = (T, pred) => T.w.planes.find(pred) || null;
+export const findPlane = (T, pred) => T.w.planes.find(pred) || null;
 
 /** A fleet action: two columns of five on opposite courses, shots from the air, from the water and on the enemy as the hits land. */
 async function fleetBattle(T, tag, seed, look, blue, red) {
