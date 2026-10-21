@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased — the fly-by camera
+
+- **The view "passage" of the aircraft cameras** (`computePlane` in `ui/cameras.js`, `flybyDue` / `flybyPlace`) jumped all the time: the camera was placed 90-120 m ahead of the aircraft, which was past it two seconds later, so it was placed again at once, with a smoothed slide of the camera to the new place that took it to 10 m from the aircraft (in a 60 m/s flight the distance went 107, 42, 98, 10, 73 m in a few seconds). Now it is a real fly-by: the camera waits about six seconds of flight ahead (280-760 m), 80-130 m off the path, a little above, with a narrow lens that opens as the aircraft comes (it fills about a third of the frame height); the aircraft goes by, draws away for two or three seconds, then a **cut** to a new place on the other side of the path (about every 8.5 s; no slide, so no pass through the aircraft). An aircraft on the ground (parked, taxiing, rolling) gets a camera 30-50 m from it, moved every 9 s.
+- Test `test/flyby.mjs` (the camera is placed again every 8.4-8.6 s at 45, 60 and 125 m/s, never nearer than 76 m, on alternate sides, and an aircraft on the ground has a close camera).
+
 ## Unreleased — landings and the places where aircraft burn
 
 - **The wheels disappeared at the touchdown on an airfield**: the rule that draws the undercarriage up six seconds after the circuit's last turn (meant for the take-off) did not exempt the landing roll, so the wheels were gone the frame after the touchdown (`gearDown` in `stepAir`, `sim/airfield.js`). The undercarriage stays down for as long as the aircraft is on the ground.
