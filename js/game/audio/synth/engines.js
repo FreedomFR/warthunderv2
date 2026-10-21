@@ -100,4 +100,34 @@ export const ENGINES = {
     });
     return normalize(d, 0.7);
   },
+  /**
+   * A damage-control pump (loops, 2.5 s): a reciprocating pump at 8 strokes a second, each stroke a soft knock of the piston and a
+   * gulp of water through the valves, on a low diesel hum; the motor's note a little rough.
+   */
+  pump(sr, seed) {
+    const r = prng(seed), L = 2.5, hz = 8;
+    const d = mk(sr, L, (d, n) => {
+      const wat = new SVF(sr), hum = new SVF(sr);
+      let ph = 0;
+      for (let i = 0; i < n; i++) {
+        const t = i / sr, nz = r() * 2 - 1, q = (t * hz) % 1, stroke = Math.exp(-q / 0.18) * (0.85 + 0.15 * Math.sin(TAU * t * 2));
+        ph += TAU * 96 / sr;
+        d[i] = Math.sin(ph) * 0.5 * (0.7 + 0.3 * stroke) + Math.sin(ph * 2.01) * 0.2 + wat.step(nz, 480, 1.0).bp * 1.7 * stroke + hum.step(nz, 70, 0.8).lp * 0.5
+          + Math.sin(TAU * 55 * q) * Math.exp(-q / 0.05) * 0.8;
+      }
+    });
+    return normalize(seamless(d, sr, 0.15), 0.7, true);
+  },
+  /** Steam escaping from a burst pipe or a boiler (loops, 3 s): a hard broadband hiss that rises into the highs, a hoarse roar of the jet and the flutter of the valve. */
+  steam_vent(sr, seed) {
+    const r = prng(seed), L = 3;
+    const d = mk(sr, L, (d, n) => {
+      const hiss = new SVF(sr), jet = new SVF(sr), low = new SVF(sr);
+      for (let i = 0; i < n; i++) {
+        const t = i / sr, nz = r() * 2 - 1, f = 0.8 + 0.2 * Math.sin(TAU * t / L * 3) * Math.sin(TAU * t / L * 2 + 1) + 0.08 * Math.sin(TAU * 17 * t);
+        d[i] = hiss.step(nz, 5200 * f, 0.5).bp * 1.1 + jet.step(nz, 1500 * f, 0.7).bp * 0.8 + low.step(nz, 180, 0.8).lp * 0.45;
+      }
+    });
+    return normalize(seamless(d, sr, 0.25), 0.7, true);
+  },
 };

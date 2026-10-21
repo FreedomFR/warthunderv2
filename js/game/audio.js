@@ -225,6 +225,9 @@ export class GameAudio {
       this.planeLoops(w, cam);
       this.shipLoops(w, cam, dt);
       this.scan(w, cam, dt);
+      this.baseLoops(w, cam);
+      this.torpedoLoops(w, cam);
+      this.shoreLoops(w, cam, dt);
       // wind in the cockpit
       const cp = this.game.camera.mode === 'cockpit' && this.game.camera.plane;
       const wv = this.loop('wind', 'wind');

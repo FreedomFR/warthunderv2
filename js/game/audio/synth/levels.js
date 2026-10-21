@@ -18,5 +18,11 @@ export const TARGET_DBA = {
   ship_engine: -26, turbine: -30, cavitation: -33, turret_motor: -31, breech: -29, lift_motor: -33,
   engine_radial: -27, engine_inline: -27, siren: -28, engine_start: -32, plane_fall: -30, touchdown: -33, arrest: -33,
   // ambience
-  wind: -24, bow_wave: -28, fire: -30, gurgle: -30, swell: -32,
+  wind: -24, bow_wave: -28, fire: -30, swell: -32,
+  // flooding and water
+  inrush: -29, slosh: -33, water_rush: -29, air_vent: -34, valve: -33, bubbles_big: -31, surf: -29, torpedo_run: -35,
+  // the ship and the shore
+  gull: -36, creak: -36, horn: -27, gq_gong: -30, air_raid: -29, pump: -32, steam_vent: -29,
+  // aircraft, fires and ruins
+  engine_sputter: -30, ground_roll: -33, bomb_drop: -33, rubble: -27, fire_start: -30,
 };

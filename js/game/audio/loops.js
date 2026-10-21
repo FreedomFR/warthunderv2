@@ -60,6 +60,16 @@ export const loopMethods = {
       let gain = 0.62 * (p.lost.engine ? 0.35 : 1) * (p.phase === 'floating' ? 0 : 1);
       if (p.dying && p.dyingT > 5) gain *= 0.5;
       this.setLoop(eng, gain, Math.max(0.35, Math.min(2.2, rate)), p.x, p.y, p.z, 900);
+      // tyres rolling on a runway or a deck, and the slipstream of a fast aircraft close by
+      const onDeck = p.ds === 'taxi' || p.ds === 'run' || p.ds === 'roll' || p.ds === 'dwell';
+      const gs = onDeck ? Math.abs(p.u || 0) : p.ground ? p.speed : 0;
+      if (gs > 1.5 && d < 600) {
+        const gr = this.loop('pg' + p.id, 'ground_roll');
+        this.setLoop(gr, Math.min(0.9, gs / 32) * (onDeck ? 0.6 : 1), 0.55 + gs / 40, p.x, p.y, p.z, 170);
+      } else if (!p.ground && !onDeck && p.speed > 95 && d < 900) {
+        const k = (p.speed - 90) / 110, pw = this.loop('pw' + p.id, 'wind');
+        this.setLoop(pw, Math.min(0.55, k * k * 0.5 + (diving ? 0.15 : 0)), (0.8 + p.speed / 260) * doppler, p.x, p.y, p.z, 420);
+      }
       if (spec.siren && diving && p.ordnance !== undefined && !p.dying) {
         const sv = this.loop('ps' + p.id, 'siren');
         this.setLoop(sv, 0.8, Math.max(0.6, Math.min(1.6, (0.7 + (p.speed - 60) / 120) * doppler)), p.x, p.y, p.z, 1500);
@@ -76,7 +86,7 @@ export const loopMethods = {
       if (d < 2500) near.push({ s, d });
     }
     near.sort((a, b) => a.d - b.d);
-    let nEng = 0, nFire = 0, nFlood = 0, nTurb = 0, nCav = 0, nTurret = 0;
+    let nEng = 0, nFire = 0, nFlood = 0, nSlosh = 0, nPump = 0, nSteam = 0, nTurb = 0, nCav = 0, nTurret = 0;
     const tgt = this.game.camera.target;
     for (const { s, d } of near) {
       const sp = Math.min(1, Math.abs(s.speed) / Math.max(1, s.stats.maxSpeed));
@@ -106,12 +116,115 @@ export const loopMethods = {
         const v = this.loop('sf' + s.id, 'fire');
         this.setLoop(v, Math.min(0.9, 0.18 + s.fires.length * 0.13), 1, s.x, 6, s.z, 260 + s.stats.L * 0.5);
       }
-      if ((s.waterFill > 0.06 || s.floodRate > 0) && nFlood < 2 && d < 900) {
+      // water in the hull: the jet of an open breach (as loud as the flow), the sloshing of what is already inside, air blown out of the vents,
+      // a gush when a new hole opens, and the pump of the damage-control party
+      const fill = s.waterFill || 0, flow = Math.min(1, (s.floodRate || 0) / (s.stats.maxHp * 0.002));
+      const fm = (this.floodMem ||= new Map()).get(s.id) || { flow: 0, vent: 3 + 4 * rnd() };
+      this.floodMem.set(s.id, fm);
+      if (flow > fm.flow + 0.12 && d < 1600) {
+        const hp = s.toWorld((rnd() - 0.5) * s.stats.L * 0.6, 0, 0, _p);
+        this.play('water_rush', hp[0], 0, hp[2], { gain: 0.5 + 0.5 * flow, ref: 260 + s.stats.L * 0.3, pri: 2, wet: 0.2, rate: 0.85 + 0.3 * rnd() });
+      }
+      fm.flow = flow;
+      if (flow > 0.02 && nFlood < 2 && d < 900) {
         nFlood++;
-        const v = this.loop('sw' + s.id, 'gurgle');
-        this.setLoop(v, Math.min(0.7, 0.15 + (s.waterFill || 0) * 1.6), 0.9 + (s.waterFill || 0) * 0.3, s.x, 0, s.z, 200 + s.stats.L * 0.4);
+        const v = this.loop('sw' + s.id, 'inrush');
+        this.setLoop(v, 0.12 + 0.7 * flow, 0.9 + 0.25 * flow, s.x, 0, s.z, 150 + s.stats.L * 0.3);
+      }
+      if (fill > 0.06 && nSlosh < 2 && d < 700) {
+        nSlosh++;
+        const v = this.loop('sl' + s.id, 'slosh');
+        this.setLoop(v, Math.min(0.75, 0.2 + fill * 1.2), 0.9 + fill * 0.2, s.x, 1, s.z, 130 + s.stats.L * 0.3);
+      }
+      if (flow > 0.02 && fill > 0.04 && fill < 0.85 && d < 1000 && (fm.vent -= dt) <= 0) {
+        fm.vent = 4 + 9 * rnd();
+        const hp = s.toWorld((rnd() - 0.5) * s.stats.L * 0.7, 6, 0, _p);
+        this.play('air_vent', hp[0], hp[1], hp[2], { gain: 0.5, ref: 300, pri: 1, rate: 0.85 + 0.3 * rnd() });
+      }
+      if ((flow > 0.05 || fill > 0.12) && s.state === 'afloat' && nPump < 1 && d < 500) {
+        nPump++;
+        const v = this.loop('sp' + s.id, 'pump');
+        this.setLoop(v, 0.45, 1, s.x, 6, s.z, 110 + s.stats.L * 0.2);
+      }
+      // a burst steam line after an engine room is hit
+      const leak = this.steam?.get(s);
+      if (leak != null) {
+        if (leak < this.ctx.currentTime || s.state === 'sunk') this.steam.delete(s);
+        else if (d < 1100 && nSteam < 2) { nSteam++; const v = this.loop('ss' + s.id, 'steam_vent'); this.setLoop(v, 0.5 * Math.min(1, (leak - this.ctx.currentTime) / 6), 1, s.x, 8, s.z, 200 + s.stats.L * 0.3); }
       }
       if (d < 700 && s.state === 'afloat') nTurret += this.turrets(s, nTurret, dt);
+    }
+    // the nearest hull creaks now and then as it works in the swell
+    this.creakT = (this.creakT ?? 6) - dt;
+    if (this.creakT <= 0 && near.length) {
+      this.creakT = 5 + 11 * rnd();
+      const { s, d } = near[0];
+      if (d < 380 && s.state === 'afloat') { const p = s.toWorld((rnd() - 0.5) * s.stats.L * 0.7, 3, 0, _p); this.play('creak', p[0], p[1], p[2], { gain: 0.5, ref: 160, pri: 0, rate: 0.85 + 0.4 * rnd() }); }
+    }
+  },
+
+  /** The bases: the fires of their ruins, and the air-raid siren while enemy aircraft are over them. */
+  baseLoops(w, cam) {
+    let nFire = 0, nSiren = 0;
+    for (const b of w.bases || []) {
+      const L = b.layout, dc = Math.hypot(L.x - cam.x, L.z - cam.z);
+      if (dc > 3600) continue;
+      if (b.fires.length && nFire < 2) {
+        let f = null, fd = 1e9;
+        for (const q of b.fires) { const dq = Math.hypot(q.x - cam.x, q.z - cam.z); if (dq < fd) { fd = dq; f = q; } }
+        if (fd < 2000) { nFire++; const v = this.loop('bf' + L.id, 'fire'); this.setLoop(v, Math.min(0.9, 0.2 + b.fires.length * 0.09), 1, f.x, f.y + 2, f.z, 240); }
+      }
+      if (!b.inert && b.alive && nSiren < 2) {
+        let raid = false;
+        for (const p of w.planes) if (!p.dying && !p.gone && p.team !== b.team && Math.hypot(p.x - L.x, p.z - L.z) < 5500) { raid = true; break; }
+        if (raid) { nSiren++; const v = this.loop('ar' + L.id, 'air_raid'); this.setLoop(v, 0.8, 1, L.x, (L.y || 0) + 14, L.z, 2200); }
+      }
+    }
+  },
+
+  /** Torpedoes running close to the camera: the whine of the engine and the wake. */
+  torpedoLoops(w, cam) {
+    let n = 0;
+    for (const t of w.torpedoes) {
+      if (n >= 2 || (t.air && t.h > 0)) continue;
+      if (Math.hypot(t.x - cam.x, t.z - cam.z) > 500) continue;
+      n++;
+      this.setLoop(this.loop('tr' + t.id, 'torpedo_run'), 0.7, 1, t.x, -1, t.z, 160);
+    }
+  },
+
+  /**
+   * The shore: surf along the nearest coast (the point where the sea meets the land, found on the line from the camera to the
+   * nearest island), and gulls calling now and then when land is close.
+   */
+  shoreLoops(w, cam, dt) {
+    const ter = w.terrain;
+    this.shoreT = (this.shoreT ?? 0) - dt;
+    if (this.shoreT <= 0) {
+      this.shoreT = 0.4;
+      let best = null, bd = 1e9;
+      if (ter && !ter.empty && ter.heightAt(cam.x, cam.z) <= 0) {
+        for (const is of ter.islands) { const dd = Math.hypot(is.x - cam.x, is.z - cam.z) - is.R; if (dd < bd) { bd = dd; best = is; } }
+      }
+      this.coast = null;
+      if (best && bd < 3200) {
+        // from the camera towards the middle of the island: the first point on land
+        let lo = 0, hi = 1;
+        const px = (u) => cam.x + (best.x - cam.x) * u, pz = (u) => cam.z + (best.z - cam.z) * u;
+        if (ter.heightAt(px(1), pz(1)) > 0) {
+          for (let k = 0; k < 14; k++) { const m = (lo + hi) / 2; if (ter.heightAt(px(m), pz(m)) > 0) hi = m; else lo = m; }
+          const x = px(hi), z = pz(hi);
+          this.coast = { x, z, d: Math.hypot(x - cam.x, z - cam.z) };
+        }
+      }
+    }
+    const c = this.coast;
+    if (!c) return;
+    this.setLoop(this.loop('surf', 'surf'), 0.75, 1, c.x, 3, c.z, 420);
+    this.gullT = (this.gullT ?? 5) - dt;
+    if (this.gullT <= 0) {
+      this.gullT = 4 + 10 * rnd();
+      if (c.d < 1800 && cam.y < 300) this.play('gull', c.x + (rnd() - 0.5) * 500, 12 + 30 * rnd(), c.z + (rnd() - 0.5) * 500, { gain: 0.6, ref: 330, pri: 0, wet: 0.2, rate: 0.9 + 0.25 * rnd() });
     }
   },
 

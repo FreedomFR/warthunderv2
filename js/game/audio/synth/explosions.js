@@ -134,4 +134,22 @@ export const EXPLOSIONS = {
     });
     return normalize(d, 0.92);
   },
+  /**
+   * Something catching fire (1.7 s): the whoomph of fuel or paint igniting, a soft low pressure with a rush of flame (noise whose
+   * filter opens and closes), and the first crackles of the fire that follows.
+   */
+  fire_start(sr, seed) {
+    const r = prng(seed), J = (x, f = 0.1) => jit(r, x, f), L = 1.8;
+    const d = mk(sr, L, (d, n) => {
+      const roar = new SVF(sr), body = new SVF(sr), hiss = new SVF(sr), f0 = J(70);
+      let ph = 0;
+      for (let i = 0; i < n; i++) {
+        const t = i / sr, nz = r() * 2 - 1, e = (1 - Math.exp(-t / 0.05)) * Math.exp(-t / 0.5), tail = (1 - Math.exp(-t / 0.2)) * Math.exp(-t / 1.3);
+        ph += TAU * f0 * (1 + 0.5 * Math.exp(-t / 0.1)) / sr;
+        d[i] = Math.sin(ph) * 0.5 * e + roar.step(nz, 260 + 500 * Math.exp(-t / 0.3), 0.7).lp * 1.2 * e + body.step(nz, 900, 0.6).bp * 1.1 * tail + hiss.step(nz, 2500, 0.7).bp * 0.5 * tail;
+      }
+      for (let t = 0.1; t < 1.7; t += 0.01) if (r() < 0.25 * Math.min(1, t / 0.3)) { const i0 = Math.floor(t * sr), f = 900 + 2600 * r(), a = 0.1 + 0.25 * r(), len = Math.floor(sr * 0.015); for (let i = 0; i < len && i0 + i < n; i++) d[i0 + i] += a * (Math.sin(TAU * f * i / sr) * 0.6 + (r() - 0.5)) * Math.exp(-i / sr / 0.004); }
+    });
+    return normalize(d, 0.85);
+  },
 };

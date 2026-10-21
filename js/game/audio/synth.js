@@ -8,17 +8,18 @@ import { EXPLOSIONS } from './synth/explosions.js';
 import { ENGINES } from './synth/engines.js';
 import { AIRCRAFT } from './synth/aircraft.js';
 import { AMBIENCE } from './synth/ambience.js';
+import { WATER } from './synth/water.js';
 import { hashName, levelDb, limit } from './synth/core.js';
 import { TARGET_DBA } from './synth/levels.js';
 export { makeReverbIR } from './synth/core.js';
 
-const BUILDERS = { ...GUNS, ...IMPACTS, ...EXPLOSIONS, ...ENGINES, ...AIRCRAFT, ...AMBIENCE };
+const BUILDERS = { ...GUNS, ...IMPACTS, ...EXPLOSIONS, ...ENGINES, ...AIRCRAFT, ...AMBIENCE, ...WATER };
 
 export const SOUND_NAMES = Object.keys(BUILDERS);
 
 // loops (one buffer each: they repeat anyway and their pitch moves with the source) and the long one-shots (3 variants: memory)
-const LOOPS = new Set(['engine_radial', 'engine_inline', 'siren', 'wind', 'bow_wave', 'fire', 'ship_engine', 'gurgle', 'turbine', 'cavitation', 'turret_motor', 'swell']);
-const LONG = new Set(['gun_big', 'explosion_big', 'torpedo_hit', 'impact_pen', 'splash_big']);
+const LOOPS = new Set(['engine_radial', 'engine_inline', 'siren', 'wind', 'bow_wave', 'fire', 'ship_engine', 'inrush', 'slosh', 'surf', 'torpedo_run', 'air_raid', 'pump', 'steam_vent', 'ground_roll', 'turbine', 'cavitation', 'turret_motor', 'swell']);
+const LONG = new Set(['gun_big', 'explosion_big', 'torpedo_hit', 'impact_pen', 'splash_big', 'rubble', 'water_rush', 'bubbles_big', 'engine_sputter']);
 /** How many variants each sound has: the same recording heard twice in a row is the first thing that gives synthetic sound away. */
 export const VARIANTS = Object.fromEntries(SOUND_NAMES.map((n) => [n, LOOPS.has(n) ? 1 : LONG.has(n) ? 3 : 4]));
 

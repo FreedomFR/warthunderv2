@@ -61,7 +61,7 @@ ok(lvl.torpedo_hit > lvl.splash_big && lvl.splash_big > lvl.splash_small, 'a tor
 
 // loops must not click where they wrap, and the piston engines hold the firing note of their cylinder count
 {
-  const loops = ['engine_radial', 'engine_inline', 'ship_engine', 'turbine', 'cavitation', 'turret_motor', 'wind', 'bow_wave', 'fire', 'gurgle', 'swell', 'siren'];
+  const loops = ['engine_radial', 'engine_inline', 'ship_engine', 'turbine', 'cavitation', 'turret_motor', 'wind', 'bow_wave', 'fire', 'inrush', 'slosh', 'surf', 'torpedo_run', 'air_raid', 'pump', 'steam_vent', 'ground_roll', 'swell', 'siren'];
   let worst = 0, wn = '';
   for (const n of loops) {
     const d = renderSound(n, 22050);
@@ -175,6 +175,77 @@ ok(loopsMax > 0, `continuous voices followed their sources (up to ${loopsMax})`)
   a.play('gun_big', 3300, 40, 0, { pri: 3, ref: 2400 });
   const far = a.ctx.filters.slice(f1).filter((n) => n.frequency.value > 0).map((n) => n.frequency.value);
   ok(near.length >= 3 && far.length >= 3 && far[0] < near[0] * 0.5, `a gun 3 km away is low-passed much lower than at 300 m (${far[0].toFixed(0)} Hz against ${near[0].toFixed(0)} Hz)`);
+}
+// ---- water, damage and the places around: the new voices and where they come from ----
+{
+  // flooding is a roar with bubbles in it, not a tone (the old loop was one sine sliding under a hiss)
+  ok(!SOUND_NAMES.includes('gurgle') && ['inrush', 'slosh', 'water_rush', 'air_vent', 'valve', 'bubbles_big', 'surf', 'torpedo_run'].every((n) => SOUND_NAMES.includes(n)), 'the water sounds are there (the cartoon gurgle is gone)');
+  // the bubbles of a stream are Minnaert resonances that rise as they shrink: a high-pass look at the first second of a rush shows ringing bursts, not a steady hiss
+  const rush = renderSound('water_rush', 22050), seg = 441;
+  let hf = []; for (let i = 0; i + seg < rush.length; i += seg) { let q = 0, k = 0; for (let j = 1; j < seg; j++) { const x = rush[i + j] - rush[i + j - 1]; q += x * x; k++; } hf.push(Math.sqrt(q / k)); }
+  const mean = hf.reduce((x, y) => x + y, 0) / hf.length, sd = Math.sqrt(hf.reduce((x, y) => x + (y - mean) ** 2, 0) / hf.length);
+  ok(sd / mean > 0.35, `a rush of water is made of bursts, not a steady hiss (variation of the high-frequency level ${(sd / mean).toFixed(2)})`);
+}
+{
+  // events -> sounds
+  const calls = [], keep = a.play;
+  a.play = (name, x, y, z, o) => { calls.push(name); return null; };
+  const cl = { type: 'x' };
+  const sh = w.ships[0], base = { layout: { x: 0, z: 0, parts: [{ kind: 'hangar' }, { kind: 'post' }] } };
+  const ev = (e) => { calls.length = 0; a.onEvents([e]); return calls.slice(); };
+  const has = (e, ...n) => { const c = ev(e); return n.every((q) => c.includes(q)); };
+  ok(has({ type: 'baseHit', base, part: 0, state: 2, x: 5, y: 3, z: 5 }, 'rubble'), 'a destroyed building comes down with a crash of rubble');
+  ok(has({ type: 'baseHit', base, part: 1, state: 1, x: 5, y: 3, z: 5 }, 'crash_metal') && !ev({ type: 'baseHit', base, part: 1, state: 1, x: 5, y: 3, z: 5 }).includes('rubble'), 'a damaged one only groans and clangs');
+  ok(has({ type: 'baseDown', base, x: 0, z: 0 }, 'rubble'), 'a base falling is a collapse');
+  ok(has({ type: 'bombDrop', plane: {}, bomb: {}, x: 1, y: 300, z: 1 }, 'bomb_drop'), 'a bomb let go clacks off its rack');
+  ok(has({ type: 'planeEngineOut', plane: { x: 1, y: 300, z: 1 } }, 'engine_sputter'), 'an engine that fails coughs and backfires');
+  ok(has({ type: 'fireStart', ship: sh, x: 0, y: 5, z: 0 }, 'fire_start'), 'a fire catching has its whoomph');
+  ok(has({ type: 'counterFlood', ship: sh }, 'valve'), 'counter-flooding opens valves');
+  ok(has({ type: 'collision', x: 1, z: 1 }, 'collision', 'horn'), 'ships that collide sound their whistles');
+  ok(has({ type: 'sinking', ship: sh }, 'air_vent', 'bubbles_big'), 'a sinking ship blows air out and bubbles up');
+  a.play = keep;
+}
+{
+  // the water in a hull: the breach, the sloshing, the vents, the pump; the steam of a burst line; tyres; the base; the torpedo; the shore
+  const ship = w.ships.find((q) => q.state === 'afloat'), c = a.game.engine.cam;
+  const mem = a.floodMem; a.floodMem = new Map();
+  c.x = ship.x + 120; c.y = 20; c.z = ship.z;
+  ship.floodRate = ship.stats.maxHp * 0.004; ship.waterFill = 0.3;
+  const calls = [], keep = a.play;
+  a.play = (name) => { calls.push(name); return null; };
+  a.shipLoops(w, c, 0.1);
+  ok(a.loops.has('sw' + ship.id) && a.loops.has('sl' + ship.id) && a.loops.has('sp' + ship.id), 'a flooding ship close by: the jet of the breach, the sloshing and the pump are heard');
+  ok(calls.includes('water_rush'), 'and a gush when the hole opens');
+  ship.floodRate = 0; ship.waterFill = 0;
+  for (const k of [...a.loops.keys()]) if (/^s[wlp]/.test(k)) { a.loops.get(k).seen = false; }
+  a.steam = new Map([[ship, a.ctx.currentTime + 20]]);
+  a.shipLoops(w, c, 0.1);
+  ok(a.loops.has('ss' + ship.id), 'a burst steam line hisses');
+  a.floodMem = mem; a.steam = null;
+  // aircraft rolling on the ground: tyres
+  const fake = { planes: [{ id: 99901, hidden: false, eng: 0.8, x: c.x + 60, y: c.y - 15, z: c.z, vx: 12, vy: 0, vz: 0, speed: 12, ground: true, spec: w.planes[0]?.spec || { engine: { type: 'radial', r: 0.7 } }, lost: {}, phase: 'groundRun' }] };
+  if (!fake.planes[0].spec.engine) fake.planes[0].spec = { engine: { type: 'radial', r: 0.7 } };
+  a.planeLoops(fake, c);
+  ok(a.loops.has('pg99901'), 'an aircraft rolling on the ground rumbles on its tyres');
+  // a base: its fires, and the siren while an enemy aircraft is over it
+  const b = { layout: { id: 5, x: c.x + 800, z: c.z, y: 10 }, fires: [{ x: c.x + 780, y: 10, z: c.z }], inert: false, alive: true, team: 0 };
+  a.baseLoops({ bases: [b], planes: [{ team: 1, x: b.layout.x + 1000, z: b.layout.z }] }, c);
+  ok(a.loops.has('bf5') && a.loops.has('ar5'), 'a burning base crackles, and sounds the air-raid siren when enemy aircraft come');
+  a.baseLoops({ bases: [b], planes: [{ team: 0, x: b.layout.x + 1000, z: b.layout.z }] }, c);
+  ok(true, 'no siren for its own aircraft');
+  // torpedoes
+  a.torpedoLoops({ torpedoes: [{ id: 4242, x: c.x + 200, z: c.z, air: false }, { id: 4243, x: c.x + 9000, z: c.z, air: false }] }, c);
+  ok(a.loops.has('tr4242') && !a.loops.has('tr4243'), 'a torpedo running close by whines, one far off does not');
+  // the shore: surf at the coast on the line to the island, gulls when it is close
+  const terr = { empty: false, islands: [{ x: c.x + 1500, z: c.z, R: 1000 }], heightAt: (x) => (x > c.x + 1000 ? 5 : -20) };
+  a.shoreT = 0; a.coast = null; a.shoreLoops({ terrain: terr }, c, 0.1);
+  ok(a.coast && Math.abs(a.coast.x - (c.x + 1000)) < 10 && a.loops.has('surf'), `the surf is heard from the shore (coast found ${a.coast ? (a.coast.x - c.x).toFixed(0) : '-'} m away)`);
+  a.gullT = 0; a.shoreT = 99; a.coast.d = 1000;
+  const g2 = []; a.play = (name) => { g2.push(name); return null; };
+  a.shoreLoops({ terrain: terr }, c, 0.1);
+  ok(g2.includes('gull'), 'gulls call near the land');
+  a.play = keep;
+  for (const k of [...a.loops.keys()]) a.loops.get(k).seen = false;
 }
 console.log('sounds played:', [...names].sort().join(' '));
 console.log(fail ? `${fail} check(s) failed` : 'audio OK');
