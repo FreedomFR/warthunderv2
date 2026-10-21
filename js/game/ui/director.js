@@ -10,7 +10,7 @@ const BIG = 8;                      // the score of a moment that cuts the curre
 /** What each kind of shot lasts [min, max] seconds. */
 const LENGTH = {
   follow: [7, 11], orbit: [8, 12], bridge: [6, 9], shell: [6, 10], tactical: [6, 9], versus: [6, 9], reverse: [5, 8], wide: [5, 8], event: [5, 7], base: [5, 8],
-  formation: [7, 11], attack: [6, 10],
+  formation: [7, 11], attack: [6, 10], dogfight: [6, 9],
 };
 
 export class Director {
@@ -24,9 +24,10 @@ export class Director {
     this.bad = 0;                   // how long the current shot has been bad
     this.lastFormation = -99;       // when a formation was last filmed
     this.seenAttack = new Map();    // ship -> when an attack on her by several aircraft was last filmed
+    this.lastDogfight = -99;        // when two aircraft fighting were last filmed
   }
 
-  reset() { this.heat.clear(); this.moments.length = 0; this.history.length = 0; this.lastWide = -99; this.lastCut = -99; this.bad = 0; this.lastFormation = -99; this.seenAttack.clear(); }
+  reset() { this.heat.clear(); this.moments.length = 0; this.history.length = 0; this.lastWide = -99; this.lastCut = -99; this.bad = 0; this.lastFormation = -99; this.seenAttack.clear(); this.lastDogfight = -99; }
 
   warm(ship, v, now) {
     const h = this.heat.get(ship);
@@ -216,6 +217,24 @@ export function attacks(world) {
     if (planes.length < 2) continue;
     const kinds = new Set(planes.map((p) => p.kind));
     out.push({ ship, planes, score: planes.length + (kinds.size > 1 ? 2 : 0) + ship.stats.score * 0.3 + Math.random() });
+  }
+  return out.sort((a, b) => b.score - a.score);
+}
+
+/**
+ * The fighters on the tail of an enemy aircraft, near enough to be filmed with it (under 450 m: farther, the prey is a dot): { hunter, prey, d, score }, best first. The closer the better, guns
+ * firing better still, and best of all two fighters each trying to get on the other's tail.
+ */
+export function dogfights(world) {
+  const out = [];
+  for (const p of world.planes) {
+    if (!p.fighter || p.phase !== 'engage' || !flying(p)) continue;
+    const q = p.prey;
+    if (!q || q.dying || q.gone || q.hidden || q.y < 40) continue;
+    const d = Math.hypot(q.x - p.x, q.y - p.y, q.z - p.z);
+    if (d > 450) continue;
+    const score = 3 - d / 200 + (p.firing ? 2 : 0) + (q.fighter && q.prey === p ? 2 : q.fighter ? 1 : 0) + Math.random();
+    out.push({ hunter: p, prey: q, d, score });
   }
   return out.sort((a, b) => b.score - a.score);
 }

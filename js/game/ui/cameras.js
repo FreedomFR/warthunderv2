@@ -3,7 +3,7 @@
 import { clamp, wrapPi, lerp, D2R, TAU } from '../math.js';
 import { cockpitEye } from '../model/cockpit.js';
 import { DECK_PHASES } from '../sim/deck.js';
-import { Director, formations, attacks } from './director.js';
+import { Director, formations, attacks, dogfights } from './director.js';
 
 export const CAMERA_MODES = [
   { id: 'auto', key: '1', name: 'Auto', hint: 'Réalisateur automatique : suit l\'action' },
@@ -222,8 +222,8 @@ export class CameraRig {
         px = r.x; py = r.y; pz = r.z; yaw = r.yaw; pitch = r.pitch;
         break;
       }
-      case 'formation': case 'attack': {
-        const r = mode === 'formation' ? this.computeFormation(dt) : this.computeAttack(dt);
+      case 'formation': case 'attack': case 'dogfight': {
+        const r = mode === 'formation' ? this.computeFormation(dt) : mode === 'attack' ? this.computeAttack(dt) : this.computeDogfight(dt);
         if (!r) { px = cam.x; py = cam.y; pz = cam.z; yaw = cam.yaw; pitch = cam.pitch; break; }
         px = r.x; py = r.y; pz = r.z; yaw = r.yaw; pitch = r.pitch;
         break;
@@ -246,7 +246,7 @@ export class CameraRig {
     const hard = mode === 'free' || mode === 'tactical';
     if (!sm.init || hard) { sm.x = px; sm.y = py; sm.z = pz; sm.yaw = yaw; sm.pitch = pitch; sm.roll = roll; sm.init = true; }
     else {
-      const k = 1 - Math.exp(-dt * (mode === 'shell' ? 14 : mode === 'cockpit' ? 40 : mode === 'plane' || mode === 'formation' ? 12 : 9));
+      const k = 1 - Math.exp(-dt * (mode === 'shell' ? 14 : mode === 'cockpit' ? 40 : mode === 'plane' || mode === 'formation' || mode === 'dogfight' ? 12 : 9));
       sm.x += (px - sm.x) * k; sm.y += (py - sm.y) * k; sm.z += (pz - sm.z) * k;
       sm.yaw += wrapPi(yaw - sm.yaw) * k; sm.pitch += (pitch - sm.pitch) * k; sm.roll += wrapPi(roll - (sm.roll || 0)) * k;
     }
@@ -378,7 +378,7 @@ export class CameraRig {
     const pc = this.planeCam;
     this.director.note(events, this.game.world.time);
     // (a shot of several aircraft is not cut for one of them: the drop is what an attack shot is there for)
-    const a = this.auto, group = a.sub === 'attack' || (a.sub === 'formation' && a.held < 5);
+    const a = this.auto, group = a.sub === 'attack' || a.sub === 'dogfight' || (a.sub === 'formation' && a.held < 5);
     for (const e of events) {
       if (this.mode === 'auto' && !group && (e.type === 'bombDrop' || e.type === 'torpedoDrop' || e.type === 'planeDown') && Math.random() < 0.45 && this.auto.sub !== 'plane') { this.auto.forcePlane = e.plane; this.auto.t = 0; }
       // the director likes a touchdown on the wire and a take-off run (a take-off only when the carrier is in sight)
@@ -673,6 +673,69 @@ export class CameraRig {
     return this.lookAt(camX, camY, camZ, cx, Math.min(maxY * 0.45, 400) + 5, cz);
   }
 
+  /**
+   * Two aircraft fighting, a fighter on the tail of its prey, both in the frame: from behind and above the hunter, looking past it at the prey (`chase`); from beyond
+   * the prey, the hunter coming on behind it (`tail`); or from the side of the pair, the camera keeping pace with them (`side`). When the prey goes down the camera
+   * stays on it a few seconds.
+   */
+  computeDogfight(dt) {
+    const f = this.flock;
+    if (!f) return null;
+    const H = f.hunter, Q = f.prey, w = this.game.world;
+    const hOk = w.planes.includes(H) && !H.hidden && !H.gone, qOk = w.planes.includes(Q) && !Q.hidden && !Q.gone;
+    if (!hOk || !qOk) return null;
+    // the line from the hunter to the prey, smoothed (two aircraft turning hard swing it round fast)
+    const dx = Q.x - H.x, dy = Q.y - H.y, dz = Q.z - H.z, d = Math.hypot(dx, dy, dz) || 1;
+    const k = f.u ? 1 - Math.exp(-dt * 3) : 1;
+    f.u = f.u || [0, 0, 0];
+    f.u[0] += (dx / d - f.u[0]) * k; f.u[1] += (dy / d - f.u[1]) * k; f.u[2] += (dz / d - f.u[2]) * k;
+    const ul = Math.hypot(f.u[0], f.u[1], f.u[2]) || 1, ux = f.u[0] / ul, uy = f.u[1] / ul, uz = f.u[2] / ul;
+    const hl = Math.hypot(ux, uz) || 1, sx = -uz / hl * f.side, sz = ux / hl * f.side;          // to one side, level
+    f.d = f.d == null ? d : f.d + (d - f.d) * (1 - Math.exp(-dt * 2));
+    const D = f.d;
+    if (f.view !== 'chase' && D > 420) f.view = 'chase';
+    if (f.view === 'tail') {
+      // beyond the prey, a little to one side and above: the prey in the foreground, the hunter behind it
+      const back = 22 + D * 0.08;
+      return this.frameTwo(Q.x + ux * back + sx * 9, Math.max(Q.y + uy * back + 5, 8), Q.z + uz * back + sz * 9, Q, H);
+    }
+    if (f.view === 'side') {
+      // abeam of the pair, far enough to hold both
+      const half = Math.tan(this.fovWant / 2) * (this.engine.stats.width / Math.max(1, this.engine.stats.height) || 1.6);
+      const R = (D * 0.5 + 16) / half * 1.15 + 30;
+      const mx = (H.x + Q.x) / 2, my = (H.y + Q.y) / 2, mz = (H.z + Q.z) / 2;
+      return this.lookAt(mx + sx * R - ux * R * 0.25, Math.max(my + R * 0.12, 8), mz + sz * R - uz * R * 0.25, mx, my, mz);
+    }
+    // behind and above the hunter, the prey ahead of it
+    const back = 30 + D * 0.05;
+    return this.frameTwo(H.x - ux * back + sx * 6, Math.max(H.y - uy * back + 4 + D * 0.015, 8), H.z - uz * back + sz * 6, H, Q);
+  }
+
+  /** The camera at (cx, cy, cz) aimed between the near aircraft A and the far one B, the field of view just wide enough for both (A a little more in the middle). */
+  frameTwo(cx, cy, cz, A, B) {
+    let ax = A.x - cx, ay = A.y - cy, az = A.z - cz, bx = B.x - cx, by = B.y - cy, bz = B.z - cz;
+    const la = Math.hypot(ax, ay, az) || 1, lb = Math.hypot(bx, by, bz) || 1;
+    ax /= la; ay /= la; az /= la; bx /= lb; by /= lb; bz /= lb;
+    const ang = Math.acos(clamp(ax * bx + ay * by + az * bz, -1, 1));
+    // (beyond about 70 degrees apart the two cannot both be framed: the camera keeps the near one and looks towards the other)
+    const wa = ang > 70 * D2R ? 0.75 : 0.55;
+    this.fovWant = clamp(ang * 1.3 + 12 * D2R, 30 * D2R, 75 * D2R);
+    return this.lookAt(cx, cy, cz, cx + (ax * wa + bx * (1 - wa)) * 100, cy + (ay * wa + by * (1 - wa)) * 100, cz + (az * wa + bz * (1 - wa)) * 100);
+  }
+
+  /** Start a shot of two aircraft fighting (from dogfights()). */
+  startDogfight(g, now) {
+    const a = this.auto, D = this.director;
+    // (the views from beyond the prey and from the side only for a close fight: otherwise the far one of the two is a dot)
+    const r = Math.random(), view = g.d > 280 || r < 0.45 ? 'chase' : r < 0.75 ? 'tail' : 'side';
+    this.flock = { kind: 'dogfight', hunter: g.hunter, prey: g.prey, planes: [g.hunter, g.prey], view, side: Math.random() < 0.5 ? -1 : 1, u: null, d: null, broken: 0, down: 0 };
+    this.fovWant = (view === 'side' ? 40 : 50) * D2R;
+    a.sub = 'dogfight'; a.t = D.length('dogfight'); a.held = 0;
+    this.smooth.init = false;
+    D.started('dogfight', null, now);
+    D.lastDogfight = now;
+  }
+
   /** Start a shot of a formation (from formations()). */
   startFormation(g, now) {
     const a = this.auto, D = this.director;
@@ -758,6 +821,16 @@ export class CameraRig {
       if (T && T.blocks(cam.x, cam.y, cam.z, p0.x, p0.y, p0.z)) D.bad += dt; else D.bad = Math.max(0, D.bad - dt * 2);
       if (D.bad > 0.7) return true;
     }
+    if (sub === 'dogfight') {
+      const f = this.flock;
+      if (!f) return true;
+      const H = f.hunter, Q = f.prey, w = this.game.world;
+      if (!w.planes.includes(H) || !w.planes.includes(Q) || H.gone || Q.gone || Q.hidden) return true;
+      // the prey shot down: stay on it as it falls, then go; the hunter gone after another, or the two apart: the fight is over
+      if (Q.dying) { f.down += dt; if (f.down > 3.5) return true; }
+      else if (H.dying || H.prey !== Q || Math.hypot(Q.x - H.x, Q.y - H.y, Q.z - H.z) > 800) { f.broken += dt; if (f.broken > 1.5) return true; }
+      else f.broken = 0;
+    }
     if (sub === 'attack') {
       const f = this.flock;
       if (!f || !f.ship || f.ship.state === 'sunk' || (f.lost || 0) > 3.5) return true;
@@ -834,6 +907,11 @@ export class CameraRig {
     if (w.state === 'running' && a.sub !== 'attack' && (a.t <= 0 || (a.held > 4 && a.sub !== 'plane'))) {
       const att = attacks(w).filter((g) => now - (D.seenAttack.get(g.ship) ?? -99) > 25);
       if (att.length && (a.t <= 0 ? Math.random() < 0.75 : att[0].planes.length >= 3 && Math.random() < dt * 2)) { this.startAttack(att[0], now); return a.sub; }
+    }
+    // two aircraft fighting: at the end of a shot now and then, or in the middle of a ship shot when one is firing at the other close up
+    if (w.state === 'running' && a.sub !== 'dogfight' && now - D.lastDogfight > 20 && (a.t <= 0 || (a.held > 4 && !['plane', 'attack', 'formation'].includes(a.sub)))) {
+      const df = dogfights(w);
+      if (df.length && (a.t <= 0 ? Math.random() < 0.4 : df[0].hunter.firing && df[0].d < 450 && Math.random() < dt * 0.8)) { this.startDogfight(df[0], now); return a.sub; }
     }
     // a formation on its way: now and then, never twice running
     if (a.t <= 0 && a.sub !== 'formation' && now - D.lastFormation > 30 && Math.random() < 0.3) {
