@@ -2,6 +2,7 @@
 // enemy, attacks (bombs are dropped from a steep dive, torpedoes from a low level run), is shot at by the
 // ships' anti-aircraft guns (damaged aircraft smoke, burn and fall until they hit the sea or a ship), then
 // returns and lands on the carrier. Bombs and torpedoes are simulated bodies, so where they hit decides the damage.
+import { airTorpedoEq } from '../data/explosives.js';
 import { clamp, wrapPi, D2R, G } from '../math.js';
 import { planeTypeFor, PLANES, groundY, GROUND_PITCH, hookBack } from '../model/planes.js';
 import { perfOf } from './airperf.js';
@@ -740,7 +741,7 @@ function dropTorpedo(world, p, tgt, range) {
   p.ordnance = false;
   const a = p.heading;
   world.spawnTorpedo({
-    owner: p.owner, x: p.x + Math.sin(a) * 4, z: p.z - Math.cos(a) * 4, vx: Math.sin(a) * 21.5, vz: -Math.cos(a) * 21.5, speed: 21.5, range: 2600, warhead: 230, team: p.team,
+    owner: p.owner, x: p.x + Math.sin(a) * 4, z: p.z - Math.cos(a) * 4, vx: Math.sin(a) * 21.5, vz: -Math.cos(a) * 21.5, speed: 21.5, range: 2600, warhead: airTorpedoEq(p.owner && p.owner.stats && p.owner.stats.nation), team: p.team,
     air: true, h: Math.max(8, p.y - 3), hv: p.vy, fallSpeed: p.speed * 0.85, fallDir: a,
   });
   world.events.push({ type: 'torpedoDrop', plane: p, x: p.x, y: p.y, z: p.z, bearing: a });

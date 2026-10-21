@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased — torpedoes: the real power of the warheads, and the bow tubes of the S-30
+
+- **Damage follows the real power.** A warhead is now its filler in kg times how much more (or less) a kg of it breaks a hull than a kg of TNT (`data/explosives.js`: TNT 1, hexanite and Type 97 about 1.05, HBX 1.35, Torpex 1.5); the sim, the protection tables (which are in kg of TNT) and the wiki (new row "Équivalent TNT") work on that equivalent. A US Mk 15 (373 kg of HBX, 504 kg) and a British Mk IX** (365 kg of Torpex, 548 kg) hit harder than their weight says, a German G7a (280 kg of hexanite, 294 kg) is the lightest of the ship torpedoes; the damage still grows as W^0.7.
+- **Data checked against NavWeaps and the published sheets** (what was wrong): the G7a runs 6000 m at 44 kn (it was 5000), the Mk 15 Mod 3 carries 373 kg of HBX and runs 4100 m at 45 kn (5500 m is the Mod 0 with 224 kg), the Mk IX 36 kn / 9600 m (35 kn / 13700 m was the slow setting), the French Mle 1923DT carries 308 kg (415 kg is not confirmed by any sheet found), the Type 93 and the Italian W 270 kept.
+- **Aircraft torpedoes by nation** (they were all 230 kg): Mk 13 262 kg of Torpex, Type 91 205 kg, Mk XII 176 kg of TNT, F5b 200 kg of hexanite, Italian W 200/450 200 kg, French estimated 200 kg.
+- **The S-30 fires its bow tubes** (`torpedoes.bow`): fixed tubes, so the boat is steered onto the intercept point (the AI runs straight at it, no zigzag during the run) and fires when the bow is within 4 degrees of it; two torpedoes, then two from the store after 180 s, then nothing (`reloads`, `reloadS`; the other ships keep reloading without limit). `torpedoSolution()` in `weapons.js` is shared by the AI and the firing.
+- **Tests**: `test/torpedoes.mjs` (equivalents, damage follows the power, arc and store of the bow tubes, an automatic battle where the boat torpedoes and hits). `test/homeward.mjs` runs seed 3: seed 7 is a chaotic battle that ended differently once the balance moved.
+
 ## Unreleased — the S-30 Schnellboot, a 31st ship
 
 A German motor torpedo boat (Kriegsmarine, S-30 class, 100 t, 39 kn), built like the others from a spec sheet and hand tuning, and measured in metres on a reference model (measurement only: nothing of it is in the repository; credit in `docs/CREDITS.md`).

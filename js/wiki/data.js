@@ -5,6 +5,9 @@ import { PLANES, floatplaneSpec, planeTypeFor } from '../game/model/planes.js';
 import { PERF } from '../game/sim/airperf.js';
 import { shipName, ROLE_NAMES } from '../viewer/subjects.js';
 import { tierOf } from './tiers.js';
+import { tntEquivalent } from '../game/data/explosives.js';
+
+const EXPLOSIVE_NAMES = { tnt: 'TNT', hexanite: 'hexanite', hbx: 'HBX', torpex: 'Torpex' };
 
 export { NATIONS, TYPES, typeName, shipName, ROLE_NAMES };
 
@@ -149,7 +152,8 @@ export function shipSections(rec) {
       row(s, 'Tubes', `${fr(t.tubes, 0)}${NB}× ${fr(t.caliberMm, 0)}${NB}mm`),
       row(s, 'Vitesse', unit(t.speedKn, 'nœuds', 0)),
       row(s, 'Portée', `${fr(t.rangeM / 1000, 1)}${NB}km`),
-      row(s, 'Charge explosive', unit(t.warheadKg, 'kg', 0)),
+      row(s, 'Charge explosive', `${fr(t.warheadKg, 0)}${NB}kg de ${EXPLOSIVE_NAMES[t.explosive || 'tnt']}`),
+      row(s, 'Équivalent TNT', unit(tntEquivalent(t.warheadKg, t.explosive), 'kg', 0)),
     ]);
   }
 

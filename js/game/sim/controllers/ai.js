@@ -1,6 +1,7 @@
 // Autonomous captain. Writes a ShipCommand (see ship.js) every ~0.5 s: picks targets, chooses a fighting
 // range and heading, launches torpedoes and air strikes, avoids collisions, withdraws when crippled.
 import { clamp, D2R } from '../../math.js';
+import { torpedoSolution } from '../weapons.js';
 
 const TYPE_VALUE = { DD: 1.0, CL: 1.3, CA: 1.8, BB: 2.5, CV: 2.3, BASE: 1.4 };
 const MAP_RADIUS = 26000;
@@ -141,7 +142,9 @@ export class AIController {
     // torpedo attack run: show the beam to the target
     if (torpTarget && d < clamp(tp.range * 0.5, 4500, 9000) * 1.15) {
       const bt = Math.atan2(torpTarget.x - ship.x, -(torpTarget.z - ship.z));
-      want = bt + this.circle * 82 * D2R; thr = 1; torpRun = true;
+      // fixed bow tubes: steer onto the point where the torpedo meets the target; trainable ones: show the beam
+      const sol = tp.bow ? torpedoSolution(ship, torpTarget, tp) : null;
+      want = sol ? sol.bearing : bt + this.circle * 82 * D2R; thr = 1; torpRun = true;
     }
     // sailing with the fleet: keep the station (a ship breaks formation when it is crippled, in the middle of a torpedo run or too close to the enemy)
     let following = false;
@@ -166,7 +169,7 @@ export class AIController {
     // evasive zigzag
     this.zigT -= dt;
     if (this.zigT <= 0) { this.zig = -this.zig; this.zigT = (st.type === 'DD' ? 9 : 16) + rng() * 20; }
-    if (!following) want += this.zig * (st.type === 'DD' ? 14 : st.type === 'BB' ? 6 : 9) * D2R * (stn && stn.flag ? 0.5 : 1);
+    if (!following && !(torpRun && tp.bow)) want += this.zig * (st.type === 'DD' ? 14 : st.type === 'BB' ? 6 : 9) * D2R * (stn && stn.flag ? 0.5 : 1);
 
     // steering vector with obstacle avoidance and map boundary
     let vx = Math.sin(want), vz = -Math.cos(want);
