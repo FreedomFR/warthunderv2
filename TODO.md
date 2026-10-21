@@ -101,6 +101,8 @@ Lot 2 (cuirassés et porte-avions des autres nations) : **fait, avec des réserv
 
 ## 5. Jeu
 
+- [x] **Interface pour se repérer** : carte (K) avec tous les navires, avions, bases et le champ de la caméra ; ligne sous l'image qui dit ce que montre la caméra ; Échap pour revenir à la caméra auto ; barre des caméras en groupes avec le navire suivi ; panneaux qui ne s'empilent plus.
+- [ ] **Interface, pistes restantes** : la carte ne montre ni les obus en vol ni les torpilles ; pas de flèche à l'écran vers un navire hors champ ; les plaques de nom se chevauchent quand les navires sont serrés.
 - [ ] **Contrôle manuel** : prévu dès le départ (`ShipCommand`, `controllers/manual.js`, testé par `test/manual.mjs`) mais pas encore branché à l'interface : prise de contrôle d'un navire, barre, régime moteur, visée, tir, avions.
 
 - [x] **Bases militaires sur les îles** : aérodromes (piste, hangars, tour, réservoirs, DCA, avions au sol), batteries côtières, gros bombardiers qui décollent, bombardent la flotte et reviennent se poser ; tout est destructible (voir CHANGELOG « military bases »).

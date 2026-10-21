@@ -39,17 +39,20 @@ Si la machine est lente : `H` (Réglages) → « Résolution de rendu ». Le mê
 | Touche | Action |
 |---|---|
 | `1` – `9` | Caméras : auto, poursuite, orbite, passerelle, obus, tactique, libre, avions, cockpit |
-| `N` / `B` | Navire (ou avion) suivant / précédent ; un clic sur un navire le sélectionne |
+| `N` / `B` | Navire (ou avion) suivant / précédent ; un clic sur un navire (à l'écran, dans la liste ou sur la carte) le sélectionne |
+| `Échap` | Ferme le panneau ouvert ; sinon revient à la caméra automatique |
+| `K` | Carte : petite, grande, cachée (clic = suivre un navire ou un avion, ou y amener la caméra libre ou tactique ; molette = zoom) |
 | `Espace`, `,`, `.` | Pause ; ralentir / accélérer le temps (0,5× à 8×) |
 | glisser, molette | Orbiter autour du navire, zoom (altitude en vue tactique) |
 | `Z Q S D` ou `W A S D`, `Espace`, `Ctrl`, `Maj` | Déplacement en caméra libre (`Maj` = rapide) |
 | `V` | En caméra « Avions » : poursuite, passage devant l'avion, vue depuis le navire visé |
 | `J` | Journal des impacts : type d'obus, angle, blindage, pénétration, résultat |
 | `Tab` (maintenu) | Tableau de bord du combat, en temps réel |
-| `L`, `M`, `H`, `F1` | Plaques de nom ; son ; réglages de l'océan, du ciel et de la qualité ; aide |
+| `L`, `M`, `H`, `G`, `F1` | Plaques de nom ; son ; réglages de l'océan, du ciel et de la qualité ; cacher l'interface ; aide |
 
 Les caméras en détail : **1 Auto** (un réalisateur suit l'action), **2 Poursuite**, **3 Orbite**, **4 Passerelle**, **5 Obus** (suit les obus jusqu'à
 l'impact), **6 Tactique** (vue de dessus), **7 Libre**, **8 Avions** (suit un avion ; `V` change de vue), **9 Cockpit** (vue du pilote, glisser pour regarder autour).
+La ligne sous l'image dit toujours ce que montre la caméra et qui est qui, aux couleurs des équipes.
 
 ## Ce que contient le jeu
 

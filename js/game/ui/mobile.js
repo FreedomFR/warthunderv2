@@ -28,6 +28,8 @@ export function initMobile(game, ui) {
   const press = (label) => { for (const b of document.querySelectorAll('#topbar button')) if (b.textContent.trim().startsWith(label)) { b.click(); return; } };
   // the impact log starts hidden on a small screen (the menu brings it back)
   press('Impacts');
+  // the map too (it would sit over the stick of the free camera): the menu shows it
+  ui.minimap?.setSize(2);
 
   // ---- top bar ----
   const clockSrc = document.querySelector('#topbar .clock');
@@ -50,6 +52,7 @@ export function initMobile(game, ui) {
   item('Équipes', toggleClass('m-teams'), { keep: true });
   item('Impacts', (b) => { press('Impacts'); b.classList.toggle('on'); }, { keep: true });
   item('Noms', () => press('Noms'));
+  item('Carte', (b) => { const m = ui.minimap; if (m) { m.setSize(m.visible ? 2 : 0); b.classList.toggle('on', m.visible); } }, { keep: true });
   item('Tableau', () => press('Tableau'));
   const planeView = item('Vue de l\'avion', () => rig.nextPlaneView?.());
   item('Son', (b) => { press('Son'); b.textContent = document.getElementById('btn-sound')?.textContent || 'Son'; }, { keep: true });

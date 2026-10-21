@@ -61,6 +61,11 @@ export class CameraRig {
     this.smooth.init = false;
     if (id === 'free') {
       Object.assign(this.free, { x: cam.x, y: cam.y, z: cam.z, yaw: cam.yaw, pitch: cam.pitch });
+      // from high above (the tactical view), down to where the ships can be seen: a little way behind the selected ship, looking at her
+      if (cam.y > 2500) {
+        const t = this.target && this.target.state !== 'sunk' ? this.target : null, c = t ? { x: t.x, z: t.z } : this.focusPoint(), y = 450, back = 1600, yaw = this.free.yaw;
+        Object.assign(this.free, { x: c.x - Math.sin(yaw) * back, z: c.z + Math.cos(yaw) * back, y, pitch: -Math.atan(y / back) });
+      }
     }
     if (id === 'tactical') {
       const c = this.focusPoint();
@@ -357,7 +362,9 @@ export class CameraRig {
 
   pickPlane(dir = 1) {
     const w = this.game.world;
-    const list = w.planes.filter((p) => !p.hidden && p.phase !== 'queue').sort((a, b) => a.id - b.id);
+    // (the aircraft parked on an airfield only when none is out: N would otherwise go through a whole parking area)
+    let list = w.planes.filter((p) => !p.hidden && p.phase !== 'queue' && p.phase !== 'parked').sort((a, b) => a.id - b.id);
+    if (!list.length) list = w.planes.filter((p) => !p.hidden && p.phase !== 'queue').sort((a, b) => a.id - b.id);
     if (!list.length) { this.plane = null; return; }
     // best candidate when nothing is followed, otherwise the neighbour in the list
     let i = list.indexOf(this.plane);

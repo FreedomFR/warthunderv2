@@ -5,6 +5,8 @@ import { TEAM_COLORS } from '../sim/world.js';
 import { shipNames } from '../sim/shipdata.js';
 import { CAMERA_MODES, PLANE_VIEWS } from './cameras.js';
 import { drawDamage } from './damageView.js';
+import { captionOf } from './caption.js';
+import { createMinimap } from './minimap.js';
 import { SLIDERS } from '../../engine.js';
 import { clamp, R2D } from '../math.js';
 
@@ -48,7 +50,7 @@ export function createUI(game) {
   const engine = game.engine, world = game.world;
   const root = document.getElementById('ui');
   const ui = {};
-  const state = { hitLog: true, hits: [], tags: [], labels: true, hudHidden: false, selectedShip: null, killFeed: [], dirty: false, firstSpawn: false };
+  const state = { shipMore: innerHeight > 860, tipShown: false, hitLog: true, hits: [], tags: [], labels: true, hudHidden: false, selectedShip: null, killFeed: [], dirty: false, firstSpawn: false };
 
   // =========================================================================================
   // Setup panel
@@ -66,16 +68,20 @@ export function createUI(game) {
   const setup = h('div', { id: 'setup', class: 'panel' },
     h('div', { class: 'title' }, h('span', { class: 'big' }, 'Combat naval'), h('span', { class: 'sub' }, 'Simulation de la Seconde Guerre mondiale')),
     h('div', { class: 'row' }, h('a', { class: 'btn small', href: 'wiki.html', target: '_blank', title: 'Fiches techniques et arbres par nation' }, 'Wiki des navires'), h('a', { class: 'btn small', href: 'viewer.html', target: '_blank', title: 'Voir chaque navire et avion en 3D' }, 'Visualiseur 3D')),
+    h('div', { class: 'step' }, h('b', {}, '1'), 'Un scénario tout prêt… '),
     h('div', { class: 'row' }, presetSel, h('button', { class: 'btn', onclick: () => loadPreset(presetSel.value) }, 'Charger')),
+    h('div', { class: 'step' }, h('b', {}, '2'), '… ou vos propres flottes'),
     teamsBox,
     h('div', { class: 'row' }, h('button', { class: 'btn small', onclick: () => addTeam() }, '+ Équipe'), h('button', { class: 'btn small', onclick: () => randomize() }, 'Flottes aléatoires'), h('button', { class: 'btn small', onclick: () => { game.config.seed = (Math.random() * 1e6) | 0; seedInput.value = game.config.seed; changed(); } }, 'Nouvelle graine')),
+    h('div', { class: 'step' }, h('b', {}, '3'), 'Le champ de bataille'),
     h('label', { class: 'slider' }, h('span', {}, 'Distance entre les flottes'), sepInput, sepVal),
     h('label', { class: 'slider' }, h('span', {}, 'Graine du combat'), seedInput, h('span')),
     h('label', { class: 'slider' }, h('span', {}, 'Îles'), islandSel, h('span')),
     h('label', { class: 'slider' }, h('span', {}, 'Bases militaires'), baseSel, h('span')),
     infoCard,
-    h('div', { class: 'row' }, btnSpawn, btnStart),
-    h('div', { class: 'hint' }, 'Faites apparaître les flottes pour les voir sur l\'eau, changez de caméra (1-7), puis lancez le combat : l\'IA pilote tous les navires.'),
+    h('div', { class: 'actions' },
+      h('div', { class: 'row' }, btnSpawn, btnStart),
+      h('div', { class: 'hint' }, 'Faites apparaître les flottes pour les voir sur l\'eau, puis lancez le combat : l\'IA pilote tous les navires et la caméra automatique suit l\'action.')),
   );
 
   function ensureTeams() {
@@ -183,18 +189,46 @@ export function createUI(game) {
   const clock = h('span', { class: 'clock' }, '00:00');
   const fpsEl = h('span', { class: 'fps' }, '');
   const speedBtns = [0, 0.5, 1, 2, 4, 8].map((s) => h('button', { class: 'btn tiny', 'data-s': s, onclick: () => { if (s === 0) game.togglePause(); else { game.paused = false; game.setTimeScale(s); } } }, s === 0 ? '⏸' : s + '×'));
-  const scoreBtn = h('button', { class: 'btn tiny', title: 'Tableau de bord (Tab, maintenir)', onclick: () => { state.scoreSticky = !state.scoreSticky; scoreBtn.classList.toggle('on', state.scoreSticky); refreshScore(true); } }, 'Tableau');
-  const topbar = h('div', { id: 'topbar', class: 'hud' }, clock, h('span', { class: 'sp' }, speedBtns), fpsEl,
-    h('button', { class: 'btn tiny', title: 'Composer les flottes', onclick: () => setup.classList.toggle('collapsed') }, 'Flottes'),
+  const scoreBtn = h('button', { class: 'btn tiny tg', title: 'Tableau de bord (Tab, maintenir)', onclick: () => { state.scoreSticky = !state.scoreSticky; refreshScore(true); refreshToggles(); } }, 'Tableau');
+  // the buttons that show or hide something are lit while it is shown
+  const toggleBtn = (label, title, get, set) => { const b = h('button', { class: 'btn tiny tg', title, onclick: () => { set(!get()); refreshToggles(); } }, label); b.get = get; return b; };
+  const hitBtn = toggleBtn('Impacts', 'Journal des impacts (J)', () => state.hitLog, (v) => { state.hitLog = v; });
+  const nameBtn = toggleBtn('Noms', 'Plaques de nom des navires (L)', () => state.labels, (v) => { state.labels = v; });
+  const mapBtn = toggleBtn('Carte', 'Carte : clic = suivre un navire, molette = zoom (K : petite, grande, cachée)', () => minimap.visible, () => minimap.cycle());
+  const setupBtn = h('button', { class: 'btn tiny tg', title: 'Composer les flottes', onclick: () => { const open = setup.classList.toggle('collapsed') === false; if (open) settings.classList.add('hidden'); refreshToggles(); } }, 'Flottes');
+  const setBtn = h('button', { class: 'btn tiny tg', title: 'Réglages (H)', onclick: () => toggleSettings() }, 'Réglages');
+  const helpBtn = h('button', { class: 'btn tiny tg', title: 'Aide (F1)', onclick: () => toggleHelp() }, '?');
+  function refreshToggles() {
+    for (const b of [hitBtn, nameBtn, mapBtn]) b.classList.toggle('on', !!b.get());
+    scoreBtn.classList.toggle('on', !!state.scoreSticky);
+    setupBtn.classList.toggle('on', !setup.classList.contains('collapsed'));
+    setBtn.classList.toggle('on', !settings.classList.contains('hidden'));
+    helpBtn.classList.toggle('on', !helpEl.classList.contains('hidden'));
+  }
+  const sep = () => h('span', { class: 'sep' });
+  const topbar = h('div', { id: 'topbar', class: 'hud' }, clock, h('span', { class: 'sp' }, speedBtns), fpsEl, sep(),
+    hitBtn, nameBtn, mapBtn, scoreBtn, sep(),
+    setupBtn,
     h('button', { class: 'btn tiny', id: 'btn-sound', title: 'Son (M)', onclick: () => toggleSound() }, 'Son'),
-    h('button', { class: 'btn tiny', title: 'Journal des impacts (J)', onclick: () => { state.hitLog = !state.hitLog; } }, 'Impacts'),
-    h('button', { class: 'btn tiny', title: 'Plaques de nom (L)', onclick: () => { state.labels = !state.labels; } }, 'Noms'),
-    scoreBtn,
-    h('button', { class: 'btn tiny', title: 'Réglages (H)', onclick: () => toggleSettings() }, 'Réglages'),
-    h('button', { class: 'btn tiny', title: 'Aide (F1)', onclick: () => helpEl.classList.toggle('hidden') }, '?'));
+    setBtn, helpBtn);
   const teamsHud = h('div', { id: 'teamshud', class: 'hud' });
-  const camBar = h('div', { id: 'cambar', class: 'hud' }, CAMERA_MODES.map((m) => h('button', { class: 'cam', 'data-id': m.id, title: m.hint, onclick: () => game.camera.setMode(m.id, true) }, h('b', {}, m.key), ' ' + m.name)),
-    h('button', { class: 'cam', title: 'Précédent (B)', onclick: () => (inPlaneMode() ? game.camera.pickPlane(-1) : game.camera.pickTarget(-1)) }, '◀'), h('button', { class: 'cam', title: 'Suivant (N / Tab)', onclick: () => (inPlaneMode() ? game.camera.pickPlane(1) : game.camera.pickTarget(1)) }, '▶'));
+  // the cameras in groups (the whole battle, one ship, the aircraft) and the subject they follow, with the arrows to change it
+  const camBtn = (id) => { const m = CAMERA_MODES.find((x) => x.id === id); return h('button', { class: 'cam', 'data-id': m.id, title: m.hint, onclick: () => game.camera.setMode(m.id, true) }, h('b', {}, m.key), ' ' + m.name); };
+  const subjName = h('span', { class: 'subj-n' }, '—');
+  // (with the automatic camera, the arrows mean "show me that one": the camera follows the ship picked)
+  const pick = (d) => { const r = game.camera; if (inPlaneMode()) r.pickPlane(d); else { r.pickTarget(d); if (r.mode === 'auto') r.setMode('follow', true); } };
+  const pickPrev = () => pick(-1), pickNext = () => pick(1);
+  const subj = h('span', { class: 'subj' },
+    h('button', { class: 'cam', title: 'Précédent (B)', onclick: pickPrev }, '◀'), subjName, h('button', { class: 'cam', title: 'Suivant (N)', onclick: pickNext }, '▶'));
+  const camBar = h('div', { id: 'cambar', class: 'hud' },
+    h('span', { class: 'cgrp', 'data-g': 'Bataille' }, camBtn('auto'), camBtn('tactical'), camBtn('free')),
+    h('span', { class: 'cgrp', 'data-g': 'Navire' }, camBtn('follow'), camBtn('orbit'), camBtn('bridge'), camBtn('shell')),
+    h('span', { class: 'cgrp', 'data-g': 'Avions' }, camBtn('plane'), camBtn('cockpit')),
+    subj);
+  // what the camera shows, in words, above the camera bar
+  const caption = h('div', { id: 'caption' });
+  const tip = h('div', { id: 'tip', class: 'hud hidden' });
+  const minimap = createMinimap(game, { onPick: (o) => pickFromMap(o) });
   const inPlaneMode = () => game.camera.mode === 'plane' || game.camera.mode === 'cockpit';
   const shipInfo = h('div', { id: 'shipinfo', class: 'hud' });
   const dmgCanvas = h('canvas', { id: 'dmgview', width: 336, height: 62 });
@@ -213,23 +247,31 @@ export function createUI(game) {
   const score = h('div', { id: 'score', class: 'hidden panel' });
 
   // ---- help ----
-  const helpEl = h('div', { id: 'help', class: 'panel hidden', onclick: () => helpEl.classList.add('hidden') },
+  const closeX = (fn) => h('button', { class: 'pclose', title: 'Fermer (Échap)', 'aria-label': 'Fermer', onclick: (e) => { e.stopPropagation(); fn(); refreshToggles(); } }, '✕');
+  const helpEl = h('div', { id: 'help', class: 'panel hidden', onclick: () => { helpEl.classList.add('hidden'); refreshToggles(); } },
     h('div', { class: 'title' }, h('span', { class: 'big' }, 'Commandes')),
     h('div', { class: 'helpgrid' },
-      h('b', {}, '1 – 9'), h('span', {}, 'Caméras : auto, poursuite, orbite, passerelle, obus, tactique, libre, avions, cockpit'),
-      h('b', {}, 'N / B'), h('span', {}, 'Navire (ou avion) suivant / précédent (clic sur un navire = le sélectionner)'),
-      h('b', {}, 'J'), h('span', {}, 'Journal des impacts : type d\'obus, angle d\'attaque, blindage, pénétration, résultat et dégâts de chaque touche'),
-      h('b', {}, 'Tab (maintenir)'), h('span', {}, 'Tableau de bord du combat : coulés, obus tirés, touches, dégâts de chaque navire, en temps réel'),
-      h('b', {}, 'V'), h('span', {}, 'En caméra « Avions » : poursuite, passage devant l\'avion, vue depuis le navire visé'),
-      h('b', {}, 'Glisser / molette'), h('span', {}, 'Orbiter autour du navire, zoom (altitude en vue tactique, vitesse en caméra libre)'),
-      h('b', {}, 'ZQSD / WASD, Espace, Ctrl, Maj'), h('span', {}, 'Déplacement en caméra libre (Maj = rapide)'),
+      h('i', {}, 'Se repérer'),
+      h('b', {}, 'Échap'), h('span', {}, 'Ferme le panneau ouvert ; sinon revient à la caméra automatique'),
+      h('b', {}, 'K'), h('span', {}, 'Carte : petite, grande, cachée. Clic sur un navire ou un avion = le suivre ; clic sur l\'eau en vue tactique ou libre = y aller ; molette = zoom'),
+      h('b', {}, 'Ligne sous l\'image'), h('span', {}, 'Ce que montre la caméra et qui est qui (couleur de l\'équipe)'),
+      h('i', {}, 'Caméras'),
+      h('b', {}, '1 · 6 · 7'), h('span', {}, 'La bataille : caméra automatique, vue tactique de dessus, caméra libre'),
+      h('b', {}, '2 · 3 · 4 · 5'), h('span', {}, 'Un navire : poursuite, orbite, passerelle, obus'),
+      h('b', {}, '8 · 9  ·  V'), h('span', {}, 'Un avion : poursuite (V change la vue : passage, depuis le navire visé), cockpit'),
+      h('b', {}, 'N / B'), h('span', {}, 'Navire (ou avion) suivant / précédent ; un clic sur un navire, sur son nom à droite ou sur la carte le sélectionne'),
+      h('b', {}, 'Glisser / molette'), h('span', {}, 'Tourner autour du navire, zoom (altitude en vue tactique, vitesse en caméra libre)'),
+      h('b', {}, 'ZQSD / WASD, Espace, Ctrl, Maj'), h('span', {}, 'Déplacement en caméra libre (Maj = rapide) et en vue tactique'),
+      h('i', {}, 'Le combat'),
       h('b', {}, 'Espace  ·  , .'), h('span', {}, 'Pause ; ralentir / accélérer le temps (0,5× à 8×)'),
-      h('b', {}, 'L  ·  M  ·  H  ·  F1'), h('span', {}, 'Plaques de nom ; son ; réglages océan et ciel ; cette aide'),
-      h('b', {}, 'Contrôle manuel'), h('span', {}, 'Prévu : tous les navires utilisent déjà les mêmes commandes que l\'IA (voir js/game/sim/controllers/manual.js).')),
+      h('b', {}, 'Tab (maintenir)'), h('span', {}, 'Tableau de bord : coulés, obus tirés, touches, dégâts de chaque navire'),
+      h('b', {}, 'J'), h('span', {}, 'Journal des impacts : obus, angle, blindage, pénétration et dégâts de chaque touche'),
+      h('b', {}, 'L  ·  M  ·  H  ·  G  ·  F1'), h('span', {}, 'Plaques de nom ; son ; réglages ; cacher toute l\'interface ; cette aide')),
     h('div', { class: 'hint' }, 'Cliquer pour fermer'));
+  function toggleHelp(on) { helpEl.classList.toggle('hidden', on === undefined ? !helpEl.classList.contains('hidden') : !on); refreshToggles(); }
 
   // ---- settings ----
-  const settings = h('div', { id: 'settings', class: 'panel hidden' }, h('div', { class: 'title' }, h('span', { class: 'big' }, 'Réglages')));
+  const settings = h('div', { id: 'settings', class: 'panel hidden' }, closeX(() => settings.classList.add('hidden')), h('div', { class: 'title' }, h('span', { class: 'big' }, 'Réglages')));
   {
     const scaleVal = h('output', {}, Math.round(engine.getRenderScale() * 100) + '%');
     ui.onRenderScale = (v) => { scaleVal.textContent = Math.round(v * 100) + '%'; const inp = scaleVal.previousSibling; if (inp) inp.value = v; };
@@ -244,12 +286,15 @@ export function createUI(game) {
       h('span', {}, 'Particules max'),
       h('input', { type: 'range', min: 10000, max: 200000, step: 5000, value: game.particleMax, onchange: (e) => game.setParticleMax(Number(e.target.value)), oninput: (e) => { pval.textContent = e.target.value / 1000 + ' k'; } }), pval));
     settings.append(h('label', { class: 'slider' }, h('span', {}, 'Résolution de rendu'), h('input', { type: 'range', min: 0.4, max: 1.5, step: 0.05, value: engine.getRenderScale(), oninput: (e) => { engine.setRenderScale(Number(e.target.value)); scaleVal.textContent = Math.round(e.target.value * 100) + '%'; } }), scaleVal));
+    // the ocean and the sky: a fold of its own (they change the picture, not the game)
+    const adv = h('details', { class: 'fold' }, h('summary', {}, 'Océan et ciel'));
+    settings.append(adv);
     for (const [key, label, min, max, step, kind] of SLIDERS) {
       const val = h('output', {}, String(engine.P[key]));
-      settings.append(h('label', { class: 'slider' }, h('span', {}, label), h('input', { type: 'range', min, max, step, value: engine.P[key], oninput: (e) => { engine.P[key] = Number(e.target.value); val.textContent = e.target.value; engine.markDirty(kind); } }), val));
+      adv.append(h('label', { class: 'slider' }, h('span', {}, label), h('input', { type: 'range', min, max, step, value: engine.P[key], oninput: (e) => { engine.P[key] = Number(e.target.value); val.textContent = e.target.value; engine.markDirty(kind); } }), val));
     }
   }
-  function toggleSettings() { settings.classList.toggle('hidden'); }
+  function toggleSettings() { const open = settings.classList.toggle('hidden') === false; if (open && game.state !== 'setup') setup.classList.add('collapsed'); refreshToggles(); }
   function toggleSound() {
     game.audio.unlock();
     const muted = game.audio.toggleMute();
@@ -257,11 +302,13 @@ export function createUI(game) {
   }
   if (game.audio.muted) setTimeout(() => { const b = document.getElementById('btn-sound'); if (b) b.textContent = 'Son coupé'; }, 0);
 
-  root.append(setup, topbar, teamsHud, camBar, shipInfo, planeInfo, feed, labelsBox, banner, results, score, hitlog, helpEl, settings);
+  root.append(labelsBox, setup, topbar, teamsHud, camBar, caption, tip, minimap.el, shipInfo, planeInfo, feed, banner, results, score, hitlog, helpEl, settings);
+  refreshToggles();
   setHudVisible(false);
 
   function setHudVisible(v) {
-    for (const el of [topbar, teamsHud, camBar, shipInfo, feed]) el.classList.toggle('hidden', !v || state.hudHidden);
+    for (const el of [topbar, teamsHud, camBar, caption, shipInfo, feed]) el.classList.toggle('hidden', !v || state.hudHidden);
+    minimap.el.style.display = !v || state.hudHidden ? 'none' : '';
     planeInfo.classList.toggle('hidden', true);
   }
 
@@ -275,14 +322,25 @@ export function createUI(game) {
     setHudVisible(true);
     buildTeamsHud();
     camBar.classList.remove('hidden');
+    minimap.reset();
   };
   ui.onStart = () => {
     setup.classList.add('collapsed');
     btnStart.disabled = true;
     showBanner('Que le combat commence !');
     state.killFeed.length = 0;
+    refreshToggles();
+    // the first battle: how not to get lost
+    if (!state.tipShown) {
+      state.tipShown = true;
+      tip.replaceChildren(h('b', {}, 'Pour s\'y retrouver'),
+        h('span', {}, 'La ligne sous l\'image dit ce que montre la caméra. La carte (K) montre tous les navires : un clic sur l\'un d\'eux le suit. Échap revient à la caméra automatique. F1 : toutes les commandes.'),
+        h('button', { class: 'btn tiny', onclick: () => tip.classList.add('hidden') }, 'Compris'));
+      tip.classList.remove('hidden');
+      clearTimeout(state.tipT); state.tipT = setTimeout(() => tip.classList.add('hidden'), 16000);
+    }
   };
-  ui.onReset = () => { setup.classList.remove('collapsed'); setHudVisible(false); btnStart.disabled = true; btnSpawn.textContent = 'Faire apparaître les flottes'; };
+  ui.onReset = () => { setup.classList.remove('collapsed'); refreshToggles(); setHudVisible(false); btnStart.disabled = true; btnSpawn.textContent = 'Faire apparaître les flottes'; };
   ui.onFinished = () => {
     showResults();
   };
@@ -290,6 +348,20 @@ export function createUI(game) {
   ui.onPause = () => refreshSpeed();
   ui.onCameraMode = (id) => { for (const b of camBar.querySelectorAll('.cam[data-id]')) b.classList.toggle('on', b.dataset.id === id); };
   ui.onTarget = (s) => { state.selectedShip = s; };
+
+  // a click on the map: follow that ship or that aircraft; on the water, the tactical or free camera goes there
+  function pickFromMap(o) {
+    const rig = game.camera;
+    if (o.ship) { rig.setTarget(o.ship); if (!['follow', 'orbit', 'bridge', 'shell', 'tactical'].includes(rig.mode)) rig.setMode('follow', true); return; }
+    if (o.plane) { rig.setMode('plane', true); rig.setPlane(o.plane); return; }
+    if (!o.point) return;
+    if (rig.mode === 'tactical') { rig.tactical.x = o.point.x; rig.tactical.z = o.point.z; }
+    else if (rig.mode === 'free') {
+      // from a little way back and above, looking at the spot
+      const f = rig.free, y = Math.min(Math.max(f.y, 120), 900), back = y * 2.2, dx = o.point.x - f.x, dz = o.point.z - f.z, d = Math.hypot(dx, dz) || 1;
+      Object.assign(f, { x: o.point.x - dx / d * back, z: o.point.z - dz / d * back, y, yaw: Math.atan2(dx, -dz), pitch: -Math.atan(y / back) });
+    }
+  }
 
   function refreshSpeed() {
     for (const b of speedBtns) {
@@ -388,10 +460,13 @@ export function createUI(game) {
   }
   let hitLogKey = '';
   function refreshHitLog() {
-    hitlog.classList.toggle('hidden', !state.hitLog || game.state === 'setup' || state.hudHidden);
-    if (!state.hitLog) return;
     const sel = game.camera.target;
-    const mine = state.hits.filter((e) => !sel || e.ship === sel || e.owner === sel).slice(-6);
+    // the hits on the ship followed or by her, the last four, and only while they are fresh: the log does not stay on the screen when nothing happens
+    const now = performance.now();
+    const mine = state.hits.filter((e) => (!sel || e.ship === sel || e.owner === sel) && now - e.wall < 25000).slice(-4);
+    const show = state.hitLog && mine.length > 0 && (game.state === 'running' || game.state === 'finished') && !state.hudHidden;
+    hitlog.classList.toggle('hidden', !show);
+    if (!show) return;
     const key = mine.map((e) => e.wall).join(',') + (sel ? sel.id : '');
     if (key === hitLogKey) return;
     hitLogKey = key;
@@ -476,6 +551,7 @@ export function createUI(game) {
   let scoreT = 0;
   ui.update = (dt) => {
     updateHitTags();
+    if (game.state !== 'setup' && !state.hudHidden) minimap.update(dt);
     scoreT += dt;
     if (scoreT > 0.25) refreshHitLog();
     if (scoreT > 0.25) { scoreT = 0; refreshScore(); }
@@ -498,22 +574,52 @@ export function createUI(game) {
         r.row.classList.toggle('dead', !s.alive);
         r.row.classList.toggle('sel', s === game.camera.target);
       }
-      tr.head.querySelector('.alive').textContent = `${alive}/${tr.rows.length}`;
+      let air = 0;
+      for (const p of world.planes) if (p.team === tr.ti && !p.gone && !p.dying && !['queue', 'parked', 'holdshort', 'lineup', 'taxiOut', 'taxiIn', 'taxiBack'].includes(p.phase)) air++;
+      tr.head.querySelector('.alive').textContent = `${air ? `✈ ${air} · ` : ''}${alive}/${tr.rows.length}`;
     }
     // kill feed
     const now = performance.now();
     state.killFeed = state.killFeed.filter((k) => now - k.t < 9000);
     feed.replaceChildren(...state.killFeed.map((k) => h('div', { class: 'kline' }, h('span', {}, (k.plane ? '✈ ' : '') + k.text), h('i', { style: `background:${k.c2}` }))));
+    // what the camera shows and who it follows
+    updateCaption();
     // selected ship
     updateShipInfo();
     for (const b of camBar.querySelectorAll('.cam[data-id]')) b.classList.toggle('on', b.dataset.id === game.camera.mode);
   };
 
+  let capKey = '';
+  function updateCaption() {
+    const rig = game.camera, c = captionOf(rig);
+    const key = c.mode + c.shot + (c.hint || '') + c.parts.map((p) => p.text + p.team).join('|') + rig.mode;
+    if (key !== capKey) {
+      capKey = key;
+      const tcol = (t) => (t != null && world.teams[t] ? css(world.teams[t].rgb) : null);
+      caption.replaceChildren(
+        h('span', { class: 'cm' }, c.mode + (c.shot ? ' · ' + c.shot : '')),
+        ...c.parts.map((p) => (tcol(p.team) ? h('b', { style: `color:${tcol(p.team)}` }, p.text) : h('span', {}, p.text))),
+        ...(c.hint ? [h('span', { class: 'back' }, c.hint)] : []),
+        ...(rig.mode !== 'auto' ? [h('span', { class: 'back' }, 'Échap : caméra auto')] : []));
+    }
+    // the subject between the arrows of the camera bar
+    const pm = inPlaneMode() || (rig.mode === 'auto' && ['plane', 'dogfight', 'formation'].includes(rig.auto.sub) && rig.plane), subjOn = pm ? rig.plane : rig.target;
+    // the map sits where the fleet and settings panels open
+    minimap.el.classList.toggle('under', !setup.classList.contains('collapsed') || !settings.classList.contains('hidden'));
+    const nm = subjOn ? (pm ? subjOn.spec.name : subjOn.name) : '—', col = subjOn && world.teams[subjOn.team] ? css(world.teams[subjOn.team].rgb) : '';
+    if (subjName.textContent !== nm) subjName.textContent = nm;
+    subjName.style.color = col;
+  }
+
   const PHASES = {
     queue: 'Au pont', takeoff: 'Décollage', cruise: 'En route', ip: 'Approche basse', run: 'Passe de torpillage', rollin: 'Mise en piqué', dive: 'En piqué',
     pullout: 'Ressource', break: 'Dégagement', egress: 'Retrait', return: 'Retour au porte-avions', pattern: 'Circuit d\'appontage', final: 'Approche finale',
     rollout: 'Appontage', waveoff: 'Remise de gaz', ditch: 'Amerrissage forcé', floating: 'Sur l\'eau',
+    parked: 'Au parking', taxiOut: 'Roulage vers la piste', holdshort: 'Attente avant la piste', lineup: 'Alignement sur la piste', groundRun: 'Course au décollage',
+    climb: 'Montée', assemble: 'Rassemblement', hold: 'Attente', escort: 'Escorte', cap: 'Patrouille', engage: 'Combat aérien', refuge: 'Repli',
+    goaround: 'Remise de gaz', lfinal: 'Approche finale', lroll: 'Atterrissage', taxiIn: 'Roulage vers le parking', taxiBack: 'Roulage vers le parking',
   };
+  const ROLES = { dive: 'Bombardier en piqué', torp: 'Torpilleur', level: 'Bombardier', fighter: 'Chasseur' };
   const DEATH = { spin: 'en vrille', dive: 'pilote touché, pique', wing: 'aile arrachée', glide: 'moteur coupé', explode: 'désintégré en vol', tumble: 'en chute libre' };
   function updatePlaneInfo() {
     const p = game.camera.plane;
@@ -528,7 +634,7 @@ export function createUI(game) {
     if (!show) return;
     const t = world.teams[p.team];
     const alt = Math.max(0, Math.round(p.y)), kmh = Math.round(p.speed * 3.6);
-    const role = p.kind === 'dive' ? 'Bombardier en piqué' : 'Torpilleur';
+    const role = ROLES[p.kind] || '';
     const phase = p.dying ? 'Abattu : ' + (DEATH[p.mode] || 'en chute') : PHASES[p.phase] || p.phase;
     const hpf = Math.max(0, p.hp / p.maxHp);
     const view = game.camera.mode === 'plane' ? PLANE_VIEWS.find((v) => v.id === game.camera.planeCam.view)?.name : 'pilote';
@@ -539,9 +645,9 @@ export function createUI(game) {
         h('span', {}, 'Phase'), h('b', {}, phase),
         h('span', {}, 'Altitude'), h('b', {}, `${alt} m`),
         h('span', {}, 'Vitesse'), h('b', {}, `${kmh} km/h`),
-        h('span', {}, 'Porte-avions'), h('b', {}, p.owner ? p.owner.name : '—'),
+        h('span', {}, p.base ? 'Base' : 'Porte-avions'), h('b', {}, p.base ? `${p.base.name} (${t.name})` : p.owner ? p.owner.name : '—'),
         h('span', {}, 'Cible'), h('b', {}, p.target && p.target.alive ? p.target.name : '—'),
-        h('span', {}, 'Armement'), h('b', {}, p.ordnance ? (p.kind === 'dive' ? `bombe de ${p.spec.bombKg} kg` : 'torpille') : 'largué'),
+        h('span', {}, 'Armement'), h('b', {}, p.kind === 'fighter' ? 'mitrailleuses et canons' : p.ordnance ? (p.kind === 'torp' ? 'torpille' : `bombe${p.kind === 'level' ? 's' : ''} de ${p.spec.bombKg} kg`) : 'largué'),
         h('span', {}, 'Vue (V)'), h('b', {}, view || '—')),
     );
   }
@@ -565,22 +671,25 @@ export function createUI(game) {
       h('div', { class: 'si-head', style: `--tc:${css(t.rgb)}` }, h('span', { class: 'sw' }), h('b', {}, s.name), h('small', {}, ` ${typeName(s.stats.type)} · ${s.stats.className}`)),
       h('div', { class: 'si-bar' }, h('i', { style: `width:${(s.hpFrac * 100).toFixed(0)}%;background:${s.hpFrac > 0.55 ? '#5ec26a' : s.hpFrac > 0.25 ? '#e0b43a' : '#d9534f'}` })),
       dmgCanvas,
+      // the essentials, then the rest on demand (a short screen has no room for all of it)
       h('div', { class: 'si-grid' },
         h('span', {}, 'Structure'), h('b', {}, `${Math.round(s.hp)} / ${s.stats.maxHp}`),
         h('span', {}, 'Vitesse'), h('b', {}, `${(s.speed / KN).toFixed(0)} nœuds${s.propulsion < 0.95 ? ` (machines ${Math.round(s.propulsion * 100)} %)` : ''}`),
-        h('span', {}, 'Cap'), h('b', {}, `${((s.heading * R2D % 360 + 360) % 360).toFixed(0)}°`),
         h('span', {}, 'Artillerie'), h('b', {}, `${mainAlive}/${mainMounts.length} tourelles, ${ready} prêtes${jam ? `, ${jam} enrayée${jam > 1 ? 's' : ''}` : ''}`),
-        h('span', {}, 'Obus (principale)'), h('b', {}, (() => { const a = s.ammoLeft('main'); return `${a.AP} AP · ${a.HE} HE (${Math.round(a.frac * 100)} %)`; })()),
         h('span', {}, 'Cible'), h('b', {}, target && target.alive ? `${target.name} (${(Math.hypot(target.x - s.x, target.z - s.z) / 1000).toFixed(1)} km)` : '—'),
-        h('span', {}, 'Machines'), h('b', {}, okOf('engine') || '—'),
-        h('span', {}, 'Gouvernail'), h('b', {}, s.rudderDead ? 'détruit' : s.rudderJam ? 'bloqué' : 'normal'),
-        h('span', {}, 'Direction de tir'), h('b', {}, s.fcMult > 1.05 ? `dégradée (×${s.fcMult.toFixed(1)})` : 'normale'),
-        h('span', {}, 'DCA légère'), h('b', {}, `${aaAlive}/${s.aaMounts.length} · munitions ${Math.round(s.aaAmmo().frac * 100)} %`),
-        h('span', {}, 'Inondation'), h('b', {}, `${Math.round((s.waterFill || 0) * 100)} %${Math.abs(s.floodList || 0) > 0.03 ? (s.floodList > 0 ? ' · gîte tribord' : ' · gîte bâbord') : ''}`),
-        h('span', {}, 'Incendies'), h('b', {}, String(s.fires.length)),
-        h('span', {}, 'Tirs / touches'), h('b', {}, `${s.shotsFired} / ${s.shotsHit} (${acc}%)`),
-        h('span', {}, 'Coulés / avions'), h('b', {}, `${s.kills} / ${s.planeKills || 0}`),
+        h('span', {}, 'Incendies · eau'), h('b', {}, `${s.fires.length} · ${Math.round((s.waterFill || 0) * 100)} %${Math.abs(s.floodList || 0) > 0.03 ? (s.floodList > 0 ? ' · gîte tribord' : ' · gîte bâbord') : ''}`),
+        ...(state.shipMore ? [
+          h('span', {}, 'Cap'), h('b', {}, `${((s.heading * R2D % 360 + 360) % 360).toFixed(0)}°`),
+          h('span', {}, 'Obus (principale)'), h('b', {}, (() => { const a = s.ammoLeft('main'); return `${a.AP} AP · ${a.HE} HE (${Math.round(a.frac * 100)} %)`; })()),
+          h('span', {}, 'Machines'), h('b', {}, okOf('engine') || '—'),
+          h('span', {}, 'Gouvernail'), h('b', {}, s.rudderDead ? 'détruit' : s.rudderJam ? 'bloqué' : 'normal'),
+          h('span', {}, 'Direction de tir'), h('b', {}, s.fcMult > 1.05 ? `dégradée (×${s.fcMult.toFixed(1)})` : 'normale'),
+          h('span', {}, 'DCA légère'), h('b', {}, `${aaAlive}/${s.aaMounts.length} · munitions ${Math.round(s.aaAmmo().frac * 100)} %`),
+          h('span', {}, 'Tirs / touches'), h('b', {}, `${s.shotsFired} / ${s.shotsHit} (${acc}%)`),
+          h('span', {}, 'Coulés / avions'), h('b', {}, `${s.kills} / ${s.planeKills || 0}`)] : []),
       ),
+      // (pointerdown: the panel is rebuilt ten times a second, a click would be lost between the press and the release)
+      h('button', { class: 'si-more', onpointerdown: () => { state.shipMore = !state.shipMore; updateShipInfo(); } }, state.shipMore ? '− moins de détails' : '+ plus de détails'),
       s.air ? h('div', { class: 'iline' }, `Groupe aérien : ${s.air.ready} bombardiers, ${s.air.fReady} chasseurs${s.air.servicing.length ? `, ${s.air.servicing.length} en révision` : ''}${s.deckWrecked ? ' — pont d\'envol détruit' : ''}`) : null,
       s.state !== 'afloat' ? h('div', { class: 'si-state' }, SINK_LABEL[s.split ? 'split' : s.sinkMode] || 'NAVIRE COULÉ') : null,
     ];
@@ -611,7 +720,7 @@ export function createUI(game) {
       el.style.transform = `translate(${out[0].toFixed(0)}px, ${out[1].toFixed(0)}px) translate(-50%, -100%)`;
       const sel = s === game.camera.target;
       el.classList.toggle('sel', sel);
-      el.classList.toggle('far', dist > 6000 && !sel);
+      el.classList.toggle('far', dist > 6000 && !sel && game.camera.mode !== 'tactical');
       el.classList.toggle('dead', !s.alive);
       el.querySelector('.ld').textContent = dist > 1000 ? (dist / 1000).toFixed(1) + ' km' : Math.round(dist) + ' m';
       const bar = el.querySelector('.lbar i');
@@ -679,12 +788,23 @@ export function createUI(game) {
     if (e.code === 'Space' && (game.state === 'running' || game.state === 'finished')) { game.togglePause(); e.preventDefault(); }
     else if (e.code === 'Period') { const steps = [0.5, 1, 2, 4, 8]; const i = steps.indexOf(game.timeScale); game.paused = false; game.setTimeScale(steps[Math.min(steps.length - 1, i + 1)] ?? 1); }
     else if (e.code === 'Comma') { const steps = [0.5, 1, 2, 4, 8]; const i = steps.indexOf(game.timeScale); game.paused = false; game.setTimeScale(steps[Math.max(0, i - 1)] ?? 1); }
-    else if (e.code === 'KeyL') state.labels = !state.labels;
-    else if (e.code === 'KeyJ') state.hitLog = !state.hitLog;
+    else if (e.code === 'KeyL') { state.labels = !state.labels; refreshToggles(); }
+    else if (e.code === 'KeyJ') { state.hitLog = !state.hitLog; refreshToggles(); }
     else if (e.code === 'KeyM') toggleSound();
     else if (e.code === 'KeyH') toggleSettings();
-    else if (e.code === 'F1') { helpEl.classList.toggle('hidden'); e.preventDefault(); }
+    else if (e.code === 'F1') { toggleHelp(); e.preventDefault(); }
     else if (e.code === 'KeyG') { state.hudHidden = !state.hudHidden; setHudVisible(game.state !== 'setup'); }
+    else if (e.code === 'KeyK') { minimap.cycle(); refreshToggles(); }
+    else if (e.code === 'Escape') {
+      // close what is open, the last opened first; with nothing open, back to the automatic camera
+      if (!helpEl.classList.contains('hidden')) helpEl.classList.add('hidden');
+      else if (!settings.classList.contains('hidden')) settings.classList.add('hidden');
+      else if (!tip.classList.contains('hidden')) tip.classList.add('hidden');
+      else if (state.scoreSticky) { state.scoreSticky = false; refreshScore(); }
+      else if (game.state !== 'setup' && game.state !== 'ready' && !setup.classList.contains('collapsed')) setup.classList.add('collapsed');
+      else if (game.state !== 'setup' && game.camera.mode !== 'auto') game.camera.setMode('auto', true);
+      refreshToggles();
+    }
   });
 
   addEventListener('keyup', (e) => { if (e.code === 'Tab') { state.scoreHold = false; refreshScore(); } });
@@ -694,5 +814,7 @@ export function createUI(game) {
   addEventListener('pointerup', () => { const a = document.activeElement; if (a && a.tagName === 'BUTTON') a.blur(); });
   renderTeams();
   ui.doSpawn = doSpawn;
+  ui.minimap = minimap;
+  ui.refreshToggles = refreshToggles;
   return ui;
 }
