@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased — the damage can be tuned without touching the code
+
+- **A balance file** (`config/balance.json`, read by `js/game/data/balance.js`): multipliers of the damage taken, from 0 (none) to 5:
+  - ships: shells, torpedoes, bombs, fires, flooding, the blast of a ship blowing up nearby, turret flash fires, collisions, and the damage to modules and mounts (what breaks down, not the hull);
+  - aircraft: AA, fighters' guns, bomber gunners;
+  - bases: shells and bombs.
+  - The simulation applies them where the damage lands (`Ship.applyDamage` by cause, `damageModule` / `damageMount`, `hitPlane` by cause, `damageBase`), at every hit, so a change acts at once in the battle under way.
+- **Three layers**: the neutral values (all 1: the damage as computed, what `npm test` runs with), then the file (read at start; `npm run build` puts it into naval.html and so onto the site, a page opened from disk cannot read files), then what is set in the game, kept in that browser.
+- **In the game**: Réglages -> Dégâts (équilibrage), a slider and a number for each multiplier (the ones that differ from the file in amber), "Valeurs du fichier" to go back, "Exporter" to download a balance.json to put in config/, "Importer" to load one.
+- Test `test/balance.mjs` (the file is complete, the layers stack, unknown keys and bad values are ignored, each multiplier acts on its own cause only).
+
 ## Unreleased — the gunners of the bombers
 
 - **Every gun position is a gunner of its own** (`model/planeGuns.js`, `bomberDefense` in `sim/fighters.js`): before, a bomber had one field of fire for all its guns (the heavy bombers: the whole sphere), one gunner shooting at one fighter at a time, and the rounds left from a point 3 m behind the centre of the aircraft whatever gun fired them. Now each position (the B-17's chin, cheek, top, ball, two waist and tail positions; the Lancaster's three turrets; the side blisters and the 20 mm tail cannon of the G4M; the gondolas of the He 111, SM.79 and LeO 451; the rear guns of the single-engine bombers, the Avenger's turret and its tunnel gun) has:

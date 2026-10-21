@@ -1,0 +1,22 @@
+{
+  "_aide": "Multiplicateurs des dégâts reçus (1 = normal, 2 = deux fois plus, 0.5 = moitié moins, 0 = aucun dégât ; de 0 à 5). Le jeu lit ce fichier au démarrage ; après une modification, relancer npm run build pour que naval.html et le site en ligne le prennent. Les réglages faits dans le jeu (Réglages > Dégâts) passent par-dessus, dans ce navigateur seulement.",
+  "ships": {
+    "shell": 1,
+    "torpedo": 1,
+    "bomb": 1,
+    "fire": 1,
+    "flood": 1,
+    "blast": 1,
+    "turret": 1,
+    "collision": 1,
+    "modules": 1
+  },
+  "planes": {
+    "aa": 1,
+    "gun": 1,
+    "gunner": 1
+  },
+  "bases": {
+    "all": 1
+  }
+}

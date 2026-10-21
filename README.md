@@ -54,6 +54,12 @@ Les caméras en détail : **1 Auto** (un réalisateur suit l'action), **2 Poursu
 l'impact), **6 Tactique** (vue de dessus), **7 Libre**, **8 Avions** (suit un avion ; `V` change de vue), **9 Cockpit** (vue du pilote, glisser pour regarder autour).
 La ligne sous l'image dit toujours ce que montre la caméra et qui est qui, aux couleurs des équipes.
 
+## Régler les dégâts
+
+Les dégâts reçus se règlent sans toucher au code, par des multiplicateurs (1 = normal, 2 = deux fois plus, 0 = aucun) :
+- **Le fichier `config/balance.json`** : navires (obus, torpilles, bombes, incendies, voies d'eau, explosions voisines, feux de tourelle, collisions, modules), avions (DCA, chasseurs, mitrailleurs), bases. Le jeu le lit au démarrage ; après une modification, `npm run build` le met dans `naval.html` et sur le site.
+- **Dans le jeu** : *Réglages → Dégâts (équilibrage)*. Les changements s'appliquent tout de suite, au combat en cours, et restent dans le navigateur. *Exporter* télécharge un `balance.json` à mettre dans `config/` pour les garder pour tout le monde ; *Valeurs du fichier* revient au fichier.
+
 ## Ce que contient le jeu
 
 - **30 navires réels** (6 nations × destroyer, croiseur léger, croiseur lourd, cuirassé, porte-avions), relevés sur plans d'époque : tourelles aux dimensions réelles,

@@ -3,6 +3,7 @@
 // controller (AI today, a human tomorrow — see controllers/).
 import { clamp, wrapPi, approach, KN, D2R, sat, smoothstep } from '../math.js';
 import { createModules, createCompartments, AA_HP, AA_ROUNDS, blast } from './modules.js';
+import { shipDmg } from '../data/balance.js';
 import { planeTypeFor } from '../model/planes.js';
 
 /**
@@ -643,6 +644,8 @@ export class Ship {
   /** Apply structural damage. Returns true if the ship was destroyed by it. */
   applyDamage(amount, attacker, cause) {
     if (this.state !== 'afloat' || amount <= 0) return false;
+    amount *= shipDmg(cause);       // the multiplier of data/balance.js
+    if (amount <= 0) return false;
     this.hp -= amount;
     if (attacker) { this.lastAttacker = attacker; this.lastHitT = this.world.time; this.world.lastCombatT = this.world.time; }
     if (this.hp <= 0) { this.hp = 0; this.destroy(attacker, cause); return true; }

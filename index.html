@@ -161,6 +161,12 @@
   .pclose { float: right; width: 26px; height: 26px; border-radius: 7px; background: #ffffff14; border: 1px solid #ffffff2a; cursor: pointer; padding: 0; line-height: 1; }
   .pclose:hover { background: #ffffff2a; }
   details.fold { margin-top: 8px; border-top: 1px solid var(--line); padding-top: 6px; }
+  #balance .bgroup { margin: 8px 0 2px; font-size: 11px; text-transform: uppercase; letter-spacing: .5px; opacity: .6; }
+  #balance .slider { grid-template-columns: 1fr 110px 58px; }
+  #balance .slider input[type=range] { width: 110px; }
+  #balance .bnum { width: 52px; padding: 3px 4px; text-align: right; }
+  #balance .brow.changed span { color: var(--amber); }
+  #balance .hint { margin-top: 4px; }
   details.fold summary { cursor: pointer; font-weight: 600; opacity: .8; padding: 3px 0; }
   .helpgrid i { grid-column: 1 / -1; font-style: normal; font-size: 11px; text-transform: uppercase; letter-spacing: .6px; opacity: .5; margin-top: 6px; border-bottom: 1px solid var(--line); }
   /* ---- finding one's way: the map, the line under the picture, the first-battle tip ---- */

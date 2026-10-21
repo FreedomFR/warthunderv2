@@ -4,6 +4,7 @@
 // returns and lands on the carrier. Bombs and torpedoes are simulated bodies, so where they hit decides the damage.
 import { clamp, wrapPi, approach, D2R, G } from '../math.js';
 import { planeTypeFor, PLANES, groundY, GROUND_PITCH, hookBack } from '../model/planes.js';
+import { planeDmg } from '../data/balance.js';
 import { AA, FLAK_RANGE } from './aadata.js';
 import { clearElev, clearMax, inArcRel } from '../model/clearance.js';
 import { perfOf } from './airperf.js';
@@ -971,6 +972,8 @@ function updateAA(world, dt) {
 /** The AA shot connects: damage, smoke, fire, or the aircraft is lost. */
 export function hitPlane(world, ship, p, dmg, cal, cause = 'aa') {
   if (p.dying || p.phase === 'floating') return;
+  dmg *= planeDmg(cause);          // the multiplier of data/balance.js
+  if (dmg <= 0) return;
   p.hp -= dmg;
   world.events.push({ type: 'planeHit', plane: p, ship, x: p.x, y: p.y, z: p.z, cal, dmg });
   const frac = p.hp / p.maxHp;

@@ -8,6 +8,7 @@ import { drawDamage } from './damageView.js';
 import { captionOf } from './caption.js';
 import { createMinimap } from './minimap.js';
 import { SLIDERS } from '../../engine.js';
+import { BALANCE, BALANCE_FIELDS, BALANCE_MAX, setBalance, balanceOfFile, balanceDiff, balanceNow } from '../data/balance.js';
 import { clamp, R2D } from '../math.js';
 
 function h(tag, attrs = {}, ...kids) {
@@ -294,6 +295,54 @@ export function createUI(game) {
       adv.append(h('label', { class: 'slider' }, h('span', {}, label), h('input', { type: 'range', min, max, step, value: engine.P[key], oninput: (e) => { engine.P[key] = Number(e.target.value); val.textContent = e.target.value; engine.markDirty(kind); } }), val));
     }
   }
+  // ---- the damage multipliers (data/balance.js): a fold of their own, kept in this browser, exported as config/balance.json ----
+  {
+    const fold = h('details', { class: 'fold', id: 'balance' }, h('summary', {}, 'Dégâts (équilibrage)'));
+    const rows = [];
+    const save = () => {
+      const d = balanceDiff();
+      try { if (Object.keys(d).length) localStorage.setItem('naval.balance', JSON.stringify(d)); else localStorage.removeItem('naval.balance'); } catch (e) { /* storage blocked: the values hold until the page is closed */ }
+    };
+    const refresh = () => {
+      const base = balanceOfFile();
+      for (const r of rows) {
+        const v = BALANCE[r.g][r.k];
+        r.range.value = v; if (document.activeElement !== r.num) r.num.value = v;
+        r.row.classList.toggle('changed', v !== base[r.g][r.k]);
+      }
+    };
+    fold.append(h('div', { class: 'hint' }, 'Multiplicateurs des dégâts reçus : 1 = normal, 2 = deux fois plus, 0 = aucun. Ils s\'appliquent tout de suite, dans le combat en cours. Les valeurs de départ viennent du fichier config/balance.json ; ce que vous changez ici est gardé dans ce navigateur.'));
+    for (const [g, f] of Object.entries(BALANCE_FIELDS)) {
+      fold.append(h('div', { class: 'bgroup' }, f.label));
+      for (const [k, label, hint] of f.keys) {
+        const set = (v) => { const n = Number(v); if (!Number.isFinite(n)) return; setBalance({ ...balanceNow(), [g]: { ...BALANCE[g], [k]: n } }); save(); refresh(); };
+        const range = h('input', { type: 'range', min: 0, max: BALANCE_MAX, step: 0.05, oninput: (e) => set(e.target.value) });
+        const num = h('input', { type: 'number', class: 'bnum', min: 0, max: BALANCE_MAX, step: 0.05, onchange: (e) => set(e.target.value) });
+        const row = h('label', { class: 'slider brow', title: hint }, h('span', {}, label), range, num);
+        rows.push({ g, k, range, num, row });
+        fold.append(row);
+      }
+    }
+    // export: the file to put in config/ (the values in force, with the help line); import: a file of the same shape
+    const download = () => {
+      const o = { _aide: 'Multiplicateurs des dégâts reçus (1 = normal, 2 = deux fois plus, 0.5 = moitié moins, 0 = aucun dégât ; de 0 à 5). Fichier exporté depuis le jeu : le mettre dans config/balance.json puis relancer npm run build.', ...balanceNow() };
+      const a = h('a', { href: URL.createObjectURL(new Blob([JSON.stringify(o, null, 2) + '\n'], { type: 'application/json' })), download: 'balance.json' });
+      document.body.append(a); a.click(); a.remove();
+    };
+    const picker = h('input', { type: 'file', accept: '.json,application/json', style: 'display:none', onchange: async (e) => {
+      const file = e.target.files && e.target.files[0]; e.target.value = '';
+      if (!file) return;
+      try { setBalance(JSON.parse(await file.text())); save(); refresh(); showBanner('Réglages de dégâts importés', 1800); } catch (err) { showBanner('Fichier illisible : ' + err.message, 3000); }
+    } });
+    fold.append(h('div', { class: 'row' },
+      h('button', { class: 'btn small', title: 'Revenir aux valeurs du fichier config/balance.json', onclick: () => { setBalance(null); save(); refresh(); } }, 'Valeurs du fichier'),
+      h('button', { class: 'btn small', title: 'Télécharger balance.json avec les valeurs actuelles (à mettre dans config/)', onclick: download }, 'Exporter'),
+      h('button', { class: 'btn small', title: 'Charger un fichier balance.json', onclick: () => picker.click() }, 'Importer'), picker));
+    settings.append(fold);
+    refresh();
+    ui.refreshBalance = refresh;
+  }
+
   function toggleSettings() { const open = settings.classList.toggle('hidden') === false; if (open && game.state !== 'setup') setup.classList.add('collapsed'); refreshToggles(); }
   function toggleSound() {
     game.audio.unlock();

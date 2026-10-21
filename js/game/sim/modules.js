@@ -5,6 +5,7 @@
 // burst (armour, hull) or exposed to it. Destroyed modules degrade the ship (speed, steering, fire control,
 // anti-aircraft fire, ...) and, for visible parts, are replaced by their wreck in the 3D model.
 import { clamp } from '../math.js';
+import { shipDmg } from '../data/balance.js';
 
 const TYPE_I = { DD: 0, CL: 1, CA: 2, BB: 3, CV: 4 };
 const pick = (t, arr) => arr[TYPE_I[t]];
@@ -177,7 +178,7 @@ export function blast(world, ship, lx, ly, lz, P, where, owner, cause = 'shell')
     const g = 1 / Math.pow(1 + (d / rb) * (d / rb), 1.5);
     const dmg = P * g * fx.exposed[where];
     if (dmg < 0.5) continue;
-    a.hp -= dmg;
+    a.hp -= dmg * shipDmg('modules');
     if (a.hp <= 0) {
       a.alive = false;
       world.events.push({ type: 'moduleKilled', ship, kind: 'aa', label: rec.label, x: rec.x, y: rec.y, z: rec.z });
@@ -191,7 +192,7 @@ export function blast(world, ship, lx, ly, lz, P, where, owner, cause = 'shell')
 /** Damage one module. Returns true when it was destroyed by this call. */
 export function damageModule(world, ship, m, amount, owner, cause) {
   if (m.state === 2) return false;
-  m.hp -= amount;
+  m.hp -= amount * shipDmg('modules');
   if (m.hp <= 0) {
     m.hp = 0; m.state = 2;
     onModuleDestroyed(world, ship, m, owner, cause);
@@ -207,6 +208,7 @@ export function damageModule(world, ship, m, amount, owner, cause) {
 
 export function damageMount(world, ship, m, amount, owner, penetrated) {
   if (!m || !m.alive) return false;
+  amount *= shipDmg('modules');
   m.hp -= amount;
   const frac = m.hp / m.maxHp;
   // a damaged mount may jam for a while

@@ -10,6 +10,7 @@ import { lightAAHitRate } from './airhit.js';
 import { recoilCurve } from './weapons.js';
 import { spawnScrap } from './debris.js';
 import { hitPlane } from './aircraft.js';
+import { BALANCE } from '../data/balance.js';
 import { initAirfield, stepAirfield, killGroundPlane } from './airfield.js';
 
 /** The heavy cruiser whose main gun the coastal batteries of a nation use (the same guns, taken off the ships and put in a concrete emplacement). */
@@ -258,6 +259,7 @@ function partDestroyed(world, base, i, attacker) {
 export function damageBase(world, base, x, y, z, radius, power, attacker, cause, skip = -1) {
   const L = base.layout;
   if (Math.hypot(x - L.x, z - L.z) > base.reach + radius) return 0;
+  power *= BALANCE.bases.all;       // the multiplier of data/balance.js
   let dealt = 0;
   L.parts.forEach((p, i) => {
     if (i === skip || base.partState[i] >= 2) return;
