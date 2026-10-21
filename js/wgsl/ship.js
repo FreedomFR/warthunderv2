@@ -561,12 +561,11 @@ fn gauge(kind: u32, uv: vec2f, ias: f32, alt: f32, hdg: f32, vsi: f32, bank: f32
       let g2 = clamp(0.5 + 0.9 * gnoise(lp.xz * 0.55 + 7.0), 0.0, 1.0);
       let g3 = clamp(0.5 + 0.9 * gnoise(lp.xz * 2.1 + 3.0), 0.0, 1.0);
       let steep = smoothstep(0.35, 0.75, 1.0 - up);
-      // a slow warped variation of the whole ground (fields drier here, greener there), so that the colour of a slope is not one flat tint
-      let wq = lp.xz + vec2f(gnoise(lp.xz * 0.02 + 3.0), gnoise(lp.xz * 0.02 + 9.0)) * 40.0;
-      let areaTone = gnoise(wq * 0.011) * 0.6 + gnoise(wq * 0.034 + 5.0) * 0.4;
-      albedo *= mix(vec3f(1.0), mix(vec3f(0.9, 1.04, 0.9), vec3f(1.1, 1.02, 0.86), clamp(0.5 + 1.4 * areaTone, 0.0, 1.0)), 0.9);
+      // a slow variation of the whole ground (fields drier here, greener there), so that the colour of a slope is not one flat tint
+      let areaTone = gnoise(lp.xz * 0.013 + 5.0);
+      albedo *= mix(vec3f(0.92, 1.04, 0.92), vec3f(1.1, 1.02, 0.86), clamp(0.5 + 1.6 * areaTone, 0.0, 1.0));
       // strata and crumbled rock on the steep ground, tufts and patches on the gentle one
-      let strata = smoothstep(0.35, 0.65, sin(lp.y * 0.9 + g1 * 5.0 + lp.x * 0.05 + 3.0 * gnoise(wq * 0.05)) * 0.5 + 0.5);
+      let strata = smoothstep(0.35, 0.65, sin(lp.y * 0.9 + g1 * 5.0 + lp.x * 0.05) * 0.5 + 0.5);
       albedo *= mix(1.0, 0.8 + 0.3 * g1, far) * (0.9 + 0.2 * g2 * tf + 0.08 * g3 * tf);
       let rockCol = vec3f(0.34, 0.31, 0.27) * (0.7 + 0.55 * g2);
       albedo = mix(albedo, rockCol * (0.8 + 0.4 * strata), steep * smoothstep(1.0, 6.0, lp.y) * 0.6);
@@ -674,11 +673,16 @@ fn gauge(kind: u32, uv: vec2f, ias: f32, alt: f32, hdg: f32, vsi: f32, bank: f32
     case 22u: {  // runway, taxiway, apron, road of a base: aggregate, worn and patched areas, hairline cracks, oil
       let g = lp.xz;
       let worn = gnoise(g * 0.045 + 3.0) * 0.5 + gnoise(g * 0.16 + 11.0) * 0.5;
-      let grain = gnoise(g * 7.0) * 0.55 * (1.0 - smoothstep(0.03, 0.12, fw)) + gnoise(g * 26.0 + 5.0) * 0.45 * (1.0 - smoothstep(0.008, 0.04, fw));
+      var grain = 0.0;
+      if (fw < 0.12) { grain = gnoise(g * 7.0) * 0.55 * (1.0 - smoothstep(0.03, 0.12, fw)); }
+      if (fw < 0.04) { grain += gnoise(g * 26.0 + 5.0) * 0.45 * (1.0 - smoothstep(0.008, 0.04, fw)); }
       // hairline cracks: the zero lines of a warped noise (thin, jagged), only in some areas, gone at a distance
-      let warp = vec2f(gnoise(g * 2.3 + 9.0), gnoise(g * 2.3 + 19.0)) * 0.22;
-      let crackN = abs(gnoise(g * 0.9 + warp * 3.0 + 21.0));
-      let crack = (1.0 - smoothstep(0.0, 0.011, crackN)) * smoothstep(0.05, 0.25, gnoise(g * 0.08 + 4.0)) * (1.0 - smoothstep(0.05, 0.3, fw));
+      var crack = 0.0;
+      if (fw < 0.3) {
+        let warp = vec2f(gnoise(g * 2.3 + 9.0), gnoise(g * 2.3 + 19.0)) * 0.22;
+        let crackN = abs(gnoise(g * 0.9 + warp * 3.0 + 21.0));
+        crack = (1.0 - smoothstep(0.0, 0.011, crackN)) * smoothstep(0.05, 0.25, gnoise(g * 0.08 + 4.0)) * (1.0 - smoothstep(0.05, 0.3, fw));
+      }
       let oil = smoothstep(0.2, 0.42, gnoise(g * 0.5 + 40.0)) * smoothstep(0.1, 0.3, gnoise(g * 0.07 + 8.0));
       albedo *= (1.0 + 0.2 * worn + 0.12 * grain) * (1.0 - 0.38 * crack) * (1.0 - 0.34 * oil);
       rough = mix(0.88, 0.5, oil * 0.8);
@@ -689,7 +693,8 @@ fn gauge(kind: u32, uv: vec2f, ias: f32, alt: f32, hdg: f32, vsi: f32, bank: f32
       let along = select(lp.x, lp.z, abs(in.lnrm.x) > abs(in.lnrm.z));
       let uv = select(lp.xz, vec2f(along, lp.y), isSide);
       let blot = gnoise(uv * 0.35 + 7.0) * 0.5 + gnoise(uv * 1.3 + 2.0) * 0.5;
-      let pores = gnoise(uv * 16.0) * (1.0 - smoothstep(0.012, 0.07, fw));
+      var pores = 0.0;
+      if (fw < 0.07) { pores = gnoise(uv * 16.0) * (1.0 - smoothstep(0.012, 0.07, fw)); }
       let streak = gnoise(vec2f(uv.x * 2.4, uv.y * 0.18 + 5.0));
       let rain = smoothstep(0.05, 0.45, streak) * select(0.0, 1.0, isSide);
       let foot = (1.0 - smoothstep(0.0, 1.2, lp.y)) * (0.18 + 0.12 * blot) * select(0.0, 1.0, isSide);
@@ -796,10 +801,11 @@ fn gauge(kind: u32, uv: vec2f, ias: f32, alt: f32, hdg: f32, vsi: f32, bank: f32
   let F0e = mix(f0, albedo, metal);
   let Fe = F0e + (max(vec3f(1.0 - rough), F0e) - F0e) * pow(1.0 - clamp(nv, 0.0, 1.0), 5.0);
   // what a crevice can see of the sky it cannot reflect either (specular occlusion, after the Frostbite course notes)
-  let specOcc = clamp(pow(nv + ao, exp2(-16.0 * rough - 1.0)) - 1.0 + ao, 0.0, 1.0);
+  var specOcc = 1.0;
+  if (ao < 0.97) { specOcc = clamp(pow(nv + ao, exp2(-16.0 * rough - 1.0)) - 1.0 + ao, 0.0, 1.0); }
   col = col * (1.0 - metal * 0.8) + spec + refl * Fe * specOcc * mix(0.55, 1.0, 1.0 - rough);
   // the swell throws moving patches of light up the hull from the sun-lit water (two sheets of ripples crossing, scrolling opposite ways)
-  if (mat == 5u && abs(in.lnrm.z) > 0.5) {
+  if (mat == 5u && abs(in.lnrm.z) > 0.5 && lp.y < 5.2 && dist > 12.0 && dist < 900.0) {
     let tt = F.camPos.w;
     let c1 = sin(lp.x * 1.7 + tt * 1.3 + sin(lp.y * 2.1 + tt) * 1.2);
     let c2 = sin(lp.x * 2.9 - tt * 1.7 + lp.y * 1.5 + sin(lp.x * 0.9 - tt * 0.7) * 1.4);

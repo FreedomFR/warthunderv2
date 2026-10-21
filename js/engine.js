@@ -489,24 +489,66 @@ export async function createEngine(canvas, options = {}) {
   let W = 0, H = 0;
   let colorMS, depthMS, hdrTex, bloomTex, offTex = null;
   let cloudTex = null, cloudDistTex = null, bgMarch = null, bgApply = null, cloudHist = [], bgResolve = [], histCur = 0;
+  // --------------------------------------------------------------------------------------
+  // GPU timing: a timestamp at the start and at the end of every pass that can be told apart, read back every eighth frame (the performance test
+  // reports them). The main pass holds the sea, the ships, the sky and, without volumetric clouds, the particles: the test tells those apart by switching
+  // them off in turn. A pass that did not run this frame leaves its two slots empty (0).
+  // --------------------------------------------------------------------------------------
+  const TS_PASSES = ['sim', 'shadow', 'cloudWeather', 'main', 'cloudMarch', 'cloudApply', 'cloudOverlay', 'bloom', 'composite'];
+  const TS_N = TS_PASSES.length;
+  let tsQuery = null, tsResolve = null, tsRead = null, tsPending = false, gpuMs = 0;
+  let passMs = {};
+  if (hasTS) {
+    tsQuery = device.createQuerySet({ type: 'timestamp', count: TS_N * 2 });
+    tsResolve = mkBuf(256, GU.QUERY_RESOLVE | GU.COPY_SRC, 'ts resolve');
+    tsRead = mkBuf(256, GU.MAP_READ | GU.COPY_DST, 'ts read');
+  }
+  /** The timestampWrites of a pass: both ends, or only the beginning / the end (the bloom is a chain of passes). */
+  const tsw = (name, ends = 3) => {
+    if (!hasTS) return undefined;
+    const i = TS_PASSES.indexOf(name) * 2, o = { querySet: tsQuery };
+    if (ends & 1) o.beginningOfPassWriteIndex = i;
+    if (ends & 2) o.endOfPassWriteIndex = i + 1;
+    return o;
+  };
+  const onTsMapped = () => {
+    const t = new BigUint64Array(tsRead.getMappedRange(0, TS_N * 16));
+    const span = (a, b) => (a && b && b >= a ? Number(b - a) / 1e6 : 0);
+    const total = span(t[0], t[TS_N * 2 - 1]);
+    if (total > 0 && total < 1000) gpuMs = gpuMs ? gpuMs * 0.8 + total * 0.2 : total;
+    const next = {};
+    TS_PASSES.forEach((n, k) => {
+      const ms = span(t[k * 2], t[k * 2 + 1]);
+      next[n] = ms > 0 && ms < 1000 ? (passMs[n] ? passMs[n] * 0.8 + ms * 0.2 : ms) : 0;
+    });
+    passMs = next;
+    tsRead.unmap();
+    tsPending = false;
+  };
+  const onTsFail = () => { tsPending = false; };
+  const computeDesc = { timestampWrites: tsw('sim') };
+
   const matte = qs.get('matte') === '1';
   const mainPass = {
     colorAttachments: [{ view: null, resolveTarget: null, clearValue: matte ? { r: 0, g: 0.5, b: 0, a: 1 } : { r: 0, g: 0, b: 0, a: 1 }, loadOp: 'clear', storeOp: 'discard' }],
     depthStencilAttachment: { view: null, depthClearValue: 0, depthLoadOp: 'clear', depthStoreOp: 'discard' },
+    timestampWrites: tsw('main'),
   };
   // with the clouds the main pass is split: the scene (colour and depth kept), the clouds over it, then the particles (resolved into the HDR target)
   const cloudPassA = {
     colorAttachments: [{ view: null, clearValue: matte ? { r: 0, g: 0.5, b: 0, a: 1 } : { r: 0, g: 0, b: 0, a: 1 }, loadOp: 'clear', storeOp: 'store' }],
     depthStencilAttachment: { view: null, depthClearValue: 0, depthLoadOp: 'clear', depthStoreOp: 'store' },
+    timestampWrites: tsw('main'),
   };
-  const cloudPassApply = { colorAttachments: [{ view: null, loadOp: 'load', storeOp: 'store' }] };
+  const cloudPassApply = { colorAttachments: [{ view: null, loadOp: 'load', storeOp: 'store' }], timestampWrites: tsw('cloudApply') };
   const cloudPassB = {
     colorAttachments: [{ view: null, resolveTarget: null, loadOp: 'load', storeOp: 'discard' }],
     depthStencilAttachment: { view: null, depthLoadOp: 'load', depthStoreOp: 'discard' },
+    timestampWrites: tsw('cloudOverlay'),
   };
   const compPass = {
     colorAttachments: [{ view: null, clearValue: { r: 0, g: 0, b: 0, a: 1 }, loadOp: 'clear', storeOp: 'store' }],
-    timestampWrites: undefined,
+    timestampWrites: tsw('composite'),
   };
   let downPasses = [], upPasses = [], downBGs = [], upBGs = [], bgComp = null;
 
@@ -574,30 +616,12 @@ export async function createEngine(canvas, options = {}) {
       upBGs.push(bg(upPipe, [bv[m], linSamp, { buffer: ubo }]));
       upPasses.push({ colorAttachments: [{ view: bv[m - 1], loadOp: 'load', storeOp: 'store' }] });
     }
+    if (hasTS && downPasses.length) {
+      downPasses[0].timestampWrites = tsw('bloom', 1);
+      (upPasses.length ? upPasses[upPasses.length - 1] : downPasses[downPasses.length - 1]).timestampWrites = tsw('bloom', 2);
+    }
     bgComp = bg(compPipe, [hdrView, bv[0], linSamp, { buffer: compUBO }]);
   }
-
-  // --------------------------------------------------------------------------------------
-  // GPU timing
-  // --------------------------------------------------------------------------------------
-  let tsQuery = null, tsResolve = null, tsRead = null, tsPending = false, gpuMs = 0;
-  let firstPassTS = undefined;
-  if (hasTS) {
-    tsQuery = device.createQuerySet({ type: 'timestamp', count: 2 });
-    tsResolve = mkBuf(16, GU.QUERY_RESOLVE | GU.COPY_SRC, 'ts resolve');
-    tsRead = mkBuf(16, GU.MAP_READ | GU.COPY_DST, 'ts read');
-    firstPassTS = { querySet: tsQuery, beginningOfPassWriteIndex: 0 };
-    compPass.timestampWrites = { querySet: tsQuery, endOfPassWriteIndex: 1 };
-  }
-  const computeDesc = { timestampWrites: firstPassTS };
-  const onTsMapped = () => {
-    const t = new BigUint64Array(tsRead.getMappedRange());
-    const ms = Number(t[1] - t[0]) / 1e6;
-    if (ms > 0 && ms < 1000) gpuMs = gpuMs ? gpuMs * 0.8 + ms * 0.2 : ms;
-    tsRead.unmap();
-    tsPending = false;
-  };
-  const onTsFail = () => { tsPending = false; };
 
   // --------------------------------------------------------------------------------------
   // Uniform data
@@ -770,7 +794,7 @@ export async function createEngine(canvas, options = {}) {
   let last = performance.now();
   let fpsAcc = 0, fpsN = 0, fpsT = 0;
   let inflight = 0;
-  const stats = { fps: 0, frameMs: 0, gpuMs: 0, nodes: 0, width: 0, height: 0 };
+  const stats = { fps: 0, frameMs: 0, gpuMs: 0, passMs: {}, nodes: 0, width: 0, height: 0 };
   let capturePending = null;
 
   const hooks = {
@@ -880,7 +904,7 @@ export async function createEngine(canvas, options = {}) {
       stats.frameMs = 1000 / stats.fps;
       fpsAcc = 0; fpsN = 0; fpsT = 0;
     }
-    stats.gpuMs = gpuMs; stats.nodes = nodeCount; stats.width = W; stats.height = H;
+    stats.gpuMs = gpuMs; stats.passMs = passMs; stats.nodes = nodeCount; stats.width = W; stats.height = H;
     if (fixedDt) dt = fixedDt;
     if (forcedDt) dt = forcedDt;
 
@@ -964,7 +988,7 @@ export async function createEngine(canvas, options = {}) {
         cloudF[4] = 3.2; cloudF[5] = 0.45; cloudF[6] = 0.52; cloudF[7] = 60;
         cloudF[8] = clouds.light; cloudF[9] = 0.6; cloudF[10] = 1.7; cloudF[11] = clouds.stepScale;
         device.queue.writeBuffer(cloudUBO, 0, cloudF);
-        const cw = enc.beginComputePass();
+        const cw = enc.beginComputePass({ timestampWrites: tsw('cloudWeather') });
         cw.setPipeline(weatherPipe); cw.setBindGroup(0, bgWeather); cw.dispatchWorkgroups(WEATHER_SIZE / 8, WEATHER_SIZE / 8);
         cw.setPipeline(shadowPipeC); cw.setBindGroup(0, bgCShadow); cw.dispatchWorkgroups(CSHADOW_SIZE / 8, CSHADOW_SIZE / 8);
         cw.end();
@@ -1002,7 +1026,7 @@ export async function createEngine(canvas, options = {}) {
         device.queue.writeBuffer(resolveUBO, 0, resolveF);
         Object.assign(prevCam, cur, { ok: true });
         histCur = 1 - histCur;
-        const cc = enc.beginComputePass();
+        const cc = enc.beginComputePass({ timestampWrites: tsw('cloudMarch') });
         const gx = Math.ceil(Math.ceil(W / 2) / 8), gy = Math.ceil(Math.ceil(H / 2) / 8);
         cc.setPipeline(marchPipe); cc.setBindGroup(0, bgMarch); cc.dispatchWorkgroups(gx, gy);
         cc.setPipeline(resolvePipe); cc.setBindGroup(0, bgResolve[histCur]); cc.dispatchWorkgroups(gx, gy);
@@ -1052,8 +1076,8 @@ export async function createEngine(canvas, options = {}) {
     }
     let doTs = false;
     if (hasTS && !tsPending && (frameIndex & 7) === 0) {
-      enc.resolveQuerySet(tsQuery, 0, 2, tsResolve, 0);
-      enc.copyBufferToBuffer(tsResolve, 0, tsRead, 0, 16);
+      enc.resolveQuerySet(tsQuery, 0, TS_N * 2, tsResolve, 0);
+      enc.copyBufferToBuffer(tsResolve, 0, tsRead, 0, TS_N * 16);
       doTs = true;
     }
     let capture = null;
@@ -1136,6 +1160,8 @@ export async function createEngine(canvas, options = {}) {
         features: [...adapter.features].filter((f) => /timestamp|f16|bgra|float32|indirect|dual-source|clip|subgroups/.test(f)).sort(),
         maxTextureDimension2D: L.maxTextureDimension2D, maxBufferSize: L.maxBufferSize, maxComputeInvocationsPerWorkgroup: L.maxComputeInvocationsPerWorkgroup };
     })(),
+    /** the timestampWrites of a pass of the game (the shadow map), or undefined without GPU timing */
+    tsWrites: (name) => tsw(name),
     /** draw the ocean surface (off: sky only) */
     showOcean: qs.get('ocean') !== '0',
     /** shared GPU resources for game pipelines (same pass layout as the ocean) */

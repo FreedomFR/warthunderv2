@@ -38,3 +38,22 @@ ok(after === 0, 'but a fresh puff is not thrown away for it');
   Q.setMax(1);
   ok(Q.max >= 2000, 'and never goes under a floor');
 }
+
+// the smoke has levels of detail: a constant of the shader, one pipeline each, built when asked for (a phone fills a lot of smoke)
+{
+  const { PARTICLES } = await import('../js/wgsl/particles.js');
+  ok(/override SMOKE_DETAIL: u32 = 2u;/.test(PARTICLES) && (PARTICLES.match(/SMOKE_DETAIL >= /g) || []).length >= 3, 'the shader has the SMOKE_DETAIL constant and branches on it');
+  const made = [];
+  const eng = { device: { createBuffer: () => ({}), createBindGroup: () => ({}), createRenderPipelineAsync: async (d) => { made.push(d.fragment.constants.SMOKE_DETAIL); return { getBindGroupLayout: () => ({}) }; } }, gpu: { shader: async () => ({}), HDR: 'x', DEPTH: 'y', MSAA: 4, frameUBO: {}, transView: {}, skyView: {}, sampClamp: {}, envCubeView: {}, sunVisBuf: {} } };
+  const R = new Particles(eng);
+  R.setDetail(0);
+  await R.ready;
+  ok(made.length === 1 && made[0] === 0, 'only the level asked for is compiled at the start');
+  R.setDetail(2); R.setDetail(2);
+  await new Promise((r) => setTimeout(r, 10));
+  ok(made.length === 2 && made[1] === 2 && R.detail === 2 && R.pipelines.size === 2, 'another level is built when the quality changes, once');
+  R.setDetail(0);
+  ok(R.pipeline === R.pipelines.get(0).pipeline, 'and going back to a built level is immediate');
+  R.setDetail(9);
+  ok(R.detail === 2, 'levels are kept within 0..2');
+}
