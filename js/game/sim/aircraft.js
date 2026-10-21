@@ -3,7 +3,7 @@
 // ships' anti-aircraft guns (damaged aircraft smoke, burn and fall until they hit the sea or a ship), then
 // returns and lands on the carrier. Bombs and torpedoes are simulated bodies, so where they hit decides the damage.
 import { clamp, wrapPi, approach, D2R, G } from '../math.js';
-import { planeTypeFor, PLANES, groundY, GROUND_PITCH, hookBack } from '../model/planes.js';
+import { planeTypeFor, PLANES, groundY, GROUND_PITCH, hookBack, damageSites } from '../model/planes.js';
 import { planeDmg } from '../data/balance.js';
 import { AA, FLAK_RANGE } from './aadata.js';
 import { clearElev, clearMax, inArcRel } from '../model/clearance.js';
@@ -1040,13 +1040,50 @@ export function hitPlane(world, ship, p, dmg, cal, cause = 'aa') {
   p.hp -= dmg;
   world.events.push({ type: 'planeHit', plane: p, ship, x: p.x, y: p.y, z: p.z, cal, dmg });
   const frac = p.hp / p.maxHp;
-  if (frac < 0.65 && p.smoke < 0.4) p.smoke = 0.4 + world.rng() * 0.3;
-  if (frac < 0.4 && p.fire < 0.3) p.fire = 0.4;
+  // where it smokes and where it burns: an engine, or the root of a wing (the fuel); the smoke and the flames of the picture come from there (render/fx/air.js)
+  if (frac < 0.65 && p.smoke < 0.4) { p.smoke = 0.4 + world.rng() * 0.3; p.smokeSite = damageSite(world, p, false); }
+  if (frac < 0.4 && p.fire < 0.3) {
+    p.fire = 0.4; p.fireSite = damageSite(world, p, true);
+    // the nacelle that burns is drawn charred and glowing (render/aircraftVisual.js)
+    if (p.fireSite.eng >= 0 && p.spec.engines) { p.engFire = p.engFire || new Array(p.spec.engines.length).fill(0); p.engFire[p.fireSite.eng] = 0.7; }
+  }
   if (p.hp <= 0) { if (ship && cause === 'aa') ship.aaKills++; killPlane(world, p, cause, ship); return; }
   // a lucky hit: engine, pilot, wing
   const r = world.rng();
-  if (r < 0.06 * dmg + 0.03 * dmg) { p.lost.engine = true; p.smoke = 1; world.events.push({ type: 'planeEngineOut', plane: p }); }
+  if (r < 0.06 * dmg + 0.03 * dmg) { loseEngine(world, p); world.events.push({ type: 'planeEngineOut', plane: p }); }
   else if (r < 0.1 * dmg + 0.02 && dmg > 0.8) killPlane(world, p, cause, ship);
+}
+
+/**
+ * A place on the aircraft that is hit: { x, y, z (the model's frame), eng (the index of the engine, or -1) }. Of a multi-engine aircraft the engine that is already lost, else
+ * one of them (or the wing beside it); of a single-engine one, mostly the engine, else the root of a wing (the fuel), now and then the fuselage tank.
+ */
+function damageSite(world, p, fire) {
+  const D = damageSites(p.spec), n = D.engines.length, r = world.rng();
+  if (n > 1) {
+    const lost = p.lost.engines ? p.lost.engines.findIndex(Boolean) : -1, k = lost >= 0 && r < 0.6 ? lost : Math.floor(world.rng() * n);
+    const e = D.engines[k];
+    if (r > 0.7) { const w = e.z < 0 ? D.wings.L : D.wings.R; return { x: w.x, y: w.y, z: w.z, eng: -1 }; }
+    return { ...e, eng: k };
+  }
+  if (r < 0.6) return { ...D.engines[0], eng: 0 };
+  if (r < 0.9) { const w = world.rng() < 0.5 ? D.wings.L : D.wings.R; return { x: w.x, y: w.y, z: w.z, eng: -1 }; }
+  return { x: -0.3, y: 0.1, z: 0, eng: -1 };
+}
+
+/** An engine is lost: one of a multi-engine aircraft's (the others go on), the only one of a single-engine aircraft's. Smoke comes from it, and a fire that starts burns it. */
+function loseEngine(world, p) {
+  const D = damageSites(p.spec), n = D.engines.length;
+  if (n > 1) {
+    p.lost.engines = p.lost.engines || new Array(n).fill(false);
+    const free = p.lost.engines.map((v, i) => (v ? -1 : i)).filter((i) => i >= 0);
+    if (!free.length) return;
+    const k = free[Math.floor(world.rng() * free.length)];
+    p.lost.engines[k] = true;
+    p.smokeSite = { ...D.engines[k], eng: k };
+    if (p.lost.engines.every(Boolean)) p.lost.engine = true;
+  } else { p.lost.engine = true; p.smokeSite = { ...D.engines[0], eng: 0 }; }
+  p.smoke = Math.max(p.smoke, 1);
 }
 
 /** Start the death throes of an aircraft: it falls and burns, and the crash is seen to the end. */

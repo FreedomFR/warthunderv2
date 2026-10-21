@@ -182,6 +182,25 @@ export function propsOf(spec) { return spec.engines ? propMounts(spec) : [{ x: 0
 
 export function floatplaneSpec(nation) { return FLOATPLANES[nation] || FLOATPLANES.USA; }
 
+/**
+ * Where an aircraft burns: the places smoke and flames come from, in the frame of the model (x forward, y up, z to starboard).
+ * { engines: [{ x, y, z }] (just behind each propeller, where the cowling ends), wings: { L, R } (the root of each wing, where the fuel is), tail: { x, y, z } }
+ */
+const siteCache = new Map();
+export function damageSites(spec) {
+  let d = siteCache.get(spec.name);
+  if (d) return d;
+  const w = spec.wing, wy = (w.y || 0) + (spec.kind === 'bi' ? (w.gap || 0) * 0.5 : 0);
+  const engines = spec.engines
+    ? propMounts(spec).map((m) => ({ x: m.x - 1.0, y: m.y, z: m.z }))
+    : [{ x: spec.engine && spec.engine.pusher ? (spec.prop.x || 0) + 0.8 : spec.L * 0.42 - 0.7, y: 0, z: 0 }];
+  // (the wing engines: the SM.79 has one in the nose as well, on the axis)
+  const root = spec.engines ? Math.max(spec.span * 0.08, Math.min(...spec.engines.map((e) => Math.abs(e.z)).filter((z) => z > 0.5)) * 0.9) : spec.span * 0.14;
+  d = { engines, wings: { L: { x: w.x - 0.2, y: wy, z: -root }, R: { x: w.x - 0.2, y: wy, z: root } }, tail: { x: spec.tail.x, y: spec.tail.y || 0.2, z: 0 } };
+  siteCache.set(spec.name, d);
+  return d;
+}
+
 /** Which aircraft a nation flies for a role ('dive' | 'torp' | 'fighter' from its carriers, 'level': the land-based bomber of its airfields). */
 export function planeTypeFor(nation, role) {
   const t = {

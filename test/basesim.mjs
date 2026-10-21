@@ -112,7 +112,7 @@ const run = (w, secs, on) => { const t1 = w.time + secs; while (w.time < t1) { w
   for (const b of w.bases) if (b.team === 1) for (const q of b.parked) if (q) q.svc = 1e9;
   const types = new Set(af.parked.filter(Boolean).map((p) => p.typeKey));
   const c = {}, phases = new Set();
-  let nan = 0, bombs = 0, underground = 0, rightTurn = 0, finalSwing = 0;
+  let nan = 0, bombs = 0, underground = 0, rightTurn = 0, finalSwing = 0, rollNoGear = 0, lowGoAround = 0, goArounds = 0;
   const F = () => af._fld;
   w.start();
   run(w, 1700, (ev) => {
@@ -129,6 +129,10 @@ const run = (w, secs, on) => { const t1 = w.time + secs; while (w.time < t1) { w
         if (p._lined) finalSwing = Math.max(finalSwing, off);
       } else p._lined = false;
       p._ph = p.heading;
+      // the wheels stay down on the landing roll, and a go-around is flown from a good height (not with the wheels a few metres off the runway: it scrapes it)
+      if (p.phase === 'lroll' && !p.gearDown) rollNoGear++;
+      if (p.phase === 'goaround' && p._pp !== 'goaround') { goArounds++; if (p.y - F().y < 25) lowGoAround++; }
+      p._pp = p.phase;
     }
     for (const e of ev) { c[e.type] = (c[e.type] || 0) + 1; if (e.type === 'bombDrop' && e.plane.base === af) bombs++; }
     for (const p of w.planes) {
@@ -142,6 +146,8 @@ const run = (w, secs, on) => { const t1 = w.time + secs; while (w.time < t1) { w
   ok(['taxiOut', 'holdshort', 'lineup', 'groundRun', 'climb', 'assemble', 'cruise', 'run', 'return', 'lfinal', 'lroll', 'taxiBack'].every((p) => phases.has(p)), `a sortie goes through every phase (${[...phases].join(' ')})`);
   ok(bombs > 0, `the bombers drop their bombs on the ship (${bombs})`);
   ok((c.planeTouchdown || 0) > 0, `and some of them come back and land (${c.planeTouchdown || 0})`);
+  ok(rollNoGear === 0, `the undercarriage stays down on the landing roll (${rollNoGear} frames with it up)`);
+  ok(lowGoAround === 0, `no go-around is begun a few metres off the runway (${goArounds} go-arounds, ${lowGoAround} low)`);
   ok(rightTurn < 0.8 && finalSwing < 0.35, `the landing circuit turns to the left (longest turn to the right ${(rightTurn * 57.3).toFixed(0)} degrees) and a lined-up final stays lined up (worst ${(finalSwing * 57.3).toFixed(0)} degrees)`);
   void types; void es;
 }

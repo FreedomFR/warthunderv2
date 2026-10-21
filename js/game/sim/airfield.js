@@ -228,12 +228,15 @@ function approachPoint(base, d, h) {
 /** Metres before the threshold (negative past it) of an aircraft, along the extended centre line. */
 function alongFinal(F, q) { const T0 = F.toW(F.sThr, 0); return -((q.x - T0[0]) * F.u[0] + (q.z - T0[1]) * F.u[1]); }
 
-/** Is the final approach free for `p` to turn onto: no other aircraft on it within 2.6 km of the entry point? */
+/** Is the final approach free for `p` to turn onto: no other aircraft on it, or on the base leg, within 3.3 km of the entry point? */
 function finalClear(world, base, F, p) {
   const ap = alongFinal(F, p);
   for (const q of world.planes) {
-    if (q === p || q.base !== base || q.dying || q.gone || (q.phase !== 'lfinal' && q.phase !== 'goaround')) continue;
-    if (Math.abs(alongFinal(F, q) - Math.max(ap, FINAL_A)) < 2400) return false;
+    if (q === p || q.base !== base || q.dying || q.gone) continue;
+    // (one on the base leg is on its way to the final: it counts as being at its entry, or a wave that arrives together turns in all at once and lands on top of itself)
+    const onBase = q.phase === 'return' && q.leg === 'base';
+    if (!onBase && q.phase !== 'lfinal' && q.phase !== 'goaround') continue;
+    if (Math.abs((onBase ? FINAL_A : alongFinal(F, q)) - Math.max(ap, FINAL_A)) < 3300) return false;
   }
   return true;
 }
@@ -409,7 +412,8 @@ function stepAir(world, p, dt, base, F, pf, T) {
   const rng = world.rng, wave = p.wave;
   // the fuel, the battle is over, the wave is turned back: go home
   if (p.fuel < 500 && !LANDING.has(p.phase) && AIR_BOMBER.has(p.phase)) p.phase = 'return';
-  if (p.gearDown && p.phase !== 'lfinal' && p.phase !== 'goaround' && p.age > p.t0Air + 6) p.gearDown = false;
+  // (not once the wheels are on the ground: the landing roll with the undercarriage drawn up was a bomber rolling on its belly)
+  if (p.gearDown && !p.ground && p.phase !== 'lfinal' && p.phase !== 'goaround' && p.age > p.t0Air + 6) p.gearDown = false;
   switch (p.phase) {
     case 'assemble': {
       // a circle over the field, climbing, until the whole wave is in the air
@@ -596,8 +600,14 @@ function stepAir(world, p, dt, base, F, pf, T) {
         world.events.push({ type: 'planeTouchdown', plane: p, back: 4 });
         return true;
       }
-      // a bad approach, the runway occupied, or the runway not reached: round again
-      if (a < 700 && a > 0 && base.air.rwy && base.air.rwy !== p && !base.air.rwy.gone && !base.air.rwy.dying) { p.phase = 'goaround'; p.t = 0; break; }
+      // a bad approach, the runway occupied, or the runway not reached: round again. The decision is taken while it is still high (a go-around at the last moment, with the
+      // wheels a few metres off the ground, scrapes the runway): the runway taken at 1.6 km, or another aircraft less than a kilometre ahead on the final
+      if (a < 1600 && a > 0 && base.air.rwy && base.air.rwy !== p && !base.air.rwy.gone && !base.air.rwy.dying) { p.phase = 'goaround'; p.t = 0; break; }
+      if (a > 200 && a < 2500) {
+        let close = false;
+        for (const q of world.planes) { if (q !== p && q.base === base && !q.dying && !q.gone && q.phase === 'lfinal') { const gap = a - alongFinal(F, q); if (gap > 0 && gap < 1000) { close = true; break; } } }
+        if (close) { p.phase = 'goaround'; p.t = 0; break; }
+      }
       if ((a < 400 && Math.abs(e) > 45 + Math.max(0, a) * 0.05) || a < -F.len * 0.5) { p.phase = 'goaround'; p.t = 0; }
       if (a > 12000) p.phase = 'return';
       break;
