@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased — the flight physics of the aircraft
+
+The aircraft were flown kinematically: the speed went to what was asked at up to 9 m/s2 whatever the aircraft (a B-17 could climb at 30 degrees, 25 m/s, without losing speed), a turn cost no speed, nothing stalled, every type rolled at 80 degrees a second. They now fly as a point mass under the forces of a propeller aircraft (`guide` in `sim/aircraft.js`, `aeroOf` / `dragAcc` / `thrustAcc` in `sim/airperf.js`):
+- **The forces**: thrust = throttle x power / speed (a propeller gives a power), held under its static value; drag = the airframe's (rising past Mach 0.55: compressibility), the induced drag of the lift (n^2 / v^2, from the real wing's area and aspect ratio, Oswald 0.8), the gear and the flaps, the dive brakes (SBD, D3A, Skua, Ju 87), the windmilling propeller when throttled back; and the weight along the path. For each type the power and the airframe drag are the two values that give it exactly its published top speed (level, full power) and its published rate of climb at its climb speed.
+- **The wing**: it lifts at most (v / vs)^2 times the weight (the stall speed from the wing loading and a clean maximum lift coefficient, 1.45 for a monoplane, 1.35 for a biplane; lower with the flaps down, and in the denser air low down), and the pilot pulls no more than his type's limit (6.5 g a fighter, 5.5-6 a dive bomber, 4-4.5 a torpedo bomber, 2.5 a heavy bomber). Slow, an aircraft cannot turn as it can fast.
+- **The turn**: the pilot asks for a turn and a change of path; the lift that makes both is one pull tilted by the bank, the path first and the turn with what is left (a turn at the limit is flown level). The aircraft rolls to that bank at the roll rate of its type (a fighter about 80 degrees a second, a dive bomber 50, a heavy bomber 20-25) and then turns as its lift makes it turn. A push over is flown with the wings level and a negative load (-1.5 g at most), not by rolling on to the back.
+- **The climb**: flown at full power at a cruise climb (between the best climb speed and the cruise), the speed held with the nose; what the engine has to spare decides the rate. A leader with others in his section flies on 85 % of his power so that they can keep up. A heavy bomber with engines lost cannot hold its height.
+- **What it gives** (`test/flight.mjs` prints the table; 2 km, loaded):
+  - top speed: within 4 % of the published figure for all 24 types; rate of climb within 8 % (B-17 4.6 m/s, Lancaster 3.7, Hellcat 15.5, Zero 15, Swordfish 4.5);
+  - sustained level turn: Zero 20 degrees a second, Bf 109 17, Hellcat 15, Swordfish 10, B-17 4 (a full circle: 18 s, 22 s, 24 s, 35 s, 87 s);
+  - dives: with the brakes out the dive bombers hold their published diving speed (SBD 118 m/s, D3A 108, Ju 87 145); without, nothing goes beyond about 230 m/s.
+  - In the battle the fighters fire as often and shoot down as many as before (four carrier battles: 471 bursts, 58 bombers and 21 fighters downed by fighters, against 470, 60 and 22).
+- **The circuits adapted**: a throttled-back heavy bomber loses about half a metre a second each second, so the aircraft slow to the circuit speed on the way into the circuit; one that comes back fast from a fight goes on down the downwind leg until it has slowed; at the entry of the downwind leg an aircraft coming the other way goes on round to the left instead of turning 45 degrees to the right on to it.
+- Tests: `test/flight.mjs` (the published figures, the stall, an engine lost); `test/airops.mjs` judges the station keeping of the followers that have joined their leader (a straggler that left the assembly late takes minutes to catch up, as a real one does), and the cruise speeds of a strike between the climb and the top speeds.
+
 ## Unreleased — the shells no longer look like fireworks
 
 Seen from a ship's camera towards the enemy, the shells in flight were clusters of bright white stars (looked at with the new `tools/shellshots.mjs`):

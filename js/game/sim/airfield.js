@@ -530,9 +530,16 @@ function stepAir(world, p, dt, base, F, pf, T) {
         const dx = tx - p.x, dz = tz - p.z, d = Math.hypot(dx, dz);
         hdg = atan2h(dx, dz);
         gam = clamp((hC + 150 - p.y) / 700, -0.1, 0.1);
-        if (d < 1500) p.leg = 'down';
+        // slowing to the circuit speed on the way in (throttled back a heavy bomber loses only about half a metre a second each second: it has to start early)
+        spd = pf.vp + (pf.vc - pf.vp) * clamp((d - 2500) / 9000, 0, 1);
+        // at the entry: on to the downwind leg with a turn to the left (or a small one to the right); coming in the other way, it goes on round to the left until it can
+        if (d < 1500) {
+          if (wrapPi(downHdg - p.heading) < 0.45) p.leg = 'down';
+          else { hdg = p.heading - 0.9; o = { bankMax: 28 * D2R }; }
+        }
         // already beside the runway on the left, going the downwind way: join the leg where it is
-        if (e < -W * 0.5 && e > -W * 1.6 && a < aBase && Math.cos(wrapPi(p.heading - downHdg)) > 0.7) p.leg = 'down';
+        // (nearly the downwind way already: an aircraft that cannot turn on the spot, coming in at an angle, would join with a wide turn the wrong way)
+        if (e < -W * 0.5 && e > -W * 1.6 && a < aBase && Math.cos(wrapPi(p.heading - downHdg)) > 0.85) p.leg = 'down';
       }
       if (p.leg === 'down') {
         // along the runway the other way, the line held with a damped correction, down to the height of the circuit, slowing to the circuit speed
@@ -541,7 +548,8 @@ function stepAir(world, p, dt, base, F, pf, T) {
         spd = pf.vp; o = { bankMax: 28 * D2R };
         // abeam the point where the base leg starts, at the height of the circuit: turn in if the final is free; else go round the holding circle
         // (one that comes in high goes on down the leg, losing height, before it turns)
-        if (a > aBase && p.y < hC + 60) {
+        // (and slow enough: one that comes back fast from a fight goes on down the leg while it slows, rather than swing wide on to the final)
+        if (a > aBase && p.y < hC + 60 && p.speed < pf.vp * 1.3) {
           if (finalClear(world, base, F, p)) { p.leg = 'base'; p.t = 0; }
           else if (a > aBase + 2500) { p.phase = 'hold'; p.t = 0; p.leg = null; }
         } else if (a > aBase + 6000) { p.phase = 'hold'; p.t = 0; p.leg = null; }
