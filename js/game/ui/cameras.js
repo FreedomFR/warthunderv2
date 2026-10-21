@@ -243,7 +243,8 @@ export class CameraRig {
       default: px = cam.x; py = cam.y; pz = cam.z; yaw = cam.yaw; pitch = cam.pitch;
     }
     // light smoothing of the final pose (keeps cuts crisp, removes jitter)
-    const hard = mode === 'free' || mode === 'tactical';
+    // (from the pilot's seat the camera is fixed to the aircraft: smoothed, it would trail a metre or three behind the eye at the speed of the aircraft, in the hull)
+    const hard = mode === 'free' || mode === 'tactical' || mode === 'cockpit';
     if (!sm.init || hard) { sm.x = px; sm.y = py; sm.z = pz; sm.yaw = yaw; sm.pitch = pitch; sm.roll = roll; sm.init = true; }
     else {
       const k = 1 - Math.exp(-dt * (mode === 'shell' ? 14 : mode === 'cockpit' ? 40 : mode === 'plane' || mode === 'formation' || mode === 'dogfight' ? 12 : 9));

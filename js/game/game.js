@@ -305,6 +305,7 @@ export class Game {
       const cockpit = this.camera.mode === 'cockpit' && this.camera.plane === p;
       p.inCockpit = cockpit;
       pv.addPlane(p, cam, tint, (p.id * 0.37) % 1, p.dying ? 0.85 : p.smoke > 0 ? 0.35 : 0, cockpit ? -1 : p.fire > 0.5 ? 0.6 : 0);
+      if (cockpit && pv.discs) for (const d of pv.discs) this.particles.propDisc(d.x + cam.x, d.y + cam.y, d.z + cam.z, d.r, d.rot, d.blades);
     }
     for (const b of w.bombs) {
       const sp = Math.hypot(b.vx, b.vy, b.vz) || 1;

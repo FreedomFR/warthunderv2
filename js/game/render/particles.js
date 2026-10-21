@@ -10,7 +10,7 @@ const F = 24;              // floats per particle in the pool
 const X = 0, Y = 1, Z = 2, VX = 3, VY = 4, VZ = 5, AGE = 6, LIFE = 7, S0 = 8, S1 = 9, R = 10, G = 11, B = 12, A0 = 13, A1 = 14,
   ROT = 15, ROTV = 16, GRAV = 17, DRAG = 18, KIND = 19, SEED = 20, STRETCH = 21, WIND = 22;
 
-export const K = { SMOKE: 0, FIRE: 1, SPRAY: 2, TRACER: 3, FLASH: 4, FIREBALL: 5, FLAME: 6 };      // FLAME: an upright tongue of flame (does not turn with the camera roll or spin)
+export const K = { SMOKE: 0, FIRE: 1, SPRAY: 2, TRACER: 3, FLASH: 4, FIREBALL: 5, FLAME: 6, DISC: 7 };      // DISC: the blur of a propeller seen from the cockpit      // FLAME: an upright tongue of flame (does not turn with the camera roll or spin)
 
 export class Particles {
   constructor(engine) {
@@ -143,6 +143,16 @@ export class Particles {
     d[o + 4] = r; d[o + 5] = g; d[o + 6] = b; d[o + 7] = a;
     d[o + 8] = dx; d[o + 9] = dy; d[o + 10] = dz; d[o + 11] = length;
     d[o + 12] = 0; d[o + 13] = kind; d[o + 14] = 0; d[o + 15] = 0;
+  }
+
+  /** The blur of a propeller seen from the pilot's seat (transient): a faint translucent disc of radius r at (x, y, z), its blades drawn as arcs turned by `rot`. */
+  propDisc(x, y, z, r, rot, blades = 3, a = 1) {
+    if (this.nT >= MAX_TRANSIENT) return;
+    const cam = this.engine.cam, o = this.nT++ * INST, d = this.tr;
+    d[o] = x - cam.x; d[o + 1] = y - cam.y; d[o + 2] = z - cam.z; d[o + 3] = r;
+    d[o + 4] = 0.03; d[o + 5] = 0.03; d[o + 6] = 0.03; d[o + 7] = a;
+    d[o + 8] = 0; d[o + 9] = 1; d[o + 10] = 0; d[o + 11] = 0;
+    d[o + 12] = rot; d[o + 13] = K.DISC; d[o + 14] = blades; d[o + 15] = 0;
   }
 
   /** Pack the pool (camera relative), then append this frame's transient instances. */

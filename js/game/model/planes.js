@@ -7,7 +7,8 @@
 //   ordnance   torpedo or bomb hung under the fuselage
 // The land-based bombers (spec.engines: several engines) are built by heavy.js from the sheets of bomberdata.js with the same groups, plus
 //   prop (one propeller, hub at the origin; propsOf(spec) gives the place of each one)   engN (the nacelle of engine N)   burnN (the same, charred and glowing)
-//   bay (the open bomb doors)   hull (the fuselage from just behind the pilot, drawn instead of the nose and the flight deck when the view is from the pilot's seat)
+//   cabin (single-engine: the fuselage seen from the pilot's seat, open over the cockpit)   bay (the open bomb doors)   hull (the fuselage from just behind the pilot, drawn instead of the nose and the flight deck when the view is from the pilot's seat)
+import { cockpitEye } from './cockpit.js';
 import { MeshBuilder, MAT, rgb, shade } from './meshbuilder.js';
 import { drawHeavy, propMounts, bayPivot } from './heavy.js';
 import { HEAVY } from './bomberdata.js';
@@ -189,12 +190,30 @@ export function planeTypeFor(nation, role) {
   return t[role];
 }
 
+/**
+ * The height of a biplane's upper wing: 55 % of the gap above the axis, but never lower than the roof of the pilot's canopy (or the top of his head in an open cockpit)
+ * and a hand's breadth over it: the wing does not cut through the canopy nor through the pilot's eyes.
+ */
+export function upperWingY(s) {
+  const w = s.wing, c = s.canopy[0], ry0 = s.fus.r * s.fus.ar, yb = ry0 * 0.78;
+  const top = c.open ? yb + c.h + 0.5 : yb + c.h * 0.92;
+  return Math.max(w.gap * 0.55, top + 0.18 + w.t / 2);
+}
+
+/** The opening over the cockpit of a single-engine aircraft (the skin left out from the pilot's seat): { x0, x1 (along the aircraft), sn (how far down the sides) }. */
+export function cockpitHole(s) {
+  const c = s.canopy[0], ry0 = s.fus.r * s.fus.ar;
+  if (c.open) return { x0: c.x0 - 0.05, x1: c.x1 + 0.02, sn: 0.6 };
+  // (a long greenhouse runs on far ahead of the instrument panel: the skin is closed again just ahead of it, under the coaming; see model/cockpit.js)
+  return { x0: c.x0, x1: Math.min(c.x1, cockpitEye(s).x + 1.0), sn: 0.74 };
+}
+
 // ---- low level helpers --------------------------------------------------------------------------------------
 
 /** Lofted body along x: stations {x, ry, rz, yc, zc}. */
 function loft(b, st, col, mat, o = {}) {
   const n = o.seg || 12;
-  const rings = [];
+  const rings = [], ys = [];
   for (let i = 0; i < st.length; i++) {
     const s = st[i];
     const prev = st[Math.max(0, i - 1)], next = st[Math.min(st.length - 1, i + 1)];
@@ -208,14 +227,19 @@ function loft(b, st, col, mat, o = {}) {
       const l = Math.hypot(ny, nz) || 1; ny /= l; nz /= l;
       const c = typeof col === 'function' ? col(sn) : col;
       ring.push(b.vert(s.x, (s.yc || 0) + ry * sn, (s.zc || 0) + rz * cs, -slope, ny, nz, c, mat, o.ao));
+      ys.push(sn);
     }
     rings.push(ring);
   }
+  // o.hole: { x0, x1, sn } the skin is left open between x0 and x1 over the top of each section (where the sine of the angle round it is above sn): the cockpit
+  // opening, seen from the pilot's seat (a section's own top, so that the opening follows a fuselage that narrows towards the engine)
+  const H = o.hole, open = (i, k) => H && st[i].x >= H.x0 - 1e-6 && st[i].x <= H.x1 + 1e-6 && ys[i * n + k] > H.sn;
   // wound counter-clockwise seen from outside whichever way the stations run along x
   const flip = st[0].x > st[st.length - 1].x;
   for (let i = 0; i + 1 < rings.length; i++) {
     for (let k = 0; k < n; k++) {
       const k2 = (k + 1) % n;
+      if (open(i, k) && open(i, k2) && open(i + 1, k) && open(i + 1, k2)) continue;
       if (flip) b.quadIdx(rings[i][k], rings[i][k2], rings[i + 1][k2], rings[i + 1][k]);
       else b.quadIdx(rings[i][k], rings[i + 1][k], rings[i + 1][k2], rings[i][k2]);
     }
@@ -337,10 +361,23 @@ export function drawPlane(b, s, { part = 'whole' } = {}) {
   };
   const skin = (sn) => (sn < -0.25 ? bot : top);
 
-  if (all || part === 'body') {
-    const st = stationsAt(noseX, aftCut);
-    // a station right at the cut so the two halves meet
-    loft(b, st, skin, MAT.AIRCRAFT);
+  const cabin = part === 'cabin';
+  if (all || part === 'body' || cabin) {
+    let st = stationsAt(noseX, aftCut);
+    const cp = s.canopy[0];
+    if (cabin) {
+      // seen from the pilot's seat: stations at the two ends of the cockpit, and the skin open over it (the cockpit tub of model/cockpit.js fills the opening)
+      const lerpSt = (x) => {
+        for (let i = 0; i + 1 < st.length; i++) {
+          const a = st[i], c = st[i + 1];
+          if (x <= a.x && x >= c.x) { const t = (a.x - x) / (a.x - c.x || 1); return { x, ry: a.ry + (c.ry - a.ry) * t, rz: a.rz + (c.rz - a.rz) * t, yc: (a.yc || 0) + ((c.yc || 0) - (a.yc || 0)) * t }; }
+        }
+        return null;
+      };
+      for (const x of [cp.x0, cp.x1, cockpitHole(s).x1]) { const q = lerpSt(x); if (q && !st.some((t) => Math.abs(t.x - x) < 0.02)) st.push(q); }
+      st = st.sort((p, q) => q.x - p.x);
+    }
+    loft(b, st, skin, MAT.AIRCRAFT, cabin ? { hole: cockpitHole(s) } : {});
     // engine details
     if (e.type === 'radial' && !e.pusher) {
       for (let k = 0; k < 9; k++) {   // exhaust stubs / cowl flaps
@@ -352,15 +389,21 @@ export function drawPlane(b, s, { part = 'whole' } = {}) {
       b.box(noseX - 1.5, -e.r * 1.0, 0, 0.9, 0.3, e.r * 0.8, shade(bot, 0.7), MAT.DARK);
       for (let k = -3; k <= 3; k++) if (k !== 0) b.box(noseX - 0.7 - Math.abs(k) * 0.14, e.r * 0.28, k * 0.1 + Math.sign(k) * 0.18, 0.18, 0.1, 0.06, dark, MAT.DARK);
     }
-    // canopy: glazed greenhouse with metal frames
+    // canopy: glazed greenhouse with metal frames (from the pilot's seat, his own canopy without its glass and without himself)
     for (const c of s.canopy) {
+      const own = cabin && c === cp;
       const yb = ry0 * 0.78, h = c.h;
-      if (c.open) {
+      if (c.open && own) {
+        b.block({ x0: c.x1 - 0.05, x1: c.x1 + 0.03, hw: rz0 * 0.5, y0: yb + h * 0.3, y1: yb + h * 0.85, tx1: c.x1 - 0.2 }, glass, MAT.GLASS);   // windscreen
+      } else if (c.open) {
         b.block({ x0: c.x0, x1: c.x1, hw: rz0 * 0.55, y0: yb, y1: yb + h * 0.5 }, shade(dark, 0.9), MAT.DARK, { top: false });
-        b.sphere((c.x0 + c.x1) / 2, yb + h * 0.7, 0, 0.22, 0.22, 0.2, rgb('#d9b99b'), MAT.CANOPY, { seg: 7, rings: 4 });      // pilot's head (not drawn from his seat)
-        b.sphere((c.x0 + c.x1) / 2, yb + h * 0.94, 0, 0.26, 0.2, 0.24, rgb('#3a2f25'), MAT.CANOPY, { seg: 7, rings: 4, half: true });   // helmet
+        // the crewman's head over the coaming (the pilot's is not drawn from his seat): at the height of the eye of model/cockpit.js
+        b.sphere((c.x0 + c.x1) / 2, yb + h + 0.27, 0, 0.13, 0.15, 0.12, rgb('#d9b99b'), MAT.CANOPY, { seg: 7, rings: 4 });
+        b.sphere((c.x0 + c.x1) / 2, yb + h + 0.33, 0, 0.15, 0.13, 0.14, rgb('#3a2f25'), MAT.CANOPY, { seg: 7, rings: 4, half: true });   // helmet
+        b.block({ x0: (c.x0 + c.x1) / 2 - 0.15, x1: (c.x0 + c.x1) / 2 + 0.1, hw: 0.22, y0: yb + h * 0.5, y1: yb + h + 0.14 }, rgb('#4a4436'), MAT.CANOPY);   // shoulders
         b.block({ x0: c.x1 - 0.05, x1: c.x1 + 0.03, hw: rz0 * 0.5, y0: yb + h * 0.3, y1: yb + h * 0.85, tx1: c.x1 - 0.2 }, glass, MAT.GLASS);   // windscreen
       } else {
+        if (own) continue;        // (from inside, the frames of the cockpit tub follow the glass instead)
         b.block({ x0: c.x0, x1: c.x1, hw: rz0 * 0.7, y0: yb - 0.04, y1: yb + h * 0.92, tx0: c.x0 + 0.25, tx1: c.tx1 - 0.15, thw: rz0 * 0.3 }, glass, MAT.GLASS);
         for (const sz of [-1, 1]) b.beam([c.x0, yb, sz * rz0 * 0.72], [(c.x0 + c.x1) / 2, yb + h, sz * rz0 * 0.45], 0.05, 0.05, shade(top, 0.8), MAT.CANOPY, { caps: false });
         b.beam([c.x0 + (c.x1 - c.x0) * 0.35, yb + h * 0.1, -rz0 * 0.7], [c.x0 + (c.x1 - c.x0) * 0.35, yb + h * 0.95, 0], 0.05, 0.05, shade(top, 0.8), MAT.CANOPY, { caps: false });
@@ -538,7 +581,7 @@ function drawFloats(b, s, top, dark) {
 function biplaneWing(b, s, sg, top, bot, acc) {
   const w = s.wing, hs = s.span / 2, gap = w.gap;
   const lowerSpan = hs * (w.lowerShort || 1);
-  const yU = gap * 0.55, yL = -gap * 0.45;
+  const yU = upperWingY(s), yL = -gap * 0.45;
   const xU = w.x + (w.stagger || 0), xL = w.x - (w.stagger || 0);
   // upper wing
   panel(b, [xU + w.cr / 2, yU, sg * 0.1], [xU + w.ct / 2 + w.sweep, yU + w.dih, sg * hs], [xU - w.ct / 2 + w.sweep, yU + w.dih, sg * hs], [xU - w.cr / 2, yU, sg * 0.1], w.t, w.t * 0.8, top, bot);
@@ -613,6 +656,7 @@ export function getPlaneModel(typeKey) {
   const spec = PLANES[typeKey];
   const out = {};
   const parts = ['whole', 'body', 'wingL', 'wingR', 'tail', 'prop', 'gear', 'hook', 'ordnance'];
+  if (!spec.engines) parts.push('cabin');      // the fuselage seen from the pilot's seat: open over the cockpit, his own canopy without its glass
   if (spec.engines) parts.push('bay', 'hull', ...spec.engines.map((e, i) => 'eng' + i), ...spec.engines.map((e, i) => 'burn' + i));      // the open bomb doors, the hull seen from the pilot's seat, the engines as pieces of their own
   for (const part of parts) {
     const b = new MeshBuilder();

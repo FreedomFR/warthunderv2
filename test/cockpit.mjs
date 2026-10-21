@@ -1,6 +1,6 @@
 // The cockpits seen from the pilot's seat: node test/cockpit.mjs
-import { PLANES } from '../js/game/model/planes.js';
-import { buildCockpit, cockpitEye } from '../js/game/model/cockpit.js';
+import { PLANES, getPlaneModel, cockpitHole } from '../js/game/model/planes.js';
+import { buildCockpit, cockpitEye, canopyFrame } from '../js/game/model/cockpit.js';
 import { MAT } from '../js/game/model/meshbuilder.js';
 
 let fail = 0;
@@ -17,8 +17,11 @@ for (const [k, spec] of Object.entries(PLANES)) {
   if (!mats.has(MAT.GAUGE) || !mats.has(MAT.INTERIOR)) bad.push(k + ': no dials or no interior');
   // everything stays within a couple of metres of the eye (the panel is under the nose, the rails round the seat)
   const bb = c.interior.aabb;
-  const zr = spec.engines ? 1.35 : 0.8;      // a bomber's flight deck is wider and the seat is on the left: the walls are measured from the eye
-  if (bb[0] < E.x - 1.5 || bb[3] > E.x + 1.2 || bb[1] < E.y - 1.1 || bb[4] > E.y + 0.5 || Math.abs(bb[2] - E.z) > zr || Math.abs(bb[5] - E.z) > zr) bad.push(`${k}: the cockpit is not round the eye (${bb.map((v) => v.toFixed(1)).join(' ')})`);
+  // (a bomber's flight deck is wider, the seat is on the left, and the bulkhead behind the seats is made larger than the fuselage, to hide the inside of its skin)
+  const zr = spec.engines ? 2.45 : 0.8, yLo = spec.engines ? 1.45 : 1.1, yHi = spec.engines ? 1.45 : 0.5;
+  // (the frames of a canopy follow its glass: a long greenhouse runs further fore and aft)
+  const cn = spec.canopy && spec.canopy[0], fx0 = Math.min(E.x - 1.5, cn && !spec.engines ? cn.x0 - 0.1 : 1e9), fx1 = Math.max(E.x + 1.2, cn && !spec.engines ? cn.x1 + 0.1 : -1e9);
+  if (bb[0] < fx0 || bb[3] > fx1 || bb[1] < E.y - yLo || bb[4] > E.y + yHi || Math.abs(bb[2] - E.z) > zr || Math.abs(bb[5] - E.z) > zr) bad.push(`${k}: the cockpit is not round the eye (${bb.map((v) => v.toFixed(1)).join(' ')})`);
   // the panel is ahead of the pilot and below his eyes, the stick is under it
   const dials = [];
   const u = new Uint8Array(c.interior.vertices);
@@ -30,3 +33,27 @@ for (const [k, spec] of Object.entries(PLANES)) {
 ok(bad.length === 0, `the cockpits of the ${Object.keys(PLANES).length} types: dials on a panel, round the eye, a stick and a propeller disc${bad.length ? ': ' + bad.slice(0, 4).join('; ') : ''}`);
 ok(PLANES.swordfish.canopy[0].open && cockpitEye(PLANES.swordfish).open && !cockpitEye(PLANES.a6m).open, 'the Swordfish has an open cockpit, the Zero a closed one');
 process.exit(fail ? 1 : 0);
+
+// the pilot sits under his canopy, and from his seat the fuselage is open over the cockpit (the tub fills the opening)
+{
+  const bad2 = [];
+  for (const [k, spec] of Object.entries(PLANES)) {
+    if (spec.engines || spec.canopy[0].open) continue;
+    const E = cockpitEye(spec), C = canopyFrame(spec);
+    if (!(E.y < C.roof - 0.1 && E.y > C.sill + 0.15)) bad2.push(`${k}: eye at ${E.y.toFixed(2)} (sill ${C.sill.toFixed(2)}, roof ${C.roof.toFixed(2)})`);
+    if (!(E.x > C.x0 && E.x < C.x1)) bad2.push(`${k}: eye not under the canopy`);
+    const m = getPlaneModel(k), hole = cockpitHole(spec);
+    if (!m.meshes.cabin) { bad2.push(k + ': no cabin mesh'); continue; }
+    // no skin of the cabin over the cockpit, between the back of the opening and the panel, above the sill
+    const f = new Float32Array(m.meshes.cabin.vertices), I = m.meshes.cabin.indices, u = new Uint8Array(m.meshes.cabin.vertices);
+    let over = 0;
+    for (let t = 0; t < I.length; t += 3) {
+      let cx = 0, cy = 0, cz = 0, sk = true;
+      for (let j = 0; j < 3; j++) { const v = I[t + j]; cx += f[v * 6] / 3; cy += f[v * 6 + 1] / 3; cz += f[v * 6 + 2] / 3; if (u[v * 24 + 23] !== MAT.AIRCRAFT) sk = false; }
+      if (sk && cx > hole.x0 + 0.05 && cx < E.x + 0.75 && cy > C.sill + 0.02 && Math.abs(cz) < C.hwS * 0.9) over++;
+    }
+    if (over) bad2.push(`${k}: ${over} triangles of skin over the cockpit`);
+    if (m.meshes.cabin.indexCount < m.meshes.body.indexCount * 0.6) bad2.push(k + ': the cabin lost most of the fuselage');
+  }
+  ok(bad2.length === 0, `under a canopy the eye is below the roof and above the sill, and from the seat the fuselage is open over the cockpit${bad2.length ? ': ' + bad2.slice(0, 4).join('; ') : ''}`);
+}

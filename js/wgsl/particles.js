@@ -157,6 +157,13 @@ fn vnoise(p: vec2f) -> f32 {
       // one that passes within a few metres of the lens is a quick dim streak, not a bar across the screen
       add = add * smoothstep(0.8, 9.0, dist);
     }
+    case 7u: {   // the blur of a propeller seen from the cockpit: a faint darkening, the blades as soft arcs that turn, the tips a little brighter (misc.x: the turn, misc.z: the blades)
+      let ang = atan2(in.uv.y, in.uv.x) + in.misc.x;
+      let streak = 0.5 + 0.5 * cos(ang * max(in.misc.z, 2.0));
+      let rad = smoothstep(1.0, 0.94, d) * smoothstep(0.06, 0.25, d);
+      alpha = (0.035 + 0.07 * pow(streak, 3.0)) * rad * in.col.a + 0.18 * (1.0 - smoothstep(0.05, 0.12, d)) * in.col.a;
+      rgb = mix(in.col.rgb, vec3f(0.55, 0.5, 0.35), smoothstep(0.9, 0.98, d) * 0.6);
+    }
     case 5u: {   // fireball lobe: opaque billowing gas, white-hot core, orange body, dark red-brown rim; cools with age (misc.w)
       let age = clamp(in.misc.w, 0.0, 1.0);
       let p = in.uv * 1.8 + vec2f(seed * 31.0, seed * 11.0);

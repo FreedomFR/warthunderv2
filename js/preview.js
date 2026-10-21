@@ -2,6 +2,7 @@
 //   view=dist,azimuthDeg,elevationDeg[,lookY]   heading=deg   elev=gun elevation   yaw=turret train
 //   ruin=1       every destroyable part wrecked        scars=N   N battle scars         split=x   ship broken in two at local x
 //   parked=N     aircraft parked on carriers           gear=1    undercarriage down      ord=1     ordnance hung on planes
+//   cockpit=1&look=yawDeg,pitchDeg   the camera at the pilot's eye of the first aircraft, looking that way (0,0 = ahead; fov= for the field of view)
 //   bay=0..1 bomb doors of a bomber   eng=0,1,.. engines lost (1)   efire=0,1,.. engines on fire   bank=deg pitch=deg  attitude of planes   fold=0..1 wings folded   hook=0..1 arrester hook down
 import { ShipRenderer } from './game/render/shipRenderer.js';
 import { ShipVisuals } from './game/render/shipVisual.js';
@@ -14,6 +15,7 @@ import { mat4Ship, D2R, makeRng } from './game/math.js';
 import { addWakeStamps } from './game/render/effects.js';
 import { makeStats } from './game/sim/shipdata.js';
 import { OPT } from './game/model/parts.js';
+import { cockpitEye } from './game/model/cockpit.js';
 
 export async function runPreview(engine, ids, qs) {
   OPT.flags = qs.get('flags') !== '0';    // ?flags=0: no ensigns or pennants (tools/refs/check.mjs)
@@ -66,8 +68,17 @@ export async function runPreview(engine, ids, qs) {
   const wake = qs.get('wake') === '1';
   const first = items.find((i) => i.id);
   const wakeShip = wake && first ? { x: first.x, z: first.z, heading: 0, speed: 15, state: 'afloat', stats: makeStats(BY_ID[first.id]) } : null;
+  const look = qs.get('look') && qs.get('cockpit') === '1' ? qs.get('look').split(',').map(Number) : null;
   engine.hooks.update = () => {
     if (wakeShip) { wakeShip.heading = st.heading; addWakeStamps(engine.foam, wakeShip, 100, 0.9); }
+    if (look) {
+      // from the pilot's seat (the aircraft level, the head turned by `look`)
+      const it = items.find((i) => i.plane), E = cockpitEye(PLANES[it.plane]), h = st.heading, alt = Number(qs.get('alt')) || 40;
+      cam.x = it.x + Math.sin(h) * E.x + Math.cos(h) * E.z; cam.y = alt + E.y; cam.z = it.z - Math.cos(h) * E.x + Math.sin(h) * E.z;
+      cam.yaw = h + (look[0] || 0) * D2R; cam.pitch = (look[1] || 0) * D2R; cam.roll = 0;
+      cam.fovY = (Number(qs.get('fov')) || 66) * D2R;
+      return;
+    }
     const tx = items[st.target].x + st.lookX, tz = items[st.target].z + (st.lookZ || 0), ty = st.lookY;
     const cx = tx + st.dist * Math.sin(st.az) * Math.cos(st.el), cy = ty + st.dist * Math.sin(st.el), cz = tz - st.dist * Math.cos(st.az) * Math.cos(st.el);
     cam.x = cx; cam.y = Math.max(cy, 3); cam.z = cz;
@@ -95,7 +106,7 @@ export async function runPreview(engine, ids, qs) {
   };
   engine.hooks.drawOpaque = (rp) => renderer.draw(rp);
   window.__preview = {
-    items, renderer,
+    items, renderer, planes: pv,
     /** set({dist, az, el (deg), lookY, lookX, lookZ, target, heading (deg)}) */
     set(o) {
       if (o.dist != null) st.dist = o.dist;

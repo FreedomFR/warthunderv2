@@ -81,6 +81,12 @@ export class PlaneVisuals {
       if (!lost || !lost.tail) r.add(m.mesh.tail, S32, tint, dmg, fire, rnd);
       if (!lost || !lost.wingL) r.add(m.mesh.wingL, S32, tint, dmg, fire, rnd);
       if (!lost || !lost.wingR) r.add(m.mesh.wingR, S32, tint, dmg, fire, rnd);
+    } else if (p.inCockpit && m.mesh.cabin) {
+      // from the pilot's seat of a single-engine aircraft: the fuselage open over the cockpit (the tub of the cockpit fills it), his canopy without its glass
+      r.add(m.mesh.cabin, S32, tint, dmg, fire, rnd);
+      if (!lost || !lost.tail) r.add(m.mesh.tail, S32, tint, dmg, fire, rnd);
+      if (!lost || !lost.wingL) r.add(m.mesh.wingL, S32, tint, dmg, fire, rnd);
+      if (!lost || !lost.wingR) r.add(m.mesh.wingR, S32, tint, dmg, fire, rnd);
     } else if (p.fold > 0.003) {
       // folded (or folding) wings: the fuselage and the tail as they are, each wing on its own hinge
       r.add(m.mesh.body, S32, tint, dmg, fire, rnd);
@@ -183,16 +189,16 @@ export class PlaneVisuals {
     mat4Mul(P64, S64, H64);
     for (let i = 0; i < 16; i++) P32[i] = P64[i];
     r.add(h.stick, P32, dyn, 0, 0, 0);
-    if (h.disc && !lost.engine) {      // the blur of the propeller of each engine that still runs
-      const mounts = ck.discMounts || [{ x: 0, y: 0, z: 0, dir: 1 }];
+    // the blur of the propeller of each engine that still runs: drawn by the particles (it is see-through), from the hubs listed here (camera-relative)
+    this.discs = [];
+    if (h.disc && !lost.engine) {
+      const spec = m.pm.spec, mounts = ck.discMounts || [{ x: spec.engine && spec.engine.pusher ? spec.prop.x - 0.9 : spec.L * 0.42 + 0.02, y: 0, z: 0, dir: 1 }];
       for (let k = 0; k < mounts.length; k++) {
         const mt = mounts[k];
         if ((lost.engines && lost.engines[k]) || (mt.z < -0.5 && lost.wingL) || (mt.z > 0.5 && lost.wingR)) continue;
-        mat4RotX(RX, (p.spin || 0) * mt.dir);
-        RX[12] = mt.x; RX[13] = mt.y; RX[14] = mt.z;
-        mat4Mul(P64, S64, RX);
-        for (let i = 0; i < 16; i++) P32[i] = P64[i];
-        r.add(h.disc, P32, dyn, 0, 0, 0);
+        const M = S64, x = M[0] * mt.x + M[4] * mt.y + M[8] * mt.z + M[12], y = M[1] * mt.x + M[5] * mt.y + M[9] * mt.z + M[13], z = M[2] * mt.x + M[6] * mt.y + M[10] * mt.z + M[14];
+        // (turned at a twentieth of its speed: at 60 frames a second the real turn would jump about at random, as it does in a film)
+        this.discs.push({ x, y, z, r: spec.prop.r, rot: (p.spin || 0) * 0.05 * mt.dir, blades: spec.prop.n || 3 });
       }
     }
     r.setPaint(null);
