@@ -1,6 +1,6 @@
 # Naval combat simulation (WWII) — guide for Claude Code
 
-Autonomous WWII naval battle on the Noniv/web-ocean WebGPU engine: 31 real ships (6 nations × 5 types, plus the S-30 Schnellboot) built procedurally from
+Autonomous WWII naval battle on the Noniv/web-ocean WebGPU engine: 34 real ships (6 nations × 5 types, plus the S-30 Schnellboot, the Tade, the Gioberti and the post-war USS Adams) built procedurally from
 spec sheets, AI-only combat, many cameras, modular damage, procedural sound. No build step is needed to play.
 
 **The owner speaks French: answer in French** (code, comments, commit messages and CHANGELOG are in English; README and TODO in French).
@@ -92,6 +92,10 @@ Useful URLs: `?scenario=duel&start=1&seed=3`, `?preview=iowa,yamato&offscreen=1&
 5. Compare with the photographs from the same angles (`views.mjs` + `shots.mjs`), then film the salvo with the `firetest` scene
    (`--q mount=A`, `--q group=sec`). Add a livery in `livery.js` if needed.
 6. Run `npm test` and `npm run check:shaders`, rebuild `naval.html`, update CHANGELOG / README credits, commit.
+
+## 3D reference models given by the owner (`modelTmp/`)
+
+The owner drops glTF models (Sketchfab, War Thunder "Ninth Wave", CC BY 4.0) in `modelTmp/` (git-ignored). They are **for measuring only**: extract them to `refs/<id>/src` (git-ignored; `python3 -c "import zipfile..."`, there is no `unzip`), measure with `node tools/refs/gltf.mjs` (`survey`, `views`, `quarters`, `plan`, `tables`, `cut`, `heightmap`, `profile`; `--loa=` scales the model to the spec's length), build the ship procedurally (spec sheet + `tweaks.js`, never a copy of the mesh), credit the author in `docs/CREDITS.md`. Research guns, shells and torpedoes on the internet (NavWeaps...) for the spec sheet. Then check the model: `tools/refs/chk.sh <ship>` (silhouettes in metres, from the plans.json entry that `gltf.mjs plan ... | python3 tools/refs/addplan.py` writes), and **look at it from every side on a plain background**: `GPU=hardware WSLENV=GPU "/mnt/c/Program Files/nodejs/node.exe" tools/refs/studio.mjs <ids> out/studio` (9 views, lit from behind the camera) then `python3 tools/refs/sheet.py out/studio/<id>.jpg out/studio/<id> 3`. `tools/refs/addspec.py <nation> spec.json` adds a spec sheet. Positions read on a grid: `gridview.py` (the label is the fraction at the LEFT edge, it decreases to the right: bow on the right).
 
 ## Conventions
 

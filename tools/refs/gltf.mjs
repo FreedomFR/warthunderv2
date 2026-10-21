@@ -1,6 +1,7 @@
 // Reads a glTF given for MEASUREMENT ONLY (refs/<id>/src/scene.gltf, git-ignored; nothing of it goes into the repository) and prints what can be measured:
 //   node tools/refs/gltf.mjs survey refs/tade/src        bounding box (length, beam, height), the nodes with their bounds, the materials
 //   node tools/refs/gltf.mjs views  refs/tade/src out/tade   orthographic pictures from six sides on a white background (flat grey, shaded by the normal)
+//   node tools/refs/gltf.mjs inside refs/tade/src refs/tade/hi/inside.png   the port half cut open along the centre line: the compartments and the machinery, if the model has them
 //   node tools/refs/gltf.mjs plan refs/tade/src refs/tade --loa=86.8 --draft=2.6   side.png and top.png as flat silhouettes (the 'drawings' of tools/refs/plans.json, scaled so that the
 //                                                    length is the spec's LOA) and the plans.json entry to paste
 //   (cut: --zmax=1.8 keeps only what is within 1.8 m of the centre line: funnels, masts, central blocks)
@@ -189,6 +190,11 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     fs.mkdirSync(arg, { recursive: true });
     const s = +(flags.s || 8);
     for (const [name, v] of Object.entries(VIEWS)) { const r = render(m, v, name === 'top' || name.startsWith('side') ? s : s * 1.6); fs.writeFileSync(path.join(arg, `${name}.png`), png(r.W, r.H, r.img)); console.log(name, r.W, 'x', r.H); }
+  } else if (cmd === 'inside') {
+    // the port half only (z <= 0), seen from starboard: what the model holds inside the hull (compartments, boilers, engines, shafts, magazines), same framing as `views` (gridview.py reads it)
+    for (const p of m.parts) { const keep = []; for (let t = 0; t < p.idx.length; t += 3) { const zs = [0, 1, 2].map((q) => p.V[p.idx[t + q] * 3 + 2]); if (Math.max(...zs) <= 0.05) keep.push(p.idx[t], p.idx[t + 1], p.idx[t + 2]); } p.idx = Uint32Array.from(keep); }
+    const r = render(m, VIEWS.side_starboard, +(flags.s || 12));
+    fs.mkdirSync(path.dirname(arg), { recursive: true }); fs.writeFileSync(arg, png(r.W, r.H, r.img)); console.log('wrote', arg, r.W, 'x', r.H);
   } else if (cmd === 'quarters') {
     // the oblique views the studio takes of the game's model (tools/refs/studio.mjs), as orthographic pictures of the reference, to compare them side by side
     fs.mkdirSync(arg, { recursive: true });

@@ -2515,5 +2515,52 @@
         "el": 89.5
       }
     }
+  },
+  "kagero@ref": {
+    "side": {
+      "file": "refs/kagero_gltf/side.png",
+      "source": "matte side view of the reference model (IJN Kagero (War Thunder) Ninth Wave, KojfDiscord, CC BY 4.0), rendered by tools/refs/gltf.mjs, kept out of the repository",
+      "crop": [
+        0,
+        0,
+        1470,
+        374
+      ],
+      "stern": 24,
+      "bow": 1446,
+      "close": 3,
+      "tol": 0.3,
+      "wl": 296
+    },
+    "top": {
+      "file": "refs/kagero_gltf/top.png",
+      "source": "matte top view of the reference model (IJN Kagero (War Thunder) Ninth Wave, KojfDiscord, CC BY 4.0), rendered by tools/refs/gltf.mjs, kept out of the repository",
+      "crop": [
+        0,
+        0,
+        1470,
+        184
+      ],
+      "stern": 24,
+      "bow": 1446,
+      "close": 3,
+      "tol": 0.2,
+      "cl": 92
+    },
+    "loa": 118.5,
+    "camera": {
+      "side": {
+        "dist": 786,
+        "fov": 4,
+        "lookY": 8.0,
+        "el": 0
+      },
+      "top": {
+        "dist": 786,
+        "fov": 4,
+        "lookY": 0,
+        "el": 89.5
+      }
+    }
   }
 }
