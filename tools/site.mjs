@@ -25,6 +25,8 @@ function assemble(src, dest, badge) {
   for (const f of ['wiki.html', 'viewer.html']) if (fs.existsSync(path.join(src, f))) page(f, f);
   // what lets a phone install the game as an app (full screen, landscape)
   for (const f of ['manifest.webmanifest', 'icon-192.png', 'icon-512.png']) if (fs.existsSync(path.join(src, f))) fs.copyFileSync(path.join(src, f), path.join(dest, f));
+  // the clip of the first screen (the page plays it while the engine, the models and the sounds load)
+  for (const f of ['loading.mp4', 'loading-poster.jpg']) if (fs.existsSync(path.join(src, 'docs', f))) { fs.mkdirSync(path.join(dest, 'docs'), { recursive: true }); fs.copyFileSync(path.join(src, 'docs', f), path.join(dest, 'docs', f)); }
   // the balance file, for reference (naval.html carries its values: see build.mjs)
   if (fs.existsSync(path.join(src, 'config'))) fs.cpSync(path.join(src, 'config'), path.join(dest, 'config'), { recursive: true });
   // the offline trailer director is not part of the page (see build.mjs)

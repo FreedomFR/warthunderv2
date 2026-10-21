@@ -11,7 +11,7 @@ fs.mkdirSync(out, { recursive: true });
 const b = await chromium.launch(launchOptions());
 const p = await b.newPage({ viewport: { width: 1280, height: 720 } });
 p.on('pageerror', (e) => console.log('[pageerror] ' + e.message.slice(0, 300)));
-await p.goto('http://localhost:8080/index.html?scenario=duel&seed=3');
+await p.goto('http://localhost:8080/index.html?scenario=duel&seed=3&splash=0');
 for (let i = 0; i < 120; i++) { await p.waitForTimeout(500); if ((await p.evaluate(() => (window.__engine ? window.__engine.frameIndex : -1)).catch(() => -1)) >= 10) break; }
 const shot = async (name) => { await p.screenshot({ path: `${out}/${name}.png` }); console.log('saved', name); };
 const G = (fn, ...a) => p.evaluate(fn, ...a);

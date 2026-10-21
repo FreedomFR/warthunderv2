@@ -125,6 +125,18 @@
   .lab.plane { pointer-events: auto; cursor: pointer; padding: 0 5px; font-size: 13px; line-height: 1.25; color: var(--tc); background: #0b0f1488; }
   .lab.plane.hot { border-color: var(--tc); background: #0b0f14d0; }
   .lab.plane:hover { background: #ffffff30; }
+  /* the first screen: the trailer plays (muted) while the engine, the models and the sounds load */
+  #splash { position: fixed; inset: 0; z-index: 50; background: #06101a; color: #fff; overflow: hidden; transition: opacity .7s; }
+  #splash.out { opacity: 0; pointer-events: none; }
+  #splash video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  #splash .shade { position: absolute; inset: 0; background: linear-gradient(#0008 0, #0000 30%, #0000 55%, #000b 100%); }
+  #splash .box { position: absolute; left: 50%; bottom: 9%; transform: translateX(-50%); width: min(520px, 84vw); text-align: center; text-shadow: 0 2px 12px #000c; }
+  #splash .t { font-size: 34px; font-weight: 800; letter-spacing: 1px; }
+  #splash .s { font-size: 13px; opacity: .8; margin-bottom: 16px; }
+  #splash .bar { height: 6px; border-radius: 3px; background: #ffffff33; overflow: hidden; }
+  #splash .bar i { display: block; height: 100%; width: 3%; background: #4fc3f7; transition: width .25s; }
+  #splash .l { font-size: 12.5px; opacity: .85; margin-top: 8px; min-height: 1.4em; }
+  #splash button { margin-top: 10px; background: #0b1622cc; color: #fff; border: 1px solid #ffffff44; border-radius: 6px; padding: 6px 16px; font: inherit; cursor: pointer; }
   #loading { position: fixed; top: 38%; left: 50%; transform: translateX(-50%); width: min(420px, 80vw); padding: 16px 20px; border-radius: 10px; background: #0b1622ee; border: 1px solid #ffffff22; text-align: center; color: #fff; z-index: 40; }
   #loading .bar { height: 8px; margin: 12px 0 8px; border-radius: 4px; background: #ffffff22; overflow: hidden; }
   #loading .bar i { display: block; height: 100%; width: 0; background: #4fc3f7; transition: width .15s; }
@@ -216,6 +228,34 @@
 </head>
 <body>
 <canvas id="c"></canvas>
+<div id="splash">
+  <video id="splash-v" muted loop playsinline autoplay preload="auto" poster="docs/loading-poster.jpg"><source src="docs/loading.mp4" type="video/mp4"></video>
+  <div class="shade"></div>
+  <div class="box">
+    <div class="t">Combat naval</div>
+    <div class="s">Simulation de la Seconde Guerre mondiale</div>
+    <div class="bar"><i id="splash-bar"></i></div>
+    <div class="l" id="splash-l">Démarrage…</div>
+    <button id="splash-skip" class="hidden">Entrer sans attendre</button>
+  </div>
+</div>
+<script>
+// the first screen (before any module is loaded): window.__splash.set(label, 0..1) moves the bar, hide() shows the game. ?splash=0 (and the tools' ?offscreen=1) skip it.
+(function () {
+  var el = document.getElementById('splash'), qs = location.search;
+  if (/[?&](splash=0|offscreen=1|preview=|trailer|bench|start=1)/.test(qs)) { el.remove(); window.__splash = { set: function () {}, hide: function () {}, off: true }; return; }
+  var bar = document.getElementById('splash-bar'), lab = document.getElementById('splash-l'), skip = document.getElementById('splash-skip'), v = document.getElementById('splash-v');
+  try { if (navigator.connection && navigator.connection.saveData) v.remove(); else { var pr = v.play(); if (pr && pr.catch) pr.catch(function () {}); } } catch (e) { /* the poster stays */ }
+  var gone = false;
+  window.__splash = {
+    set: function (label, frac) { if (gone) return; lab.textContent = label; bar.style.width = Math.max(3, Math.min(100, Math.round(frac * 100))) + '%'; },
+    hide: function (now) { if (gone) return; gone = true; if (now) { el.remove(); return; } el.classList.add('out'); setTimeout(function () { el.remove(); }, 800); },
+    skipped: false,
+  };
+  setTimeout(function () { if (!gone) skip.classList.remove('hidden'); }, 7000);
+  skip.onclick = function () { window.__splash.skipped = true; window.__splash.hide(); };
+})();
+</script>
 <div id="ui"></div>
 <div id="err"></div>
 <script type="module" src="js/main.js"></script>

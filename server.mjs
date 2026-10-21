@@ -17,6 +17,10 @@ const types = {
   '.css': 'text/css; charset=utf-8',
   '.png': 'image/png',
   '.json': 'application/json',
+  '.mp4': 'video/mp4',
+  '.jpg': 'image/jpeg',
+  '.gif': 'image/gif',
+  '.webp': 'image/webp',
 };
 
 http.createServer((req, res) => {
@@ -50,10 +54,17 @@ http.createServer((req, res) => {
   if (!file.startsWith(root)) { res.writeHead(403); res.end(); return; }
   fs.readFile(file, (err, data) => {
     if (err) { res.writeHead(404); res.end('not found'); return; }
-    res.writeHead(200, {
-      'content-type': types[path.extname(file)] || 'application/octet-stream',
-      'cache-control': 'no-store',
-    });
+    const head = { 'content-type': types[path.extname(file)] || 'application/octet-stream', 'cache-control': 'no-store', 'accept-ranges': 'bytes' };
+    // a video is asked for by ranges (the browser wants to seek and to loop)
+    const m = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range || '');
+    if (m && (m[1] || m[2])) {
+      const a = m[1] ? Number(m[1]) : Math.max(0, data.length - Number(m[2])), b = m[1] && m[2] ? Math.min(Number(m[2]), data.length - 1) : data.length - 1;
+      if (a > b || a >= data.length) { res.writeHead(416, { 'content-range': `bytes */${data.length}` }); res.end(); return; }
+      res.writeHead(206, { ...head, 'content-range': `bytes ${a}-${b}/${data.length}`, 'content-length': b - a + 1 });
+      res.end(data.subarray(a, b + 1));
+      return;
+    }
+    res.writeHead(200, head);
     res.end(data);
   });
 }).listen(port, () => console.log(`ocean dev server: http://localhost:${port}/`));

@@ -103,6 +103,15 @@ export class GameAudio {
   }
 
   /**
+   * The audio engine before the first click: a context created now starts suspended (the browser asks for a gesture) but can already hold the
+   * buffers, so the sounds are built while the first screen plays; the first click resumes it (`unlock`).
+   */
+  early() {
+    if (this.ctx || typeof AudioContext === 'undefined') return;
+    try { this.build(new AudioContext()); } catch (e) { /* the first click will try again */ }
+  }
+
+  /**
    * Builds the sounds that are not ready yet, before the battle begins (they were built in the background while it ran, and a heavy
    * one blocks the page for a good part of a second). Resolves at once when there is nothing to do: no audio, muted, offline.
    */
