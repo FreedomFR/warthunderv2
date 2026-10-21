@@ -30,7 +30,7 @@ const rn = (world, a, b) => a + (b - a) * world.rng();
 // ---- the circuit round a carrier ---------------------------------------------------------------------------------------
 // Opposite course past the ship on the side away from the island, a 180-degree turn at a steady bank that ends on the ship's course about 1.5 km
 // astern, then the groove down to the wires. All in the ship's frame (x forward, z to starboard).
-const GROOVE_GATE = 3600;                 // the next aircraft turns in when the one ahead is this close behind its touchdown point (m)
+const GROOVE_GATE = 3000;                 // the next aircraft turns in when the one ahead is this close behind its touchdown point (m)
 function circuit(ship, p) {
   const dp = ship.model.deckPoints, isl = ship.model.island;
   const side = isl && isl.z < 0 ? 1 : -1;       // the circuit is on the side away from the island
