@@ -133,15 +133,10 @@ function marking(b, F, nation, x, y, r, side) {
 }
 
 // ---- guns and turrets ----------------------------------------------------------------------------------------
-function barrels(b, x0, y, z, n, len, gap, dark, r = 0.032) {
-  for (let k = 0; k < n; k++) {
-    const zz = z + (k - (n - 1) / 2) * gap;
-    b.rod(x0, x0 + len, y, zz, r, r * 0.8, dark, MAT.DARK, { seg: 6 });
-  }
-}
+// (the housings: the guns themselves turn, each position is a mesh of its own, see planeGuns.js)
 
 function drawGuns(b, s, F, wantTail, col) {
-  const { dark, glass, skin } = col;
+  const { glass, skin } = col;
   const cut = s.cutD ?? 1e9;
   for (const g of s.guns || []) {
     const isTail = (g.d ?? g.d0) > cut;
@@ -154,49 +149,37 @@ function drawGuns(b, s, F, wantTail, col) {
         b.sphere(x, yb + 0.1, 0, g.r, g.r * 0.95, g.r, glass, MAT.CANOPY, { seg: 14, rings: 8 });
         b.beam([x - g.r * 0.95, yb + 0.1, 0], [x, yb + 0.1 + g.r * 0.95, 0], 0.035, 0.035, shade(skin, 0.7), MAT.CANOPY, { caps: false });
         b.beam([x + g.r * 0.95, yb + 0.1, 0], [x, yb + 0.1 + g.r * 0.95, 0], 0.035, 0.035, shade(skin, 0.7), MAT.CANOPY, { caps: false });
-        barrels(b, x + g.r * 0.5, yb + g.r * 0.45, 0, g.n || 2, g.len || 1.2, 0.2, dark);
         break;
       }
       case 'ball': {            // the ball turret hung under the belly
         const yb = q.yc - q.ry * 0.9;
         b.sphere(x, yb - g.r * 0.35, 0, g.r, g.r, g.r, shade(skin, 0.85), MAT.AIRCRAFT, { seg: 14, rings: 9 });
-        b.sphere(x + g.r * 0.45, yb - g.r * 0.6, 0, g.r * 0.4, g.r * 0.34, g.r * 0.5, glass, MAT.GLASS, { seg: 8, rings: 5 });
-        barrels(b, x + g.r * 0.5, yb - g.r * 0.5, 0, g.n || 2, g.len || 1.1, 0.2, dark);
         break;
       }
       case 'chin': {            // a chin turret under the nose
         const yb = q.yc - q.ry * 0.95;
         b.sphere(x, yb - g.r * 0.25, 0, g.r * 1.15, g.r * 0.85, g.r, shade(skin, 0.8), MAT.AIRCRAFT, { seg: 12, rings: 7 });
-        b.sphere(x + g.r * 0.6, yb - g.r * 0.2, 0, g.r * 0.5, g.r * 0.45, g.r * 0.7, glass, MAT.GLASS, { seg: 8, rings: 5 });
-        barrels(b, x + g.r * 0.9, yb - g.r * 0.25, 0, 2, g.len || 0.9, 0.18, dark);
         break;
       }
       case 'nose': {            // a small ball mount in the glazing of the nose
         const zz = (g.z || 0), yy = g.y ?? 0;
         b.sphere(x, yy, zz, 0.14, 0.14, 0.14, shade(skin, 0.6), MAT.DARK, { seg: 8, rings: 5 });
-        barrels(b, x, yy, zz, g.n || 1, g.len || 0.8, 0.12, dark);
         break;
       }
       case 'fturret': {         // a turret at the tip of the nose (a Lancaster's): a glazed dome that looks forward
         b.sphere(x, g.y ?? 0, 0, g.r * 1.1, g.r, g.r, glass, MAT.CANOPY, { seg: 12, rings: 7 });
         b.sphere(x, g.y ?? 0, 0, g.r * 1.12, g.r * 0.1, g.r * 1.02, shade(skin, 0.7), MAT.AIRCRAFT, { seg: 12, rings: 4 });
-        barrels(b, x - g.r * 0.1, g.y ?? 0, 0, 2, g.len || 0.9, 0.2, dark, 0.026);
         break;
       }
       case 'tail': {            // the gunner's position at the tip of the tail, the guns pointing aft
         const y = q.yc;
         b.sphere(x + g.r * 0.5, y, 0, g.r * 1.7, g.r, g.r * 0.95, glass, MAT.GLASS, { seg: 12, rings: 7 });
         b.sphere(x + g.r * 0.5, y, 0, g.r * 1.72, g.r * 0.08, g.r * 0.97, shade(skin, 0.7), MAT.AIRCRAFT, { seg: 12, rings: 4 });
-        for (let k = 0; k < (g.n || 2); k++) {
-          const zz = (k - ((g.n || 2) - 1) / 2) * 0.17;
-          b.rod(x - g.r * 1.2 - (g.len || 0.9), x - g.r * 1.2, y + (k % 2 ? 0.05 : -0.05), zz, 0.028, 0.034, dark, MAT.DARK, { seg: 6 });
-        }
         break;
       }
       case 'beam': {            // a gun at a window of the side
         const side = g.side || 1, zz = side * (q.rz + 0.02);
         b.box(x, g.y ?? 0.1, zz, g.w || 0.7, g.h || 0.55, 0.05, glass, MAT.GLASS);
-        b.beam([x + 0.2, g.y ?? 0.1, zz + side * 0.05], [x + 0.2 + (g.len || 0.5), (g.y ?? 0.1) + 0.02, zz + side * (g.out || 0.45)], 0.05, 0.05, dark, MAT.DARK);
         break;
       }
       case 'blister': {         // a glazed blister on the side of the fuselage
@@ -210,7 +193,6 @@ function drawGuns(b, s, F, wantTail, col) {
         for (const t of st) t.yc = yb + g.ry * (g.lift ?? 0.15);
         loftH(b, st, (sn) => (sn < 0 ? shade(skin, 0.8) : skin), MAT.AIRCRAFT, { seg: 12 });
         b.box(lerp(x0, x1, 0.3), yb - g.ry * 0.5, 0, (x0 - x1) * 0.28, g.ry * 0.5, g.rz * 1.2, glass, MAT.GLASS);
-        b.beam([lerp(x0, x1, 0.15), yb - g.ry * 0.5, 0], [lerp(x0, x1, 0.15) + 0.9, yb - g.ry * 0.65, 0], 0.05, 0.05, dark, MAT.DARK);
         break;
       }
       default: break;

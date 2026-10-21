@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased — the gunners of the bombers
+
+- **Every gun position is a gunner of its own** (`model/planeGuns.js`, `bomberDefense` in `sim/fighters.js`): before, a bomber had one field of fire for all its guns (the heavy bombers: the whole sphere), one gunner shooting at one fighter at a time, and the rounds left from a point 3 m behind the centre of the aircraft whatever gun fired them. Now each position (the B-17's chin, cheek, top, ball, two waist and tail positions; the Lancaster's three turrets; the side blisters and the 20 mm tail cannon of the G4M; the gondolas of the He 111, SM.79 and LeO 451; the rear guns of the single-engine bombers, the Avenger's turret and its tunnel gun) has:
+  - *its own field of fire*: a dorsal turret all round from the horizontal up, but not through the fin right astern; a ball turret all round from the horizontal down; a chin turret ahead and below; a tail position a cone of 65 degrees astern; a waist gun or a blister to its own side; a gondola astern and below; a flexible gun in a rear cockpit as before (the fuselage and the tail stop it below and astern);
+  - *its own target*: the nearest enemy fighter within 520 m in that field, aimed at where it will be when the rounds get there (with the drop of the rounds);
+  - *its guns turning*: a powered turret at 1.5 rad/s, a gun swung by hand at 2.2; he opens fire when they are nearly on the target, they go back to rest when there is nothing to shoot at;
+  - *its calibre and its barrels*: .50 Browning on the B-17, the Avenger's turret and the SM.79's hump and gondola; .303 / 7.7 mm / 7.92 mm / 7.5 mm elsewhere; 20 mm in the G4M's tail and the LeO 451's dorsal mount. Rounds a second and damage per round follow the calibre; the tracers leave from the muzzle, at the speed of the gun.
+  - The gunners of the carrier bombers with a single gun (D3A, B5N, Skua, Ju 87, Fi 167, Swordfish, PL.10) were counted as two guns; they shoot down fewer fighters than before (7 to 9 per test battle instead of 9 to 18).
+- **The guns drawn and turning** (`render/aircraftVisual.js`, `addGuns`): each position is a mesh of its own (receiver, barrels, a .50's jacket and flash hider, a 20 mm's muzzle brake, the window of a ball or chin turret), turned to where the gunner aims. At rest the guns point astern (dorsal and ball turrets, waist guns aft along the side, rear guns raised over the tail), and parked aircraft show them that way.
+  - The waist guns were bars 10 cm thick sticking out of the windows; every gun now has the size of the real one (barrel of 0.6 m and 3 cm for a rifle-calibre gun, 1.05 m in a 4.5 cm jacket for a .50, 1.2 m for a 20 mm).
+  - The G4M's side blisters had no gun; the single-engine bombers had no rear gun at all; the SM.79's hump gun pointed forward (it fires aft).
+- Tools: `tools/gunshots.mjs` (each aircraft with a gunner from all sides, every gun position close up, the guns aimed in four directions), preview `gunaim=yaw,pitch`.
+
 ## Unreleased — an interface in which one does not get lost
 
 - **The map** (`ui/minimap.js`, top left, K: small, large, hidden): the islands and their coasts, the bases (a square for an airfield, a triangle for a battery, grey once out of action), every ship as an arrow in the colour of her team pointing where she goes (bigger for the big ships), the aircraft in the air as dots, the ship followed ringed and a dashed line to what she is shooting at, the camera and the cone it sees, north and a scale bar. It follows the fleets as they move and as ships sink. A click on a ship follows her, on an aircraft follows it, on the water moves the tactical or the free camera there; the wheel zooms, a double click comes back.

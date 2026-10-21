@@ -134,16 +134,19 @@ export class GunFx {
     const wing = pl.fighter ? (pl.spec.span || 11) * 0.3 : 0, b = pl.bank || 0, h = pl.heading;
     const rx = Math.cos(h) * Math.cos(b), ry = -Math.sin(b), rz = Math.sin(h) * Math.cos(b);
     const conv = clamp(e.range, 180, 320);
+    const cal = e.cal || 12.7;
     for (let side = -1; side <= 1; side += 2) {
       if (!wing && side > 0) break;
       const gx = e.x + rx * wing * side, gy = e.y + ry * wing * side, gz = e.z + rz * wing * side;
       // the line from this gun to the point where the guns converge
       let ux = e.x + fx * conv - gx, uy = e.y + fy * conv - gy, uz = e.z + fz * conv - gz;
       const ul = Math.hypot(ux, uy, uz) || 1; ux /= ul; uy /= ul; uz /= ul;
-      if (rnd() < 0.7) this.round(gx, gy, gz, ux, uy, uz, 870, 12.7, this.tint(pl), pl, { life: rr(1.1, 1.5), spread: 0.004 });
-      if (d < 1500 && rnd() < 0.5) this.p.add({ kind: K.FLASH, x: gx + ux * 0.8, y: gy + uy * 0.8, z: gz + uz * 0.8, s0: 0.5, s1: 1.1, life: 0.04, r: 1, g: 0.75, b: 0.4, a0: 2.5, a1: 0 });
+      if (rnd() < 0.7) this.round(gx, gy, gz, ux, uy, uz, cal >= 20 ? 760 : 870, cal, this.tint(pl), pl, { life: rr(1.1, 1.5), spread: 0.004 });
+      // (a gunner's event is at his muzzle already; a fighter's is at the nose)
+      const fo = wing ? 0.8 : 0.15, fs = cal >= 20 ? 1.4 : cal >= 12 ? 1 : 0.7;
+      if (d < 1500 && rnd() < 0.5) this.p.add({ kind: K.FLASH, x: gx + ux * fo, y: gy + uy * fo, z: gz + uz * fo, s0: 0.5 * fs, s1: 1.1 * fs, life: 0.04, r: 1, g: 0.75, b: 0.4, a0: 2.5, a1: 0 });
     }
-    this.strayRounds(e, Math.hypot(e.x - cx, e.z - cz), 12.7);
+    this.strayRounds(e, Math.hypot(e.x - cx, e.z - cz), cal);
   }
 
   /** The colour of the tracers of a side: red for the Americans and the British, orange-yellow for the Germans and the Italians, white-green for the Japanese. */

@@ -3,6 +3,7 @@
 //   ruin=1       every destroyable part wrecked        scars=N   N battle scars         split=x   ship broken in two at local x
 //   parked=N     aircraft parked on carriers           gear=1    undercarriage down      ord=1     ordnance hung on planes
 //   cockpit=1&look=yawDeg,pitchDeg   the camera at the pilot's eye of the first aircraft, looking that way (0,0 = ahead; fov= for the field of view)
+//   gunaim=yaw,pitch  the gunners aim there (deg, aircraft frame)
 //   bay=0..1 bomb doors of a bomber   eng=0,1,.. engines lost (1)   efire=0,1,.. engines on fire   bank=deg pitch=deg  attitude of planes   fold=0..1 wings folded   hook=0..1 arrester hook down
 import { ShipRenderer } from './game/render/shipRenderer.js';
 import { ShipVisuals } from './game/render/shipVisual.js';
@@ -10,7 +11,8 @@ import { PlaneVisuals } from './game/render/aircraftVisual.js';
 import { BY_ID } from './game/data/ships.js';
 import { buildShipModel } from './game/model/shipbuilder.js';
 import { TWEAKS } from './game/model/tweaks.js';
-import { PLANES } from './game/model/planes.js';
+import { PLANES, getPlaneModel } from './game/model/planes.js';
+import { inArc } from './game/model/planeGuns.js';
 import { mat4Ship, D2R, makeRng } from './game/math.js';
 import { addWakeStamps } from './game/render/effects.js';
 import { makeStats } from './game/sim/shipdata.js';
@@ -87,6 +89,9 @@ export async function runPreview(engine, ids, qs) {
     cam.pitch = Math.asin(fy / Math.hypot(fx, fy, fz));
     cam.fovY = (Number(qs.get('fov')) || 40) * D2R;
   };
+  // gunaim=yaw,pitch (deg, in the frame of the aircraft: 0 ahead, 90 to starboard, 180 astern): every gun position that can bear there aims there, the others stay at rest
+  let aim = qs.get('gunaim') ? qs.get('gunaim').split(',').map((v) => Number(v) * D2R) : null;
+  const gunAim = (key) => (aim ? getPlaneModel(key).guns.map((g) => (inArc(g, aim[0], aim[1]) ? { yaw: aim[0], pitch: aim[1] } : { yaw: g.rest[0], pitch: g.rest[1] })) : null);
   engine.hooks.prepare = () => {
     renderer.begin();
     for (const it of items) {
@@ -96,6 +101,7 @@ export async function runPreview(engine, ids, qs) {
           typeKey: it.plane, x: it.x, y: Number(qs.get('alt')) || 40, z: it.z, heading: st.heading, pitch: (Number(qs.get('pitch')) || 0) * D2R, roll: (Number(qs.get('bank')) || 0) * D2R,
           spin: 0.7, gearDown: qs.get('gear') === '1', fold: Number(qs.get('fold')) || 0, hook: Number(qs.get('hook')) || 0, ordnance: qs.get('ord') !== '0', bay: Number(qs.get('bay')) || 0, inCockpit: qs.get('cockpit') === '1', speed: 70, bank: 0, age: 0, vy: 0, lost: { wingL: qs.get('lost') === 'wing', wingR: false, tail: qs.get('lost') === 'tail', engine: false, engines: qs.get('eng') ? qs.get('eng').split(',').map((v) => v === '1') : null },
           engFire: qs.get('efire') && spec.engines ? qs.get('efire').split(',').map(Number) : null,
+          gun: gunAim(it.plane),
         }, cam, tint, 0.5, 0, 0);
         continue;
       }
@@ -107,7 +113,7 @@ export async function runPreview(engine, ids, qs) {
   engine.hooks.drawOpaque = (rp) => renderer.draw(rp);
   window.__preview = {
     items, renderer, planes: pv,
-    /** set({dist, az, el (deg), lookY, lookX, lookZ, target, heading (deg)}) */
+    /** set({dist, az, el (deg), lookY, lookX, lookZ, target, heading (deg), gunaim: [yaw, pitch] (deg) | null}) */
     set(o) {
       if (o.dist != null) st.dist = o.dist;
       if (o.az != null) st.az = o.az * D2R;
@@ -117,6 +123,7 @@ export async function runPreview(engine, ids, qs) {
       if (o.lookZ != null) st.lookZ = o.lookZ;
       if (o.target != null) st.target = o.target;
       if (o.heading != null) st.heading = o.heading * D2R;
+      if (o.gunaim !== undefined) aim = o.gunaim ? o.gunaim.map((v) => v * D2R) : null;
     },
   };
 }
