@@ -531,14 +531,16 @@ export async function createEngine(canvas, options = {}) {
   const computeDesc = { timestampWrites: tsw('sim') };
 
   const matte = qs.get('matte') === '1';
+  // ?matte=1&bg=r,g,b (HDR values): the colour of the flat background, green by default; a light grey one (bg=1.4,1.4,1.4) shows a model without the sky behind it (tools/refs/studio.mjs)
+  const matteBg = (qs.get('bg') || '0,0.5,0').split(',').map(Number), matteClear = { r: matteBg[0], g: matteBg[1], b: matteBg[2], a: 1 };
   const mainPass = {
-    colorAttachments: [{ view: null, resolveTarget: null, clearValue: matte ? { r: 0, g: 0.5, b: 0, a: 1 } : { r: 0, g: 0, b: 0, a: 1 }, loadOp: 'clear', storeOp: 'discard' }],
+    colorAttachments: [{ view: null, resolveTarget: null, clearValue: matte ? matteClear : { r: 0, g: 0, b: 0, a: 1 }, loadOp: 'clear', storeOp: 'discard' }],
     depthStencilAttachment: { view: null, depthClearValue: 0, depthLoadOp: 'clear', depthStoreOp: 'discard' },
     timestampWrites: tsw('main'),
   };
   // with the clouds the main pass is split: the scene (colour and depth kept), the clouds over it, then the particles (resolved into the HDR target)
   const cloudPassA = {
-    colorAttachments: [{ view: null, clearValue: matte ? { r: 0, g: 0.5, b: 0, a: 1 } : { r: 0, g: 0, b: 0, a: 1 }, loadOp: 'clear', storeOp: 'store' }],
+    colorAttachments: [{ view: null, clearValue: matte ? matteClear : { r: 0, g: 0, b: 0, a: 1 }, loadOp: 'clear', storeOp: 'store' }],
     depthStencilAttachment: { view: null, depthClearValue: 0, depthLoadOp: 'clear', depthStoreOp: 'store' },
     timestampWrites: tsw('main'),
   };

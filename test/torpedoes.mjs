@@ -25,7 +25,7 @@ for (const spec of ALL_SHIPS) {
   const tp = s.stats.torpedo;
   ok(t.explosive && EXPLOSIVE[t.explosive], `${spec.id}: the filler is named (${t.explosive})`);
   ok(Math.abs(tp.warhead - tntEquivalent(t.warheadKg, t.explosive)) < 1e-9 && tp.filler === t.warheadKg, `${spec.id}: ${t.warheadKg} kg of ${t.explosive} = ${tp.warhead.toFixed(0)} kg of TNT`);
-  ok(tp.warhead >= 250 && tp.warhead <= 560, `${spec.id}: a plausible ship torpedo (${tp.warhead.toFixed(0)} kg of TNT)`);
+  ok(tp.warhead >= (t.caliberMm < 400 ? 40 : 190) && tp.warhead <= 560, `${spec.id}: a plausible ship torpedo (${tp.warhead.toFixed(0)} kg of TNT)`);
 }
 
 // ---- damage follows the power ----

@@ -88,6 +88,11 @@ const FAMILY = {
   // S-30 class Schnellboot 3.7 cm Flak M42 (measured on a reference model of the boat, see the s30 entry of tweaks.js): a pedestal 0.55 m high, a sloped shield 1 m wide, the gun
   // axis 1.15 m above the pedestal's foot, a barrel 3.2 m clear of the trunnion
   de37: { kind: 'shield', cal: 37, n: 1, spacing: 0, barb: 0.15, trunX: 0.15, trunY: 1.15, face: 0.6, fwd: 3.2, back: 0.5, rB: 0.045, rP: 0.032, rM: 0.026, bagR: 0.0, bagLen: 0, recoil: 0.2, lift: 0, h: 1.7 },
+  // Momi / Wakatake class 12 cm/45 3rd Year Type single shielded mount (measured on a reference model of the Tade, see its entry in tweaks.js): a shield 2.6 m long on a low pedestal, the
+  // trunnion 1.4 m above the pivot, a barrel 4.6 m clear of it (bore 5.4 m with the breech behind), the gun on the bandstand between the funnels 2.7 m above the forecastle one
+  type3_120: { kind: 'shield', cal: 120, n: 1, spacing: 0, trunX: 0.4, trunY: 1.0, face: 1.3, fwd: 4.6, back: 1.0, rB: 0.16, rP: 0.13, rM: 0.075, bagR: 0.0, bagLen: 0, recoil: 0.45, lift: 2.7, h: 2.6 },
+  // Charles F. Adams class 5"/54 Mk 42 (measured on a reference model, see the adams entry of tweaks.js)
+  mk42: { kind: 'shield', cal: 127, n: 1, spacing: 0, trunX: 0.3, trunY: 2.0, face: 2.0, fwd: 4.6, back: 1.0, rB: 0.17, rP: 0.13, rM: 0.08, bagR: 0.0, bagLen: 0, recoil: 0.35, lift: 0, h: 3.9 },
   mk28: { kind: 'dp', cal: 127, n: 2, spacing: 0.78, trunX: 0.55, trunY: 1.35, face: 1.9, fwd: 3.6, back: 0.9, rB: 0.19, rP: 0.15, rM: 0.085, bagR: 0.3, bagLen: 0.3, recoil: 0.5, lift: 3.0, h: 2.9 },
   mk30: { kind: 'shield', cal: 127, n: 1, spacing: 0, trunX: 0.5, trunY: 1.3, face: 1.5, fwd: 3.4, back: 0.9, rB: 0.19, rP: 0.15, rM: 0.085, bagR: 0.0, bagLen: 0, recoil: 0.5, lift: 1.7, h: 2.9 },
 };
@@ -287,7 +292,29 @@ function houseFlak37(hb, col, dark, f) {
   hb.block({ x0: f.face - 0.12, x1: f.face, hw: 0.14, y0: f.trunY - 0.2, y1: f.trunY + 0.2 }, dark, MAT.DARK);
 }
 
-const HOUSES = { de37: houseFlak37, mk7: houseMk7, type94: houseType94, type3_155: houseType3, drh28_150: houseDrh28, lit381: houseLit381, lit152: houseLit152, rich380: houseRich380, fr152: houseFr152, it152: houseIt152, us152: houseUs152, brit152: houseBrit152, it120: houseIt120, de150_2: houseDe150_2, de150_1: houseMk30, fr138: houseMk30, brit120: houseBrit120, type3_127: houseType3_127, brit203: houseBrit203, type41_152: houseType41_152, us203: houseUs203, fr203: houseFr203, fr152_30: houseFr152_30, zara203: houseZara203, type3_203: houseType3_203, drh203: houseDrh203, drh34: houseDrh34, mk28: houseMk28, mk30: houseMk30 };
+/**
+ * US 5"/54 Mk 42: the rounded 'anvil' gun house of the Forrest Sherman / Charles F. Adams classes (measured on a reference model of the Adams: 3.75 m wide, 4 m high over the
+ * barbette, the trunnion 2 m above the pivot, a barrel 4.6 m clear of it): a round base, a house with a sloped front and a domed back, the slot of the gun, the hatch on the roof.
+ */
+function houseMk42(hb, col, dark, f) {
+  const mid = shade(col, 0.93), light = shade(col, 1.08);
+  hb.cylinder(0, 0, 0, 1.95, 1.9, 1.3, shade(col, 0.88), MAT.HULL, { seg: 18 });                                     // the round base (the training ring)
+  hb.block({ x0: -2.0, x1: f.face, hw: 1.85, y0: 1.2, y1: 3.25, tx0: -1.6, tx1: 1.0, thw: 1.55 }, col, MAT.HULL);      // the house, front plate sloping back at the top
+  hb.sphere(-0.6, 3.05, 0, 1.45, 0.75, 1.35, light, MAT.HULL, { seg: 12, rings: 6 });                                  // the domed roof
+  hb.block({ x0: -2.35, x1: -1.7, hw: 1.0, y0: 1.5, y1: 3.0, tx0: -2.1, tx1: -1.75, thw: 0.8 }, mid, MAT.HULL);       // the bulge at the back (the loader)
+  hb.block({ x0: f.face - 0.35, x1: f.face + 0.02, hw: 0.42, y0: f.trunY - 0.45, y1: f.trunY + 0.45 }, dark, MAT.DARK);   // the slot of the gun
+  hb.cylinder(-0.2, 3.5, 0.9, 0.28, 0.26, 3.85, shade(col, 0.8), MAT.HULL, { seg: 6 });                                 // the hatch
+}
+
+/** Japanese 12 cm Type 3 single (Momi / Wakatake class): a shield with a sloped, rounded top on a short pedestal, open at the back. */
+function houseType3_120(hb, col, dark, f) {
+  hb.cylinder(0, 0, 0, 1.15, 1.1, 0.5, shade(col, 0.85), MAT.HULL, { seg: 14 });
+  hb.block({ x0: -0.15, x1: f.face, hw: 1.15, y0: 0.45, y1: 2.35, tx0: -0.3, tx1: 0.6, thw: 1.0 }, col, MAT.HULL);
+  hb.block({ x0: -1.25, x1: -0.15, hw: 1.05, y0: 0.45, y1: 1.2 }, shade(col, 0.9), MAT.HULL);
+  hb.block({ x0: f.face - 0.3, x1: f.face, hw: 0.26, y0: f.trunY - 0.3, y1: f.trunY + 0.3 }, dark, MAT.DARK);
+}
+
+const HOUSES = { mk42: houseMk42, type3_120: houseType3_120, de37: houseFlak37, mk7: houseMk7, type94: houseType94, type3_155: houseType3, drh28_150: houseDrh28, lit381: houseLit381, lit152: houseLit152, rich380: houseRich380, fr152: houseFr152, it152: houseIt152, us152: houseUs152, brit152: houseBrit152, it120: houseIt120, de150_2: houseDe150_2, de150_1: houseMk30, fr138: houseMk30, brit120: houseBrit120, type3_127: houseType3_127, brit203: houseBrit203, type41_152: houseType41_152, us203: houseUs203, fr203: houseFr203, fr152_30: houseFr152_30, zara203: houseZara203, type3_203: houseType3_203, drh203: houseDrh203, drh34: houseDrh34, mk28: houseMk28, mk30: houseMk30 };
 
 /**
  * Paint the flat roof of a gun house: `top.col` recolours it (Kriegsmarine turret tops were dark grey); `top.bands` = [stripe, ground]

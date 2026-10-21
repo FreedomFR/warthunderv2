@@ -2374,5 +2374,146 @@
         "el": 89.5
       }
     }
+  },
+  "adams": {
+    "side": {
+      "file": "refs/adams/side.png",
+      "source": "matte side view of the reference model (USS Adams (War Thunder) Ninth Wave, KojfDiscord, CC BY 4.0), rendered by tools/refs/gltf.mjs, kept out of the repository",
+      "crop": [
+        0,
+        0,
+        1647,
+        532
+      ],
+      "stern": 24,
+      "bow": 1622,
+      "close": 3,
+      "tol": 0.3,
+      "wl": 426
+    },
+    "top": {
+      "file": "refs/adams/top.png",
+      "source": "matte top view of the reference model (USS Adams (War Thunder) Ninth Wave, KojfDiscord, CC BY 4.0), rendered by tools/refs/gltf.mjs, kept out of the repository",
+      "crop": [
+        0,
+        0,
+        1647,
+        219
+      ],
+      "stern": 24,
+      "bow": 1622,
+      "close": 3,
+      "tol": 0.2,
+      "cl": 109
+    },
+    "loa": 133.2,
+    "camera": {
+      "side": {
+        "dist": 883,
+        "fov": 4,
+        "lookY": 10.0,
+        "el": 0
+      },
+      "top": {
+        "dist": 883,
+        "fov": 4,
+        "lookY": 0,
+        "el": 89.5
+      }
+    }
+  },
+  "tade": {
+    "side": {
+      "file": "refs/tade/side.png",
+      "source": "matte side view of the reference model (IJN Tade (War Thunder) Ninth Wave, KojfDiscord, CC BY 4.0), rendered by tools/refs/gltf.mjs, kept out of the repository",
+      "crop": [
+        0,
+        0,
+        1109,
+        325
+      ],
+      "stern": 24,
+      "bow": 1085,
+      "close": 3,
+      "tol": 0.3,
+      "wl": 269
+    },
+    "top": {
+      "file": "refs/tade/top.png",
+      "source": "matte top view of the reference model (IJN Tade (War Thunder) Ninth Wave, KojfDiscord, CC BY 4.0), rendered by tools/refs/gltf.mjs, kept out of the repository",
+      "crop": [
+        0,
+        0,
+        1109,
+        168
+      ],
+      "stern": 24,
+      "bow": 1085,
+      "close": 3,
+      "tol": 0.2,
+      "cl": 84
+    },
+    "loa": 88.4,
+    "camera": {
+      "side": {
+        "dist": 586,
+        "fov": 4,
+        "lookY": 6.0,
+        "el": 0
+      },
+      "top": {
+        "dist": 586,
+        "fov": 4,
+        "lookY": 0,
+        "el": 89.5
+      }
+    }
+  },
+  "gioberti": {
+    "side": {
+      "file": "refs/gioberti/side.png",
+      "source": "matte side view of the reference model (RN Vincenzo Gioberti (War Thunder) Ninth Wave, KojfDiscord, CC BY 4.0), rendered by tools/refs/gltf.mjs, kept out of the repository",
+      "crop": [
+        0,
+        0,
+        1329,
+        388
+      ],
+      "stern": 24,
+      "bow": 1304,
+      "close": 3,
+      "tol": 0.3,
+      "wl": 318
+    },
+    "top": {
+      "file": "refs/gioberti/top.png",
+      "source": "matte top view of the reference model (RN Vincenzo Gioberti (War Thunder) Ninth Wave, KojfDiscord, CC BY 4.0), rendered by tools/refs/gltf.mjs, kept out of the repository",
+      "crop": [
+        0,
+        0,
+        1329,
+        191
+      ],
+      "stern": 24,
+      "bow": 1304,
+      "close": 3,
+      "tol": 0.2,
+      "cl": 95
+    },
+    "loa": 106.7,
+    "camera": {
+      "side": {
+        "dist": 707,
+        "fov": 4,
+        "lookY": 8.0,
+        "el": 0
+      },
+      "top": {
+        "dist": 707,
+        "fov": 4,
+        "lookY": 0,
+        "el": 89.5
+      }
+    }
   }
 }

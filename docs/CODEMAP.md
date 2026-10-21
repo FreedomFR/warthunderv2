@@ -5,7 +5,7 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 
 ## js/
 
-- `engine.js` (1238) WebGPU ocean engine — derived from Noniv/web-ocean (MIT), restructured so a game can sit on top. [P, SLIDERS, MAX_PROBE, MAX_STAMPS, createEngine] ← 3
+- `engine.js` (1240) WebGPU ocean engine — derived from Noniv/web-ocean (MIT), restructured so a game can sit on top. [P, SLIDERS, MAX_PROBE, MAX_STAMPS, createEngine] ← 3
 - `main.js` (77) Entry point. ← 0
 - `preview.js` (129) Model preview: ?preview=<shipId>[,<shipId>|plane:<type>...] renders models on the ocean with an orbit camera. [runPreview] ← 1
 - `trailer.js` (216) Trailer director: scripted scenes recorded frame by frame with the offline recorder (tools/trailer/record.mjs). [FPS, LOOKS, Trailer, mv] ← 3
@@ -51,16 +51,16 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 - `balance.js` (87) Balance: multipliers of the damage done in the battle, so that it can be tuned without touching the code. [BALANCE_FIELDS, BALANCE_MIN, BALANCE, balanceNeutral, balanceOfFile, balanceNow, setBalance, setBalanceFile, balanceDiff, … +2] ← 7
 - `explosives.js` (40) Explosive fillers of torpedoes and their strength against a ship's hull, as kg of TNT per kg of filler. [EXPLOSIVE, tntEquivalent, AIR_TORPEDO, airTorpedoEq] ← 4
 - `protection.js` (72) Protection and survivability data that the spec sheets do not carry: how the armour is laid out (belt inclination, the thin weather deck above the armoured one), the… [NAVY, PROTECTION, protectionOf, navyOf] ← 1
-- `ships.js` (30) Ship roster: the six nations' spec sheets (real-ship data) indexed by id / nation / type. [NATIONS, TYPES, ALL_SHIPS, BY_ID, typeName, nationName, shipsOf] ← 30
+- `ships.js` (30) Ship roster: the six nations' spec sheets (real-ship data) indexed by id / nation / type. [NATIONS, TYPES, ALL_SHIPS, BY_ID, typeName, nationName, shipsOf] ← 31
 
 ## js/game/data/specs/
 
 - `france.js` (11) Real ship spec sheet — France. Compiled from Wikipedia, NavWeaps and Navypedia (see "sources" in each entry). [NOTES, SHIPS] ← 1
 - `germany.js` (12) Real ship spec sheet — Germany. Compiled from Wikipedia, NavWeaps and Navypedia (see "sources" in each entry). [NOTES, SHIPS] ← 1
-- `italy.js` (11) Real ship spec sheet — Italy. Compiled from Wikipedia, NavWeaps and Navypedia (see "sources" in each entry). [NOTES, SHIPS] ← 1
-- `japan.js` (11) Real ship spec sheet — Japan. Compiled from Wikipedia, NavWeaps and Navypedia (see "sources" in each entry). [NOTES, SHIPS] ← 1
+- `italy.js` (12) Real ship spec sheet — Italy. Compiled from Wikipedia, NavWeaps and Navypedia (see "sources" in each entry). [NOTES, SHIPS] ← 1
+- `japan.js` (12) Real ship spec sheet — Japan. Compiled from Wikipedia, NavWeaps and Navypedia (see "sources" in each entry). [NOTES, SHIPS] ← 1
 - `uk.js` (11) Real ship spec sheet — UK. Compiled from Wikipedia, NavWeaps and Navypedia (see "sources" in each entry). [NOTES, SHIPS] ← 1
-- `usa.js` (11) Real ship spec sheet — USA. Compiled from Wikipedia, NavWeaps and Navypedia (see "sources" in each entry). [NOTES, SHIPS] ← 1
+- `usa.js` (12) Real ship spec sheet — USA. Compiled from Wikipedia, NavWeaps and Navypedia (see "sources" in each entry). [NOTES, SHIPS] ← 1
 
 ## js/game/model/
 
@@ -81,14 +81,14 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 - `layout.js` (105) How the gun houses sit among the structures round them. [houseBox, houseRect, obstacles, buriedIn, clearHouses] ← 2
 - `livery.js` (67) Ship liveries: camouflage patterns, palettes and the hull number / ensign data used by the ship shader. [CAMO, NATION_ID, PALETTES, LIVERY, MARKS, hullNumber, hex, paintOf] ← 3
 - `meshbuilder.js` (471) Procedural mesh builder used to model the warships (no external assets). [MAT, VERTEX_STRIDE, DETAIL, rgb, shade, mix, MeshBuilder] ← 21
-- `mounts.js` (438) Articulated gun mounts. Every mount produces two meshes that are drawn as separate instances so they can move independently: house : the rotating gun house / shield /… [mountDims, getMountModel] ← 10
+- `mounts.js` (465) Articulated gun mounts. Every mount produces two meshes that are drawn as separate instances so they can move independently: house : the rotating gun house / shield /… [mountDims, getMountModel] ← 10
 - `parts.js` (514) Reusable ship parts. All functions draw into a MeshBuilder in model space (+x bow, +y up from the waterline, +z starboard). [OPT, barbette, funnel, funnelRuin, windowBand, tower, poleMast, tripod, cageMast, … +21] ← 2
 - `planeGuns.js` (167) The defensive guns of an aircraft, one entry per gun position: where it pivots, what it can bear on, its calibre and its barrels. [GUN_DIMS, gunDims, GUN_RATE, GUN_DMG, planeGuns, inArc, muzzleOf, drawGunHead] ← 4
 - `planes.js` (741) Procedural WWII carrier aircraft. One generator for monoplanes and biplanes driven by a spec sheet (dimensions of the real aircraft). [PAINT, PLANES, groundY, propsOf, floatplaneSpec, damageSites, planeTypeFor, upperWingY, cockpitHole, … +14] ← 25
 - `screws.js` (25) The screws and the rudder of the ships whose underwater body was not measured on a plan (tweaks.props / tweaks.rudders): drawn from the number of shafts the class… [defaultScrews] ← 1
-- `shipbuilder.js` (918) Spec-driven ship builder. Reads a real-ship spec sheet (dimensions, turret / funnel / mast positions as fractions of the overall length, class, paint) and builds the… [pagodaTiers, buildShipModel] ← 10
+- `shipbuilder.js` (920) Spec-driven ship builder. Reads a real-ship spec sheet (dimensions, turret / funnel / mast positions as fractions of the overall length, class, paint) and builds the… [pagodaTiers, buildShipModel] ← 10
 - `treeMeshes.js` (506) The plants as meshes: eight species (oak, fir, palm, tropical canopy tree, acacia, cypress, shrub, boulder), three variants each, at four levels of detail. [FAM, SHAPE, getTemplate, ROCK_TINT, stampPlants] ← 2
-- `tweaks.js` (1076) Per-ship hand tuning of the generated models (see shipbuilder.js for the options). [TWEAKS] ← 10
+- `tweaks.js` (1212) Per-ship hand tuning of the generated models (see shipbuilder.js for the options). [TWEAKS] ← 10
 - `vegetation.js` (143) Where the plants grow. Pure functions of an island (no GPU): the climate of the island, how much of the ground is covered at a point (used both to scatter trees and… [SP, SPECIES, VARIANTS, STEP, climateOf, cover, scatter] ← 5
 
 ## js/game/render/
@@ -214,8 +214,10 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 - `modelbench.mjs` The time it takes to build every ship model, and a fingerprint of the result (the same fingerprint = the same models): node tools/modelbench.mjs
 - `perf.mjs` Where the time of a frame goes in a running battle: node tools/perf.mjs "<url>" [seconds] [profileSeconds] GPU=hardware WSLENV=GPU "/mnt/c/Program…
 - `check.mjs` Render the matte views listed for a ship in tools/refs/plans.json (?matte=1: flat green background), for silhouette.py to compare with the plans.
+- `gltf.mjs` Reads a glTF given for MEASUREMENT ONLY (refs/<id>/src/scene.gltf, git-ignored;
 - `planecheck.mjs` Render the matte top and side views of an aircraft model of the preview scene (nose to the right), for planecheck.py.
 - `shots.mjs` Take screenshots of the 3D models in the preview scene, from camera positions given in a JSON file.
+- `studio.mjs` A model seen from every side on a plain background, each view lit from behind the camera (the sun in the sky of the game is behind the ship from most angles, which…
 - `views.mjs` Standard camera set for comparing a procedural model with photographs: starboard profile, bow and stern three-quarter views and a close look at the forecastle, with…
 - `runtests.mjs` Runs the tests of test/ in parallel (each is a script of its own: node test/<name>.mjs) and tells which failed: node tools/runtests.mjs every test of test/tests.json…
 - `screenshots.mjs` Screenshots of the game for the README (docs/*.jpg): a real battle on the GPU, the page captured with its interface.

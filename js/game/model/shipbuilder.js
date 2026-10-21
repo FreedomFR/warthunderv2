@@ -367,7 +367,7 @@ export function buildShipModel(spec, tw = {}) {
     } else if (kindOf(mastDesc, 'cage|lattice')) {
       mastBase = Math.min(...[[-2.4, -2.4], [2.4, -2.4], [2.4, 2.4], [-2.4, 2.4]].map(([a, c]) => lowerBase(mx - 0.2 + a, c, mastBase)));
       part('mast0', 'mast', 'Mât avant', () => {
-        PT.cageMast(b, { x: mx - 0.2, y0: mastBase, h: mastTopY - mastBase - 4, r0: 2.4, r1: 1.0 }, pal);
+        PT.cageMast(b, { x: mx - 0.2, y0: mastBase, h: mastTopY - mastBase - (tw.foremast?.cap ?? 4), r0: tw.foremast?.r0 ?? 2.4, r1: tw.foremast?.r1 ?? 1.0 }, pal);
         PT.pennant(b, x - 0.8, mastTopY + 0.2, 0.3, 4.5, 0, '#ffffff');
         if (ensOnFore) PT.ensign(b, { x: x - 1.1, y: mastTopY - 7, z: 0, len: ensLen });
       }, mastRuin(x - 1, mastBase, mastTopY - mastBase), { fine: foreFine });
@@ -382,8 +382,10 @@ export function buildShipModel(spec, tw = {}) {
     // radar
     const rkind = ['USA', 'UK'].includes(spec.nation) ? 'bedspring' : 'box';
     const ro0 = { x: mx, y: Math.max(mastTopY - 3.5, y), z: 0, kind: rkind, w: Math.min(7, 0.2 * B + 2) }, ro1 = { x: x + 2, y: r.tops[Math.max(0, tiers.length - 2)], z: topW * 0.2, kind: 'dish' };
-    part('radar0', 'radar', 'Radar de veille', () => PT.radar(b, ro0, pal), undefined, { spin: radarSpin(ro0) });
-    part('radar1', 'radar', 'Radar de surface', () => PT.radar(b, ro1, pal), undefined, { spin: radarSpin(ro1) });
+    if (!tw.noRadar) {      // tw.noRadar: the ship's own extra draws its radars
+      part('radar0', 'radar', 'Radar de veille', () => PT.radar(b, ro0, pal), undefined, { spin: radarSpin(ro0) });
+      part('radar1', 'radar', 'Radar de surface', () => PT.radar(b, ro1, pal), undefined, { spin: radarSpin(ro1) });
+    }
     note(mastTopY + 2);
     // candidate eyes for the bridge camera: outside the front face of every tier, at window height, on the wings and a little ahead (picked in bridgeEye())
     {
@@ -553,7 +555,7 @@ export function buildShipModel(spec, tw = {}) {
   });
 
   // -------- torpedo tubes --------
-  if (spec.torpedoes && spec.torpedoes.tubes) {
+  if (spec.torpedoes && spec.torpedoes.tubes && !tw.ownTubes) {      // tw.ownTubes: the ship's own extra draws its tubes and fills model.tubes
     const tq = spec.torpedoes;
     const fr = Array.isArray(tq.fractionFromBow) && tq.fractionFromBow.length ? tq.fractionFromBow : [0.58];
     const per = Math.max(1, Math.round(tq.tubes / fr.length));
