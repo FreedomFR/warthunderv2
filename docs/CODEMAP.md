@@ -55,7 +55,7 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 ## js/game/data/specs/
 
 - `france.js` (11) Real ship spec sheet — France. Compiled from Wikipedia, NavWeaps and Navypedia (see "sources" in each entry). [NOTES, SHIPS] ← 1
-- `germany.js` (11) Real ship spec sheet — Germany. Compiled from Wikipedia, NavWeaps and Navypedia (see "sources" in each entry). [NOTES, SHIPS] ← 1
+- `germany.js` (12) Real ship spec sheet — Germany. Compiled from Wikipedia, NavWeaps and Navypedia (see "sources" in each entry). [NOTES, SHIPS] ← 1
 - `italy.js` (11) Real ship spec sheet — Italy. Compiled from Wikipedia, NavWeaps and Navypedia (see "sources" in each entry). [NOTES, SHIPS] ← 1
 - `japan.js` (11) Real ship spec sheet — Japan. Compiled from Wikipedia, NavWeaps and Navypedia (see "sources" in each entry). [NOTES, SHIPS] ← 1
 - `uk.js` (11) Real ship spec sheet — UK. Compiled from Wikipedia, NavWeaps and Navypedia (see "sources" in each entry). [NOTES, SHIPS] ← 1
@@ -80,14 +80,14 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 - `layout.js` (105) How the gun houses sit among the structures round them. [houseBox, houseRect, obstacles, buriedIn, clearHouses] ← 2
 - `livery.js` (67) Ship liveries: camouflage patterns, palettes and the hull number / ensign data used by the ship shader. [CAMO, NATION_ID, PALETTES, LIVERY, MARKS, hullNumber, hex, paintOf] ← 3
 - `meshbuilder.js` (471) Procedural mesh builder used to model the warships (no external assets). [MAT, VERTEX_STRIDE, DETAIL, rgb, shade, mix, MeshBuilder] ← 21
-- `mounts.js` (427) Articulated gun mounts. Every mount produces two meshes that are drawn as separate instances so they can move independently: house : the rotating gun house / shield /… [mountDims, getMountModel] ← 10
-- `parts.js` (513) Reusable ship parts. All functions draw into a MeshBuilder in model space (+x bow, +y up from the waterline, +z starboard). [OPT, barbette, funnel, funnelRuin, windowBand, tower, poleMast, tripod, cageMast, … +21] ← 2
+- `mounts.js` (438) Articulated gun mounts. Every mount produces two meshes that are drawn as separate instances so they can move independently: house : the rotating gun house / shield /… [mountDims, getMountModel] ← 10
+- `parts.js` (514) Reusable ship parts. All functions draw into a MeshBuilder in model space (+x bow, +y up from the waterline, +z starboard). [OPT, barbette, funnel, funnelRuin, windowBand, tower, poleMast, tripod, cageMast, … +21] ← 2
 - `planeGuns.js` (167) The defensive guns of an aircraft, one entry per gun position: where it pivots, what it can bear on, its calibre and its barrels. [GUN_DIMS, gunDims, GUN_RATE, GUN_DMG, planeGuns, inArc, muzzleOf, drawGunHead] ← 4
 - `planes.js` (741) Procedural WWII carrier aircraft. One generator for monoplanes and biplanes driven by a spec sheet (dimensions of the real aircraft). [PAINT, PLANES, groundY, propsOf, floatplaneSpec, damageSites, planeTypeFor, upperWingY, cockpitHole, … +14] ← 25
 - `screws.js` (25) The screws and the rudder of the ships whose underwater body was not measured on a plan (tweaks.props / tweaks.rudders): drawn from the number of shafts the class… [defaultScrews] ← 1
-- `shipbuilder.js` (914) Spec-driven ship builder. Reads a real-ship spec sheet (dimensions, turret / funnel / mast positions as fractions of the overall length, class, paint) and builds the… [pagodaTiers, buildShipModel] ← 10
+- `shipbuilder.js` (918) Spec-driven ship builder. Reads a real-ship spec sheet (dimensions, turret / funnel / mast positions as fractions of the overall length, class, paint) and builds the… [pagodaTiers, buildShipModel] ← 10
 - `treeMeshes.js` (506) The plants as meshes: eight species (oak, fir, palm, tropical canopy tree, acacia, cypress, shrub, boulder), three variants each, at four levels of detail. [FAM, SHAPE, getTemplate, ROCK_TINT, stampPlants] ← 2
-- `tweaks.js` (981) Per-ship hand tuning of the generated models (see shipbuilder.js for the options). [TWEAKS] ← 10
+- `tweaks.js` (1076) Per-ship hand tuning of the generated models (see shipbuilder.js for the options). [TWEAKS] ← 10
 - `vegetation.js` (143) Where the plants grow. Pure functions of an island (no GPU): the climate of the island, how much of the ground is covered at a point (used both to scatter trees and… [SP, SPECIES, VARIANTS, STEP, climateOf, cover, scatter] ← 5
 
 ## js/game/render/

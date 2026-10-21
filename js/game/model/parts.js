@@ -256,8 +256,9 @@ export function propeller(b, o) {
 /** Rudder: a thick plate with rounded leading and trailing edges. o: { x (centre), z, y0 (bottom), y1 (top), chord, t } */
 export function rudder(b, o, pal) {
   const col = rgb(o.col || pal.boot || '#5a2a22'), t = o.t ?? 0.45;
-  b.block({ x0: o.x - o.chord / 2, x1: o.x + o.chord / 2, hw: t, zc: o.z || 0, y0: o.y0, y1: o.y1, tx0: o.x - o.chord / 2 + 0.3, tx1: o.x + o.chord / 2 - 0.2 }, col, MAT.HULL);
-  b.cylinder(o.x + o.chord * 0.25, o.y1, o.z || 0, 0.35, 0.35, o.y1 + 2.5, shade(col, 0.8), MAT.HULL, { seg: 8 });   // stock into the hull
+  b.block({ x0: o.x - o.chord / 2, x1: o.x + o.chord / 2, hw: t, zc: o.z || 0, y0: o.y0, y1: o.y1, tx0: o.x - o.chord / 2 + Math.min(0.3, o.chord * 0.3), tx1: o.x + o.chord / 2 - Math.min(0.2, o.chord * 0.2) }, col, MAT.HULL);
+  const sr = Math.min(0.35, t * 0.8);
+  b.cylinder(o.x + o.chord * 0.25, o.y1, o.z || 0, sr, sr, o.y1 + (o.stock ?? 2.5), shade(col, 0.8), MAT.HULL, { seg: 8 });   // stock into the hull
 }
 
 /** Cargo / aircraft crane on the quarterdeck. */

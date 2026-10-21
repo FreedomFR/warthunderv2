@@ -85,6 +85,9 @@ const FAMILY = {
   fr138: { kind: 'shield', cal: 138.6, n: 1, spacing: 0, trunX: 0.5, trunY: 1.35, face: 2.1, fwd: 6.2, back: 1.0, rB: 0.18, rP: 0.14, rM: 0.08, bagR: 0.0, bagLen: 0, recoil: 0.5, lift: 2.5, h: 2.9 },
   // Soldati class 120/50 Ansaldo 1936 twin (a small profile / plan, 7 px per metre, about +-0.5 m): a house 3.4 m long, 3.2 m wide and 2.4 m high, barrels 5 m clear of the pivot
   it120: { kind: 'turret', cal: 120, n: 2, spacing: 0.9, trunX: 0.5, trunY: 1.4, face: 1.7, port: 1.5, fwd: 5.2, back: 0.8, rB: 0.14, rP: 0.11, rM: 0.065, bagR: 0.2, bagLen: 0.3, recoil: 0.4, lift: 2.2, h: 2.4, barbR: 1.8 },
+  // S-30 class Schnellboot 3.7 cm Flak M42 (measured on a reference model of the boat, see the s30 entry of tweaks.js): a pedestal 0.55 m high, a sloped shield 1 m wide, the gun
+  // axis 1.15 m above the pedestal's foot, a barrel 3.2 m clear of the trunnion
+  de37: { kind: 'shield', cal: 37, n: 1, spacing: 0, barb: 0.15, trunX: 0.15, trunY: 1.15, face: 0.6, fwd: 3.2, back: 0.5, rB: 0.045, rP: 0.032, rM: 0.026, bagR: 0.0, bagLen: 0, recoil: 0.2, lift: 0, h: 1.7 },
   mk28: { kind: 'dp', cal: 127, n: 2, spacing: 0.78, trunX: 0.55, trunY: 1.35, face: 1.9, fwd: 3.6, back: 0.9, rB: 0.19, rP: 0.15, rM: 0.085, bagR: 0.3, bagLen: 0.3, recoil: 0.5, lift: 3.0, h: 2.9 },
   mk30: { kind: 'shield', cal: 127, n: 1, spacing: 0, trunX: 0.5, trunY: 1.3, face: 1.5, fwd: 3.4, back: 0.9, rB: 0.19, rP: 0.15, rM: 0.085, bagR: 0.0, bagLen: 0, recoil: 0.5, lift: 1.7, h: 2.9 },
 };
@@ -276,7 +279,15 @@ function houseMk30(hb, col, dark, f) {
   hb.block({ x0: f.face - 0.3, x1: f.face, hw: 0.28, y0: f.trunY - 0.3, y1: f.trunY + 0.3 }, dark, MAT.DARK);
 }
 
-const HOUSES = { mk7: houseMk7, type94: houseType94, type3_155: houseType3, drh28_150: houseDrh28, lit381: houseLit381, lit152: houseLit152, rich380: houseRich380, fr152: houseFr152, it152: houseIt152, us152: houseUs152, brit152: houseBrit152, it120: houseIt120, de150_2: houseDe150_2, de150_1: houseMk30, fr138: houseMk30, brit120: houseBrit120, type3_127: houseType3_127, brit203: houseBrit203, type41_152: houseType41_152, us203: houseUs203, fr203: houseFr203, fr152_30: houseFr152_30, zara203: houseZara203, type3_203: houseType3_203, drh203: houseDrh203, drh34: houseDrh34, mk28: houseMk28, mk30: houseMk30 };
+/** The 3.7 cm Flak M42 of the S-boat: a short pedestal, a sloped shield with a gap for the barrel, the cradle behind it. */
+function houseFlak37(hb, col, dark, f) {
+  hb.cylinder(0, 0, 0, 0.4, 0.36, 0.6, shade(col, 0.85), MAT.HULL, { seg: 10 });
+  hb.block({ x0: -0.05, x1: f.face, hw: 0.5, y0: 0.62, y1: 1.7, tx0: -0.22, tx1: 0.2, thw: 0.42 }, col, MAT.HULL);
+  hb.block({ x0: -0.55, x1: 0.05, hw: 0.2, y0: 0.75, y1: 1.3 }, shade(col, 0.8), MAT.HULL);
+  hb.block({ x0: f.face - 0.12, x1: f.face, hw: 0.14, y0: f.trunY - 0.2, y1: f.trunY + 0.2 }, dark, MAT.DARK);
+}
+
+const HOUSES = { de37: houseFlak37, mk7: houseMk7, type94: houseType94, type3_155: houseType3, drh28_150: houseDrh28, lit381: houseLit381, lit152: houseLit152, rich380: houseRich380, fr152: houseFr152, it152: houseIt152, us152: houseUs152, brit152: houseBrit152, it120: houseIt120, de150_2: houseDe150_2, de150_1: houseMk30, fr138: houseMk30, brit120: houseBrit120, type3_127: houseType3_127, brit203: houseBrit203, type41_152: houseType41_152, us203: houseUs203, fr203: houseFr203, fr152_30: houseFr152_30, zara203: houseZara203, type3_203: houseType3_203, drh203: houseDrh203, drh34: houseDrh34, mk28: houseMk28, mk30: houseMk30 };
 
 /**
  * Paint the flat roof of a gun house: `top.col` recolours it (Kriegsmarine turret tops were dark grey); `top.bands` = [stripe, ground]

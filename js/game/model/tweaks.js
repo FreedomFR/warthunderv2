@@ -29,7 +29,102 @@ function shokakuFunnels({ b, X, spec, pal, model, MAT, rgb, shade, part }) {
   });
 }
 
+/**
+ * S-30 class Schnellboot: what the generic builder does not do for a boat (see the `boat` flag in shipbuilder.js). Positions are the measured ones on the reference model
+ * (zr: metres along the boat from the middle of the hull, bow positive, in its own frame; the model's x is zr - 1.185 because the hull there runs from -15.2 to 17.57 and ours is centred).
+ */
+function s30Extras({ b, hull, X, Y, pal, model, MAT, rgb, shade, part, PT, note, DT }) {
+  const x = (zr) => zr - 1.185;
+  const deckAt = (xx) => Y(xx);
+  const grey = rgb('#8e9296'), dark = rgb('#2a2c2e'), rust = rgb('#7b3d30'), brass = rgb('#a98f52'), sup = rgb(pal.sup), hullc = rgb(pal.hull);
+  // the torpedo-tube doors in the flanks of the forecastle (the tubes lie behind them, pointing forward), a module of their own
+  part('tubes0', 'tubes', 'Tubes lance-torpilles', () => {
+    for (const sg of [-1, 1]) {
+      const xx = x(11.0), zz = sg * 1.95, yy = 2.4;
+      b.cylinder(xx, yy - 0.55, zz, 0.58, 0.58, yy + 0.55, shade(hullc, 0.7), MAT.HULL, { seg: 14 });                      // the recess round the door (a disc standing on its edge, see below)
+      b.rod(xx - 0.15, xx + 0.12, yy, zz, 0.5, 0.5, rust, MAT.HULL, { seg: 16 });                                          // the door
+      b.rod(xx - 1.4, xx - 0.15, yy, zz, 0.27, 0.27, grey, MAT.HULL, { seg: 12 });                                         // the tube, seen through the opening
+      b.sphere(xx + 0.14, yy, zz, 0.06, 0.06, 0.06, brass, MAT.HULL, { seg: 6, rings: 4 });
+    }
+  }, () => { for (const sg of [-1, 1]) b.box(x(11.0), 2.3, sg * 1.95, 0.8, 0.8, 0.8, shade(dark, 1.1), MAT.DARK); });
+  model.tubes.length = 0;
+  model.tubes.push({ x: x(11.0), y: 2.4, z: 0, n: 2, side: 0 });
+  // the two spare torpedoes on the deck, either side of the engine hatches, on their cradles: 7.2 m, 0.53 m
+  for (const sg of [-1, 1]) {
+    const zt = sg * 2.1, y0 = 2.38, x0 = x(-3.5), x1 = x(3.6);
+    b.rod(x0 + 0.3, x1 - 0.7, y0, zt, 0.265, 0.265, grey, MAT.HULL, { seg: 12 });                                           // the body
+    b.rod(x1 - 0.7, x1, y0, zt, 0.265, 0.07, shade(grey, 0.9), MAT.HULL, { seg: 12 });                                     // the head
+    b.rod(x0, x0 + 0.3, y0, zt, 0.14, 0.265, grey, MAT.HULL, { seg: 12 });                                                 // the tail
+    b.rod(x1 - 1.2, x1 - 1.0, y0, zt, 0.28, 0.28, brass, MAT.HULL, { seg: 12 });                                          // the band behind the warhead
+    for (const a of [0, 1.5708, 3.1416, 4.7124]) b.block({ x0: x0 - 0.05, x1: x0 + 0.4, hw: 0.02, zc: zt + Math.sin(a) * 0.3, y0: y0 + Math.cos(a) * 0.3 - 0.12, y1: y0 + Math.cos(a) * 0.3 + 0.12 }, shade(grey, 0.85), MAT.HULL);
+    for (const cx of [x(-2.3), x(0.4), x(2.2)]) b.block({ x0: cx - 0.18, x1: cx + 0.18, hw: 0.36, zc: zt, y0: deckAt(cx) - 0.1, y1: y0 - 0.12 }, shade(hullc, 0.8), MAT.HULL);   // the cradles
+  }
+  // the engine hatches between them and the drums at the quarterdeck, the hatches on the forecastle, the wind deflector on it
+  const hatch = (z0, z1, zc, hw, h = 0.14, col = shade(sup, 0.8)) => b.block({ x0: x(z0), x1: x(z1), hw, zc, y0: deckAt(x((z0 + z1) / 2)) - 0.05, y1: deckAt(x((z0 + z1) / 2)) + h }, col, MAT.HULL);
+  for (const sg of [-1, 1]) {
+    hatch(-6.6, -3.7, sg * 0.82, 0.42);
+    hatch(-1.2, 0.9, sg * 0.85, 0.5);
+  }
+  hatch(-13.4, -12.3, 0, 0.75);
+  hatch(8.9, 9.5, 0.4, 0.3); hatch(12.0, 13.6, 0, 0.5);
+  for (const sg of [-1, 1]) b.cylinder(x(-11.2), deckAt(x(-11.2)) - 0.05, sg * 1.55, 0.3, 0.3, deckAt(x(-11.2)) + 1.15, shade(sup, 0.7), MAT.HULL, { seg: 12 });     // the drums
+  for (const sg of [-1, 1]) {
+    // the wind deflector: a low vee of plate round the foot of the forecastle gun position
+    const zp = sg * 1.3, y = deckAt(x(9.8)) + 0.05;
+    b.beam([x(9.2), y, zp], [x(10.9), y, 0], 0.08, 0.34, shade(sup, 0.9), MAT.HULL);
+  }
+  // the stern: the ladders of the depth-charge racks, the flagstaff leaning aft with its ensign, a hand rail across the transom
+  for (const sg of [-1, 1]) for (const zr of [-14.1, -14.8]) b.block({ x0: x(zr) - 0.05, x1: x(zr) + 0.05, hw: 0.32, zc: sg * 0.65, y0: deckAt(x(zr)), y1: deckAt(x(zr)) + 0.2 }, shade(sup, 0.7), MAT.HULL);
+  b.beam([x(-14.9), deckAt(x(-14.9)), 0], [x(-15.45), 3.67, 0], 0.06, 0.06, shade(sup, 1.2), MAT.HULL);
+  PT.ensign(b, { x: x(-15.45), y: 3.67, z: 0, len: 0.95, h: 0.6, staff: false });
+  // the jackstaff on the forecastle with its two stays, the 20 mm tub (the gun is in tw.aa)
+  b.cylinder(x(15.75), deckAt(x(15.75)), 0, 0.05, 0.035, 5.25, shade(sup, 1.3), MAT.HULL, { seg: 6 });
+  for (const sg of [-1, 1]) DT.stay(b, [x(15.75), 5.2, 0], [x(13.6), deckAt(x(13.6)) + 0.5, sg * 1.15], dark, 0.025);
+  b.cylinder(x(12.9), deckAt(x(12.9)), 0, 0.5, 0.5, deckAt(x(12.9)) + 0.5, shade(sup, 0.85), MAT.HULL, { seg: 14 });
+  // the wheelhouse: a searchlight and a 20 mm shield on the roof (the gun is in tw.aa), the door and the ports of its after face
+  b.cylinder(x(5.9), 3.95, -0.9, 0.22, 0.22, 4.4, shade(sup, 0.9), MAT.HULL, { seg: 10 });
+  b.sphere(x(5.9), 4.55, -0.9, 0.24, 0.22, 0.24, shade(sup, 1.1), MAT.HULL, { seg: 10, rings: 6 });
+  // the ports in the topsides (five a side, 25 cm across, 1.4 m above the water), measured on the reference
+  for (const zr of [5.9, 6.8, 8.9, 9.6, 10.2]) for (const sg of [-1, 1]) {
+    const xx = x(zr), hb = hull.halfBeamDeck(xx) * 0.985;
+    b.box(xx, 1.35, sg * (hb - 0.02), 0.28, 0.28, 0.12, dark, MAT.DARK);
+  }
+  // the wheelhouse: a low block with a sloped front (z 4.0-7.6 m, the roof 3.94 m above the water), the raised box on its roof, windows round it; a module of its own that can be wrecked
+  const wy0 = deckAt(x(5.8)) - 0.5, wcol = rgb(pal.sup);
+  part('wheelhouse', 'bridge', 'Timonerie', () => {
+    b.block({ x0: x(4.0), x1: x(7.6), hw: 2.15, y0: wy0, y1: 3.94, tx0: x(4.0), tx1: x(7.6) - 0.9, thw: 2.0 }, wcol, MAT.HULL);
+    b.block({ x0: x(6.06), x1: x(6.66), hw: 0.9, y0: 3.9, y1: 4.44 }, shade(wcol, 0.9), MAT.HULL);
+    PT.windowBand(b, x(4.0), x(7.6) - 0.4, 2.1, 3.0, 0.5, pal, true, true);
+    b.block({ x0: x(3.95), x1: x(4.0), hw: 0.4, y0: deckAt(x(4.0)), y1: deckAt(x(4.0)) + 1.5 }, shade(wcol, 0.7), MAT.HULL);          // the door of its after face
+  }, () => b.block({ x0: x(4.0), x1: x(7.4), hw: 2.0, y0: wy0, y1: wy0 + 1.4, tx0: x(4.2), tx1: x(7.0), thw: 1.5 }, shade(dark, 1.15), MAT.DARK));
+  // the camera's eye on the bridge and the box the hits are placed against
+  const wx = x(5.8);
+  model.bridge = { x: wx, y: 3.9, z: 0, towerX: wx, cands: [[x(8.1), 3.55, 0], [x(8.1), 3.55, 1.0], [x(8.1), 3.55, -1.0], [x(6.5), 4.6, 0]] };
+  model.superBox = { x0: x(4.0), x1: x(7.6), hw: 2.15, y1: 3.95 };
+  // lifelines along the quarterdeck and round the forecastle (fine detail)
+  b.group('fine', () => {
+    DT.lifelines(b, hull, X(0.985), X(0.56), pal, { base: 0.1, h: 0.85, step: 2.2 });
+    DT.lifelines(b, hull, X(0.28), X(0.07), pal, { base: 0.1, h: 0.85, step: 2.2 });
+  });
+  note(5.3);
+}
+
 export const TWEAKS = {
+  // S-30 class Schnellboot, measured in metres on orthographic views (side, plan, front, stern, sections every metre) of a reference model of the boat ("S30 S61 (War Thunder) Ninth Wave", KojfDiscord,
+  // CC BY 4.0; used to measure only, nothing of it is in the repository): the hull 32.77 m from the stem to the transom, 4.9 m at the waterline and 5.2 m at the deck, a keel 1.5 m below the waterline
+  // that runs up to the stem and, abaft 0.86, to a stern 0.6 m shallower; the deck 2.0 m above the water amidships and aft, 1.5 m at the quarterdeck, up to 2.75-2.9 m on the turtleback forecastle
+  // (the step is at 0.4, abaft the wheelhouse); three 0.95 m screws (the wings at 1.3 m off the centre line, 0.975 of the length) and three rudders.
+  s30: {
+    boat: true, mainVariant: 'de37', camber: 0.32, bulwark: 0, towerF: 0.36, bow: { rake: 0.45 },
+    fb: [[0, 2.9], [0.1, 2.85], [0.15, 2.8], [0.25, 2.75], [0.3, 2.78], [0.34, 2.7], [0.37, 2.55], [0.405, 2.5], [0.44, 2.05], [0.5, 2.0], [0.7, 1.97], [0.8, 1.95], [0.86, 1.95], [0.89, 1.55], [1, 1.45]],
+    planDeck: [[0, 0], [0.017, 0.23], [0.047, 0.47], [0.078, 0.58], [0.108, 0.71], [0.139, 0.82], [0.169, 0.98], [0.2, 1.01], [0.26, 1.01], [0.32, 1.03], [0.385, 1.045], [0.445, 1.057], [0.536, 1.06], [0.6, 1.053], [0.66, 1.037], [0.72, 1.012], [0.78, 0.98], [0.84, 0.93], [0.9, 0.886], [0.96, 0.84], [0.99, 0.6], [1, 0.5]],
+    planWL: [[0, 0], [0.033, 0.08], [0.063, 0.16], [0.094, 0.28], [0.124, 0.36], [0.155, 0.43], [0.185, 0.48], [0.216, 0.53], [0.246, 0.6], [0.277, 0.64], [0.307, 0.69], [0.338, 0.74], [0.368, 0.79], [0.399, 0.84], [0.429, 0.91], [0.46, 0.92], [0.49, 0.95], [0.521, 0.98], [0.58, 0.99], [0.612, 1], [0.673, 0.99], [0.735, 0.97], [0.796, 0.94], [0.857, 0.89], [0.918, 0.85], [0.979, 0.8], [1, 0.6]],
+    keel: [[0, 0], [0.02, 0.02], [0.033, 0.33], [0.063, 0.52], [0.094, 0.64], [0.124, 0.71], [0.155, 0.75], [0.185, 0.8], [0.216, 0.83], [0.246, 0.86], [0.277, 0.88], [0.307, 0.89], [0.338, 0.91], [0.368, 0.92], [0.4, 0.93], [0.46, 0.95], [0.52, 0.96], [0.58, 0.975], [0.64, 0.98], [0.7, 0.99], [0.75, 1], [0.857, 1], [0.89, 0.5], [1, 0.38]],
+    props: [{ f: 0.975, depth: 1.15, d: 0.95, blades: 3, toF: 0.86 }, { f: 0.975, z: 1.3, depth: 1.15, d: 0.95, blades: 3, toF: 0.88 }],
+    rudders: [{ f: 0.99, top: 0.45, bottom: 1.8, chord: 0.6, t: 0.06, stock: 0.8 }, { f: 0.985, z: 0.78, top: 0.45, bottom: 1.5, chord: 0.4, t: 0.05, stock: 0.8 }],
+    aa: [{ k: 'f20', f: 0.143, z: 0, y: 0.55, noTub: true }],
+    extra: s30Extras,
+  },
   // Iowa: measured on the class profile and plan drawing (Commons, public domain), checked on photographs 80-G-K-15631 (port profile in
   // silhouette) and NH 44538. Heights are above the local deck: 01 level 2.3 m, 02 level 4.8 m, forward bridge 13.2 m, the block around
   // the forward funnel 19.4 m, Mk 38 director 29.3-32.5 m; funnel tops 23.8 / 22.9 m; after director tower 18 m.

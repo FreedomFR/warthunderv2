@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased — the S-30 Schnellboot, a 31st ship
+
+A German motor torpedo boat (Kriegsmarine, S-30 class, 100 t, 39 kn), built like the others from a spec sheet and hand tuning, and measured in metres on a reference model (measurement only: nothing of it is in the repository; credit in `docs/CREDITS.md`).
+- **A boat is not a small destroyer**: `tw.boat` in the tweaks turns off the generic equipment (funnels, masts, directors, boats), and `tw.camber`, `tw.bulwark` and `tw.extra` shape the deck. The hull is lofted from the sections measured every metre (plan, deck line, freeboards, keel), the plan view fits to 0.05 m on average.
+- **Detail**: three screws and three rudders (thin blades, short stocks: `rudder()` takes `t` and `stock`), a low wheelhouse with a sloped front, windows and a roof box (a `bridge` module of its own), the 37 mm aft on its own pedestal (`de37` in `mounts.js`), a 20 mm forward, spare torpedoes on deck, the bow tube doors, hatches, drums, rails, ensign and jackstaff.
+- **Tests**: 31 ships in the wiki and in the damage test (a boat has no funnel, so that module is not required of it).
+
 ## Unreleased — what the second phone report showed
 
 The second report from the Galaxy S24 Ultra (the first run of the new test: auto level 2, 910×438, 19 fps in the sea view, 46 ms of GPU) tells where the 46 ms go, and also what the test itself got wrong.
