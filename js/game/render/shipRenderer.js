@@ -162,6 +162,7 @@ export class ShipRenderer {
     const pass = enc.beginRenderPass({
       colorAttachments: [],
       depthStencilAttachment: { view: sh.view, depthClearValue: 1, depthLoadOp: 'clear', depthStoreOp: 'store' },
+      timestampWrites: this.engine.tsWrites?.('shadow'),
     });
     pass.setPipeline(this.shadowPipeline);
     pass.setBindGroup(0, this.shadowBG);

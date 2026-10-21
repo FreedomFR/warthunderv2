@@ -121,8 +121,8 @@ export class Game {
     e.hooks.update = (dt, now) => this.update(dt, now);
     e.hooks.prepare = () => this.prepare();
     e.hooks.preMain = (enc) => { if (this.shadowActive) this.shipRenderer.drawShadow(enc); };
-    e.hooks.drawOpaque = (rp) => this.shipRenderer.draw(rp);
-    e.hooks.drawOverlay = (rp) => this.particles.draw(rp);
+    e.hooks.drawOpaque = (rp) => { if (!this.benchHide?.opaque) this.shipRenderer.draw(rp); };
+    e.hooks.drawOverlay = (rp) => { if (!this.benchHide?.particles) this.particles.draw(rp); };
     e.hooks.onWater = (tag, n) => this.onWater(tag, n);
   }
 

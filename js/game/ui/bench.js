@@ -4,16 +4,27 @@
 // It spawns its own battle (the same every time: a fixed seed), holds the adaptive quality where it is, and puts everything back when it ends.
 import { PRESETS } from '../scenarios.js';
 import { TEAM_COLORS } from '../sim/world.js';
+import { CpuProbe, LongTasks, histogram, worstFrames, meanPasses, particleCensus, heapMB } from './benchprobe.js';
 
 const SETTLE = 1.5;            // seconds at the start of a view that are not counted (a new resolution, a pipeline, the camera arriving)
 
 /** The views of the test, in order. The settings of a view are the player's own except what it names. */
 export const PHASES = [
+  // (not reported: the first seconds of a run are slower than the rest, the pipelines compile and the GPU is still at its low clock; they are kept apart as `prime`)
+  { id: 'prime', name: 'Chauffe (non rapportée)', secs: 7, mode: 'follow', warmup: true },
   { id: 'sea', name: 'Mer : le navire de ligne', secs: 12, mode: 'follow' },
   { id: 'noclouds', name: '… sans nuages volumétriques', secs: 8, mode: 'follow', clouds: false },
   { id: 'noshadow', name: '… sans ombres', secs: 8, mode: 'follow', shadows: false },
   { id: 'half', name: '… à la moitié de la résolution', secs: 8, mode: 'follow', scale: 0.5 },
   { id: 'fewp', name: '… avec peu de particules', secs: 8, mode: 'follow', particles: 3000 },
+  // what is switched off to see what it costs: the particles are not drawn at all, the sea, everything that is not the sea (ships, aircraft, islands, bases),
+  // the trees; and the same smoke at its two ends of detail (0: what a phone gets, 2: the volume lighting of a PC)
+  { id: 'nopart', name: '… sans dessiner les particules', secs: 6, mode: 'follow', hide: { particles: true } },
+  { id: 'smoke0', name: '… fumée au niveau de détail 0', secs: 6, mode: 'follow', smoke: 0 },
+  { id: 'smoke2', name: '… fumée au niveau de détail 2', secs: 6, mode: 'follow', smoke: 2 },
+  { id: 'noocean', name: '… sans la mer (ni les nuages)', secs: 6, mode: 'follow', ocean: false },
+  { id: 'noopaque', name: '… sans navires, avions, îles ni bases', secs: 6, mode: 'follow', hide: { opaque: true } },
+  { id: 'notrees', name: '… sans la végétation', secs: 6, mode: 'follow', trees: false },
   { id: 'tactical', name: 'Vue tactique', secs: 10, mode: 'tactical' },
   { id: 'air', name: 'Vue d\'un avion en vol', secs: 10, mode: 'plane' },
   { id: 'sea2', name: 'Mer : de nouveau (la chauffe)', secs: 12, mode: 'follow' },
@@ -39,6 +50,14 @@ const f1 = (x) => (Number.isFinite(x) ? x.toFixed(1) : '-');
 /** A cost in ms: under a third of a millisecond (or a setting that made it slower) is noise. */
 const costText = (v) => (v < 0.35 ? 'rien de mesurable' : `${f1(v)} ms`);
 
+/** The frame rate of each second of a view, in order (a device that throttles or a stutter that comes and goes shows here). */
+function perSecond(frames) {
+  const out = [];
+  let t = 0, n = 0;
+  for (const f of frames) { t += f.w; n++; if (t >= 1000) { out.push(+(n * 1000 / t).toFixed(1)); t = 0; n = 0; } }
+  return out;
+}
+
 /** The figures of a view from the frames recorded in it: [{ w (frame time, ms), g (GPU ms or 0), u (update, ms), p (scene preparation, ms) }]. */
 export function summarize(frames) {
   const w = frames.map((f) => f.w).sort((a, b) => a - b), g = frames.map((f) => f.g).filter((x) => x > 0);
@@ -49,8 +68,12 @@ export function summarize(frames) {
     over20: w.filter((x) => x > 20).length, over33: w.filter((x) => x > 33.4).length,
     gpu: g.length ? { mean: mean(g), max: Math.max(...g) } : null,
     cpu: { update: mean(frames.map((f) => f.u)), prepare: mean(frames.map((f) => f.p)) },
+    hist: histogram(w), worst: worstFrames(frames), passes: meanPasses(frames), series: perSecond(frames),
   };
 }
+
+/** The GPU passes of the engine, in French (engine.js, TS_PASSES). */
+const PASS_NAMES = { sim: 'simulation de la mer et du ciel', shadow: 'ombres', cloudWeather: 'nuages : météo', main: 'passe principale (mer, navires, ciel' + ', particules sans nuages)', cloudMarch: 'nuages : calcul', cloudApply: 'nuages : application', cloudOverlay: 'particules (avec nuages)', bloom: 'halo (bloom)', composite: 'image finale' };
 
 /** What the A/B views say: the cost of each setting (ms a frame, from the GPU time when the device gives it, else the frame time) and what limits the frame. */
 export function analyse(phases, hasTS) {
@@ -61,6 +84,24 @@ export function analyse(phases, hasTS) {
   const cost = (p) => (hasTS && p.gpu ? p.gpu.mean : p.ms.mean);
   for (const [id, label] of [['noclouds', 'les nuages'], ['noshadow', 'les ombres'], ['fewp', 'les particules']]) if (by[id] && by[id].frames) out.costs[label] = cost(base) - cost(by[id]);
   if (by.half && by.half.frames) out.costs['la moitié des pixels'] = cost(base) - cost(by.half);
+  for (const [id, label] of [['nopart', 'dessiner les particules'], ['noocean', 'la mer'], ['noopaque', 'navires, avions, îles et bases'], ['notrees', 'la végétation']]) if (by[id] && by[id].frames) out.costs[label] = cost(base) - cost(by[id]);
+  if (by.smoke0 && by.smoke0.frames && by.smoke2 && by.smoke2.frames) {
+    const d = cost(by.smoke2) - cost(by.smoke0);
+    out.smoke = d;
+    out.notes.push(`fumée : niveau de détail 2 contre 0 : ${d < 0.35 ? 'le même coût' : '+' + f1(d) + ' ms par image'} sur cet appareil`);
+  }
+  // where the GPU time of a view goes, by pass (the main pass holds the sea, the ships, the sky and the particles)
+  const ps = base.passes;
+  if (ps) {
+    const tot = Object.values(ps).reduce((a, b) => a + b, 0) || 1;
+    const top = Object.entries(ps).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k, v]) => `${PASS_NAMES[k] || k} ${Math.round(100 * v / tot)} %`);
+    out.notes.push('passes GPU de la vue « Mer » : ' + top.join(', '));
+  }
+  const pc = base.census;
+  if (pc && pc.kinds) {
+    const sm = pc.kinds.smoke ? pc.kinds.smoke.screens : 0, all = Object.values(pc.kinds).reduce((a, k) => a + k.screens, 0);
+    out.notes.push(`particules de la vue « Mer » : ${pc.inView} à l'écran sur ${pc.total}, ${f1(all)} écrans de surface à remplir dont ${f1(sm)} de fumée`);
+  }
   const cpu = base.cpu.update + base.cpu.prepare;
   if (hasTS && base.gpu) out.notes.push(base.gpu.mean > cpu * 1.15 ? `limité par le GPU (${f1(base.gpu.mean)} ms contre ${f1(cpu)} ms de processeur)` : base.gpu.mean < cpu * 0.85 ? `limité par le processeur (${f1(cpu)} ms contre ${f1(base.gpu.mean)} ms de GPU)` : `GPU et processeur à peu près à égalité (${f1(base.gpu.mean)} et ${f1(cpu)} ms)`);
   else out.notes.push(`temps GPU non fourni par ce navigateur ; processeur : ${f1(cpu)} ms par image`);
@@ -71,6 +112,7 @@ export function analyse(phases, hasTS) {
   if (end && end.frames && base.fps > 0) {
     const r = end.fps / base.fps;
     out.thermal = r;
+    if (r > 1.3) out.notes.push(`la dernière vue « Mer » est bien plus rapide que la première (${f1(end.fps)} contre ${f1(base.fps)} i/s) : démarrage à froid (compilation, fréquence du GPU) ou bataille qui s'est calmée (${base.particles ?? '-'} puis ${end.particles ?? '-'} particules)`);
     out.notes.push(r < 0.88 ? `l'appareil ralentit en chauffant : ${f1(end.fps)} i/s à la fin contre ${f1(base.fps)} au début (${Math.round((1 - r) * 100)} % de moins)` : `pas de ralentissement visible dû à la chauffe (${f1(base.fps)} puis ${f1(end.fps)} i/s)`);
   }
   return out;
@@ -85,13 +127,33 @@ export function formatReport(r) {
   L.push(`GPU : ${[r.gpu.vendor, r.gpu.architecture, r.gpu.device, r.gpu.description].filter(Boolean).join(' / ') || 'inconnu'}${r.gpu.isFallback ? ' (logiciel !)' : ''} · temps GPU ${r.hasTS ? 'oui' : 'non'}`);
   if (r.battery) L.push(`Batterie : ${r.battery.start} % → ${r.battery.end} % (${r.battery.charging ? 'en charge' : 'sur batterie'})`);
   L.push('');
-  L.push('Vue'.padEnd(36) + 'i/s   méd  p95  p99  max   >33ms  GPU   proc.  particules');
+  const nm = (x) => (x.length > 39 ? x.slice(0, 38) + '…' : x).padEnd(40);
+  L.push('Vue'.padEnd(40) + 'i/s   méd  p95  p99  max   >33ms  GPU   proc.  particules');
   for (const p of r.phases) {
-    if (!p.frames) { L.push(p.name.padEnd(36) + (p.skipped || 'non jouée')); continue; }
-    L.push(p.name.padEnd(36) + [f1(p.fps).padStart(4), f1(p.ms.p50).padStart(5), f1(p.ms.p95).padStart(4), f1(p.ms.p99).padStart(4), f1(p.ms.max).padStart(5), String(p.over33).padStart(5), (p.gpu ? f1(p.gpu.mean) : '-').padStart(6), f1(p.cpu.update + p.cpu.prepare).padStart(5), String(p.particles ?? '-').padStart(8)].join(' '));
+    if (!p.frames) { L.push(nm(p.name) + (p.skipped || 'non jouée')); continue; }
+    L.push(nm(p.name) + [f1(p.fps).padStart(4), f1(p.ms.p50).padStart(5), f1(p.ms.p95).padStart(4), f1(p.ms.p99).padStart(4), f1(p.ms.max).padStart(5), String(p.over33).padStart(5), (p.gpu ? f1(p.gpu.mean) : '-').padStart(6), f1(p.cpu.update + p.cpu.prepare).padStart(5), String(p.particles ?? '-').padStart(8)].join(' '));
   }
   L.push('(temps en ms par image ; proc. = simulation + préparation de la scène)');
   L.push('');
+  // where the GPU goes, pass by pass (ms), for the views that give it; and the CPU in detail
+  const withPasses = r.phases.filter((p) => p.frames && p.passes);
+  if (withPasses.length) {
+    L.push('Passes GPU (ms)'.padEnd(40) + 'sim   ombres nuages princ. bloom  final');
+    for (const p of withPasses) {
+      const q = p.passes, c = (q.cloudWeather || 0) + (q.cloudMarch || 0) + (q.cloudApply || 0) + (q.cloudOverlay || 0);
+      L.push(nm(p.name) + [q.sim, q.shadow, c, q.main, q.bloom, q.composite].map((v) => f1(v || 0).padStart(5)).join(' ') + '  ');
+    }
+    L.push('');
+  }
+  const withCpu = r.phases.filter((p) => p.frames && p.cpuParts);
+  if (withCpu.length) {
+    L.push('Processeur (ms par image)'.padEnd(40) + 'sim   effets partic. caméra son   prépa. tâches>50ms');
+    for (const p of withCpu) {
+      const q = p.cpuParts;
+      L.push(nm(p.name) + [q.sim, (q.fxEvents || 0) + (q.fxUpdate || 0), q.particles, q.camera, (q.audio || 0) + (q.audioEvents || 0), p.cpu.prepare].map((v) => f1(v || 0).padStart(5)).join(' ') + String(p.long ? p.long.n : '-').padStart(7) + (p.long && p.long.n ? ` (max ${p.long.maxMs} ms)` : ''));
+    }
+    L.push('');
+  }
   const a = r.analysis;
   for (const n of a.notes) L.push('• ' + n);
   const costs = Object.entries(a.costs);
@@ -128,6 +190,8 @@ export class Bench {
     // what to put back
     this.saved = { teams: g.config.teams, seed: g.config.seed, sep: g.config.sep, islands: g.config.islands, bases: g.config.bases, scale: e.getRenderScale(), timeScale: g.timeScale, paused: g.paused, particleMax: g.particleMax, mode: g.camera.mode };
     this.hi = await this.deviceInfo();
+    this.cpu = new CpuProbe(g); this.long = new LongTasks();
+    this.saved.showOcean = e.showOcean; this.saved.trees = g.vegetation?.enabled;
     g.benchLock = true;
     g.paused = false;
     g.config.teams = preset.teams.map((t, i) => ({ name: t.name, rgb: TEAM_COLORS[i].rgb, entries: t.entries.map((x) => ({ ...x })) }));
@@ -179,7 +243,8 @@ export class Bench {
       return;
     }
     const ph = PHASES[this.k], el = (t - this.pt) / 1000;
-    if (el > SETTLE) this.frames.push({ w: wall, g: e.hasTS ? e.stats.gpuMs : 0, u: cpuU, p: this.pr });
+    this.pframes = (this.pframes || 0) + 1;
+    if (el > SETTLE) this.frames.push({ w: wall, g: e.hasTS ? e.stats.gpuMs : 0, u: cpuU, p: this.pr, at: el, n: g.particles.count || 0, ps: e.hasTS ? e.stats.passMs : null });
     this.bar.style.width = ((this.k + Math.min(1, el / ph.secs)) / PHASES.length * 100).toFixed(0) + '%';
     this.sub.textContent = `vue ${this.k + 1} sur ${PHASES.length}${this.frames.length > 5 ? ` · ${f1(1000 / mean(this.frames.slice(-60).map((f) => f.w)))} i/s` : ''}`;
     // the target of a ship view: the biggest ship still afloat (a camera that lost its ship takes another)
@@ -195,10 +260,19 @@ export class Bench {
 
   endPhase(t) {
     const g = this.game, ph = PHASES[this.k], r = { id: ph.id, name: ph.name, ...summarize(this.frames) };
+    if (ph.warmup) { this.prime = { fps: +r.fps.toFixed(1), p50: +r.ms.p50.toFixed(1), p95: +r.ms.p95.toFixed(1), gpu: r.gpu ? +r.gpu.mean.toFixed(1) : null, series: r.series }; this.next(t); return; }
     r.particles = g.particles.count ?? g.particles.n ?? null;
     r.ships = g.world.ships.filter((s) => s.alive).length;
     r.planes = g.world.planes.filter((q) => !q.dying && q.y > 30).length;
     r.size = [g.engine.stats.width, g.engine.stats.height];
+    // what the numbers need to be read: the CPU by part, the long tasks, the particle census, the memory, the state of the settings
+    r.cpuParts = CpuProbe.diff(this.cpuSnap || {}, this.cpu.snap(), this.pframes || 1);
+    r.long = this.long.between(this.pt, t);
+    r.census = particleCensus(g);
+    r.heapMB = heapMB();
+    r.nodes = g.engine.stats.nodes;
+    r.voices = g.audio.active || 0;
+    r.state = { qLevel: g.qLevel, renderScale: +g.engine.getRenderScale().toFixed(2), smokeDetail: g.particles.detail, ocean: g.engine.showOcean, shadows: !!g.shadowsOn, trees: g.vegetation?.enabled, hidden: g.benchHide || {} };
     r.skipped = r.frames ? undefined : this.skipNote;
     this.results.push(r);
     this.next(t);
@@ -217,6 +291,10 @@ export class Bench {
       if (ph.clouds === false) e.setClouds?.({ on: false });
       if (ph.shadows === false) g.shadowsOn = false;
       g.particles.setMax(ph.particles ?? this.saved.particleMax);
+      if (ph.smoke != null) g.particles.setDetail(ph.smoke);
+      g.benchHide = ph.hide || {};
+      e.showOcean = ph.ocean === false ? false : this.saved.showOcean;
+      if (g.vegetation) g.vegetation.enabled = ph.trees === false ? false : this.saved.trees;
       if (ph.mode === 'plane') {
         const q = g.world.planes.filter((x) => !x.dying && !x.hidden && x.y > 150).sort((a, b) => b.y - a.y)[0];
         if (!q) { this.results.push({ id: ph.id, name: ph.name, frames: 0, skipped: 'aucun avion en vol à ce moment' }); continue; }
@@ -227,7 +305,7 @@ export class Bench {
         this.pickShip(); g.camera.setMode('follow', true);
         Object.assign(g.camera.follow, { yaw: 0.65, pitch: 0.1, zoom: 1.3 });
       }
-      this.frames = []; this.pt = t;
+      this.frames = []; this.pt = t; this.pframes = 0; this.cpuSnap = this.cpu.snap();
       this.label.textContent = ph.name;
       return;
     }
@@ -244,6 +322,8 @@ export class Bench {
     g.reset();
     g.setTimeScale(S.timeScale); g.paused = S.paused;
     g.particles.setMax(S.particleMax);
+    g.benchHide = null; e.showOcean = S.showOcean; if (g.vegetation) g.vegetation.enabled = S.trees;
+    this.cpu?.restore(); this.long?.stop();
     e.setRenderScale(S.scale);
     g.applyQuality();
     if (cancelled) { this.shield.remove(); this.el.remove(); this.el = null; document.body.classList.remove('benching'); return; }
@@ -253,7 +333,7 @@ export class Bench {
       device: this.hi, gpu: e.adapterInfo, hasTS: !!e.hasTS,
       settings: { quality: g.qualityMode, qLevel: g.qLevel, renderScale: +this.baseScale.toFixed(2), canvas: this.results.find((p) => p.size)?.size || [e.stats.width, e.stats.height], particleMax: S.particleMax, shadows: g.shadowsOn, clouds: !!e.cloudsOn },
       battery: this.battery0 && battery1 ? { start: this.battery0.level, end: battery1.level, charging: battery1.charging } : null,
-      phases: this.results,
+      phases: this.results, prime: this.prime || null,
     };
     r.analysis = analyse(r.phases, r.hasTS);
     r.text = undefined;
