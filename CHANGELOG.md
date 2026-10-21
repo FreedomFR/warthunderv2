@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased — the way home
+
+- **Aircraft that have dropped their bombs or torpedoes keep out of the reach of the guns on the way back** (`sim/homeward.js`, `safeHeading`): from the end of the attack they pick, every 2.5 s, among the headings round the direct course home (about 100 degrees each way) the one with the least fire along the next 12 km (the same figures as the way in: light guns when low, flak at any height), at a small cost for every degree off the direct course and for the distance added. Carrier strikes (`egress` and `return` in `sim/aircraft.js`) and the bombers of an airfield (`sim/airfield.js`) alike. The batteries of the enemy **bases** now count among the guns (`aaSources` in `sim/routing.js`: they were only the ships' before, on the way in as well).
+- **They close up and come home together**: the aircraft of a section (carrier) or of a wave (airfield bombers) form up behind the first one out, in a vee, the others catching up at up to 0.92 of their top speed, and the leader goes slower (down to 0.8 of cruise) when the rearmost is far behind, unless it is under fire. The formation breaks at the entry of the circuit, where the landing traffic takes over. Measured on four battles: the median radius of a group on its way home 3.4 km before, 100-200 m now; the fire met on the way home is a little lower (the first minute after the attack is the same: it is the attack itself).
+- Test `test/homeward.mjs` (a battery in the way: the course bends round it; none: straight home; the followers' slots; in a battle the groups coming home are within 700 m of each other and the bases' guns are counted).
+
 ## Unreleased — traffic in a stream, as in the war
 
 Measured on the simulation (seconds between two aircraft): airfield take-offs 50, airfield landings 105 (a wave of four bombers took eight minutes to land), carrier landings 37. A bomber airfield now works as in 1944 and the carriers recover faster:

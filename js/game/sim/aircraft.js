@@ -10,6 +10,7 @@ import { clearElev, clearMax, inArcRel } from '../model/clearance.js';
 import { perfOf, aeroOf, dragAcc, thrustAcc } from './airperf.js';
 import { lightAAHitRate, extentToward } from './airhit.js';
 import { chooseApproach, aaSources, density, refugeShip } from './routing.js';
+import { safeHeading, homeCourse } from './homeward.js';
 import { fighterSteer, fighterFields, bomberDefense, markHunted, FIGHT_PHASES } from './fighters.js';
 import { deckOf, planLaunch, settleService, beginRecovery, launching, stepDeck, stepDeckShip, touchdown, clearToLand, deckClearFor, DECK_PHASES } from './deck.js';
 import { segmentNearShip, segmentHit, resolveBombHit, resolveNearMiss, resolveCrashHit } from './damage.js';
@@ -637,9 +638,10 @@ function stepPlane(world, p, dt) {
       break;
     }
     case 'egress': {
-      // away from the enemy at low level, then climb
+      // away from the enemy at low level, then climb; once clear of the target, home by a course that keeps out of the guns' reach
       const away = tgt ? Math.atan2(p.x - tgt.x, -(p.z - tgt.z)) : p.heading;
       hdg = away + p.jitter * 0.5;
+      if (p.t > 8 && carrierOk) hdg = safeHeading(world, p, ship.x, ship.z, world.time).hdg;
       gam = p.t < 14 ? clamp((90 - p.y) / 200, -0.06, 0.06) : 0.1;
       spd = Math.min(pf.vmax * 0.9, pf.vc * 1.2);
       if (p.t > 22) p.phase = 'return';
@@ -647,14 +649,23 @@ function stepPlane(world, p, dt) {
     }
     case 'return': {
       if (!carrierOk) { p.phase = 'ditch'; break; }
-      // to the start of the circuit, ahead of the carrier on the side away from the island
+      // to the start of the circuit, ahead of the carrier on the side away from the island; on the way the section closes up behind its leader,
+      // and keeps out of the reach of the enemy's guns (sim/homeward.js)
       const cc = circuit(ship, p), pt = cc.point();
-      const dx = pt[0] - p.x, dz = pt[2] - p.z;
-      hdg = Math.atan2(dx, -dz);
-      gam = clamp((ship.y + cc.altDown - p.y) / 700, -0.08, 0.1);
-      spd = pf.vc;
+      const dx = pt[0] - p.x, dz = pt[2] - p.z, dHome = Math.hypot(dx, dz);
+      const alt = ship.y + cc.altDown;
+      if (dHome > 3500) {
+        const group = p.sec ? p.sec.members.filter((m) => !m.dying && !m.gone && (m.phase === 'return' || m.phase === 'egress')) : [p];
+        const c = homeCourse(world, p, p.sec || p, group.length ? group : [p], pt[0], pt[2], pf, alt);
+        hdg = c.hdg; gam = c.gam; spd = c.spd;
+        if (!c.lead) o = { bankMax: 45 * D2R };
+      } else {
+        hdg = Math.atan2(dx, -dz);
+        gam = clamp((alt - p.y) / 700, -0.08, 0.1);
+        spd = pf.vc;
+      }
       if (Math.hypot(ship.x - p.x, ship.z - p.z) < 14000) beginRecovery(world, ship);      // the deck park goes below before the first one lands
-      if (Math.hypot(dx, dz) < 900) {
+      if (dHome < 900) {
         p.phase = 'pattern'; p.leg = 1; p.t = 0; p.gearDown = true; p.t0Air = p.age; p.holdT = 0;
       }
       break;

@@ -11,6 +11,7 @@ import { clamp, wrapPi, approach, D2R, G } from '../math.js';
 import { planeTypeFor, PLANES, groundY, GROUND_PITCH } from '../model/planes.js';
 import { perfOf } from './airperf.js';
 import { fighterFields, fighterSteer } from './fighters.js';
+import { safeHeading, homeCourse } from './homeward.js';
 import { guide, setVel, planeId, bombId, FIGHT_CTX } from './aircraft.js';
 
 const GROUND_STATES = new Set(['parked', 'taxiOut', 'holdshort', 'lineup', 'groundRun', 'lroll', 'taxiBack', 'park']);
@@ -562,6 +563,7 @@ function stepAir(world, p, dt, base, F, pf, T) {
       const tg = p.target;
       const away = tg ? Math.atan2(p.x - tg.x, -(p.z - tg.z)) : p.heading;
       hdg = p.t < 14 ? p.heading : away + p.jitter * 0.6;
+      if (p.t > 14) { const T = F.toW(F.sThr, 0); hdg = safeHeading(world, p, T[0], T[1], world.time).hdg; }       // home, out of the reach of the guns
       gam = 0.0; spd = pf.vc; o = { bankMax: 22 * D2R };
       if (p.t > 40) p.phase = 'return';
       break;
@@ -602,6 +604,15 @@ function stepAir(world, p, dt, base, F, pf, T) {
         gam = clamp((hC + 150 - p.y) / 700, -0.1, 0.1);
         // slowing to the circuit speed on the way in (throttled back a heavy bomber loses only about half a metre a second each second: it has to start early)
         spd = pf.vp + (pf.vc - pf.vp) * clamp((d - 2500) / 9000, 0, 1);
+        // a long way out the bombers of the wave close up behind one of them and keep out of the reach of the guns on the way
+        if (d > 6000 && !p.fighter && wave) {
+          const group = wave.planes.filter((q) => !q.fighter && !q.dying && !q.gone && (q.phase === 'egress' || (q.phase === 'return' && (!q.leg || q.leg === 'join'))));
+          if (group.length && group.includes(p)) {
+            const c = homeCourse(world, p, wave, group, tx, tz, pf, hC + 150);
+            hdg = c.hdg; gam = c.gam; spd = c.spd;
+            if (!c.lead) o = { bankMax: 35 * D2R };
+          }
+        }
         // at the entry: on to the downwind leg with a turn to the left (or a small one to the right); coming in the other way, it goes on round to the left until it can
         if (d < 1500) {
           if (wrapPi(downHdg - p.heading) < 0.45) p.leg = 'down';

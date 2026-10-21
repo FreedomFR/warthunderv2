@@ -17,6 +17,15 @@ export function aaSources(world, team, ahead = 20, own = false) {
     for (const m of s.mounts) if (m.group === 'sec' && m.alive && m.gun.cal <= 140 && m.gun.maxElevDeg >= 55 && !m.noAmmo) heavy += m.n * 0.12;
     out.push({ ship: s, x: s.x + s.vx * ahead, z: s.z + s.vz * ahead, light, heavy });
   }
+  // the batteries of the island bases are anti-aircraft too: one source at the centre of the guns that are still alive and have their own fire
+  if (!own && world.bases) {
+    for (const b of world.bases) {
+      if (b.inert || b.team === team) continue;
+      let light = 0, x = 0, z = 0, n = 0;
+      for (const g of b.guns) if (g.kind === 'aa' && g.alive) { const c = AA[g.variant]; if (c) { light += c.dps / c.hit * g.n * 0.5; x += g.x; z += g.z; n++; } }
+      if (n) out.push({ ship: b.target, x: x / n, z: z / n, light, heavy: 0 });
+    }
+  }
   return out;
 }
 
