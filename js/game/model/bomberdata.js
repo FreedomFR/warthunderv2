@@ -137,7 +137,7 @@ export const HEAVY = {
     glass: [{ d0: 3.3, d1: 5.6, a0: 25, a1: 72, sym: true, nu: 3, nv: 1 }],
     cabin: [],
     windows: [{ d: 3.0, y: 0.35, w: 0.45, h: 0.4 }, { d: 8.0, y: 0.4, w: 0.4, h: 0.4 }],
-    guns: [{ t: 'nose', d: 7.5, y: 1.78, z: 0.0, len: 0.9 }, { t: 'gondola', d0: 6.6, d1: 9.2, ry: 0.45, rz: 0.42 }, { t: 'beam', d: 9.8, y: 0.15, side: 1, w: 0.5, h: 0.4 }, { t: 'beam', d: 9.8, y: 0.15, side: -1, w: 0.5, h: 0.4 }],
+    guns: [{ t: 'nose', d: 7.5, y: 1.78, z: 0.0, aft: true }, { t: 'gondola', d0: 6.6, d1: 9.2, ry: 0.45, rz: 0.42 }, { t: 'beam', d: 9.8, y: 0.15, side: 1, w: 0.5, h: 0.4 }, { t: 'beam', d: 9.8, y: 0.15, side: -1, w: 0.5, h: 0.4 }],
     engines: [{ d: 3.6, z: -3.2, y: -0.35, r: 0.62, len: 1.2, aft: 8.4, type: 'radial' }, { d: 0.05, z: 0, y: 0.0, r: 0.7, len: 1.2, type: 'radial', nose: true, gear: false, dir: -1 },
       { d: 3.6, z: 3.2, y: -0.35, r: 0.62, len: 1.2, aft: 8.4, type: 'radial' }],
     prop: { r: 1.55, n: 3 },

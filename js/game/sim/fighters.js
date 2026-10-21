@@ -2,10 +2,11 @@
 // carrier. A fighter flies its station (over the bombers it escorts, or in a circle over the fleet), picks the enemy aircraft that threatens most,
 // closes on it with lead pursuit and fires its machine guns in bursts; the rear gunners of the bombers shoot back. When it has no ammunition left,
 // is badly hurt or short of fuel it goes home and lands like the others (sim/aircraft.js, sim/deck.js).
-import { clamp, wrapPi, D2R } from '../math.js';
+import { clamp, wrapPi, D2R, mat4Ship } from '../math.js';
+import { planeGuns, inArc, muzzleOf, GUN_RATE, GUN_DMG } from '../model/planeGuns.js';
 import { aaSources, exposure } from './routing.js';
 import { perfOf } from './airperf.js';
-import { presentedArea, roundHitChance, axes } from './airhit.js';
+import { presentedArea, roundHitChance } from './airhit.js';
 
 export const FIGHT_PHASES = new Set(['escort', 'cap', 'engage']);
 const STRIKE = new Set(['assemble', 'cruise', 'ip', 'run', 'rollin', 'dive', 'pullout', 'break', 'egress']);
@@ -13,7 +14,6 @@ const AMMO = 520;                       // bursts of 1/14 s: about 37 s of fire
 const BURST_RATE = 14;
 const MG_ROUNDS = 78;                   // rounds a second of the guns of a fighter (six of 12.7 mm)
 const MG_DMG = 0.17;
-const GUN_ROUNDS = 28, GUN_DMG = 0.035;           // the rear gunner: two guns of 7.7 mm at about 14 rounds a second each                    // what a round does to an aircraft (hp)
 
 /** Enemy aircraft that are flying (not on a deck, not already falling). */
 function hostiles(world, p) {
@@ -182,83 +182,84 @@ export function fighterFields(spec) {
 }
 
 // ---- the bombers defend themselves -----------------------------------------------------------------------------------------------------
-/**
- * The field of fire of the gunners of each type: the bearing from straight astern (az, both sides), the elevation above and below the horizontal plane of the aircraft
- * (up, down), and whether the fin shadows the sector right astern and above. A flexible gun in the rear cockpit swings wide but the fuselage and the tail stop it below
- * and astern; the Avenger's turret covers the whole upper hemisphere and a gun in the tunnel under the tail the lower rear; a biplane's gunner is hemmed in by the lower wing.
- */
-const GUN_ARCS = {
-  sbd: [{ az: 1.25, up: 1.3, down: -0.35, fin: true }],
-  tbf: [{ az: 3.1, up: 1.45, down: -0.04, fin: true }, { az: 0.85, up: -0.12, down: -1.1 }],
-  d3a: [{ az: 1.05, up: 1.2, down: -0.3, fin: true }],
-  b5n: [{ az: 1.1, up: 1.15, down: -0.4, fin: true }],
-  swordfish: [{ az: 1.5, up: 1.3, down: -0.5, fin: false }],
-  skua: [{ az: 1.05, up: 1.2, down: -0.3, fin: true }],
-  ju87: [{ az: 1.2, up: 1.25, down: -0.45, fin: true }],
-  fi167: [{ az: 1.25, up: 1.2, down: -0.5, fin: false }],
-  pl10: [{ az: 1.2, up: 1.2, down: -0.5, fin: false }],
-  // the heavy bombers of the airfields (sim/airfield.js): turrets above, below and astern cover nearly the whole sphere (the Lancaster has no belly turret, the Sparviero a ventral gondola)
-  b17: [{ az: 3.14, up: 1.5, down: -1.3, fin: false }],
-  lancaster: [{ az: 3.14, up: 1.5, down: -0.7, fin: false }],
-  g4m: [{ az: 2.4, up: 1.4, down: -0.8, fin: false }],
-  he111: [{ az: 2.2, up: 1.3, down: -0.9, fin: false }],
-  sm79: [{ az: 2.2, up: 1.3, down: -0.8, fin: false }],
-  leo451: [{ az: 2.2, up: 1.3, down: -0.8, fin: false }],
-};
-/** How many times the fire of the single rear gunner (two 7.7 mm) a type puts out: the Fortress has ten .50 in six positions, the Lancaster eight .303. */
-const GUN_MULT = { b17: 5, lancaster: 2.6, g4m: 2.4, he111: 2.2, sm79: 2.2, leo451: 1.8 };
-const GUNNERS = new Set(Object.keys(GUN_ARCS));
+// Every gun position of a bomber (model/planeGuns.js: the turrets, the flexible guns at the windows and in the rear cockpits) is a gunner of its own: he takes the nearest
+// enemy fighter in his field of fire, turns his guns onto where it will be when the rounds get there (a powered turret faster than a gun swung by hand), and fires once
+// they are on it. The rounds leave from his muzzle. b.gun[i] = { yaw, pitch } is where his guns point, in the frame of the aircraft (the turrets turn to it in the picture).
+const SLEW_TURRET = 1.5, SLEW_HAND = 2.2, SLEW_REST = 0.5;          // rad/s
+const REACH = 520;                                                    // m: what a gunner shoots at
+const M = new Float64Array(16), _mz = [0, 0, 0];
 
-/** Can a gunner of this aircraft bear on the point at (dx, dy, dz) from it? */
+/** Can a gunner of this aircraft bear on the point at (dx, dy, dz) from it? (any of its gun positions) */
 export function gunnerCan(b, dx, dy, dz) {
-  const arcs = GUN_ARCS[b.typeKey];
-  if (!arcs) return false;
-  const l = Math.hypot(dx, dy, dz) || 1, A = axes(b);
-  const df = (dx * A.f[0] + dy * A.f[1] + dz * A.f[2]) / l, dr = (dx * A.r[0] + dy * A.r[1] + dz * A.r[2]) / l, du = (dx * A.u[0] + dy * A.u[1] + dz * A.u[2]) / l;
-  const az = Math.abs(Math.atan2(dr, -df)), el = Math.asin(clamp(du, -1, 1));
-  for (const g of arcs) {
-    if (az > g.az || el > g.up || el < g.down) continue;
-    if (g.fin && az < 0.1 && el > 0.2 && el < 0.9) continue;           // the fin and the tailplane are in the way
-    return true;
-  }
-  return false;
+  const guns = planeGuns(b.spec, b.typeKey);
+  if (!guns.length) return false;
+  mat4Ship(M, 0, 0, 0, b.heading, (b.pitch || 0) + (b.aoa || 0), b.roll || 0);
+  const l = Math.hypot(dx, dy, dz) || 1, lx = (dx * M[0] + dy * M[1] + dz * M[2]) / l, ly = (dx * M[4] + dy * M[5] + dz * M[6]) / l, lz = (dx * M[8] + dy * M[9] + dz * M[10]) / l;
+  const yaw = Math.atan2(lz, lx), pitch = Math.asin(clamp(ly, -1, 1));
+  return guns.some((g) => inArc(g, yaw, pitch));
 }
 
-/**
- * Every bomber with a rear gunner fires at the nearest enemy fighter that is within reach and in the gun's field of fire (see GUN_ARCS): the closer it
- * comes, the likelier the hit. Aircraft of a tight formation cover each other. ctx.hit applies the damage.
- */
+/** Turn an angle towards a goal by at most `step`. */
+const toward = (a, goal, step) => { const d = wrapPi(goal - a); return Math.abs(d) <= step ? goal : a + Math.sign(d) * step; };
+
+/** Every bomber's gunners fire at the enemy fighters within reach and in their fields of fire; ctx.hit applies the damage. */
 export function bomberDefense(world, dt, ctx) {
   let fighters = null;
   for (const b of world.planes) {
-    if (b.fighter || b.dying || b.hidden || b.gone || b.y < 30 || !GUNNERS.has(b.typeKey)) continue;
-    if (!fighters) { fighters = world.planes.filter((q) => q.fighter && !q.dying && !q.hidden && q.y > 30); if (!fighters.length) return; }
-    let best = null, bd = 520;
-    for (const f of fighters) {
-      if (f.team === b.team) continue;
-      const dx = f.x - b.x, dy = f.y - b.y, dz = f.z - b.z, d = Math.hypot(dx, dy, dz);
-      if (d > bd) continue;
-      if (!gunnerCan(b, dx, dy, dz)) continue;
-      best = f; bd = d;
+    if (b.fighter || b.gone || b.hidden) continue;
+    const guns = planeGuns(b.spec, b.typeKey);
+    if (!guns.length) continue;
+    if (!b.gun) b.gun = guns.map((g) => ({ yaw: g.rest[0], pitch: g.rest[1], firing: false }));
+    const busy = !b.dying && b.y > 30;
+    if (busy && !fighters) fighters = world.planes.filter((q) => q.fighter && !q.dying && !q.hidden && q.y > 30);
+    mat4Ship(M, 0, 0, 0, b.heading, (b.pitch || 0) + (b.aoa || 0), b.roll || 0);
+    let any = false;
+    for (let i = 0; i < guns.length; i++) {
+      const g = guns[i], st = b.gun[i];
+      // the nearest enemy fighter this gunner can bear on, where it will be when his rounds get there
+      let best = null, bd = REACH, by = 0, bp = 0;
+      if (busy && fighters.length) {
+        for (const f of fighters) {
+          if (f.team === b.team) continue;
+          const dx = f.x - b.x, dy = f.y - b.y, dz = f.z - b.z, d = Math.hypot(dx, dy, dz);
+          if (d > bd) continue;
+          const tof = d / 750, ax = dx + (f.vx - b.vx) * tof, ay = dy + (f.vy - b.vy) * tof + 4.9 * tof * tof, az = dz + (f.vz - b.vz) * tof;
+          const al = Math.hypot(ax, ay, az) || 1, lx = (ax * M[0] + ay * M[1] + az * M[2]) / al, ly = (ax * M[4] + ay * M[5] + az * M[6]) / al, lz = (ax * M[8] + ay * M[9] + az * M[10]) / al;
+          const yaw = Math.atan2(lz, lx), pitch = Math.asin(clamp(ly, -1, 1));
+          if (!inArc(g, yaw, pitch)) continue;
+          best = f; bd = d; by = yaw; bp = pitch;
+        }
+      }
+      const rate = (best ? (g.turret ? SLEW_TURRET : SLEW_HAND) : SLEW_REST) * dt;
+      st.yaw = toward(st.yaw, best ? by : g.rest[0], rate); st.pitch = toward(st.pitch, best ? bp : g.rest[1], rate * 0.8);
+      st.firing = false;
+      if (!best) continue;
+      // he opens fire once his guns are nearly on it (he walks the tracers onto it)
+      const err = Math.acos(clamp(Math.cos(st.pitch) * Math.cos(bp) * Math.cos(wrapPi(st.yaw - by)) + Math.sin(st.pitch) * Math.sin(bp), -1, 1));
+      if (err > 0.12) continue;
+      st.firing = true; any = true;
+      const f = best;
+      // the muzzle and the line of the guns, in the world
+      const mz = muzzleOf(g, st.yaw, st.pitch, _mz), cy = Math.cos(st.yaw), sy = Math.sin(st.yaw), cp = Math.cos(st.pitch), sp = Math.sin(st.pitch);
+      const ux = cy * cp, uy = sp, uz = sy * cp;
+      const wx = M[0] * ux + M[4] * uy + M[8] * uz, wy = M[1] * ux + M[5] * uy + M[9] * uz, wz = M[2] * ux + M[6] * uy + M[10] * uz;
+      world.events.push({ type: 'mgFire', plane: b, target: f, cal: g.cal, n: g.n, x: b.x + M[0] * mz[0] + M[4] * mz[1] + M[8] * mz[2], y: b.y + M[1] * mz[0] + M[5] * mz[1] + M[9] * mz[2],
+        z: b.z + M[2] * mz[0] + M[6] * mz[1] + M[10] * mz[2], dx: wx, dy: wy, dz: wz, range: bd });
+      // the gunner lays his guns by eye: the lead is never quite right, so a fighter that crosses fast is harder to hit; in a closed-up section the fields of fire overlap
+      // (every gunner has a neighbour covering the same sky)
+      const dx = f.x - b.x, dy = f.y - b.y, dz = f.z - b.z, tof = bd / 750, rvx = f.vx - b.vx, rvy = f.vy - b.vy, rvz = f.vz - b.vz;
+      const rl = Math.hypot(dx, dy, dz) || 1, vx = dx / rl, vy = dy / rl, vz = dz / rl;
+      const vc = rvx * vx + rvy * vy + rvz * vz;
+      const vperp = Math.hypot(rvx - vc * vx, rvy - vc * vy, rvz - vc * vz);
+      const miss = vperp * tof * 0.4;
+      const sigma = 6 * 0.001 * rl + 1.2 + (f.evade > 0 ? 14 * tof * tof : 0);
+      const area = presentedArea(f, vx, vy, vz);
+      const hits = g.n * GUN_RATE(g.cal) * dt * roundHitChance(area, miss, sigma) * (b.tight && b.phase === 'cruise' ? 1.4 : 1);
+      const n = Math.floor(hits + world.rng());
+      if (n > 0) ctx.hit(world, b.owner, f, GUN_DMG(g.cal) * n * (0.8 + 0.4 * world.rng()), g.cal, 'gunner');
     }
-    if (!best) { b.gunFiring = false; continue; }
-    const f = best, dx = f.x - b.x, dy = f.y - b.y, dz = f.z - b.z;
-    const fx = Math.sin(b.heading), fz = -Math.cos(b.heading);
-    if (!b.gunFiring) world.events.push({ type: 'mgBurst', plane: b, x: b.x, y: b.y, z: b.z });
-    b.gunFiring = true;
-    world.events.push({ type: 'mgFire', plane: b, target: f, x: b.x - fx * 3, y: b.y + 0.9, z: b.z - fz * 3, dx: dx / bd, dy: dy / bd, dz: dz / bd, range: bd });
-    // the gunner lays his guns by eye: the lead is never quite right, so a fighter that crosses fast is harder to hit; in a closed-up section the fields of fire overlap
-    // (every gunner has a neighbour covering the same sky); two guns of 7.7 mm
-    const tof = bd / 700, rvx = f.vx - b.vx, rvy = f.vy - b.vy, rvz = f.vz - b.vz;
-    const rl = Math.hypot(dx, dy, dz) || 1, ux = dx / rl, uy = dy / rl, uz = dz / rl;
-    const vc = rvx * ux + rvy * uy + rvz * uz;
-    const vperp = Math.hypot(rvx - vc * ux, rvy - vc * uy, rvz - vc * uz);
-    const miss = vperp * tof * 0.4;
-    const sigma = 6 * 0.001 * rl + 1.2 + (f.evade > 0 ? 14 * tof * tof : 0);
-    const area = presentedArea(f, ux, uy, uz);
-    const hits = GUN_ROUNDS * (GUN_MULT[b.typeKey] || 1) * dt * roundHitChance(area, miss, sigma) * (b.tight && b.phase === 'cruise' ? 1.4 : 1);
-    const n = Math.floor(hits + world.rng());
-    if (n > 0) ctx.hit(world, b.owner, f, GUN_DMG * n * (0.8 + 0.4 * world.rng()), 7.7, 'gunner');
+    if (any && !b.gunFiring) world.events.push({ type: 'mgBurst', plane: b, x: b.x, y: b.y, z: b.z });
+    b.gunFiring = any;
   }
 }
 

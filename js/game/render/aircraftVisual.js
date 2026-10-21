@@ -104,6 +104,7 @@ export class PlaneVisuals {
       if (!lost.wingL) r.add(m.mesh.wingL, S32, tint, Math.max(dmg, 0.7), fire, rnd);
       if (!lost.wingR) r.add(m.mesh.wingR, S32, tint, Math.max(dmg, 0.7), fire, rnd);
     }
+    this.addGuns(m, S64, tint, dmg, fire, rnd, p.gun, lost, p.inCockpit);
     if (!p.inCockpit) {      // the propeller is not drawn from the pilot's seat: a frozen blade would hide the view
       // one propeller per engine (lost.engine: all of them, lost.engines[i]: that one); counter-rotating pairs turn the other way
       const mounts = m.pm.props;
@@ -139,6 +140,24 @@ export class PlaneVisuals {
         if (p.ordnance && m.mesh.ordnance) r.add(m.mesh.ordnance, S32, tint, 0, 0, rnd);
       }
     } else if (p.ordnance && m.mesh.ordnance) r.add(m.mesh.ordnance, S32, tint, 0, 0, rnd);
+  }
+
+  /**
+   * The guns of every gun position (model/planeGuns.js), turned to where the gunners aim them (st[i] = { yaw, pitch }, from sim/fighters.js) or at rest. Not the ones lost with
+   * the tail, nor, from the pilot's seat of a bomber, the ones in the nose that is not drawn then.
+   */
+  addGuns(m, S64, tint, dmg, fire, rnd, st, lost, inCockpit) {
+    const guns = m.pm.guns;
+    if (!guns || !guns.length) return;
+    const ex = inCockpit && m.pm.spec.engines ? m.pm.spec.eye.x - 0.9 : Infinity;
+    for (let i = 0; i < guns.length; i++) {
+      const g = guns[i], a = st && st[i];
+      if ((g.part === 'tail' && lost && lost.tail) || g.pivot[0] > ex) continue;
+      mat4YawPitchAt(H64, g.pivot[0], g.pivot[1], g.pivot[2], a ? a.yaw : g.rest[0], a ? a.pitch : g.rest[1]);
+      mat4Mul(P64, S64, H64);
+      for (let k = 0; k < 16; k++) P32[k] = P64[k];
+      this.r.add(m.mesh['gun' + i], P32, tint, dmg, fire, rnd);
+    }
   }
 
   /** The engines of a multi-engine aircraft that burn (p.engFire[i] > 0): a charred nacelle with glowing patches drawn over the nacelle, a little larger. */
@@ -305,6 +324,7 @@ export class PlaneVisuals {
         r.add(m.mesh[key], R32, tint, dmg, fire, rnd);
       }
     } else r.add(m.mesh.whole, Q32, tint, dmg, fire, rnd);
+    this.addGuns(m, M, tint, dmg, fire, rnd, null, null, false);
     if (gear && m.mesh.gear) r.add(m.mesh.gear, Q32, tint, dmg, fire, rnd);
     if (m.pm.spec.engines && !(spin < 0) && m.mesh.prop) {
       const mounts = m.pm.props;

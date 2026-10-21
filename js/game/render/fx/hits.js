@@ -30,7 +30,7 @@ export class HitFx {
       return;
     }
     if (k === 'bounce') {
-      for (let i = 0; i < 9; i++) p.add({ kind: K.TRACER, x: e.x, y: e.y, z: e.z, vx: rr(-40, 40), vy: rr(10, 60), vz: rr(-40, 40), s0: 0.25 * cs, life: rr(0.3, 0.7), r: 1, g: 0.75, b: 0.35, a0: 3.5, a1: 0, grav: 20, stretch: 3 * cs });
+      for (let i = 0; i < 9; i++) p.add({ kind: K.TRACER, x: e.x, y: e.y, z: e.z, vx: rr(-40, 40), vy: rr(10, 60), vz: rr(-40, 40), s0: 0.25 * cs, life: rr(0.3, 0.7), r: 1, g: 0.75, b: 0.35, a0: 1.6, a1: 0, grav: 20, stretch: 3 * cs });
       p.add({ kind: K.FLASH, x: e.x, y: e.y, z: e.z, s0: 3 * cs, s1: 7 * cs, life: 0.08, r: 1, g: 0.8, b: 0.5, a0: 6, a1: 0 });
       p.add({ kind: K.SMOKE, x: e.x, y: e.y, z: e.z, vy: 3, s0: 1.5 * cs, s1: 7 * cs, life: 2, r: 0.45, g: 0.43, b: 0.4, a0: 0.4, a1: 0, wind: 1, drag: 0.5 });
       this.addShake(0.03 * cs, e.x, e.z);
@@ -48,19 +48,20 @@ export class HitFx {
     for (let i = 0; i < nf; i++) p.add({ kind: K.FIRE, x: e.x + rr(-2, 2) * cs, y: e.y + rr(0, 3) * cs, z: e.z + rr(-2, 2) * cs, vx: rr(-6, 6), vy: rr(3, 14), vz: rr(-6, 6), s0: 4 * cs, s1: rr(10, 18) * cs, life: rr(0.5, 1.1), r: 1, g: 0.62, b: 0.2, a0: 4, a1: 0, drag: 1.2 });
     const ns = Math.round(7 * big * this.emitScale + 2);
     for (let i = 0; i < ns; i++) p.add({ kind: K.SMOKE, x: e.x + rr(-3, 3) * cs, y: e.y + rr(0, 4) * cs, z: e.z + rr(-3, 3) * cs, vx: rr(-3, 3), vy: rr(5, 13), vz: rr(-3, 3), s0: 4 * cs, s1: rr(18, 34) * cs, life: rr(7, 14), r: 0.07, g: 0.065, b: 0.06, a0: 0.78, a1: 0, drag: 0.35, wind: 1, grav: -0.25 });
-    for (let i = 0; i < 12; i++) p.add({ kind: K.TRACER, x: e.x, y: e.y, z: e.z, vx: rr(-60, 60), vy: rr(10, 80), vz: rr(-60, 60), s0: 0.35 * cs, life: rr(0.4, 1.1), r: 1, g: 0.7, b: 0.3, a0: 3.5, a1: 0, grav: 20, stretch: 4 * cs });
+    for (let i = 0; i < 12; i++) p.add({ kind: K.TRACER, x: e.x, y: e.y, z: e.z, vx: rr(-60, 60), vy: rr(10, 80), vz: rr(-60, 60), s0: 0.35 * cs, life: rr(0.4, 1.1), r: 1, g: 0.7, b: 0.3, a0: 1.6, a1: 0, grav: 20, stretch: 4 * cs });
     this.addShake(0.16 * cs * big, e.x, e.z);
   }
 
   /** A shower of sparks / fragments from a point, spread round a direction (unit vector). */
   sparks(x, y, z, dir, n, cone, speed, cs, col = [1, 0.72, 0.3], o = {}) {
     const p = this.p;
-    n = Math.max(2, Math.round(n * this.emitScale));
+    // (in daylight hot fragments are dull orange specks: twenty bright streaks with the bloom over them were a firework)
+    n = Math.max(2, Math.round(n * 0.55 * this.emitScale));
     for (let i = 0; i < n; i++) {
       // a random direction inside the cone round `dir`
       let vx = dir[0] + rr(-cone, cone), vy = dir[1] + rr(-cone, cone) * (o.flat ? 0.5 : 1), vz = dir[2] + rr(-cone, cone);
       const l = Math.hypot(vx, vy, vz) || 1, sp = speed * rr(0.35, 1.0);
-      p.add({ kind: K.TRACER, x, y, z, vx: vx / l * sp, vy: vy / l * sp + (o.lift || 0), vz: vz / l * sp, s0: (o.size || 0.3) * cs, life: rr(0.3, o.life || 0.9), r: col[0], g: col[1], b: col[2], a0: 3.6, a1: 0, grav: o.grav ?? 12, stretch: (o.stretch || 3.5) * cs });
+      p.add({ kind: K.TRACER, x, y, z, vx: vx / l * sp, vy: vy / l * sp + (o.lift || 0), vz: vz / l * sp, s0: (o.size || 0.3) * cs, life: rr(0.3, o.life || 0.9), r: col[0], g: col[1], b: col[2], a0: 1.6, a1: 0, grav: o.grav ?? 12, stretch: (o.stretch || 3.5) * cs });
     }
   }
 
@@ -95,9 +96,9 @@ export class HitFx {
         p.add({ kind: K.FLASH, x: e.x, y: e.y, z: e.z, s0: 5 * cs, s1: 12 * cs, life: 0.1, r: 1, g: 0.85, b: 0.55, a0: 8, a1: 0 });
         for (let i = 0; i < Math.round(22 * es); i++) {
           const t = i / 22, dl = 16 * cs * t;
-          p.add({ kind: K.TRACER, x: e.x + rd[0] * dl, y: e.y + rd[1] * dl, z: e.z + rd[2] * dl, vx: rd[0] * rr(25, 80) + rr(-8, 8), vy: rr(5, 26), vz: rd[2] * rr(25, 80) + rr(-8, 8), s0: 0.4 * cs, life: rr(0.35, 0.9), r: 1, g: 0.8, b: 0.4, a0: 4.5, a1: 0, grav: 18, stretch: 4 * cs });
+          p.add({ kind: K.TRACER, x: e.x + rd[0] * dl, y: e.y + rd[1] * dl, z: e.z + rd[2] * dl, vx: rd[0] * rr(25, 80) + rr(-8, 8), vy: rr(5, 26), vz: rd[2] * rr(25, 80) + rr(-8, 8), s0: 0.4 * cs, life: rr(0.35, 0.9), r: 1, g: 0.8, b: 0.4, a0: 2, a1: 0, grav: 18, stretch: 4 * cs });
         }
-        p.add({ kind: K.TRACER, x: e.x, y: e.y, z: e.z, vx: rd[0] * 260, vy: rd[1] * 260, vz: rd[2] * 260, s0: 0.5 * cs, life: 1.3, r: 1, g: 0.55, b: 0.22, a0: 5, a1: 0, grav: 6, stretch: 22 * cs });
+        p.add({ kind: K.TRACER, x: e.x, y: e.y, z: e.z, vx: rd[0] * 260, vy: rd[1] * 260, vz: rd[2] * 260, s0: 0.5 * cs, life: 1.3, r: 1, g: 0.55, b: 0.22, a0: 2.4, a1: 0, grav: 6, stretch: 22 * cs });
         dust(e.x, e.y, e.z, 3 * cs, 0.3, 0.5, 1.6);
         this.addShake(0.02 * cs, e.x, e.z);
         return;
@@ -105,7 +106,7 @@ export class HitFx {
       // the plate holds: orange flash, a hail of sparks, a lump of the shell's nose flung away, a puff of dust
       p.add({ kind: K.FLASH, x: e.x, y: e.y, z: e.z, s0: 5 * cs, s1: 11 * cs, life: 0.1, r: 1, g: 0.7, b: 0.3, a0: 8, a1: 0 });
       this.sparks(e.x, e.y, e.z, [rd[0] * 0.6 + back[0] * 0.4, rd[1] * 0.6 + 0.5, rd[2] * 0.6 + back[2] * 0.4], 24, 0.9, 85, cs, [1, 0.72, 0.28], { life: 1 });
-      p.add({ kind: K.TRACER, x: e.x, y: e.y, z: e.z, vx: rd[0] * 120, vy: rd[1] * 120 + 20, vz: rd[2] * 120, s0: 0.45 * cs, life: 0.9, r: 1, g: 0.5, b: 0.2, a0: 4.5, a1: 0, grav: 20, stretch: 8 * cs });
+      p.add({ kind: K.TRACER, x: e.x, y: e.y, z: e.z, vx: rd[0] * 120, vy: rd[1] * 120 + 20, vz: rd[2] * 120, s0: 0.45 * cs, life: 0.9, r: 1, g: 0.5, b: 0.2, a0: 2, a1: 0, grav: 20, stretch: 8 * cs });
       dust(e.x, e.y + 1, e.z, 6 * cs, 0.5, 0.45); this.addShake(0.06 * cs, e.x, e.z);
       return;
     }
@@ -118,7 +119,7 @@ export class HitFx {
       this.later(0.04, () => {
         p.add({ kind: K.FLASH, x: ex[0], y: ex[1], z: ex[2], s0: 4 * cs, s1: 9 * cs, life: 0.1, r: 1, g: 0.7, b: 0.35, a0: 7, a1: 0 });
         this.sparks(ex[0], ex[1], ex[2], dir, 14, 0.45, 70, cs, [1, 0.7, 0.3], { life: 0.7 });
-        p.add({ kind: K.TRACER, x: ex[0], y: ex[1], z: ex[2], vx: dir[0] * 280, vy: dir[1] * 280, vz: dir[2] * 280, s0: 0.5 * cs, life: 0.9, r: 1, g: 0.45, b: 0.18, a0: 5, a1: 0, grav: 12, stretch: 20 * cs });
+        p.add({ kind: K.TRACER, x: ex[0], y: ex[1], z: ex[2], vx: dir[0] * 280, vy: dir[1] * 280, vz: dir[2] * 280, s0: 0.5 * cs, life: 0.9, r: 1, g: 0.45, b: 0.18, a0: 2.4, a1: 0, grav: 12, stretch: 20 * cs });
         dust(ex[0], ex[1] + 1, ex[2], 5 * cs, 0.4, 0.22, 2.6);
       });
       this.addShake(0.04 * cs, e.x, e.z);
@@ -152,7 +153,7 @@ export class HitFx {
     }
     // high explosive: instant, bright and wide (on contact, or just behind a thin skin)
     const inside = e.inside, big = k === 'penetrate' ? 1.0 : 0.85;
-    p.add({ kind: K.FLASH, x: e.x, y: e.y + 1, z: e.z, s0: 20 * cs * big, s1: 44 * cs * big, life: 0.16, r: 1, g: 0.9, b: 0.66, a0: 11, a1: 0 });
+    p.add({ kind: K.FLASH, x: e.x, y: e.y + 1, z: e.z, s0: 16 * cs * big, s1: 36 * cs * big, life: 0.14, r: 1, g: 0.82, b: 0.52, a0: 6.5, a1: 0 });
     p.add({ kind: K.FLASH, x: e.x, y: e.y + 2, z: e.z, s0: 9 * cs, s1: 18 * cs, life: 0.3, r: 1, g: 0.6, b: 0.25, a0: 7, a1: 0 });
     const nf = Math.round((7 * big + 2) * es);
     for (let i = 0; i < nf; i++) p.add({ kind: K.FIRE, x: e.x + rr(-2, 2) * cs, y: e.y + rr(0, 3) * cs, z: e.z + rr(-2, 2) * cs, vx: rr(-9, 9), vy: rr(3, 16), vz: rr(-9, 9), s0: 5 * cs, s1: rr(12, 22) * cs, life: rr(0.4, 0.95), r: 1, g: 0.72, b: 0.3, a0: 4.4, a1: 0, drag: 1.3 });
@@ -216,7 +217,7 @@ export class HitFx {
     // hot embers and large pieces glowing in the fireball
     for (let i = 0; i < 40; i++) {
       const a = rnd() * 6.283, sp = rr(20, 90), el = rr(0.4, 1.4);
-      p.add({ kind: K.TRACER, x: e.x, y: e.y + 8, z: e.z, vx: Math.cos(a) * Math.cos(el) * sp, vy: Math.sin(el) * sp * 1.4, vz: Math.sin(a) * Math.cos(el) * sp, s0: 0.7, life: rr(1.5, 4), r: 1, g: 0.62, b: 0.25, a0: 4.5, a1: 1, grav: 14, drag: 0.04, stretch: 4 });
+      p.add({ kind: K.TRACER, x: e.x, y: e.y + 8, z: e.z, vx: Math.cos(a) * Math.cos(el) * sp, vy: Math.sin(el) * sp * 1.4, vz: Math.sin(a) * Math.cos(el) * sp, s0: 0.7, life: rr(1.5, 4), r: 1, g: 0.62, b: 0.25, a0: 2, a1: 1, grav: 14, drag: 0.04, stretch: 4 });
     }
     // shock wave: a ring of spray racing outwards over the water
     const nr = 48;
@@ -253,7 +254,7 @@ export class HitFx {
     const dark = kind === 'engine' ? 0.5 : 0.05;
     for (let i = 0; i < ns; i++) p.add({ kind: K.SMOKE, x: w[0] + rr(-2, 2) * big, y: w[1] + rr(0, 3), z: w[2] + rr(-2, 2) * big, vx: rr(-4, 4), vy: rr(4, 12), vz: rr(-4, 4), s0: 3 * big, s1: rr(12, 24) * big, life: rr(5, 12), r: dark, g: dark, b: dark, a0: kind === 'engine' ? 0.5 : 0.8, a1: 0, drag: 0.35, wind: 1, grav: -0.2 });
     const nt = Math.round(10 * big);
-    for (let i = 0; i < nt; i++) p.add({ kind: K.TRACER, x: w[0], y: w[1], z: w[2], vx: rr(-45, 45), vy: rr(8, 55), vz: rr(-45, 45), s0: 0.25, life: rr(0.4, 1), r: 1, g: 0.7, b: 0.3, a0: 3, a1: 0, grav: 18, stretch: 3 });
+    for (let i = 0; i < nt; i++) p.add({ kind: K.TRACER, x: w[0], y: w[1], z: w[2], vx: rr(-45, 45), vy: rr(8, 55), vz: rr(-45, 45), s0: 0.25, life: rr(0.4, 1), r: 1, g: 0.7, b: 0.3, a0: 1.5, a1: 0, grav: 18, stretch: 3 });
     this.addShake(0.05 * big, w[0], w[2]);
   }
 
@@ -277,7 +278,7 @@ export class HitFx {
 
   collision(e) {
     if (this.distToCam(e.x, e.z) > 4000) return;
-    for (let i = 0; i < 10; i++) this.p.add({ kind: K.TRACER, x: e.x, y: 5, z: e.z, vx: rr(-30, 30), vy: rr(5, 35), vz: rr(-30, 30), s0: 0.3, life: rr(0.4, 0.9), r: 1, g: 0.7, b: 0.3, a0: 3, a1: 0, grav: 20, stretch: 3 });
+    for (let i = 0; i < 10; i++) this.p.add({ kind: K.TRACER, x: e.x, y: 5, z: e.z, vx: rr(-30, 30), vy: rr(5, 35), vz: rr(-30, 30), s0: 0.3, life: rr(0.4, 0.9), r: 1, g: 0.7, b: 0.3, a0: 1.5, a1: 0, grav: 20, stretch: 3 });
     this.p.add({ kind: K.SMOKE, x: e.x, y: 6, z: e.z, vy: 4, s0: 6, s1: 28, life: 6, r: 0.3, g: 0.28, b: 0.26, a0: 0.6, a1: 0, wind: 1, drag: 0.4 });
     this.addShake(0.2, e.x, e.z);
   }

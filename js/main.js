@@ -4,6 +4,7 @@ import { Game } from './game/game.js';
 import { PRESETS } from './game/scenarios.js';
 import { TEAM_COLORS } from './game/sim/world.js';
 import { isMobile, maxPixelRatio } from './game/device.js';
+import { setBalanceFile, setBalance } from './game/data/balance.js';
 
 const canvas = document.getElementById('c');
 const qs = new URLSearchParams(location.search);
@@ -15,6 +16,10 @@ if (qs.has('preview')) {
   const { runPreview } = await import('./preview.js');
   await runPreview(engine, qs.get('preview').split(','), qs);
 } else {
+  // the damage multipliers: config/balance.json (built into naval.html), then what was set in this browser (Réglages -> Dégâts)
+  const file = window.__BALANCE_FILE ?? await fetch('config/balance.json', { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+  setBalanceFile(file);
+  try { const saved = JSON.parse(localStorage.getItem('naval.balance') || 'null'); if (saved) setBalance(saved); } catch (e) { /* storage blocked or bad data: the file's values */ }
   const game = new Game(engine, canvas, { seed: Number(qs.get('seed')) || (Math.random() * 1e6) | 0, islands: qs.has('islands') ? Number(qs.get('islands')) : 1, bases: qs.has('bases') ? Number(qs.get('bases')) : 1 });
   await game.init();
   window.__game = game;

@@ -12,6 +12,7 @@ import { cockpitEye } from './cockpit.js';
 import { MeshBuilder, MAT, rgb, shade } from './meshbuilder.js';
 import { drawHeavy, propMounts, bayPivot } from './heavy.js';
 import { HEAVY } from './bomberdata.js';
+import { planeGuns, drawGunHead } from './planeGuns.js';
 
 const PI = Math.PI;
 const D2R = PI / 180;
@@ -663,8 +664,11 @@ export function getPlaneModel(typeKey) {
     drawPlane(b, spec, { part });
     out[part] = b.vertexCount ? b.build() : null;
   }
+  // the guns of each gun position, each in its own frame (they turn: render/aircraftVisual.js)
+  const guns = planeGuns(spec, typeKey);
+  for (const g of guns) { const b = new MeshBuilder(); drawGunHead(b, g); out['gun' + g.id] = b.build(); }
   const ry0 = spec.fus.r * spec.fus.ar;
-  m = { key: typeKey, spec, meshes: out, radius: Math.hypot(spec.span / 2, spec.L / 2), groundY: spec.groundY || ry0 + (spec.gear === 'fixedbig' ? 1.15 : 0.95), props: propsOf(spec), bayPivot: spec.bay ? bayPivot(spec) : null };
+  m = { key: typeKey, spec, meshes: out, guns, radius: Math.hypot(spec.span / 2, spec.L / 2), groundY: spec.groundY || ry0 + (spec.gear === 'fixedbig' ? 1.15 : 0.95), props: propsOf(spec), bayPivot: spec.bay ? bayPivot(spec) : null };
   cache.set(typeKey, m);
   return m;
 }
