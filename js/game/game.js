@@ -168,6 +168,14 @@ export class Game {
     this.ui?.onStart?.();
   }
 
+  /** The button "Lancer le combat": the sounds are built first (with a progress bar), then the battle starts. */
+  async startWhenReady() {
+    if (this.state !== 'ready' || this.loading) return;
+    this.loading = true;
+    try { await this.audio.preload((d, t) => this.ui?.onLoading?.(d, t)); } finally { this.loading = false; this.ui?.onLoading?.(1, 1); }
+    this.start();
+  }
+
   reset() {
     this.world.clear();
     this.camera.director.reset();

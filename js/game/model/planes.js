@@ -460,8 +460,8 @@ export function drawPlane(b, s, { part = 'whole' } = {}) {
     b.quad([tx + t.finChord * 0.4, fy, -0.05], [tx - t.finChord * 0.45, fy, -0.05], [tx - t.finChord * 0.3, fy + t.fin * 0.95, -0.05], [tx + t.finChord * 0.4 - 0.4, fy + t.fin, -0.05], top, MAT.AIRCRAFT, [tx, fy, 1], 1);
     b.quad([tx + t.finChord * 0.4, fy, 0.05], [tx - t.finChord * 0.45, fy, 0.05], [tx - t.finChord * 0.45, fy, -0.05], [tx + t.finChord * 0.4, fy, -0.05], top, MAT.AIRCRAFT, [tx, fy + 1, 0], 1);
     // team identification band on the fin (tinted with the team colour by the renderer)
-    b.quad([tx - t.finChord * 0.05, fy + t.fin * 0.5, 0.062], [tx - t.finChord * 0.05 - 0.35, fy + t.fin * 0.5, 0.062], [tx - t.finChord * 0.2 - 0.33, fy + t.fin * 0.82, 0.062], [tx - t.finChord * 0.2, fy + t.fin * 0.82, 0.062], acc, MAT.FLAG, [tx, fy, -1], 1);
-    b.quad([tx - t.finChord * 0.05, fy + t.fin * 0.5, -0.062], [tx - t.finChord * 0.2, fy + t.fin * 0.82, -0.062], [tx - t.finChord * 0.2 - 0.33, fy + t.fin * 0.82, -0.062], [tx - t.finChord * 0.05 - 0.35, fy + t.fin * 0.5, -0.062], acc, MAT.FLAG, [tx, fy, 1], 1);
+    b.quad([tx - t.finChord * 0.05, fy + t.fin * 0.5, 0.062], [tx - t.finChord * 0.05 - 0.35, fy + t.fin * 0.5, 0.062], [tx - t.finChord * 0.2 - 0.33, fy + t.fin * 0.82, 0.062], [tx - t.finChord * 0.2, fy + t.fin * 0.82, 0.062], acc, MAT.TEAMBAND, [tx, fy, -1], 1);
+    b.quad([tx - t.finChord * 0.05, fy + t.fin * 0.5, -0.062], [tx - t.finChord * 0.2, fy + t.fin * 0.82, -0.062], [tx - t.finChord * 0.2 - 0.33, fy + t.fin * 0.82, -0.062], [tx - t.finChord * 0.05 - 0.35, fy + t.fin * 0.5, -0.062], acc, MAT.TEAMBAND, [tx, fy, 1], 1);
     }   // end of the central fin
     // tail wheel
     if (s.gear === 'float') b.beam([tx + 0.3, ry0 * 0.05, 0], [tx + 0.4, -ry0 * 0.5, 0], 0.07, 0.07, dark, MAT.DARK);

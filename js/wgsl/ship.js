@@ -513,7 +513,32 @@ fn gauge(kind: u32, uv: vec2f, ias: f32, alt: f32, hdg: f32, vsi: f32, bank: f32
       rough = 0.9;
       emissive = albedo * 0.12;
     }
-    case 9u: { rough = 0.4; f0 = vec3f(0.05); }
+    case 9u, 26u: {   // aircraft skin: riveted sheet-metal panels (ribs across the wings, frames and stringers on the fuselage), streaked by the airflow (26: the team band on the fin, painted the same way)
+      rough = 0.42; f0 = vec3f(0.05);
+      if (mat == 26u) { albedo = srgb2lin(in.tint.rgb) * 0.75; }
+      let onTop = up > 0.6;
+      let pa = select(lp.x / 0.8, lp.z / 1.05, onTop);
+      let pb = select(lp.y / 0.55, lp.x / 1.7, onTop);
+      let la = abs(fract(pa) - 0.5) * 2.0;
+      let lb = abs(fract(pb) - 0.5) * 2.0;
+      let fadeA = 1.0 - smoothstep(0.02, 0.1, fw);
+      let seam = max(smoothstep(0.96, 1.0, la), smoothstep(0.975, 1.0, lb)) * fadeA;
+      // two rows of rivets beside each seam, only resolved from close by
+      let along = select(lp.y + lp.z, lp.x, onTop);
+      let rd = abs(fract(along / 0.05) - 0.5) * 2.0;
+      let rows = smoothstep(0.88, 0.9, la) * (1.0 - smoothstep(0.915, 0.935, la));
+      let rivet = rows * (1.0 - smoothstep(0.4, 0.6, rd)) * (1.0 - smoothstep(0.002, 0.007, fw));
+      // each panel is a shade of its own (the sheets were not all painted, or weathered, alike)
+      let cell = vec2f(floor(pa) + 17.0 * floor(pb), in.misc.y * 5.0);
+      let tone = (hash21(cell) - 0.5) * 0.2 * (1.0 - smoothstep(0.06, 0.4, fw));
+      // dirt and oil streaked back along the airflow
+      let flow = gnoise(vec2f(lp.x * 0.45, lp.z * 5.0 + lp.y * 4.0 + in.misc.y * 9.0));
+      weather *= (1.0 + tone) * (1.0 - 0.26 * smoothstep(0.5, 0.9, flow) * (1.0 - smoothstep(0.2, 0.8, fw))) * (1.0 - 0.3 * seam) * (1.0 - 0.3 * rivet);
+      // the skin dishes a little between the ribs, the seams are recessed, the rivet heads stand proud
+      let dish = (0.5 - 0.5 * cos(6.2831853 * fract(pa))) * (0.5 - 0.5 * cos(6.2831853 * fract(pb)));
+      hgt = (-0.008 * seam + 0.0012 * rivet - 0.006 * dish * (0.4 + 0.6 * hash21(cell + 3.0))) * (1.0 - smoothstep(0.04, 0.2, fw));
+      rough = mix(rough, 0.55, smoothstep(0.55, 0.9, flow) * 0.5);
+    }
     case 10u: {  // national ensign
       albedo = srgb2lin(ensign(u32(in.paint.z + 0.5), in.col.rg));
       rough = 0.9;
@@ -531,18 +556,27 @@ fn gauge(kind: u32, uv: vec2f, ias: f32, alt: f32, hdg: f32, vsi: f32, bank: f32
     }
     case 12u: {  // the ground of an island: the soil colour is in the vertex, the grain is added here
       let tf = 1.0 - smoothstep(40.0, 420.0, dist);
+      let far = 1.0 - smoothstep(500.0, 2600.0, dist);                    // the 5 m patches would shimmer at a distance
       let g1 = clamp(0.5 + 0.9 * gnoise(lp.xz * 0.21), 0.0, 1.0);
       let g2 = clamp(0.5 + 0.9 * gnoise(lp.xz * 0.55 + 7.0), 0.0, 1.0);
       let g3 = clamp(0.5 + 0.9 * gnoise(lp.xz * 2.1 + 3.0), 0.0, 1.0);
       let steep = smoothstep(0.35, 0.75, 1.0 - up);
+      // a slow warped variation of the whole ground (fields drier here, greener there), so that the colour of a slope is not one flat tint
+      let wq = lp.xz + vec2f(gnoise(lp.xz * 0.02 + 3.0), gnoise(lp.xz * 0.02 + 9.0)) * 40.0;
+      let areaTone = gnoise(wq * 0.011) * 0.6 + gnoise(wq * 0.034 + 5.0) * 0.4;
+      albedo *= mix(vec3f(1.0), mix(vec3f(0.9, 1.04, 0.9), vec3f(1.1, 1.02, 0.86), clamp(0.5 + 1.4 * areaTone, 0.0, 1.0)), 0.9);
       // strata and crumbled rock on the steep ground, tufts and patches on the gentle one
-      let strata = sin(lp.y * 0.9 + g1 * 5.0 + lp.x * 0.05) * 0.5 + 0.5;
-      albedo *= (0.78 + 0.4 * g1) * (0.9 + 0.2 * g2 * tf + 0.08 * g3 * tf);
-      albedo *= mix(1.0, 0.72 + 0.4 * strata, steep * 0.7);
-      // the sand next to the water is wet and darker
-      albedo *= mix(0.62, 1.0, smoothstep(0.0, 1.4, lp.y));
+      let strata = smoothstep(0.35, 0.65, sin(lp.y * 0.9 + g1 * 5.0 + lp.x * 0.05 + 3.0 * gnoise(wq * 0.05)) * 0.5 + 0.5);
+      albedo *= mix(1.0, 0.8 + 0.3 * g1, far) * (0.9 + 0.2 * g2 * tf + 0.08 * g3 * tf);
+      let rockCol = vec3f(0.34, 0.31, 0.27) * (0.7 + 0.55 * g2);
+      albedo = mix(albedo, rockCol * (0.8 + 0.4 * strata), steep * smoothstep(1.0, 6.0, lp.y) * 0.6);
+      albedo *= mix(1.0, 0.72 + 0.4 * strata, steep * 0.5);
+      // the sand next to the water is wet and darker, up to where the last wave ran (which moves with the swell)
+      let run = 0.45 + 0.3 * sin(F.camPos.w * 0.55 + lp.x * 0.04 + lp.z * 0.025) + 0.15 * sin(F.camPos.w * 1.3 - lp.x * 0.09);
+      let wetSand = 1.0 - smoothstep(run - 0.1, run + 0.9, lp.y);
+      albedo *= mix(1.0, 0.58, wetSand);
       hgt = (0.16 * (g2 - 0.5) + 0.05 * (g3 - 0.5)) * tf;
-      rough = mix(0.93, 0.7, (1.0 - smoothstep(0.0, 0.8, lp.y)) * 0.7);
+      rough = mix(0.93, 0.35, wetSand * 0.85);
       weather = 1.0;
     }
     case 13u: {  // bark: furrows running along the trunk
@@ -628,6 +662,58 @@ fn gauge(kind: u32, uv: vec2f, ias: f32, alt: f32, hdg: f32, vsi: f32, bank: f32
       albedo = vec3f(0.03); rough = 0.85; interior = 1.0; weather = 1.0;
     }
     case 21u: { rough = 0.82; interior = 1.0; weather = 1.0; }
+    case 25u: {  // packed earth and gravel: yards, shoulders and roads of a base (the colour is a little lighter than it looks, the old ground shader darkened it)
+      let g = lp.xz;
+      let stones = gnoise(g * 14.0) * 0.5 * (1.0 - smoothstep(0.01, 0.07, fw)) + gnoise(g * 5.0 + 3.0) * 0.5 * (1.0 - smoothstep(0.03, 0.15, fw));
+      let blot = gnoise(g * 0.2 + 5.0) * 0.5 + gnoise(g * 0.9 + 1.0) * 0.5;
+      albedo *= 0.62 * (1.0 + 0.22 * blot + 0.12 * stones);
+      hgt = 0.008 * stones;
+      rough = 0.93;
+      weather = 1.0;
+    }
+    case 22u: {  // runway, taxiway, apron, road of a base: aggregate, worn and patched areas, hairline cracks, oil
+      let g = lp.xz;
+      let worn = gnoise(g * 0.045 + 3.0) * 0.5 + gnoise(g * 0.16 + 11.0) * 0.5;
+      let grain = gnoise(g * 7.0) * 0.55 * (1.0 - smoothstep(0.03, 0.12, fw)) + gnoise(g * 26.0 + 5.0) * 0.45 * (1.0 - smoothstep(0.008, 0.04, fw));
+      // hairline cracks: the zero lines of a warped noise (thin, jagged), only in some areas, gone at a distance
+      let warp = vec2f(gnoise(g * 2.3 + 9.0), gnoise(g * 2.3 + 19.0)) * 0.22;
+      let crackN = abs(gnoise(g * 0.9 + warp * 3.0 + 21.0));
+      let crack = (1.0 - smoothstep(0.0, 0.011, crackN)) * smoothstep(0.05, 0.25, gnoise(g * 0.08 + 4.0)) * (1.0 - smoothstep(0.05, 0.3, fw));
+      let oil = smoothstep(0.2, 0.42, gnoise(g * 0.5 + 40.0)) * smoothstep(0.1, 0.3, gnoise(g * 0.07 + 8.0));
+      albedo *= (1.0 + 0.2 * worn + 0.12 * grain) * (1.0 - 0.38 * crack) * (1.0 - 0.34 * oil);
+      rough = mix(0.88, 0.5, oil * 0.8);
+      hgt = 0.004 * grain - 0.01 * crack;
+      weather = 1.0;
+    }
+    case 23u: {  // painted concrete: pores, form joints, rain streaks, grime at the foot of the wall
+      let along = select(lp.x, lp.z, abs(in.lnrm.x) > abs(in.lnrm.z));
+      let uv = select(lp.xz, vec2f(along, lp.y), isSide);
+      let blot = gnoise(uv * 0.35 + 7.0) * 0.5 + gnoise(uv * 1.3 + 2.0) * 0.5;
+      let pores = gnoise(uv * 16.0) * (1.0 - smoothstep(0.012, 0.07, fw));
+      let streak = gnoise(vec2f(uv.x * 2.4, uv.y * 0.18 + 5.0));
+      let rain = smoothstep(0.05, 0.45, streak) * select(0.0, 1.0, isSide);
+      let foot = (1.0 - smoothstep(0.0, 1.2, lp.y)) * (0.18 + 0.12 * blot) * select(0.0, 1.0, isSide);
+      let jx = abs(fract(uv.x / 2.4) - 0.5) * 2.0;
+      let jy = abs(fract(uv.y / 1.2) - 0.5) * 2.0;
+      let joint = max(smoothstep(0.985, 1.0, jx) * select(0.0, 1.0, isSide), smoothstep(0.98, 1.0, jy)) * (1.0 - smoothstep(0.02, 0.1, fw));
+      albedo *= (1.0 + 0.1 * blot + 0.05 * pores) * (1.0 - 0.2 * rain - foot) * (1.0 - 0.2 * joint);
+      hgt = 0.0025 * pores - 0.008 * joint;
+      rough = 0.9;
+      weather = 1.0;
+    }
+    case 24u: {  // corrugated sheet metal: ribs down the slope (or upright on a wall), each sheet a shade of its own, rust in patches
+      let across = select(lp.x, lp.z, abs(in.lnrm.x) > abs(in.lnrm.z));
+      let rib = 0.5 - 0.5 * cos(6.2831853 * across / 0.09);
+      let fadeC = 1.0 - smoothstep(0.02, 0.12, fw);
+      let tone = (hash21(vec2f(floor(across / 0.85), in.misc.y * 7.0)) - 0.5) * 0.14;
+      let rustN = smoothstep(0.3, 0.75, gnoise(lp.xz * 0.8 + lp.y * 0.5 + in.misc.y * 11.0) + 0.25 * gnoise(lp.xz * 3.1));
+      albedo = mix(albedo, albedo * vec3f(1.2, 0.72, 0.5) * 0.85, rustN * 0.5);
+      albedo *= (1.0 + tone) * (1.0 - 0.16 * rib * fadeC);
+      hgt = 0.011 * rib * fadeC;
+      rough = mix(0.5, 0.78, rustN);
+      f0 = vec3f(0.07);
+      weather = 1.0;
+    }
     default: { rough = 0.74; }
   }
   N = bumpNormal(N, in.rel, hgt);
@@ -674,9 +760,15 @@ fn gauge(kind: u32, uv: vec2f, ias: f32, alt: f32, hdg: f32, vsi: f32, bank: f32
   let skyN = textureSampleLevel(envCube, sampC, N, ENV_MAXMIP - 1.0).rgb;
   let skyUp = textureSampleLevel(envCube, sampC, vec3f(0.0, 1.0, 0.0), ENV_MAXMIP).rgb;
   let amb = skyN * 0.85 + skyUp * 0.35;
-  let heightAO = mix(0.72, 1.0, smoothstep(-1.5, 7.0, lp.y));
+  // (a ship sits low in the water, its decks and its sides are dimmer; an aircraft's local height is nothing of the kind)
+  let heightAO = select(mix(0.72, 1.0, smoothstep(-1.5, 7.0, lp.y)), 1.0, mat == 9u || mat == 26u);
   let ao = in.ao * heightAO;
-  var col = albedo * (diffSun + amb * ao * 1.15);
+  // the light that bounces about in a crevice: pale paint is not as dark in a corner as black rubber is (multi-bounce occlusion fitted to the albedo)
+  let mbA = 2.0404 * albedo - vec3f(0.3324);
+  let mbB = -4.7951 * albedo + vec3f(0.6417);
+  let mbC = 2.7552 * albedo + vec3f(0.6903);
+  let aoMB = max(vec3f(ao), ((ao * mbA + mbB) * ao + mbC) * ao);
+  var col = albedo * (diffSun + amb * aoMB * 1.15);
   // leaves let the sun through: the side facing away from it glows yellow-green
   col += albedo * vec3f(1.0, 0.93, 0.5) * sunE * max(-NdL, 0.0) * trans * 0.5 / PI * step(-0.02, Ld.y);
   // the flash of a salvo (or of an explosion) lights the turrets, the deck and the superstructure round it for a tenth of a second
@@ -703,7 +795,18 @@ fn gauge(kind: u32, uv: vec2f, ias: f32, alt: f32, hdg: f32, vsi: f32, bank: f32
   // roughness-aware Fresnel for the environment reflection: rough paint does not turn into a mirror at grazing angles
   let F0e = mix(f0, albedo, metal);
   let Fe = F0e + (max(vec3f(1.0 - rough), F0e) - F0e) * pow(1.0 - clamp(nv, 0.0, 1.0), 5.0);
-  col = col * (1.0 - metal * 0.8) + spec + refl * Fe * ao * mix(0.55, 1.0, 1.0 - rough);
+  // what a crevice can see of the sky it cannot reflect either (specular occlusion, after the Frostbite course notes)
+  let specOcc = clamp(pow(nv + ao, exp2(-16.0 * rough - 1.0)) - 1.0 + ao, 0.0, 1.0);
+  col = col * (1.0 - metal * 0.8) + spec + refl * Fe * specOcc * mix(0.55, 1.0, 1.0 - rough);
+  // the swell throws moving patches of light up the hull from the sun-lit water (two sheets of ripples crossing, scrolling opposite ways)
+  if (mat == 5u && abs(in.lnrm.z) > 0.5) {
+    let tt = F.camPos.w;
+    let c1 = sin(lp.x * 1.7 + tt * 1.3 + sin(lp.y * 2.1 + tt) * 1.2);
+    let c2 = sin(lp.x * 2.9 - tt * 1.7 + lp.y * 1.5 + sin(lp.x * 0.9 - tt * 0.7) * 1.4);
+    let caus = pow(1.0 - abs(c1 * c2), 7.0);
+    let band = smoothstep(0.35, 0.9, lp.y) * (1.0 - smoothstep(1.6, 5.2, lp.y));
+    col += albedo * sunE * 0.06 * caus * band * max(Ld.y, 0.0) / PI * smoothstep(1.0, 12.0, dist);
+  }
   col += emissive;
   col = mix(col, albedo * (sunE * 0.15 + amb) , select(0.0, 0.3, mat == 8u));
 

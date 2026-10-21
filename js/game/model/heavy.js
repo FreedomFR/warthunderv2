@@ -346,7 +346,7 @@ function tailH(b, s, F, top, bot, acc, dark) {
     for (const sd of [1, -1]) {
       const zz = f.z + sd * ((f.th ?? 0.14) * 0.5 + 0.012);
       const q = [[F.X(lerp(la, ta, 0.5)), yA, zz], [F.X(lerp(la, ta, 0.9)), yA, zz], [F.X(lerp(lb, tb, 0.9)), yB, zz], [F.X(lerp(lb, tb, 0.5)), yB, zz]];
-      b.quad(q[0], q[1], q[2], q[3], acc, MAT.FLAG, [q[0][0], q[0][1], zz - sd], 1);
+      b.quad(q[0], q[1], q[2], q[3], acc, MAT.TEAMBAND, [q[0][0], q[0][1], zz - sd], 1);
     }
     void mid;
   }

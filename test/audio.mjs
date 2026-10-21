@@ -247,5 +247,41 @@ ok(loopsMax > 0, `continuous voices followed their sources (up to ${loopsMax})`)
   a.play = keep;
   for (const k of [...a.loops.keys()]) a.loops.get(k).seen = false;
 }
+// the sounds are built before the battle (the loading screen), not during it: ready() builds what is left at once and reports its progress
+{
+  const lib = makeLibrary(8000, (n, sr) => ({ length: n, getChannelData: () => new Float32Array(n), sr }));
+  const sub = ['splash_small', 'creak', 'gull', 'bomb_drop'], seen = [];
+  lib.warm(sub);
+  await lib.ready((d, t) => seen.push([d, t]));
+  const total = sub.reduce((a, n) => a + VARIANTS[n], 0);
+  ok(lib.pending() === 0 && seen.length >= total && seen[seen.length - 1][0] === seen[seen.length - 1][1], `ready() builds every queued buffer and reports the progress (${seen.length} reports for the ${VARIANTS ? SOUND_NAMES.reduce((q, n) => q + (n === 'aa_burst' ? 3 : 1) * VARIANTS[n], 0) : 0} buffers of the library)`);
+  ok(seen.every((q, i) => i === 0 || q[0] >= seen[i - 1][0]), 'the progress only goes forward');
+  const again = await lib.warm(sub);
+  ok(again === undefined && lib.pending() === 0, 'asking again adds nothing');
+}
+// the same with a pool of workers (here a fake one that answers later): the buffers are built off the main thread, several at a time, and stored
+{
+  let running = 0, peak = 0;
+  const pool = { size: 3, run: (name, sr, arg, variant) => new Promise((res) => { running++; peak = Math.max(peak, running); setTimeout(() => { running--; res(renderSound(name, sr, arg, variant)); }, 1); }) };
+  const lib = makeLibrary(8000, (n, sr) => ({ length: n, getChannelData: () => new Float32Array(n), sr }), pool);
+  const seen = []; await lib.ready((d, t) => seen.push(d));
+  ok(lib.pending() === 0 && seen.length > 150 && seen[seen.length - 1] >= 190, `with workers every buffer is built and reported (${seen.length} reports)`);
+  ok(peak === 3, `the workers build ${peak} buffers at a time`);
+  const same = lib.get('splash_big', undefined, 1);
+  ok(same.length > 0 && same === lib.get('splash_big', undefined, 1), 'and what they built is what the library hands out');
+  const bad = { size: 2, run: () => Promise.reject('worker error') };
+  const lib2 = makeLibrary(8000, (n, sr) => ({ length: n, getChannelData: () => new Float32Array(n), sr }), bad);
+  lib2.warm(['creak', 'gull']); await lib2.ready();
+  ok(lib2.pending() === 0 && lib2.get('creak', undefined, 0).length > 0, 'a worker that fails is replaced by building the buffer here');
+}
+{
+  const calls = [];
+  const fake = { lib: { ready: (f) => { calls.push('ready'); f(1, 4); return Promise.resolve(); } }, muted: false, offline: null };
+  await a.preload.call(fake, () => {});
+  ok(calls.length === 1, 'the audio engine preloads through the library');
+  fake.muted = true; calls.length = 0;
+  await a.preload.call(fake, () => {});
+  ok(calls.length === 0, 'no loading screen when the sound is muted');
+}
 console.log('sounds played:', [...names].sort().join(' '));
 console.log(fail ? `${fail} check(s) failed` : 'audio OK');

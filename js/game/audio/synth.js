@@ -39,8 +39,36 @@ function build(name, sr, arg, variant = 0, calibrate = true) {
 }
 
 /** Lazily-built sound library. createBuffer(len, sr) must return an object with getChannelData(0). */
-export function makeLibrary(sr, createBuffer) {
+export function makeLibrary(sr, createBuffer, pool = null) {
   const cache = new Map(), last = new Map();
+  // the background build: a queue of [name, arg, variant], built one per timer tick (at once, with no delay, when `ready` has been asked for)
+  const queue = [], queued = new Set(), waiters = [], listeners = [];
+  let total = 0, done = 0, pumping = false, eager = false;
+  // with a `pool` ({ size, run(name, sr, arg, variant) -> Promise<Float32Array> }: web workers, see audio/synthPool.js) the buffers are
+  // built on other threads, several at a time, and the page never stops; without one (tests, a browser without workers) they are built
+  // here, one per timer tick
+  let inflight = 0;
+  const finish = () => { pumping = false; listeners.length = 0; for (const r of waiters.splice(0)) r(); };
+  const store = (j, data) => {
+    const key = j[0] + ':' + (j[1] ?? '') + ':' + j[2];
+    if (!cache.has(key)) { const b = createBuffer(data.length, sr); b.getChannelData(0).set(data); cache.set(key, b); }
+    done++; for (const f of listeners) f(done, total);
+  };
+  const pumpPool = () => {
+    while (pool && inflight < pool.size && queue.length) {
+      const j = queue.shift();
+      inflight++;
+      pool.run(j[0], sr, j[1], j[2]).then((data) => store(j, data), () => { get(...j); done++; for (const f of listeners) f(done, total); }).then(() => { inflight--; pumpPool(); });
+    }
+    if (!queue.length && !inflight) finish();
+  };
+  const pump = (delay) => setTimeout(() => {
+    if (pool) { pumpPool(); return; }
+    const j = queue.shift();
+    if (j) { get(...j); done++; for (const f of listeners) f(done, total); }
+    if (queue.length) pump(0);
+    else finish();
+  }, eager ? 0 : delay);
   const get = (name, arg, variant = 0) => {
     const key = name + ':' + (arg ?? '') + ':' + variant;
     let b = cache.get(key);
@@ -62,18 +90,34 @@ export function makeLibrary(sr, createBuffer) {
       last.set(key, v);
       return get(name, arg, v);
     },
-    /** Builds everything in the background, one buffer per timer tick, so that no sound has to be built in the middle of a fight. */
+    /**
+     * Builds everything in the background, one buffer per timer tick, so that no sound has to be built in the middle of a fight.
+     * Calling it again adds nothing (the jobs are queued once); the promise resolves when the queue is empty.
+     */
     warm(list = SOUND_NAMES) {
-      const jobs = [];
       for (const n of list) {
-        if (n === 'aa_burst') { for (const c of [20, 25, 40]) for (let v = 0; v < VARIANTS[n]; v++) jobs.push([n, c, v]); }
-        else for (let v = 0; v < VARIANTS[n]; v++) jobs.push([n, undefined, v]);
+        if (queued.has(n)) continue;
+        queued.add(n);
+        if (n === 'aa_burst') { for (const c of [20, 25, 40]) for (let v = 0; v < VARIANTS[n]; v++) queue.push([n, c, v]); }
+        else for (let v = 0; v < VARIANTS[n]; v++) queue.push([n, undefined, v]);
       }
-      return new Promise((done) => {
-        const step = () => { const j = jobs.shift(); if (!j) return done(); get(...j); setTimeout(step, 0); };
-        setTimeout(step, 400);
-      });
+      total = queue.length + done;
+      if (!pumping) { pumping = true; pump(400); }
+      return new Promise((r) => { if (!queue.length) r(); else waiters.push(r); });
     },
+    /**
+     * Builds what is left now (the loading screen before a battle): no start delay, a tick per buffer so that the page can draw the
+     * progress. `onProgress(done, total)` is called after each buffer; the promise resolves when everything is built.
+     */
+    ready(onProgress) {
+      if (onProgress) listeners.push(onProgress);
+      eager = true;
+      const p = this.warm();
+      if (onProgress) onProgress(done, total);
+      return p.then(() => { eager = false; });
+    },
+    /** How many buffers are still to be built (0 when the library is complete). */
+    pending: () => queue.length,
   };
 }
 

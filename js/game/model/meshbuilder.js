@@ -30,6 +30,11 @@ export const MAT = {
   SIGHT: 19,    // the glass of a reflector sight: the ring and the dot are drawn by the shader
   DISC: 20,     // the blur of a propeller seen from the cockpit: a dithered dark disc
   INTERIOR: 21, // the inside of a cockpit: lit mostly by the sky
+  PAVEMENT: 22, // runways, taxiways, aprons and roads of a base: aggregate, patches, cracks, oil
+  CONCRETE: 23, // the painted concrete of the buildings of a base: pores, rain streaks, form joints
+  SHEET: 24,    // corrugated sheet metal: hangar walls and roofs
+  TEAMBAND: 26, // the team colour on the fin of an aircraft: painted like the skin (tint = the team)
+  GRAVEL: 25,   // packed earth and gravel of the yards, shoulders and roads of a base
 };
 
 import { bakeAO } from './ao.js';
