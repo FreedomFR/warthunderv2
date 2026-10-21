@@ -8,14 +8,19 @@ export function setVel(p) {
   p.vx = Math.sin(p.heading) * cp * p.speed; p.vy = Math.sin(p.pitch) * p.speed; p.vz = -Math.cos(p.heading) * cp * p.speed;
 }
 
+/** The stall speed (m/s) of an aircraft where it is: lower with the flaps down and in the denser air low down. */
+export function stallSpeed(p, flaps = !!p.gearDown) {
+  const rho = 1.225 * Math.exp(-Math.max(p.y, 0) / 9500);
+  return aeroOf(p.typeKey, p.spec).vs * Math.sqrt(1.0 / rho) * (flaps ? 0.79 : 1);
+}
+
 /** Flight dynamics step: heading, flight-path angle and speed towards the commanded values. */
 export function guide(p, dt, hdgT, gamT, spdT, o = {}) {
   const pf = perfOf(p), A = aeroOf(p.typeKey, p.spec);
   const v = Math.max(p.speed, 20);
   // how much the wing can lift here: (v / vs)^2 times the weight, vs lower with the flaps down (gear down: the landing configuration) and in the denser air low down
   const flaps = !!p.gearDown;
-  const rho = 1.225 * Math.exp(-Math.max(p.y, 0) / 9500);
-  const vs = A.vs * Math.sqrt(1.0 / rho) * (flaps ? 0.79 : 1);
+  const vs = stallSpeed(p, flaps);
   const nLift = (v / vs) * (v / vs);
   const nAvail = Math.max(1.02, Math.min(A.nmax, nLift * 0.9));
   // the climb the engine can hold: the excess of thrust over drag; above the climb speed the aircraft may zoom (trade its speed for height), below it it cannot
@@ -28,7 +33,9 @@ export function guide(p, dt, hdgT, gamT, spdT, o = {}) {
   // (a climb is flown at the speed it is told, but no faster than a cruise climb, between the best climb speed and the cruise: what is asked beyond comes once level)
   // (one that asks for more than the cruise, to catch up with its formation, a little faster)
   const cc = (pf.vcl + 0.4 * Math.max(0, pf.vc - pf.vcl)) * (spdT > pf.vc ? 1.3 : 1);
-  const vKeep = gamT > 0 ? Math.max(vs * 1.1, Math.min(spdT, cc)) : vs * 1.15;
+  // (with the flaps and the gear still out, just off the deck or the runway, it climbs away at its lift-off speed and gathers speed in the climb: it does not
+  //  go down to build speed first, which off a carrier's bow means into the sea)
+  const vKeep = gamT > 0 ? (flaps ? vs * 1.05 : Math.max(vs * 1.1, Math.min(spdT, cc))) : vs * 1.15;
   const gamMax = Math.asin(clamp(excess / G, -0.5, 0.6)) + clamp((v - vKeep) / v * 1.2, -0.25, 0.35);
   const climbLimited = gamT > gamMax;
   const gamW = Math.min(gamT, Math.max(gamMax, -1.5));

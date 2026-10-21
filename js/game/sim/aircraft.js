@@ -15,7 +15,7 @@ import { stepBasePlane } from './airfield.js';
 import { bombHitsBase } from './baseops.js';
 import { updateAA } from './planeaa.js';
 import { hitPlane, stepDying, collideShips, ditch, crash, landCrash } from './planedamage.js';
-import { setVel, guide } from './flight.js';
+import { setVel, guide, stallSpeed } from './flight.js';
 
 let nextPlane = 1;
 let nextBomb = 1;
@@ -313,7 +313,8 @@ function stepPlane(world, p, dt) {
   // a bomber that fighters are hunting on its way home takes shelter under the guns of the nearest friendly ships
   p.hunted = Math.max(0, (p.hunted || 0) - dt);
   if (p.hunted > 0 && !p.fighter && (p.phase === 'egress' || p.phase === 'return') && p.fuel > 200) { p.phase = 'refuge'; p.calm = 0; p.refuge = null; p.dirOrbit = world.rng() < 0.5 ? -1 : 1; }
-  if (p.gearDown && p.age > p.t0Air + 3 && p.phase !== 'pattern' && p.phase !== 'final' && p.phase !== 'waveoff') p.gearDown = false;
+  // (the gear and the flaps stay out until it is flying well clear of the stall, not just for a count of seconds: they are what lets it climb off the bow)
+  if (p.gearDown && p.age > p.t0Air + 3 && (p.speed > 1.2 * stallSpeed(p, false) || p.age > p.t0Air + 14) && p.phase !== 'pattern' && p.phase !== 'final' && p.phase !== 'waveoff') p.gearDown = false;
   // the hook is lowered with the gear for the landing; the nose is held high on the approach
   const landing = p.phase === 'pattern' || p.phase === 'final' || (p.phase === 'waveoff' && p.t < 9);
   p.hook = clamp(p.hook + (landing ? 1 : -1) * dt * 0.9, 0, 1);

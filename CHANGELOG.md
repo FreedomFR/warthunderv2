@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased — aircraft no longer drop into the sea off the bow of a carrier
+
+- **The bug**: an aircraft leaving the deck went down 7 to 15 m (to the sea on the Shōkaku, the Illustrious, the Graf Zeppelin) and skimmed the waves before it climbed. Cause in `guide` (`sim/flight.js`): a climb is flown at no less than the cruise-climb speed, and below it the path is pushed down by up to 14 degrees; an aircraft that has just left the bow at its lift-off speed, 10 to 15 m/s under it, was therefore made to dive to build the speed. The gear (the flaps) also came up after a fixed 3 s, which raised the stall speed under an aircraft still at the edge of it.
+- **The fix**: with the flaps and gear out the aircraft climbs away at 1.05 times its stall speed and gathers speed in the climb; they come up once it flies at 1.2 times the clean stall speed (14 s at most), not after a count of seconds. The worst sag of the six carriers goes from 7-15 m to 0.7-2.4 m. `test/takeoff.mjs` takes off from each carrier and fails if an aircraft sinks more than 4 m or below 10 m.
+
 ## Unreleased — torpedoes: the real power of the warheads, and the bow tubes of the S-30
 
 - **Damage follows the real power.** A warhead is now its filler in kg times how much more (or less) a kg of it breaks a hull than a kg of TNT (`data/explosives.js`: TNT 1, hexanite and Type 97 about 1.05, HBX 1.35, Torpex 1.5); the sim, the protection tables (which are in kg of TNT) and the wiki (new row "Équivalent TNT") work on that equivalent. A US Mk 15 (373 kg of HBX, 504 kg) and a British Mk IX** (365 kg of Torpex, 548 kg) hit harder than their weight says, a German G7a (280 kg of hexanite, 294 kg) is the lightest of the ship torpedoes; the damage still grows as W^0.7.
