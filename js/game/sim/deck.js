@@ -4,7 +4,7 @@
 // the wings fold and it taxis to a lift that takes it down to the hangar. Between the two the deck crew work too: the aircraft parked on deck
 // are struck below before a recovery and the park is spotted again from the hangar afterwards.
 // Aircraft on deck are placed in the ship's frame (lx forward, lz to starboard); the world position follows the ship.
-import { clamp, G } from '../math.js';
+import { clamp, wrapPi, G } from '../math.js';
 import { perfOf } from './airperf.js';
 import { groundY, GROUND_PITCH, hookBack, PLANES } from '../model/planes.js';
 
@@ -244,8 +244,8 @@ export function touchdown(world, ship, p, lx, lz) {
   p.lx = lx; p.lz = lz; p.lx0 = lx; p.lz0 = lz;
   const rx = p.vx - ship.vx, rz = p.vz - ship.vz;
   p.u = Math.max(12, Math.hypot(rx, rz));
-  p.yaw = p.heading - ship.heading;
-  p.gp = (p.pitch + (p.aoa || 0)) - ship.pitch;
+  p.yaw = wrapPi(p.heading - ship.heading);           // (within half a turn: a heading a full turn out would otherwise be unwound on the deck, the aircraft spinning round)
+  p.gp = (p.pitch + (p.aoa || 0)) - ship.pitch; p.aoa = 0;      // (the attitude goes over to the deck: the angle of attack is no longer added on top)
   p.hook = 1; p.gearDown = true; p.fold = 0; p.eng = 1; p.hidden = false;
   p.back = hookBack(p.spec);
   p.skip = world.rng() < 0.07;              // the hook skips the wires: a bolter
@@ -380,17 +380,20 @@ function stepDeckInner(world, p, dt) {
     const pf = perfOf(p);
     // the aircraft leaves the deck at its own lift-off speed (less the ship's speed: the deck is already moving through the air)
     const uL = p.uLift ?? (p.uLift = clamp(pf.vto - ship.speed, 14, 30));
-    p.u += RUN_ACC * dt;
+    // (an acceleration that brings it to its lift-off speed at the bow: without a catapult the run takes the whole of the deck ahead of it, 6 to 10 s)
+    const acc = p.runAcc ?? (p.runAcc = clamp(uL * uL / (2 * Math.max(30, dp.x1 - 3 - p.lx)), 1.6, RUN_ACC));
+    p.u += acc * dt;
     idleSpin(p, dt, 1);
     const lx = p.lx + p.u * dt;
     // the tail comes up as the speed builds, then the nose
-    p.gp = p.u < uL * 0.36 ? GROUND_PITCH : p.u < uL * 0.68 ? GROUND_PITCH * (1 - (p.u - uL * 0.36) / (uL * 0.32)) : (p.u - uL * 0.8) * 0.02;
+    p.gp = p.u < uL * 0.36 ? GROUND_PITCH : p.u < uL * 0.68 ? GROUND_PITCH * (1 - (p.u - uL * 0.36) / (uL * 0.32)) : Math.max(0, (p.u - uL * 0.8) * 0.02);
     p.lz += (0 - p.lz) * Math.min(1, dt * 2); p.yaw += (0 - p.yaw) * Math.min(1, dt * 3);
     place(p, ship, lx, p.lz, Math.max(0, p.u - uL * 0.84) * 0.18);
     if (p.u >= uL || lx > dp.x1 - 2) {
       p.phase = 'assemble'; p.asm = 'climb'; p.ds = null; p.t = 0; p.t0Air = p.age; p.eng = null;
       p.speed = Math.max(pf.vto * 0.9, ship.speed + p.u);
-      p.pitch = 0.12; p.bank = 0; p.roll = 0; p.gp = 0;
+      // the attitude it had at the end of the run is kept: the flight path level, the nose up (the angle of attack)
+      p.aoa = ship.pitch + p.gp; p.pitch = 0; p.bank = 0; p.roll = 0; p.gp = 0; p.runAcc = null;
       p.vx = Math.sin(p.heading) * p.speed; p.vz = -Math.cos(p.heading) * p.speed; p.vy = 0;
     }
     return true;

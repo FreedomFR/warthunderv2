@@ -271,6 +271,7 @@ export function setVel(p) {
 }
 
 /** Flight dynamics step: heading, flight-path angle and speed towards the commanded values. */
+const pf0 = (p) => perfOf(p);
 export function guide(p, dt, hdgT, gamT, spdT, o = {}) {
   const pf = perfOf(p);
   const v = Math.max(p.speed, 28);
@@ -283,7 +284,8 @@ export function guide(p, dt, hdgT, gamT, spdT, o = {}) {
   else p.bank += clamp(Math.atan(yr * v / G) - p.bank, -1.4 * dt, 1.4 * dt);
   const pr = o.pitchRate ?? pf.pr;
   p.pitch += clamp(gamT - p.pitch, -pr * dt, pr * dt);
-  const acc = clamp(-G * Math.sin(p.pitch) + (spdT - p.speed) * 0.4, -5.5, 9);
+  // (o.accMax: what the engine can give just after the take-off, flaps and gear still out, at full power and low speed)
+  const acc = clamp(-G * Math.sin(p.pitch) + (spdT - p.speed) * 0.4, -5.5, o.accMax ?? 9);
   p.speed = Math.max(30, p.speed + acc * dt);
   setVel(p);
 }
@@ -339,7 +341,9 @@ function stepPlane(world, p, dt) {
   // the hook is lowered with the gear for the landing; the nose is held high on the approach
   const landing = p.phase === 'pattern' || p.phase === 'final' || (p.phase === 'waveoff' && p.t < 9);
   p.hook = clamp(p.hook + (landing ? 1 : -1) * dt * 0.9, 0, 1);
-  p.aoa += ((p.phase === 'final' ? 0.15 : landing ? 0.07 : 0) - p.aoa) * Math.min(1, dt * 1.8);
+  // (and just after the take-off, the nose held high while the speed is low)
+  const climbing = p.phase === 'assemble' && p.asm !== 'orbit';
+  p.aoa += ((p.phase === 'final' ? 0.15 : landing ? 0.07 : climbing ? clamp((pf0(p).vcl - p.speed) / pf0(p).vcl * 0.6, 0, 0.12) : 0) - p.aoa) * Math.min(1, dt * 1.8);
 
   const pf = perfOf(p);
   let hdg = p.heading, gam = 0, spd = pf.vc, o = {};
@@ -352,7 +356,10 @@ function stepPlane(world, p, dt) {
       const lx = _l2[0], lz = _l2[2];
       const w = p.wave;
       if (p.asm !== 'orbit') {
-        hdg = ship.heading; gam = 0.14; spd = pf.vcl; o = { bankMax: 5 * D2R };
+        // off the bow just above the stall: the aircraft sinks a little, gathers speed low over the water, then climbs away
+        const tA = p.age - p.t0Air, slow = p.speed < pf.vto * 1.25;
+        hdg = ship.heading; spd = pf.vcl; o = { bankMax: 5 * D2R, accMax: p.fighter ? 3 : 2.4, pitchRate: 0.12 };
+        gam = tA < 1.5 ? -0.015 : slow && tA < 9 ? 0.025 : 0.1;
         if (lx > dp.x1 + 150 && p.y > deckY + 60) {
           if (w.cap || !carrierOk) { p.phase = p.role || 'cap'; p.t = 0; break; }
           p.asm = 'orbit'; p.holdAng = 0; p.holdPrev = null; p.orbT = 0;
@@ -393,6 +400,11 @@ function stepPlane(world, p, dt) {
       p.calm = p.hunted > 0 ? 0 : (p.calm || 0) + dt;
       if (p.calm > 15) { p.phase = 'return'; break; }
       const R = 1100, rx = p.x - c.x, rz = p.z - c.z, rl = Math.hypot(rx, rz) || 1;
+      // still a long way off: there at full speed, coming down, before the circle
+      if (rl > R * 2.2) {
+        hdg = Math.atan2(-rx, rz); spd = Math.min(pf.vmax * 0.95, pf.vc * 1.2); gam = clamp((350 - p.y) / 600, -0.12, 0.05); o = { bankMax: 45 * D2R };
+        break;
+      }
       const dir = p.dirOrbit || 1, k = clamp((R - rl) / R * 1.6, -1.2, 1.2);
       let vx = dir * rz / rl + rx / rl * k, vz = -dir * rx / rl + rz / rl * k;
       const vl = Math.hypot(vx, vz) || 1;
@@ -597,6 +609,8 @@ function stepPlane(world, p, dt) {
         const vl = p.vx * Math.cos(ship.heading) + p.vz * Math.sin(ship.heading);
         const rz = clamp((cc.zDown - lz) * 0.0009 - vl * 0.011, -0.4, 0.4);
         hdg = relHeading(ship, -1, rz);
+        // (onto the downwind leg the way of the circuit, as in the break over the ship: never a long turn the other way)
+        if (wrapPi(hdg - p.heading) * cc.turn < -2.3) hdg = p.heading + cc.turn * 1.2;
         gam = clamp((ship.y + cc.altDown - p.y) / 500, -0.05, 0.05);
         spd = pf.vp;
         o = { bankMax: 28 * D2R };
@@ -624,12 +638,15 @@ function stepPlane(world, p, dt) {
         p.holdPrev = th;
         if (Math.abs(p.holdAng) > 6.0) p.leg = 1;
       } else {
-        // the turn: a steady 28-degree bank towards the ship, losing height, until the nose is along the ship's course
-        hdg = p.heading + cc.turn * 1.0;
+        // the turn: towards a point on the centre line a few hundred metres ahead of the aircraft (it rolls out on the line instead of across it), the way of the
+        // circuit, losing height, until the nose is along the ship's course
+        const behind = dp.x0 - lx;
+        hdg = relHeading(ship, clamp(behind * 0.35, 250, 700), -lz);
+        if (wrapPi(hdg - p.heading) * cc.turn < -1.75) hdg = p.heading + cc.turn * 1.2;
         gam = clamp((ship.y + cc.altTurn - p.y) / 400, -0.06, 0.03);
         spd = pf.vp * 0.9;
         o = { bankMax: 28 * D2R };
-        if (Math.abs(wrapPi(p.heading - ship.heading)) < 0.3) {
+        if (Math.abs(wrapPi(p.heading - ship.heading)) < 0.3 && Math.abs(lz) < 350 + Math.max(0, behind) * 0.1) {
           // rolled out well off the centre line (or ahead of the ship): round the circuit again
           if (Math.abs(lz) > 900 || lx > dp.x0 - 400) { p.leg = 1; p.holdT = 0; break; }
           p.phase = 'final'; p.t = 0; p.tdPick = false;

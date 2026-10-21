@@ -112,9 +112,24 @@ const run = (w, secs, on) => { const t1 = w.time + secs; while (w.time < t1) { w
   for (const b of w.bases) if (b.team === 1) for (const q of b.parked) if (q) q.svc = 1e9;
   const types = new Set(af.parked.filter(Boolean).map((p) => p.typeKey));
   const c = {}, phases = new Set();
-  let nan = 0, bombs = 0, underground = 0;
+  let nan = 0, bombs = 0, underground = 0, rightTurn = 0, finalSwing = 0;
+  const F = () => af._fld;
   w.start();
   run(w, 1700, (ev) => {
+    // the circuit is flown with turns to the left (no long turn to the right), and the final, once lined up, is not left again
+    for (const p of w.planes) {
+      if (p.base !== af || !F()) continue;
+      if (p.phase === 'return' && (p.leg === 'down' || p.leg === 'base')) {
+        const d = p._ph == null ? 0 : Math.atan2(Math.sin(p.heading - p._ph), Math.cos(p.heading - p._ph));
+        p._rt = d > 0.002 ? (p._rt || 0) + d : 0; rightTurn = Math.max(rightTurn, p._rt);
+      } else p._rt = 0;
+      if (p.phase === 'lfinal') {
+        const off = Math.abs(Math.atan2(Math.sin(p.heading - F().rwHdg), Math.cos(p.heading - F().rwHdg)));
+        if (off < 0.2) p._lined = true;
+        if (p._lined) finalSwing = Math.max(finalSwing, off);
+      } else p._lined = false;
+      p._ph = p.heading;
+    }
     for (const e of ev) { c[e.type] = (c[e.type] || 0) + 1; if (e.type === 'bombDrop' && e.plane.base === af) bombs++; }
     for (const p of w.planes) {
       if (p.base !== af) continue;
@@ -127,6 +142,7 @@ const run = (w, secs, on) => { const t1 = w.time + secs; while (w.time < t1) { w
   ok(['taxiOut', 'holdshort', 'lineup', 'groundRun', 'climb', 'assemble', 'cruise', 'run', 'return', 'lfinal', 'lroll', 'taxiBack'].every((p) => phases.has(p)), `a sortie goes through every phase (${[...phases].join(' ')})`);
   ok(bombs > 0, `the bombers drop their bombs on the ship (${bombs})`);
   ok((c.planeTouchdown || 0) > 0, `and some of them come back and land (${c.planeTouchdown || 0})`);
+  ok(rightTurn < 0.8 && finalSwing < 0.35, `the landing circuit turns to the left (longest turn to the right ${(rightTurn * 57.3).toFixed(0)} degrees) and a lined-up final stays lined up (worst ${(finalSwing * 57.3).toFixed(0)} degrees)`);
   void types; void es;
 }
 // the wave leaves one after the other, no two on the runway

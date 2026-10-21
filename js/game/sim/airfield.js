@@ -19,6 +19,7 @@ const LANDING = new Set(['return', 'hold', 'lfinal', 'goaround']);
 const TAXI = 9, TAXI_TURN = 0.5;          // taxi speed (m/s) and turn rate (rad/s)
 const SERVICE = 200;                       // seconds a landed aircraft spends being refuelled and rearmed
 const GLIDE = 0.056;                       // the glide slope of the final approach (about 3.2 degrees)
+const FINAL_A = 3200;                      // metres from the threshold where the base leg turns onto the final
 
 // ---- geometry of a field -----------------------------------------------------------------------------------------------------------------------------------
 
@@ -232,7 +233,7 @@ function finalClear(world, base, F, p) {
   const ap = alongFinal(F, p);
   for (const q of world.planes) {
     if (q === p || q.base !== base || q.dying || q.gone || (q.phase !== 'lfinal' && q.phase !== 'goaround')) continue;
-    if (Math.abs(alongFinal(F, q) - Math.max(ap, 5600)) < 2600) return false;
+    if (Math.abs(alongFinal(F, q) - Math.max(ap, FINAL_A)) < 2400) return false;
   }
   return true;
 }
@@ -312,7 +313,8 @@ export function stepBasePlane(world, p, dt) {
       p.y = F.y + groundY(p.spec) + 0.04 + Math.max(0, fv - 1) * 4;
       p.pitch = p.gp; p.bank = 0; p.roll = 0;
       if (p.speed >= vto) {
-        p.phase = 'climb'; p.ground = false; p.eng = null; p.t = 0; p.t0Air = p.age; p.pitch = 0.1; p.gp = 0;
+        // the attitude of the end of the run is kept: the flight path still level, the nose up
+        p.phase = 'climb'; p.ground = false; p.eng = null; p.t = 0; p.t0Air = p.age; p.aoa = Math.max(0.05, p.gp); p.pitch = 0; p.gp = 0;
         if (base.parked[p.slot] === p) { /* the slot stays reserved for this aircraft */ }
         freeRunway(base, p);
         base.air.lastRoll = world.time;
@@ -323,9 +325,11 @@ export function stepBasePlane(world, p, dt) {
     }
     case 'climb': {
       // straight ahead, climbing, the gear coming up
-      const alt = p.y - F.y;
+      // a few seconds low over the runway gathering speed, then the climb; the nose comes down as the speed builds
+      const alt = p.y - F.y, tA = p.age - p.t0Air, slow = p.speed < pf.vto * 1.2;
       p.gearDown = p.age < p.t0Air + 6;
-      guide(p, dt, F.rwHdg, alt < 40 ? 0.07 : 0.1, pf.vcl, { bankMax: 6 * D2R });
+      guide(p, dt, F.rwHdg, slow && tA < 10 ? 0.025 : alt < 40 ? 0.06 : 0.09, pf.vcl, { bankMax: 6 * D2R, accMax: p.fighter ? 3 : 1.8, pitchRate: 0.1 });
+      p.aoa += (clamp((pf.vcl - p.speed) / pf.vcl * 0.6, 0, 0.1) - p.aoa) * Math.min(1, dt * 1.5);
       advance(p, dt);
       if (alt > 150) {
         if (p.fighter) { p.phase = p.role || 'cap'; p.t = 0; }
@@ -391,6 +395,11 @@ function orbit(p, cx, cz, R, dir, v) {
   return atan2h(vx / vl, vz / vl);
 }
 const atan2h = (vx, vz) => Math.atan2(vx, -vz);
+/** The heading to command so that a turn of more than 100 degrees to the right towards `want` is flown to the left instead (guide() takes the short way round). */
+function leftTurn(cur, want) {
+  const err = wrapPi(want - cur);
+  return err > 1.75 ? cur - 1.2 : want;
+}
 
 function stepAir(world, p, dt, base, F, pf, T) {
   p.fuel -= dt;
@@ -493,25 +502,61 @@ function stepAir(world, p, dt, base, F, pf, T) {
       break;
     }
     case 'return': case 'hold': {
-      // to the entry point of the approach (5.6 km before the threshold), then round the circuit until the runway is free
-      const iaf = approachPoint(base, 5600, 330);
-      const dx = iaf[0] - p.x, dz = iaf[2] - p.z, d = Math.hypot(dx, dz);
+      // the circuit of the field, all turns to the left: the downwind leg beside the runway the other way, a base leg across, and the turn onto a final of about 3 km.
+      // An aircraft that comes in already lined up goes straight in; one that has to wait goes round a circle beside the downwind leg and joins it again.
       p.gearDown = false;
-      if (p.phase === 'return') {
-        hdg = atan2h(dx, dz);
-        gam = clamp((iaf[1] - p.y) / 700, -0.1, 0.1);
-        spd = pf.vc;
-        if (d < 1400) {
-          if (finalClear(world, base, F, p)) { p.phase = 'lfinal'; p.t = 0; p.gearDown = true; p.t0Air = p.age; }
-          else { p.phase = 'hold'; p.t = 0; p.dirOrbit = F.D; }
-        }
-      } else {
-        // a left-hand circle beside the entry point
-        const cx = iaf[0] - F.r[0] * 1500, cz = iaf[2] - F.r[1] * 1500, R = 1500;
+      const T0 = F.toW(F.sThr, 0), px = p.x - T0[0], pz = p.z - T0[1];
+      const a = -(px * F.u[0] + pz * F.u[1]), e = px * F.r[0] + pz * F.r[1];       // metres before the threshold, to the right of the centre line
+      const vA = -(p.vx * F.u[0] + p.vz * F.u[1]), vE = p.vx * F.r[0] + p.vz * F.r[1];
+      const W = p.fighter ? 1300 : 1700, hC = F.y + (p.fighter ? 280 : 330), aBase = FINAL_A;
+      const downHdg = wrapPi(F.rwHdg + Math.PI), baseHdg = wrapPi(F.rwHdg + Math.PI / 2);
+      if (p.phase === 'hold') {
+        // a left-hand circle outside the downwind leg, abeam the middle of the runway; back on the downwind leg, going the right way, when the final is free
+        const R = 900, c = F.toW(F.sThr + F.D * F.len * 0.5, 0), cx = c[0] - F.r[0] * (W + R), cz = c[1] - F.r[1] * (W + R);
         hdg = orbit(p, cx, cz, R, -1, pf.vp);
-        spd = pf.vp; gam = clamp((iaf[1] - p.y) / 500, -0.05, 0.05); o = { bankMax: 28 * D2R };
-        if (p.t > 20 && finalClear(world, base, F, p)) { p.phase = 'return'; p.t = 0; }
+        spd = pf.vp; gam = clamp((hC - p.y) / 500, -0.05, 0.05); o = { bankMax: 28 * D2R };
+        if (p.t > 20 && finalClear(world, base, F, p) && Math.abs(wrapPi(p.heading - downHdg)) < 0.5 && e < -W * 0.6) { p.phase = 'return'; p.leg = 'down'; p.t = 0; }
+        break;
       }
+      spd = pf.vc;
+      if (!p.leg || p.leg === 'join') {
+        // lined up already, a good way out: straight in
+        if (a > aBase - 300 && a < 14000 && Math.abs(e) < 250 + a * 0.12 && Math.cos(wrapPi(p.heading - F.rwHdg)) > 0.7 && p.y - F.y < 250 + a * 0.12) {
+          if (finalClear(world, base, F, p)) { p.phase = 'lfinal'; p.t = 0; p.gearDown = true; p.t0Air = p.age; p.leg = null; break; }
+        }
+        // to the start of the downwind leg: abeam the far end of the runway, out on the left, coming at it from outside the circuit
+        const ja = -F.len - 900, je = -W;
+        const tx = T0[0] - F.u[0] * ja + F.r[0] * (je - 500), tz = T0[1] - F.u[1] * ja + F.r[1] * (je - 500);
+        const dx = tx - p.x, dz = tz - p.z, d = Math.hypot(dx, dz);
+        hdg = atan2h(dx, dz);
+        gam = clamp((hC + 150 - p.y) / 700, -0.1, 0.1);
+        if (d < 1500) p.leg = 'down';
+        // already beside the runway on the left, going the downwind way: join the leg where it is
+        if (e < -W * 0.5 && e > -W * 1.6 && a < aBase && Math.cos(wrapPi(p.heading - downHdg)) > 0.7) p.leg = 'down';
+      }
+      if (p.leg === 'down') {
+        // along the runway the other way, the line held with a damped correction, down to the height of the circuit, slowing to the circuit speed
+        hdg = downHdg + clamp((e + W) * 0.0011 + vE * 0.012, -0.5, 0.5);
+        gam = clamp((hC - p.y) / 400, -0.1, 0.04);
+        spd = pf.vp; o = { bankMax: 28 * D2R };
+        // abeam the point where the base leg starts, at the height of the circuit: turn in if the final is free; else go round the holding circle
+        // (one that comes in high goes on down the leg, losing height, before it turns)
+        if (a > aBase && p.y < hC + 60) {
+          if (finalClear(world, base, F, p)) { p.leg = 'base'; p.t = 0; }
+          else if (a > aBase + 2500) { p.phase = 'hold'; p.t = 0; p.leg = null; }
+        } else if (a > aBase + 6000) { p.phase = 'hold'; p.t = 0; p.leg = null; }
+      }
+      if (p.leg === 'base') {
+        // across, towards the centre line, coming down; the gear goes down; the turn onto the final when the centre line is near
+        hdg = baseHdg + clamp((a - aBase) * -0.0008 + vA * -0.01, -0.35, 0.35);
+        gam = clamp((F.y + 25 + aBase * GLIDE - p.y) / 400, -0.07, 0.03);
+        spd = pf.vp * 0.95; o = { bankMax: 28 * D2R };
+        p.gearDown = true;
+        const lead = Math.min(700, Math.max(250, p.speed * p.speed / (G * Math.tan(25 * D2R))));         // the radius of the turn to final
+        if (e > -lead) { p.phase = 'lfinal'; p.t = 0; p.gearDown = true; p.t0Air = p.age; p.leg = null; }
+      }
+      // in the circuit every turn is to the left, away from the runway: a heading more than a quarter turn to the right is reached by turning left
+      if (p.leg === 'down' || p.leg === 'base') hdg = leftTurn(p.heading, hdg);
       if (p.fuel < -200) { p.fuel = 0; }
       break;
     }
@@ -526,6 +571,9 @@ function stepAir(world, p, dt, base, F, pf, T) {
       const h = p.y - F.y, wantH = gy + 0.25 + Math.max(0, a + 130) * GLIDE;
       gam = clamp(-GLIDE + (wantH - h) / 90, -0.1, 0.06);
       if (h < 14) gam = Math.max(gam, -0.03);
+      // the flare: in the last few metres the nose comes up to the attitude it will sit on its wheels with, and the sink rate falls off
+      const flare = clamp((gy + 6 - h) / 5, 0, 1);
+      if (flare > 0) gam = Math.max(gam, -0.035 + 0.013 * flare);
       spd = pf.va;
       o = { bankMax: 20 * D2R };
       const s = F.sOf(p.x, p.z);
@@ -534,7 +582,8 @@ function stepAir(world, p, dt, base, F, pf, T) {
         // somebody else on the runway: round again
         if (!takeRunway(base, p)) { p.phase = 'goaround'; p.t = 0; break; }
         p.phase = 'lroll'; p.ground = true; p.eng = 0.2; p.t = 0;
-        p.rs = s; p.rt = F.tOf(p.x, p.z); p.gp = 0.02; p.gearDown = true;
+        // the attitude of the flare goes over to the ground (the angle of attack is no longer added on top); the tail comes down
+        p.rs = s; p.rt = F.tOf(p.x, p.z); p.gp = p.pitch + (p.aoa || 0); p.pitch = p.gp; p.aoa = 0; p.gearDown = true;
         p.u = p.speed;
         world.events.push({ type: 'planeTouchdown', plane: p, back: 4 });
         return true;
@@ -559,7 +608,7 @@ function stepAir(world, p, dt, base, F, pf, T) {
       p.rs += F.D * p.speed * dt; p.rt += (0 - p.rt) * Math.min(1, dt * 1.2);
       const w = F.toW(p.rs, p.rt); p.x = w[0]; p.z = w[1];
       p.heading = F.rwHdg;
-      p.gp = approach(p.gp, GROUND_PITCH, 0.08 * dt);
+      p.gp = approach(p.gp, GROUND_PITCH, 0.05 * dt);
       p.vx = F.u[0] * p.speed; p.vz = F.u[1] * p.speed; p.vy = 0;
       onGround(base, p);
       const toExit = F.D * (F.sExit - p.rs);
@@ -580,7 +629,8 @@ function stepAir(world, p, dt, base, F, pf, T) {
   }
   guide(p, dt, hdg, gam, spd, o);
   advance(p, dt);
-  p.aoa += ((p.phase === 'lfinal' ? 0.1 : 0) - p.aoa) * Math.min(1, dt * 1.8);
+  const flr = p.phase === 'lfinal' ? clamp((groundY(p.spec) + 6 - (p.y - F.y)) / 5, 0, 1) : 0;
+  p.aoa += ((p.phase === 'lfinal' ? 0.1 + (GROUND_PITCH * 0.9 - 0.1) * flr : 0) - p.aoa) * Math.min(1, dt * (flr > 0 ? 3 : 1.8));
   return airborneChecks(world, p, T, F);
 }
 
