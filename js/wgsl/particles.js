@@ -35,15 +35,23 @@ struct VOut {
   let right = normalize(F.camRight.xyz);
   let up = normalize(F.camUp.xyz);
   var p = v.a.xyz;
-  let size = v.a.w;
+  var size = v.a.w;
+  var col = v.col;
+  // a tracer far off is thinner than a pixel: it is drawn a pixel wide and dimmer by as much, so that it shows as a steady spark instead of flickering in and out
+  if (u32(v.misc.y + 0.5) == 3u) {
+    let px = length(p) * 0.0011;
+    if (px > size) { col = vec4f(col.rgb, col.a * size / px); size = px; }
+  }
   if (v.dir.w > 0.0) {
     let axis = normalize(v.dir.xyz);
     let view = normalize(p);
     var side = cross(axis, view);
     let sl = length(side);
     side = select(right, side / sl, sl > 1e-4);
-    // x runs along the streak (centre at p), y across it
-    p += axis * (c.x * v.dir.w * 0.5) + side * (c.y * size);
+    // x runs along the streak (centre at p), y across it; a streak coming at the lens is cut so that its near end stays well off it (it would open into a cone)
+    var len = v.dir.w;
+    if (u32(v.misc.y + 0.5) == 3u) { len = min(len, length(v.a.xyz) * 0.6); }
+    p += axis * (c.x * len * 0.5) + side * (c.y * size);
   } else {
     let cr = cos(v.misc.x); let sr = sin(v.misc.x);
     let q = vec2f(c.x * cr - c.y * sr, c.x * sr + c.y * cr);
@@ -52,7 +60,7 @@ struct VOut {
   var o: VOut;
   o.pos = F.viewProj * vec4f(p, 1.0);
   o.uv = c;
-  o.col = v.col;
+  o.col = col;
   o.misc = v.misc;
   o.rel = v.a.xyz;
   o.size = size;
@@ -140,10 +148,14 @@ fn vnoise(p: vec2f) -> f32 {
       let face = clamp(0.55 + 0.7 * dot(in.uv, sd2), 0.0, 1.3);
       rgb = rgb * (amb * 1.15 + sunE * 0.1 * face) * 1.25;
     }
-    case 3u: {   // tracer streak (additive): hot head, fading tail
+    case 3u: {   // tracer streak (additive): a white-hot head in a coloured glow, the tail fading behind it
       let along = in.uv.x * 0.5 + 0.5;
-      let across = 1.0 - abs(in.uv.y);
-      add = pow(max(across, 0.0), 2.2) * pow(along, 2.5) * in.col.a;
+      let across = max(1.0 - abs(in.uv.y), 0.0);
+      let head = pow(along, 7.0) * pow(across, 5.0);
+      rgb = mix(rgb, vec3f(1.0, 0.9, 0.75), clamp(head * 0.45, 0.0, 0.45));
+      add = (pow(across, 2.2) * pow(along, 2.5) * 0.8 + head * 0.6) * in.col.a;
+      // one that passes within a few metres of the lens is a quick dim streak, not a bar across the screen
+      add = add * smoothstep(0.8, 9.0, dist);
     }
     case 5u: {   // fireball lobe: opaque billowing gas, white-hot core, orange body, dark red-brown rim; cools with age (misc.w)
       let age = clamp(in.misc.w, 0.0, 1.0);

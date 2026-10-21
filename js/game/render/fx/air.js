@@ -5,14 +5,23 @@ import { DECK_PHASES } from '../../sim/deck.js';
 import { rnd, rr } from './common.js';
 
 export class AirFx {
-  /** An aircraft is hit: sparks, a puff of debris smoke. */
+  /**
+   * An aircraft is hit: the flashes of the rounds bursting on the airframe (small, a metre or so, scattered over the wings and the fuselage), a few sparks, and now and then a
+   * puff of debris. A shell of 20 mm and more makes a bigger flash than a machine-gun round.
+   */
   planeHit(e) {
     const d = this.distToCam(e.x, e.z);
     if (d > 9000) return;
-    const p = this.p;
-    p.add({ kind: K.FLASH, x: e.x, y: e.y, z: e.z, s0: 3, s1: 7, life: 0.08, r: 1, g: 0.8, b: 0.5, a0: 6, a1: 0 });
-    for (let i = 0; i < 5; i++) p.add({ kind: K.TRACER, x: e.x, y: e.y, z: e.z, vx: rr(-30, 30) + e.plane.vx * 0.5, vy: rr(-20, 30) + e.plane.vy * 0.5, vz: rr(-30, 30) + e.plane.vz * 0.5, s0: 0.18, life: rr(0.2, 0.5), r: 1, g: 0.75, b: 0.35, a0: 3, a1: 0, grav: 6, stretch: 2.5 });
-    p.add({ kind: K.SMOKE, x: e.x, y: e.y, z: e.z, vx: e.plane.vx * 0.2, vy: 1, vz: e.plane.vz * 0.2, s0: 1.2, s1: 6, life: 2.4, r: 0.3, g: 0.28, b: 0.26, a0: 0.5, a1: 0, wind: 1, drag: 0.8 });
+    const p = this.p, pl = e.plane, cal = e.cal || 12.7, k = cal >= 37 ? 1.6 : cal >= 20 ? 1.1 : 0.7;
+    const half = (pl.spec && pl.spec.span || 11) * 0.4, h = pl.heading || 0, rx = Math.cos(h), rz = Math.sin(h), fx = Math.sin(h), fz = -Math.cos(h);
+    const n = cal >= 20 ? 2 : 1;
+    for (let i = 0; i < n; i++) {
+      const a = rr(-1, 1) * half, f = rr(-0.25, 0.25) * half;
+      const x = e.x + rx * a + fx * f + pl.vx * 0.016, y = e.y + rr(-0.4, 0.5), z = e.z + rz * a + fz * f + pl.vz * 0.016;
+      p.add({ kind: K.FLASH, x, y, z, vx: pl.vx, vy: pl.vy || 0, vz: pl.vz, s0: 0.5 * k, s1: 1.3 * k, life: 0.05, r: 1, g: 0.82, b: 0.55, a0: 3, a1: 0 });
+      for (let j = 0; j < 2; j++) p.add({ kind: K.TRACER, x, y, z, vx: rr(-25, 25) + pl.vx * 0.8, vy: rr(-15, 25) + (pl.vy || 0) * 0.8, vz: rr(-25, 25) + pl.vz * 0.8, s0: 0.12, life: rr(0.15, 0.4), r: 1, g: 0.72, b: 0.35, a0: 2.2, a1: 0, grav: 6, stretch: 1.6 });
+    }
+    if (rnd() < (cal >= 20 ? 0.6 : 0.25)) p.add({ kind: K.SMOKE, x: e.x, y: e.y, z: e.z, vx: pl.vx * 0.3, vy: 1, vz: pl.vz * 0.3, s0: 0.6 * k, s1: 3.5 * k, life: 1.8, r: 0.3, g: 0.28, b: 0.26, a0: 0.45, a1: 0, wind: 1, drag: 0.8 });
   }
 
   /** The death throes of an aircraft begin: fireball in the air for a fuel / bomb explosion, thick smoke otherwise. */

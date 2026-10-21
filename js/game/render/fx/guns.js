@@ -121,18 +121,63 @@ export class GunFx {
     }
   }
 
-  /** A fighter's guns: a stream of tracers along the line to its target, a little muzzle flash. */
+  /**
+   * A fighter's guns (or a bomber's gunner): tracer rounds from the guns themselves (in the wings of a fighter, converging a few hundred metres ahead), flying on past the
+   * target with the speed of the aircraft added, dropping and slowing; a little flash at each gun.
+   */
   mgFire(e) {
-    const d = this.distToCam(e.x, e.z);
+    const pl = e.plane, cx = this.engine.cam.x, cy = this.engine.cam.y, cz = this.engine.cam.z;
+    const d = Math.hypot(e.x - cx, e.y - cy, e.z - cz);
     if (d > 6000) return;
-    const sp = 760, life = Math.min(e.range / sp + 0.05, 1.1);
-    for (let i = 0; i < 2; i++) {
-      const j = 0.02;
-      const ux = e.dx + rr(-j, j), uy = e.dy + rr(-j, j), uz = e.dz + rr(-j, j), l = Math.hypot(ux, uy, uz) || 1;
-      this.p.add({ kind: K.TRACER, x: e.x + rr(-1.6, 1.6), y: e.y + rr(-0.3, 0.3), z: e.z + rr(-1.6, 1.6), vx: ux / l * sp + e.plane.vx * 0.2, vy: uy / l * sp, vz: uz / l * sp + e.plane.vz * 0.2, s0: 0.3, life, r: 1, g: 0.85, b: 0.4, a0: 4, a1: 4, stretch: 13 });
+    const L = Math.hypot(e.dx, e.dy, e.dz) || 1, fx = e.dx / L, fy = e.dy / L, fz = e.dz / L;
+    // the guns: out in the wings of a fighter (the right-hand vector of the aircraft, banked), the turret of a bomber at the given point
+    const wing = pl.fighter ? (pl.spec.span || 11) * 0.3 : 0, b = pl.bank || 0, h = pl.heading;
+    const rx = Math.cos(h) * Math.cos(b), ry = -Math.sin(b), rz = Math.sin(h) * Math.cos(b);
+    const conv = clamp(e.range, 180, 320);
+    for (let side = -1; side <= 1; side += 2) {
+      if (!wing && side > 0) break;
+      const gx = e.x + rx * wing * side, gy = e.y + ry * wing * side, gz = e.z + rz * wing * side;
+      // the line from this gun to the point where the guns converge
+      let ux = e.x + fx * conv - gx, uy = e.y + fy * conv - gy, uz = e.z + fz * conv - gz;
+      const ul = Math.hypot(ux, uy, uz) || 1; ux /= ul; uy /= ul; uz /= ul;
+      if (rnd() < 0.7) this.round(gx, gy, gz, ux, uy, uz, 870, 12.7, this.tint(pl), pl, { life: rr(1.1, 1.5), spread: 0.004 });
+      if (d < 1500 && rnd() < 0.5) this.p.add({ kind: K.FLASH, x: gx + ux * 0.8, y: gy + uy * 0.8, z: gz + uz * 0.8, s0: 0.5, s1: 1.1, life: 0.04, r: 1, g: 0.75, b: 0.4, a0: 2.5, a1: 0 });
     }
-    if (rnd() < 0.5) this.p.add({ kind: K.FLASH, x: e.x, y: e.y, z: e.z, s0: 0.8, s1: 1.6, life: 0.05, r: 1, g: 0.8, b: 0.4, a0: 3, a1: 0 });
-    this.strayRounds(e, d, 12.7);
+    this.strayRounds(e, Math.hypot(e.x - cx, e.z - cz), 12.7);
+  }
+
+  /** The colour of the tracers of a side: red for the Americans and the British, orange-yellow for the Germans and the Italians, white-green for the Japanese. */
+  tint(src) {
+    const n = (src && (src.nation || (src.spec && src.spec.nation) || (src.stats && src.stats.nation))) || (src && src.base && src.base.nation) || 'USA';
+    return n === 'Japan' ? [0.62, 1, 0.5] : n === 'Germany' || n === 'Italy' ? [1, 0.5, 0.1] : n === 'France' ? [1, 0.38, 0.1] : [1, 0.18, 0.05];
+  }
+
+  /**
+   * One tracer round: it leaves the muzzle at v0 (plus the speed of what fires it), slows with the drag and drops with the weight, and burns for `life` seconds. Rounds of 25 mm
+   * and more burst at the end of the tracer (the self-destroying fuze), a small grey puff. o: { life, spread (rad), carrier (velocity added), burst }
+   */
+  round(x, y, z, ux, uy, uz, v0, cal, col, carrier, o = {}) {
+    const sp = o.spread ?? 0.006;
+    ux += (rnd() - 0.5) * 2 * sp; uy += (rnd() - 0.5) * 2 * sp; uz += (rnd() - 0.5) * 2 * sp;
+    const l = Math.hypot(ux, uy, uz) || 1; ux /= l; uy /= l; uz /= l;
+    const k = cal >= 37 ? 0.17 : cal >= 25 ? 0.22 : cal >= 20 ? 0.28 : 0.33, g = 9.81;
+    const vx = ux * v0 + (carrier ? carrier.vx || 0 : 0), vy = uy * v0 + (carrier ? carrier.vy || 0 : 0), vz = uz * v0 + (carrier ? carrier.vz || 0 : 0);
+    const life = o.life ?? (cal >= 37 ? 3.4 : cal >= 25 ? 2.8 : 2.2);
+    const big = cal >= 37 ? 1 : cal >= 25 ? 0.8 : cal >= 20 ? 0.65 : 0.5;
+    // (the streak is about what the eye keeps of a round at 800 m/s, a few hundredths of a second of its path, as in the films of the time)
+    this.p.add({ kind: K.TRACER, x, y, z, vx, vy, vz, s0: 0.32 * big, life, r: col[0], g: col[1], b: col[2], a0: 2.4, a1: 1.5, grav: g, drag: k, stretch: 18 * big + 4 });
+    if (cal >= 25 && (o.burst ?? true) && rnd() < 0.35) {
+      // where the round is when the tracer burns out: v(t) = v0 e^-kt, the weight acting against the drag
+      const e1 = 1 - Math.exp(-k * life), bx = x + vx * e1 / k, bz = z + vz * e1 / k, by = y + (vy + g / k) * e1 / k - g / k * life;
+      if (by > 40 && Math.hypot(bx - this.engine.cam.x, by - this.engine.cam.y, bz - this.engine.cam.z) < 7000) this.later(life, () => this.selfBurst(bx, by, bz, cal));
+    }
+  }
+
+  /** The burst of a light AA shell at the end of its tracer: a flash and a small puff of grey smoke that hangs. */
+  selfBurst(x, y, z, cal) {
+    const s = cal >= 37 ? 1 : 0.7;
+    this.p.add({ kind: K.FLASH, x, y, z, s0: 1.2 * s, s1: 2.6 * s, life: 0.06, r: 1, g: 0.6, b: 0.25, a0: 1.8, a1: 0 });
+    this.p.add({ kind: K.SMOKE, x, y, z, vx: rr(-0.5, 0.5), vy: rr(-0.2, 0.4), vz: rr(-0.5, 0.5), s0: 1.6 * s, s1: rr(4, 6) * s, life: rr(3.5, 6), r: 0.28, g: 0.27, b: 0.26, a0: 0.75, a1: 0, wind: 1, drag: 0.6 });
   }
 
   /** The rounds of a burst that go on past the target and fall into the sea: plumes along the line (the rounds that skim the water at a grazing angle skip). */
@@ -158,22 +203,36 @@ export class GunFx {
     }
   }
 
+  /**
+   * A burst of a light AA mount: a tracer round from each barrel, laid on where the aircraft will be when it gets there (the lead and the drop allowed for, with the scatter of
+   * the guns), that goes on past it when it misses, dropping and slowing, until the tracer burns out (and the shell bursts, from 25 mm); the flash at the muzzles.
+   */
   aaFire(e) {
-    const pl = e.plane;
-    const d = this.distToCam(e.x, e.z);
-    if (d > 7000) return;
-    const dx = pl.x + pl.vx * 0.4 - e.x, dy = pl.y + pl.vy * 0.4 - e.y, dz = pl.z + pl.vz * 0.4 - e.z;
-    const L = Math.hypot(dx, dy, dz) || 1;
-    const sp = e.cal >= 30 ? 800 : 880;
-    const n = Math.min(e.n, 3);
-    for (let i = 0; i < n; i++) {
-      const j = 0.012 * L;
-      const ux = dx + rr(-j, j), uy = dy + rr(-j, j), uz = dz + rr(-j, j);
-      const l = Math.hypot(ux, uy, uz) || 1;
-      this.p.add({ kind: K.TRACER, x: e.x, y: e.y, z: e.z, vx: ux / l * sp, vy: uy / l * sp, vz: uz / l * sp, s0: e.cal >= 30 ? 0.55 : 0.4, life: Math.min(L / sp, 1.6), r: e.cal >= 30 ? 1 : 1, g: e.cal >= 30 ? 0.55 : 0.78, b: e.cal >= 30 ? 0.3 : 0.4, a0: 4.5, a1: 4.5, stretch: 16 });
+    const pl = e.plane, cam = this.engine.cam;
+    const d = Math.hypot(e.x - cam.x, e.y - cam.y, e.z - cam.z);
+    if (d > 7000 && Math.hypot(pl.x - cam.x, pl.y - cam.y, pl.z - cam.z) > 5000) return;
+    const cal = e.cal || 20, v0 = cal >= 37 ? 870 : cal >= 25 ? 900 : 840, k = cal >= 37 ? 0.17 : cal >= 25 ? 0.22 : 0.28, g = 9.81;
+    // the time of flight to where the aircraft will be (s(T) = v0 (1 - e^-kT) / k), a few rounds of refinement
+    let T = Math.hypot(pl.x - e.x, pl.y - e.y, pl.z - e.z) / v0, ax = 0, ay = 0, az = 0;
+    for (let i = 0; i < 3; i++) {
+      ax = pl.x + pl.vx * T - e.x; ay = pl.y + (pl.vy || 0) * T - e.y; az = pl.z + pl.vz * T - e.z;
+      const D = Math.hypot(ax, ay, az), q = k * D / v0;
+      T = q < 0.95 ? -Math.log(1 - q) / k : D / v0 * 3;
     }
-    this.p.add({ kind: K.FLASH, x: e.x, y: e.y + 0.6, z: e.z, s0: e.cal >= 30 ? 3.2 : 2, s1: e.cal >= 30 ? 6 : 3.4, life: 0.07, r: 1, g: 0.8, b: 0.45, a0: 4.5, a1: 0 });
-    if (d < 2500 && rnd() < 0.35) this.p.add({ kind: K.SMOKE, x: e.x, y: e.y + 0.5, z: e.z, vy: 1.5, s0: 0.8, s1: 3.4, life: 1.6, r: 0.7, g: 0.68, b: 0.64, a0: 0.3, a1: 0, wind: 1, drag: 1 });
+    // aimed above the point by the drop of the round over that time
+    ay += g / k * (T - (1 - Math.exp(-k * T)) / k);
+    const al = Math.hypot(ax, ay, az) || 1;
+    const col = this.tint(e.ship || e.base), n = Math.min(e.n || 1, cal >= 37 ? 2 : 2);
+    // the scatter of the guns: wider for a light mount and for an aircraft that is jinking
+    const spread = (cal >= 37 ? 0.005 : 0.008) * (1 + (pl.harass || 0) * 0.3);
+    for (let i = 0; i < n; i++) {
+      const o = (i - (n - 1) / 2) * 0.6;
+      this.round(e.x + o * Math.cos(pl.heading || 0), e.y, e.z + o * Math.sin(pl.heading || 0), ax / al, ay / al, az / al, v0, cal, col, null, { spread });
+    }
+    if (d < 7000) {
+      this.p.add({ kind: K.FLASH, x: e.x, y: e.y + 0.6, z: e.z, s0: cal >= 30 ? 2.4 : 1.6, s1: cal >= 30 ? 4.5 : 2.8, life: 0.06, r: 1, g: 0.75, b: 0.42, a0: 3.2, a1: 0 });
+      if (d < 2500 && rnd() < 0.35) this.p.add({ kind: K.SMOKE, x: e.x, y: e.y + 0.5, z: e.z, vy: 1.5, s0: 0.8, s1: 3.4, life: 1.6, r: 0.7, g: 0.68, b: 0.64, a0: 0.3, a1: 0, wind: 1, drag: 1 });
+    }
   }
 
   /** Heavy AA shell bursting: black puff, flash, a few fragments. */
