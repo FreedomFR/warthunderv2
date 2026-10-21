@@ -8,6 +8,7 @@
 //   * water.* : multi-point water height query (async GPU read-back) for buoyancy
 //   * foam.*  : world-space foam "stamps" (ship wakes, shell splashes, torpedo tracks)
 //   * offscreen mode + capture() for headless testing, render scale for slower GPUs
+import { isMobile } from './game/device.js';
 import { N, CASCADES, SKY_W, SKY_H, ENV_SIZE, ENV_MIPS } from './wgsl/common.js';
 import { SIM_INIT, SIM_EVOLVE, FFT_ROWS, FFT_COLS, SIM_MIPS, FOAM_TEX, RGBA8_MIPS, FOAM_UPDATE, ARRAY16_MIPS, FOAM_RES } from './wgsl/sim.js';
 import { TRANS_LUT, MS_LUT, SKYVIEW_LUT, ENV_CUBE, CUBE_MIPS, SUN_VIS } from './wgsl/sky.js';
@@ -285,11 +286,11 @@ export async function createEngine(canvas, options = {}) {
     device.queue.writeBuffer(shadowUBO, 0, shadowU);
   }
   const shadow = {
-    size: SHADOW_SIZE, view: shadowView, sampler: shadowSamp, ubo: shadowUBO, enabled: false,
+    size: SHADOW_SIZE, view: shadowView, sampler: shadowSamp, ubo: shadowUBO, enabled: false, cheap: false,       // cheap: four taps instead of nine (a phone)
     /** vp: camera-relative light view-projection (column-major), texelUv = 1 / size, bias in clip depth */
     setLight(vp, bias, enabled) {
       shadowU.set(vp, 0);
-      shadowU[16] = 1 / SHADOW_SIZE; shadowU[17] = bias; shadowU[18] = enabled ? 1 : 0; shadowU[19] = 0;
+      shadowU[16] = 1 / SHADOW_SIZE; shadowU[17] = bias; shadowU[18] = enabled ? 1 : 0; shadowU[19] = shadow.cheap ? 1 : 0;
       device.queue.writeBuffer(shadowUBO, 0, shadowU);
       shadow.enabled = !!enabled;
     },
@@ -449,7 +450,7 @@ export async function createEngine(canvas, options = {}) {
 
   // CDLOD grid mesh
   // quads per node edge (?grid=16 / 8 thins the surface mesh for slow GPUs and software rasterisers)
-  const GRID = [8, 16, 24, 32, 48, 64].includes(Number(qs.get('grid'))) ? Number(qs.get('grid')) : 32;
+  const GRID = [8, 16, 24, 32, 48, 64].includes(Number(qs.get('grid'))) ? Number(qs.get('grid')) : isMobile() ? 16 : 32;       // (the finest vertex spacing is 6 cm at 32: a phone gets 12 cm, which no pixel of it can tell)
   const LEAF = 2.0;           // finest node size (m) -> 6.25 cm vertex spacing
   const R0 = 8 * LEAF;        // LOD 0 range
   const LODS = 17;
@@ -492,9 +493,10 @@ export async function createEngine(canvas, options = {}) {
   // --------------------------------------------------------------------------------------
   // GPU timing: a timestamp at the start and at the end of every pass that can be told apart, read back every eighth frame (the performance test
   // reports them). The main pass holds the sea, the ships, the sky and, without volumetric clouds, the particles: the test tells those apart by switching
-  // them off in turn. A pass that did not run this frame leaves its two slots empty (0).
+  // them off in turn. A pass that did not run this frame leaves its two slots as they were (an older frame's timestamps): they are older than the start of this frame's first
+  // pass and are ignored.
   // --------------------------------------------------------------------------------------
-  const TS_PASSES = ['sim', 'shadow', 'cloudWeather', 'main', 'cloudMarch', 'cloudApply', 'cloudOverlay', 'bloom', 'composite'];
+  const TS_PASSES = ['sim', 'sky', 'shadow', 'cloudWeather', 'main', 'cloudMarch', 'cloudApply', 'cloudOverlay', 'bloom', 'composite'];
   const TS_N = TS_PASSES.length;
   let tsQuery = null, tsResolve = null, tsRead = null, tsPending = false, gpuMs = 0;
   let passMs = {};
@@ -513,7 +515,7 @@ export async function createEngine(canvas, options = {}) {
   };
   const onTsMapped = () => {
     const t = new BigUint64Array(tsRead.getMappedRange(0, TS_N * 16));
-    const span = (a, b) => (a && b && b >= a ? Number(b - a) / 1e6 : 0);
+    const t0 = t[0], span = (a, b) => (a && b && a >= t0 && b >= a ? Number(b - a) / 1e6 : 0);
     const total = span(t[0], t[TS_N * 2 - 1]);
     if (total > 0 && total < 1000) gpuMs = gpuMs ? gpuMs * 0.8 + total * 0.2 : total;
     const next = {};
@@ -933,7 +935,7 @@ export async function createEngine(canvas, options = {}) {
     for (const s of probeSlots) if (!s.busy) { slot = s; break; }
 
     const enc = device.createCommandEncoder();
-    const cp = enc.beginComputePass(computeDesc);
+    let cp = enc.beginComputePass(computeDesc);
     if (needSpectrum) {
       cp.setPipeline(initPipe);
       cp.setBindGroup(0, bgInit);
@@ -957,6 +959,8 @@ export async function createEngine(canvas, options = {}) {
     cp.setBindGroup(0, bgProbe);
     cp.dispatchWorkgroups(Math.ceil(nProbe / 64));
     if (heavy) {
+      cp.end();                                       // (the sky and the environment are a pass of their own, to be timed apart from the sea)
+      cp = enc.beginComputePass({ timestampWrites: tsw('sky') });
       cp.setPipeline(skyViewPipe);
       cp.setBindGroup(0, bgSkyView);
       cp.dispatchWorkgroups(Math.ceil(SKY_W / 8), Math.ceil(SKY_H / 8));

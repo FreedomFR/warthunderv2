@@ -5,7 +5,7 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 
 ## js/
 
-- `engine.js` (1234) WebGPU ocean engine — derived from Noniv/web-ocean (MIT), restructured so a game can sit on top. [P, SLIDERS, MAX_PROBE, MAX_STAMPS, createEngine] ← 3
+- `engine.js` (1238) WebGPU ocean engine — derived from Noniv/web-ocean (MIT), restructured so a game can sit on top. [P, SLIDERS, MAX_PROBE, MAX_STAMPS, createEngine] ← 3
 - `main.js` (77) Entry point. ← 0
 - `preview.js` (129) Model preview: ?preview=<shipId>[,<shipId>|plane:<type>...] renders models on the ocean with an orbit camera. [runPreview] ← 1
 - `trailer.js` (216) Trailer director: scripted scenes recorded frame by frame with the offline recorder (tools/trailer/record.mjs). [FPS, LOOKS, Trailer, mv] ← 3
@@ -18,8 +18,8 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 ## js/game/
 
 - `audio.js` (273) Game sound: positional playback of the procedurally synthesised sounds (see audio/synth.js). [GameAudio] ← 2
-- `device.js` (14) What kind of device the game runs on. Shared by the engine (pixel density), the game (quality) and the touch interface. [isMobile, maxPixelRatio] ← 2
-- `game.js` (423) Game orchestrator: ties the simulation world to the ocean engine (hooks), the ship / particle renderers, the camera rig and the UI. [Game] ← 1
+- `device.js` (14) What kind of device the game runs on. Shared by the engine (pixel density), the game (quality) and the touch interface. [isMobile, maxPixelRatio] ← 4
+- `game.js` (425) Game orchestrator: ties the simulation world to the ocean engine (hooks), the ship / particle renderers, the camera rig and the UI. [Game] ← 1
 - `math.js` (157) Small math helpers shared by the game code (no allocations in the hot helpers). [D2R, R2D, TAU, KN, G, clamp, lerp, sat, smoothstep, … +11] ← 56
 - `preload.js` (17) What can be built before the player has done anything, while the first screen plays: the meshes of every ship class (5 s of work in all, one model after another with… [preloadModels] ← 2
 - `scenarios.js` (47) Ready-made fleet compositions for the setup screen. [PRESETS] ← 6
@@ -149,7 +149,7 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 
 ## js/game/ui/
 
-- `bench.js` (367) The performance test: a scripted battle filmed from fixed views, with a few settings switched off in turn (clouds, shadows, resolution, particles) to see what each… [PHASES, summarize, analyse, formatReport, Bench] ← 2
+- `bench.js` (383) The performance test: a scripted battle filmed from fixed views, with a few settings switched off in turn (clouds, shadows, resolution, particles) to see what each… [PHASES, summarize, analyse, formatReport, Bench] ← 2
 - `benchprobe.js` (106) What the performance test records beyond the frame times (read by bench.js): the CPU time of each part of the frame, the long tasks of the page, a histogram of the… [CpuProbe, LongTasks, HIST_EDGES, histogram, worstFrames, meanPasses, particleCensus, heapMB] ← 2
 - `cameras.js` (975) Camera rig: free-fly, chase, orbit, tactical (top-down), bridge, shell-cam and an automatic "director" that cuts between the action. [CAMERA_MODES, flybyDue, flybyPlace, PLANE_VIEWS, CameraRig] ← 4
 - `caption.js` (57) What the camera is showing, in words: the line under the picture ("Auto · Duel — USS Iowa contre IJN Yamato"), so that the viewer always knows what they are looking… [SHOT_NAMES, captionOf] ← 2
@@ -172,7 +172,7 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 ## js/wgsl/
 
 - `clouds.js` (491) Volumetric cumulus: a layer of real clouds with a flat base and heaped tops, that the camera can be under, in or over, that hides an aircraft flying behind or through… [CLOUD_NOISE, WEATHER_SIZE, WEATHER_KM, CSHADOW_SIZE, CSHADOW_KM, CLOUD_SHADOW_FN, NOISE_GEN, WEATHER, CLOUD_SHADOW, … +3] ← 3
-- `common.js` (231) Shared constants and WGSL snippets. FFT resolution per cascade (256 by default; [N, LOGN, CASCADES, SKY_W, SKY_H, ENV_SIZE, ENV_MIPS, FRAME_WGSL, FLASH_WGSL, … +7] ← 7
+- `common.js` (243) Shared constants and WGSL snippets. [N, LOGN, CASCADES, SKY_W, SKY_H, ENV_SIZE, ENV_MIPS, FRAME_WGSL, FLASH_WGSL, … +7] ← 7
 - `ocean.js` (315) Ocean surface + sky background rendering. [SKY_BG, OCEAN, WATER_PROBE] ← 1
 - `particles.js` (251) Camera-facing particle quads: smoke, fire, spray, tracers, flashes. [PARTICLES] ← 2
 - `post.js` (130) Bloom (dual-filter chain) and final composite with AgX tonemapping. [BLOOM_DOWN, BLOOM_UP, COMPOSITE] ← 1

@@ -28,7 +28,7 @@ const t = formatReport(r);
 ok(/SM-S928B/.test(t) && /adreno-750/.test(t) && /Vue d'un avion en vol\s+aucun avion/.test(t) && /--- données ---/.test(t), 'the report names the device, the GPU, the views not played, and ends with the data');
 const json = JSON.parse(t.split('--- données ---\n')[1]);
 ok(json.phases.length === ph.length + 1 && json.device.model === 'SM-S928B', 'the data at the end is valid JSON');
-ok(t.split('\n').length < 60 && PHASES.length === 15 && PHASES.every((p) => p.secs >= 6), `the report is short (${t.split('\n').length} lines); ${PHASES.length} views`);
+ok(t.split('\n').length < 60 && PHASES.length === 17 && PHASES.every((p) => p.secs >= 6), `the report is short (${t.split('\n').length} lines); ${PHASES.length} views`);
 
 // what the next round of work reads: the GPU time by pass, the CPU by part, the long tasks, the particle census, the new A/B views
 import { histogram, worstFrames, meanPasses, particleCensus, HIST_EDGES } from '../js/game/ui/benchprobe.js';
@@ -61,7 +61,7 @@ import { histogram, worstFrames, meanPasses, particleCensus, HIST_EDGES } from '
     mk2('nopart', 32, 28), mk2('smoke0', 44, 40), mk2('smoke2', 48, 44), mk2('noocean', 40, 35), mk2('noopaque', 41, 36), mk2('notrees', 49, 44), mk2('sea2', 50, 45)];
   const a2 = analyse(ph2, true);
   ok(a2.costs['dessiner les particules'] > 15 && a2.costs['la mer'] > 8 && a2.costs['navires, avions, îles et bases'] > 8 && a2.costs['la végétation'] < 2, 'the cost of drawing the particles, the sea, the geometry and the trees');
-  ok(a2.notes.some((n) => /niveau de détail 2 contre 0 : \+4\.0 ms/.test(n)), 'what the two levels of smoke detail cost on the device');
+  ok(a2.notes.some((n) => /niveau 0 \(référence\).*niveau 2 : \+4\.0 ms/.test(n)), 'what the two levels of smoke detail cost on the device');
   ok(a2.notes.some((n) => /passes GPU.*passe principale.*84 %/.test(n)), 'the main pass share of the GPU is named');
   ok(a2.notes.some((n) => /1200 à l'écran sur 3000|2500 à l'écran sur 3000/.test(n) && /4\.7 écrans/.test(n)), 'and the particles to fill: how many, how many screens');
   const rep = formatReport({ ...r, phases: ph2.map((p) => ({ ...p, cpuParts: { sim: 3, fxEvents: 0.5, fxUpdate: 1, particles: 1.5, camera: 0.2, audio: 0.8, audioEvents: 0.1 }, long: { n: 2, totalMs: 130, maxMs: 80 } })), analysis: a2 });
@@ -73,4 +73,17 @@ import { histogram, worstFrames, meanPasses, particleCensus, HIST_EDGES } from '
   const cold = analyse([m3('sea', 60, 55, 2650), m3('sea2', 33, 28, 1600)], true);
   ok(cold.notes.some((n) => /démarrage à froid/.test(n) && /2650 puis 1600/.test(n)), 'a first view much slower than the last is called a cold start (or a battle that calmed down), with the particle counts to tell');
   ok(PHASES[0].warmup === true && PHASES.filter((p) => p.warmup).length === 1, 'the first seconds of a run are a warm-up that is not reported (kept apart as `prime` in the data)');
+}
+
+{
+  // the A/B views are compared with the frozen view, each corrected for how hot the GPU was (the simulation of the sea costs the same everywhere)
+  const mkp = (id, gpu, sim, extra = {}) => ({ id, name: id, ...summarize(Array.from({ length: 100 }, () => ({ w: gpu + 2, g: gpu, u: 1, p: 1, ps: { sim, main: gpu - sim } }))), ...extra });
+  const phs = [mkp('sea', 40, 8), mkp('seaf', 40, 8), mkp('noshadow', 40, 10), mkp('nopart', 30, 8), mkp('sea2', 50, 10)];
+  const an = analyse(phs, true);
+  ok(an.reference === 'seaf', 'the A/B views are compared with the frozen view when there is one');
+  ok(Math.abs(an.costs['les ombres'] - 8) < 0.01, `a view run on a GPU that had slowed by a quarter is corrected: 40 ms there are 32 ms at the reference's speed, so the shadows cost 8 (${an.costs['les ombres'].toFixed(1)})`);
+  ok(Math.abs(an.costs['dessiner les particules'] - 10) < 0.01, 'and one with no correction needed is left as it is');
+  ok(an.notes.some((n) => /le GPU a ralenti de 20 %/.test(n)), 'the slowdown of the GPU is read from the simulation of the sea, and said');
+  const rep = formatReport({ ...r, phases: phs.map((p) => ({ ...p, passes: { sim: 8, sky: 1, shadow: 0.3, cloudWeather: 0.5, main: 30, cloudOverlay: 2, bloom: 0.3, composite: 0.1 } })), analysis: an });
+  ok(/mer\s+ciel\s+ombres\s+nuages\s+princ\.\s+partic\./.test(rep), 'the table of the passes has the sky and the particles apart');
 }

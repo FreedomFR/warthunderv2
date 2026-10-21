@@ -1,7 +1,10 @@
 // Shared constants and WGSL snippets.
-// FFT resolution per cascade (256 by default; ?fft=128 trades fine ripple detail for speed on slow GPUs / software rasterisers)
+import { isMobile } from '../game/device.js';
+
+// FFT resolution per cascade: 256 on a computer, 128 on a phone (the first report from one: the simulation of the sea was 9 ms of 46, and at the size of a phone's screen the
+// finest ripples of the 256 are below a pixel); ?fft=64|128|256|512 forces it
 const FFT_REQ = typeof location !== 'undefined' ? Number(new URLSearchParams(location.search).get('fft')) : 0;
-export const N = [64, 128, 256, 512].includes(FFT_REQ) ? FFT_REQ : 256;
+export const N = [64, 128, 256, 512].includes(FFT_REQ) ? FFT_REQ : isMobile() ? 128 : 256;
 export const LOGN = Math.round(Math.log2(N));
 export const CASCADES = 6;
 export const SKY_W = 256;      // sky-view LUT size
@@ -78,12 +81,21 @@ fn shadowAt(rel: vec3f) -> f32 {
   if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0 || c.z > 1.0 || c.z < 0.0) { return 1.0; }
   let t = SH.p.x;
   var s = 0.0;
-  for (var j = -1; j <= 1; j++) {
-    for (var i = -1; i <= 1; i++) {
-      s += textureSampleCompareLevel(shadowTex, shadowSamp, uv + vec2f(f32(i), f32(j)) * t, c.z - SH.p.y);
+  if (SH.p.w > 0.5) {
+    // the cheap filter (a phone): four taps half a texel off the centre; the comparison sampler is bilinear, so each tap is already a 2x2 filter
+    for (var k = 0; k < 4; k++) {
+      let o = vec2f(select(-0.5, 0.5, (k & 1) == 1), select(-0.5, 0.5, (k & 2) == 2)) * t;
+      s += textureSampleCompareLevel(shadowTex, shadowSamp, uv + o, c.z - SH.p.y);
     }
+    s *= 0.25;
+  } else {
+    for (var j = -1; j <= 1; j++) {
+      for (var i = -1; i <= 1; i++) {
+        s += textureSampleCompareLevel(shadowTex, shadowSamp, uv + vec2f(f32(i), f32(j)) * t, c.z - SH.p.y);
+      }
+    }
+    s /= 9.0;
   }
-  s /= 9.0;
   let e = min(min(uv.x, 1.0 - uv.x), min(uv.y, 1.0 - uv.y));
   return mix(1.0, s, smoothstep(0.0, 0.06, e));
 }
