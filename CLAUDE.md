@@ -12,7 +12,7 @@ work on a feature branch and open the pull request into `dev` (not `main`); once
 ```bash
 npm install                 # playwright-core and esbuild: only the tools need them
 node server.mjs 8080        # then open http://localhost:8080/ in a WebGPU browser (recent Chrome or Edge)
-npm test                    # models, damage, audio, manual control, air ops, fuzz, battles: no GPU needed (about a minute)
+npm test                    # models, damage, audio, manual control, air ops, fuzz, battles: no GPU needed (about 5 minutes)
 npm run check:shaders       # compiles the WGSL with a real WebGPU device (server must be running)
 npm run smoke               # browser smoke test, offscreen mode (server must be running)
 npm run build               # js/ + index.html -> naval.html (single file); rebuild before committing changes under js/
@@ -38,7 +38,8 @@ Software rendering is slow: 10–25 s per frame at 800×450 with the ocean on; a
 | Gun turrets | `js/game/model/mounts.js`: `FAMILY` (measured dimensions per turret type), `mountDims()`, house builders |
 | Firing | `js/game/sim/weapons.js` (muzzle position of each barrel, `recoilCurve`, `muzzle` event), `js/game/render/effects.js` (`muzzle`, `blast`), `render/particles.js` + `js/wgsl/particles.js` (particle kinds incl. `FIREBALL`) |
 | Military bases | `sim/bases.js` (layouts: where the airfields and batteries go, the levelled pads, who owns them), `sim/baseops.js` (live state `BaseSim`: coastal guns, base AA, damage to buildings / guns / parked aircraft, `world.bases`), `sim/airfield.js` (taxi, take-off, level bombing, landing, patrols of the aircraft of a base), `model/base*.js` + `render/baseVisual.js` (how they look), `tools/baseshots.mjs` (pictures in a running battle), tests `test/bases.mjs`, `basesim.mjs`, `basemesh.mjs`; URL `bases=0|1|2` |
-| Automatic camera | `ui/director.js` (what is worth watching: heat of the ships, big moments, choice and pacing of the shots), `ui/cameras.js` (the shots themselves: `computeVersus`, `computeWide`, `computeBase`...), `test/director.mjs`, `tools/directorlog.mjs` |
+| Automatic camera | `ui/director.js` (what is worth watching: heat of the ships, big moments, choice and pacing of the shots, `formations()` and `attacks()` for the aircraft in groups), `ui/cameras.js` (the shots themselves: `computeVersus`, `computeWide`, `computeBase`, `computeFormation`, `computeAttack`...), `test/director.mjs`, `tools/directorlog.mjs`, `tools/flockshots.mjs` |
+| Performance | `tools/perf.mjs` (a running battle on the GPU: CPU time per part of the frame, frame-time percentiles, worst frames, CPU profile), `tools/simbench.mjs` (the simulation alone + a fingerprint of the outcome: an optimisation must keep it), `tools/modelbench.mjs` (ship model build time + a fingerprint of the meshes) |
 | Simulation | `js/game/sim/` (world, ship, ai, aircraft, modules/damage, explosions); `test/` |
 | 3D viewer, wiki | `viewer.html` + `js/viewer.js`, `js/viewer/` (scene, controls, panel, state = the debug link, subjects); `wiki.html` + `js/wiki.js`, `js/wiki/` (data adapter, tiers, layout, tree, card, profile = silhouettes drawn from the specs); test `test/wiki.mjs` |
 | Damage model | `sim/penetration.js` (De Marre, obliquity, fuzes), `sim/damage.js` (hit resolution), `data/protection.js` (belt inclination, torpedo protection, navy powder / fuzes / damage control; `estimated` marks guesses), `tools/damagecheck.mjs` (balance: duels, `zones`, `torp`), `test/realism.mjs` |

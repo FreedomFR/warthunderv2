@@ -51,11 +51,16 @@ export function buriedIn(model, rec, aa, solids, hull, o = {}) {
   const yaw = aa ? (rec.arcC ?? rec.yaw0 ?? 0) : (rec.arcC || 0), cy = Math.cos(yaw), sy = Math.sin(yaw);
   let n = 0, inside = 0, depth = 0;
   const hit = new Map();
+  // only the solids whose box meets the box of the house can hold a sample (kept in order: the first one hit decides)
+  const ax = Math.abs(cy), az = Math.abs(sy), hx = (hb.x1 - hb.x0) / 2, hz = (hb.z1 - hb.z0) / 2, mx = (hb.x0 + hb.x1) / 2, mz = (hb.z0 + hb.z1) / 2;
+  const ccx = x + mx * cy - mz * sy, ccz = z + mx * sy + mz * cy, ex = hx * ax + hz * az + 0.01, ez = hx * az + hz * ax + 0.01;
+  const yLo = rec.y + hb.y0 + FOOT, yHi = rec.y + hb.y1;
+  const near = solids.filter((s) => s[1] >= ccx - ex && s[0] <= ccx + ex && s[5] >= ccz - ez && s[4] <= ccz + ez && s[3] >= yLo && s[2] <= yHi);
   for (let px = hb.x0 + STEP / 2; px < hb.x1; px += STEP) for (let pz = hb.z0 + STEP / 2; pz < hb.z1; pz += STEP) for (let py = hb.y0 + FOOT; py < hb.y1 - 0.05; py += STEP) {
     n++;
     const lx = x + px * cy - pz * sy, lz = z + px * sy + pz * cy, ly = rec.y + py;
     let buried = false;
-    for (const s of solids) {
+    for (const s of near) {
       if (ly < s[2] || ly > s[3] || !inFoot(s, lx, lz)) continue;
       // what the house stands on (a barbette, a roof, a sponson) is not an obstacle: a solid whose top is within a metre of the foot of the house
       if (s[3] < rec.y + hb.y0 + FOOT + 0.3) continue;

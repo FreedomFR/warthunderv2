@@ -182,16 +182,48 @@ export class World {
     this.checkVictory(dt);
   }
 
+  /**
+   * Can the segment from (x0, z0) to (x1, z1), no lower than y, touch the ground of an island or anything standing on a base? A quick test against the circle and the top of
+   * each island and each base, so that the shells high in the air or out at sea skip the sampling of the ground.
+   */
+  nearGround(x0, y, z0, x1, z1) {
+    const T = this.terrain, B = this.bases;
+    if (this._zonesFor !== T || this._zonesN !== B.length) {
+      this._zonesFor = T; this._zonesN = B.length;
+      this._zones = T.islands.map((is) => ({ x: is.x, z: is.z, r: is.R, top: is.top }));
+      for (const b of B) {
+        const L = b.layout;
+        const top = Math.max(L.y + 30, ...L.parts.map((q) => q.y + q.h + 1), ...b.guns.map((g) => g.y + 8));
+        this._zones.push({ x: L.x, z: L.z, r: b.reach, top });
+      }
+    }
+    const dx = x1 - x0, dz = z1 - z0, l2 = dx * dx + dz * dz;
+    for (const q of this._zones) {
+      if (y > q.top) continue;
+      const t = l2 > 0 ? clamp(((q.x - x0) * dx + (q.z - z0) * dz) / l2, 0, 1) : 0;
+      const cx = x0 + dx * t - q.x, cz = z0 + dz * t - q.z;
+      if (cx * cx + cz * cz <= q.r * q.r) return true;
+    }
+    return false;
+  }
+
   stepShells(dt) {
-    const arr = this.shells;
+    const arr = this.shells, ships = this.ships, ns = ships.length;
+    // the box of each ship (her radius round her centre, see segmentNearShip): most shells are nowhere near most ships
+    const bx = this._shipBox && this._shipBox.length >= ns * 4 ? this._shipBox : (this._shipBox = new Float64Array(Math.max(64, ns * 8)));
+    for (let j = 0; j < ns; j++) { const sh = ships[j]; bx[j * 4] = sh.x; bx[j * 4 + 1] = sh.y; bx[j * 4 + 2] = sh.z; bx[j * 4 + 3] = sh.model.radius + 5; }
     for (let i = arr.length - 1; i >= 0; i--) {
       const s = arr[i];
       s.px = s.x; s.py = s.y; s.pz = s.z;
       stepShell(s, s.c, dt);
       s.age += dt;
       let done = false;
+      const xLo = Math.min(s.px, s.x), xHi = Math.max(s.px, s.x), zLo = Math.min(s.pz, s.z), zHi = Math.max(s.pz, s.z), yLo = Math.min(s.py, s.y);
       // ships
-      for (const ship of this.ships) {
+      for (let j = 0; j < ns; j++) {
+        const r = bx[j * 4 + 3], cx = bx[j * 4], cz = bx[j * 4 + 2];
+        if (xLo > cx + r || xHi < cx - r || zLo > cz + r || zHi < cz - r || yLo > bx[j * 4 + 1] + r) continue;
+        const ship = ships[j];
         if (ship === s.owner || (s.owner && ship.team === s.owner.team)) continue;     // no friendly fire
         if (ship.state === 'sunk' || ship.split) continue;
         if (!segmentNearShip(ship, s.px, s.py, s.pz, s.x, s.y, s.z)) continue;
@@ -202,7 +234,7 @@ export class World {
           break;
         }
       }
-      if (!done && this.terrain && s.y > -5) {
+      if (!done && this.terrain && s.y > -5 && this.nearGround(s.px, Math.min(s.py, s.y), s.pz, s.x, s.z)) {
         // the ground: a shell that goes into a slope bursts there (on a base it wrecks what stands there)
         const bases = this.bases.length > 0;
         for (const f of [0.34, 0.67, 1]) {

@@ -84,7 +84,9 @@ Lot 2 (cuirassés et porte-avions des autres nations) : **fait, avec des réserv
 - [ ] **Lumière du tir** : le flash n'éclaire pas la coque ni l'eau alentour (pas de lumière dynamique) ; surtout visible la nuit.
 - [ ] **Onde de choc** visible sur l'eau (anneau de souffle) en plus de l'écume.
 - [ ] **Tir de nuit** : flamme plus longue et plus rouge, éclairage des tourelles (le tir de jour est le seul contrôlé).
-- [ ] **Performance réelle** : mesurer une bordée de 9 tubes à plusieurs navires, avec les qualités haute / moyenne / basse (le GPU est maintenant disponible : RTX 3080 ; le test de fumée tourne à environ 60 images/s).
+- [x] **Performance mesurée** (`tools/perf.mjs`, sur la RTX 3080) : grande bataille Alliés contre Axe, archipel et bases fortifiées, 1920×1080, qualité haute, vitesse ×4 : 60 images/s, GPU 6 ms, processeur 4,2 ms par image (7,3 ms avant les optimisations d'octobre 2026), 99 % des images en moins de 17 ms. La simulation est 1,2 à 2,5 fois plus rapide, à bataille strictement identique (`tools/simbench.mjs`).
+- [ ] **Performance, pistes restantes** : la visée des tourelles (`mountSolution`, `feasible`) recalcule tout à chaque pas pour chaque tourelle ; la construction des modèles (5 s pour les 30 navires, surtout l'occlusion ambiante `bakeAO`) pourrait se faire dans un Worker ou être mise en cache ; la fluidité n'a été mesurée que sur la RTX (pas sur un téléphone ni sur une petite carte graphique).
+- [ ] **Caméra automatique, avions en groupe** : formations et attaques groupées filmées ; il manque un plan du combat tournoyant des chasseurs (deux chasseurs qui se poursuivent dans le même cadre) et un plan depuis le pont du navire attaqué pour une attaque groupée (abandonné : la fumée des cheminées remplit l'image).
 
 ## 4. Vidéo et version
 

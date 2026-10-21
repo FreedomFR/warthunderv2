@@ -10,6 +10,7 @@ const BIG = 8;                      // the score of a moment that cuts the curre
 /** What each kind of shot lasts [min, max] seconds. */
 const LENGTH = {
   follow: [7, 11], orbit: [8, 12], bridge: [6, 9], shell: [6, 10], tactical: [6, 9], versus: [6, 9], reverse: [5, 8], wide: [5, 8], event: [5, 7], base: [5, 8],
+  formation: [7, 11], attack: [6, 10],
 };
 
 export class Director {
@@ -21,9 +22,11 @@ export class Director {
     this.lastWide = -99;
     this.lastCut = -99;
     this.bad = 0;                   // how long the current shot has been bad
+    this.lastFormation = -99;       // when a formation was last filmed
+    this.seenAttack = new Map();    // ship -> when an attack on her by several aircraft was last filmed
   }
 
-  reset() { this.heat.clear(); this.moments.length = 0; this.history.length = 0; this.lastWide = -99; this.lastCut = -99; this.bad = 0; }
+  reset() { this.heat.clear(); this.moments.length = 0; this.history.length = 0; this.lastWide = -99; this.lastCut = -99; this.bad = 0; this.lastFormation = -99; this.seenAttack.clear(); }
 
   warm(ship, v, now) {
     const h = this.heat.get(ship);
@@ -142,4 +145,77 @@ export class Director {
     this.lastCut = now;
     this.bad = 0;
   }
+}
+
+// ---- aircraft in groups ---------------------------------------------------------------------------------------------------------------------------------------------
+/** The phases of an aircraft flying in company with others (on its way, forming up, escorting, patrolling, going home). */
+const FLYING_TOGETHER = new Set(['cruise', 'egress', 'return', 'escort', 'cap', 'ip']);
+/** The phases of an aircraft that is attacking a ship (torpedo run, dive, level bombing run). */
+const ATTACKING = new Set(['ip', 'run', 'rollin', 'dive', 'pullout']);
+const flying = (p) => !p.hidden && !p.dying && !p.gone && !p.ground && p.y > 60 && p.speed > 35;
+
+/**
+ * The formations in the air: aircraft of one team and one wave (or one section) flying the same way within a few hundred metres of each other, three or more of them
+ * (two heavy bombers are a formation too). Each: { planes, team, x, y, z (the centre), fx, fy, fz (the way they fly), r (the radius of the group), score }, best first.
+ */
+export function formations(world) {
+  const groups = new Map();
+  for (const p of world.planes) {
+    if (!flying(p) || !FLYING_TOGETHER.has(p.phase)) continue;
+    const key = p.sec || p.wave || null;
+    if (!key) continue;
+    let g = groups.get(key);
+    if (!g) groups.set(key, (g = []));
+    g.push(p);
+  }
+  const out = [];
+  for (const list of groups.values()) {
+    // a wave strung out over kilometres is several groups: grow each group from the first aircraft left, within 260 m of one already in it
+    const left = list.slice();
+    while (left.length) {
+      const grp = [left.pop()];
+      for (let i = 0; i < grp.length; i++) for (let j = left.length - 1; j >= 0; j--) {
+        const a = grp[i], b = left[j];
+        if (Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z) < 260 && a.vx * b.vx + a.vy * b.vy + a.vz * b.vz > 0.8 * a.speed * b.speed) { grp.push(b); left.splice(j, 1); }
+      }
+      const heavy = grp.every((p) => p.kind === 'level');
+      if (grp.length < (heavy ? 2 : 3)) continue;
+      let x = 0, y = 0, z = 0, vx = 0, vy = 0, vz = 0;
+      for (const p of grp) { x += p.x; y += p.y; z += p.z; vx += p.vx; vy += p.vy; vz += p.vz; }
+      const n = grp.length;
+      x /= n; y /= n; z /= n;
+      const vl = Math.hypot(vx, vy, vz) || 1;
+      let r = 0;
+      for (const p of grp) r = Math.max(r, Math.hypot(p.x - x, p.y - y, p.z - z));
+      if (r > 220) continue;       // still forming up: not yet a formation to look at
+      // the more the better, bombers rather than fighters, and close enough to the sea to see it under them
+      const score = n + (heavy ? 2 : 0) + (grp.some((p) => p.ordnance) ? 1.5 : 0) - (y > 3500 ? 1.5 : 0) + Math.random();
+      out.push({ planes: grp, team: grp[0].team, x, y, z, fx: vx / vl, fy: vy / vl, fz: vz / vl, r, score });
+    }
+  }
+  return out.sort((a, b) => b.score - a.score);
+}
+
+/**
+ * The ships under attack by two or more aircraft at once (torpedo bombers running in, dive bombers rolling in, heavy bombers on their run) within 2.6 km:
+ * { ship, planes, score }, best first.
+ */
+export function attacks(world) {
+  const by = new Map();
+  for (const p of world.planes) {
+    if (!flying(p) && !(p.phase === 'run' && !p.dying && !p.hidden)) continue;
+    const t = p.target;
+    if (!ATTACKING.has(p.phase) || !t || !t.alive || t.isBase) continue;
+    if (Math.hypot(p.x - t.x, p.y - t.y, p.z - t.z) > 2600) continue;
+    let l = by.get(t);
+    if (!l) by.set(t, (l = []));
+    l.push(p);
+  }
+  const out = [];
+  for (const [ship, planes] of by) {
+    if (planes.length < 2) continue;
+    const kinds = new Set(planes.map((p) => p.kind));
+    out.push({ ship, planes, score: planes.length + (kinds.size > 1 ? 2 : 0) + ship.stats.score * 0.3 + Math.random() });
+  }
+  return out.sort((a, b) => b.score - a.score);
 }

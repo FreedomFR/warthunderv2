@@ -450,11 +450,15 @@ export async function createEngine(canvas, options = {}) {
   };
   let downPasses = [], upPasses = [], downBGs = [], upBGs = [], bgComp = null;
 
+  // the size of the canvas on the page, read once a frame: reading clientWidth after the labels have been moved makes the browser lay the page out again, and
+  // project() is called for every label
+  let cssW = 1, cssH = 1;
   function resize() {
     const fw = Number(qs.get('w')) || 0, fh = Number(qs.get('h')) || 0;
     const dpr = Math.min(window.devicePixelRatio || 1, options.maxDpr || Infinity);
-    const w = fw || Math.max(1, Math.round(canvas.clientWidth * dpr * renderScale));
-    const h = fh || Math.max(1, Math.round(canvas.clientHeight * dpr * renderScale));
+    cssW = canvas.clientWidth; cssH = canvas.clientHeight;
+    const w = fw || Math.max(1, Math.round(cssW * dpr * renderScale));
+    const h = fh || Math.max(1, Math.round(cssH * dpr * renderScale));
     if (w === W && h === H) return;
     W = w; H = h;
     canvas.width = W; canvas.height = H;
@@ -984,8 +988,8 @@ export async function createEngine(canvas, options = {}) {
     if (cw <= 0.01) return false;
     const cx = m[0] * rx + m[4] * ry + m[8] * rz + m[12];
     const cy = m[1] * rx + m[5] * ry + m[9] * rz + m[13];
-    out[0] = (cx / cw * 0.5 + 0.5) * canvas.clientWidth;
-    out[1] = (1 - (cy / cw * 0.5 + 0.5)) * canvas.clientHeight;
+    out[0] = (cx / cw * 0.5 + 0.5) * cssW;
+    out[1] = (1 - (cy / cw * 0.5 + 0.5)) * cssH;
     out[2] = cw;
     return out;
   }
@@ -1009,6 +1013,16 @@ export async function createEngine(canvas, options = {}) {
     get frameIndex() { return frameIndex; },
     project,
     /** Is a sphere (camera-relative centre, radius) inside the side planes of the view frustum? (reverse-Z: no far plane) */
+    /** The four side planes of the view (camera-relative, normalised: a point at distance < -r from one is outside the view), into out[16]. */
+    frustumPlanes(out) {
+      const m = viewProj;
+      for (let k = 0; k < 4; k++) {
+        const sgn = (k & 1) ? -1 : 1, row = k < 2 ? 0 : 1;
+        const a = m[3] + sgn * m[row], b = m[7] + sgn * m[4 + row], c = m[11] + sgn * m[8 + row], d = m[15] + sgn * m[12 + row], l = Math.hypot(a, b, c) || 1;
+        out[k * 4] = a / l; out[k * 4 + 1] = b / l; out[k * 4 + 2] = c / l; out[k * 4 + 3] = d / l;
+      }
+      return out;
+    },
     sphereVisible(rx, ry, rz, r) {
       const m = viewProj;
       // planes = row3 +/- row0, row3 +/- row1 of the column-major view-projection matrix

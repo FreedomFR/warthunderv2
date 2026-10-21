@@ -3,7 +3,7 @@
 import { clamp, wrapPi, lerp, D2R, TAU } from '../math.js';
 import { cockpitEye } from '../model/cockpit.js';
 import { DECK_PHASES } from '../sim/deck.js';
-import { Director } from './director.js';
+import { Director, formations, attacks } from './director.js';
 
 export const CAMERA_MODES = [
   { id: 'auto', key: '1', name: 'Auto', hint: 'Réalisateur automatique : suit l\'action' },
@@ -19,6 +19,8 @@ export const CAMERA_MODES = [
 
 /** Aircraft phases worth watching. */
 const ATTACK = new Set(['rollin', 'dive', 'pullout', 'run', 'break']);
+/** Phases of an aircraft still flying with its formation. */
+const FLY = new Set(['assemble', 'cruise', 'climb', 'egress', 'return', 'escort', 'cap', 'ip']);
 export const PLANE_VIEWS = [
   { id: 'chase', name: 'poursuite' }, { id: 'side', name: 'passage' }, { id: 'victim', name: 'depuis le navire visé' },
 ];
@@ -42,6 +44,7 @@ export class CameraRig {
     this.auto = { t: 0, sub: 'follow', hold: 0, held: 0, idle: 0 };
     this.director = new Director(this);
     this.versus = null; this.wide = { az: 0, k: 1 }; this.baseShot = null;
+    this.flock = null;               // the formation or the attack being filmed (computeFormation, computeAttack)
     this.plane = null;               // followed aircraft
     this.planeCam = { yaw: 0, pitch: 0, zoom: 1, view: 'chase', t: 0, fix: null, hold: 0, crash: null, deck: false, g: 0, lastVy: null, lastP: null, look: { yaw: 0, pitch: 0 } };
     this.smooth = { x: 0, y: 0, z: 0, yaw: 0, pitch: 0, init: false, fov: FOV_DEFAULT };
@@ -219,6 +222,12 @@ export class CameraRig {
         px = r.x; py = r.y; pz = r.z; yaw = r.yaw; pitch = r.pitch;
         break;
       }
+      case 'formation': case 'attack': {
+        const r = mode === 'formation' ? this.computeFormation(dt) : this.computeAttack(dt);
+        if (!r) { px = cam.x; py = cam.y; pz = cam.z; yaw = cam.yaw; pitch = cam.pitch; break; }
+        px = r.x; py = r.y; pz = r.z; yaw = r.yaw; pitch = r.pitch;
+        break;
+      }
       case 'base': {
         const r = this.computeBase(dt);
         if (!r) { px = cam.x; py = cam.y; pz = cam.z; yaw = cam.yaw; pitch = cam.pitch; break; }
@@ -237,7 +246,7 @@ export class CameraRig {
     const hard = mode === 'free' || mode === 'tactical';
     if (!sm.init || hard) { sm.x = px; sm.y = py; sm.z = pz; sm.yaw = yaw; sm.pitch = pitch; sm.roll = roll; sm.init = true; }
     else {
-      const k = 1 - Math.exp(-dt * (mode === 'shell' ? 14 : mode === 'cockpit' ? 40 : mode === 'plane' ? 12 : 9));
+      const k = 1 - Math.exp(-dt * (mode === 'shell' ? 14 : mode === 'cockpit' ? 40 : mode === 'plane' || mode === 'formation' ? 12 : 9));
       sm.x += (px - sm.x) * k; sm.y += (py - sm.y) * k; sm.z += (pz - sm.z) * k;
       sm.yaw += wrapPi(yaw - sm.yaw) * k; sm.pitch += (pitch - sm.pitch) * k; sm.roll += wrapPi(roll - (sm.roll || 0)) * k;
     }
@@ -368,10 +377,12 @@ export class CameraRig {
   onEvents(events) {
     const pc = this.planeCam;
     this.director.note(events, this.game.world.time);
+    // (a shot of several aircraft is not cut for one of them: the drop is what an attack shot is there for)
+    const a = this.auto, group = a.sub === 'attack' || (a.sub === 'formation' && a.held < 5);
     for (const e of events) {
-      if (this.mode === 'auto' && (e.type === 'bombDrop' || e.type === 'torpedoDrop' || e.type === 'planeDown') && Math.random() < 0.45 && this.auto.sub !== 'plane') { this.auto.forcePlane = e.plane; this.auto.t = 0; }
+      if (this.mode === 'auto' && !group && (e.type === 'bombDrop' || e.type === 'torpedoDrop' || e.type === 'planeDown') && Math.random() < 0.45 && this.auto.sub !== 'plane') { this.auto.forcePlane = e.plane; this.auto.t = 0; }
       // the director likes a touchdown on the wire and a take-off run (a take-off only when the carrier is in sight)
-      if (this.mode === 'auto' && (e.type === 'planeTouchdown' || e.type === 'planeLaunch') && Math.random() < 0.3 && this.auto.sub !== 'plane') { this.auto.forcePlane = e.plane; this.auto.t = 0; this.auto.deckShot = true; }
+      if (this.mode === 'auto' && !group && (e.type === 'planeTouchdown' || e.type === 'planeLaunch') && Math.random() < 0.3 && this.auto.sub !== 'plane') { this.auto.forcePlane = e.plane; this.auto.t = 0; this.auto.deckShot = true; }
       if (e.type === 'planeCrash' && e.plane === this.plane) {
         pc.crash = { x: e.x, y: Math.max(e.y, 2), z: e.z, dx: Math.sin(e.plane.heading), dz: -Math.cos(e.plane.heading) };
         pc.hold = 3.2;
@@ -572,6 +583,127 @@ export class CameraRig {
     return this.lookAt(t.x + Math.sin(wd.az) * R, h, t.z - Math.cos(wd.az) * R, t.x + t.vx * 6, 8, t.z + t.vz * 6);
   }
 
+  /** The aircraft of the shot that are still in it (alive, in the air). */
+  flockPlanes() {
+    const f = this.flock;
+    if (!f) return [];
+    f.planes = f.planes.filter((p) => this.planeAlive(p) && !p.dying);
+    return f.planes;
+  }
+
+  /**
+   * A formation in the air: the camera flies with it (beside it, above and astern, or ahead of it and to one side, the formation coming on), far enough to hold every aircraft
+   * of it in the frame; or it waits ahead and the formation goes by. The way the formation flies is smoothed, so that one aircraft weaving does not swing the camera.
+   */
+  computeFormation(dt) {
+    const f = this.flock, list = this.flockPlanes();
+    if (!f || !list.length) return null;
+    let x = 0, y = 0, z = 0, vx = 0, vy = 0, vz = 0;
+    for (const p of list) { x += p.x; y += p.y; z += p.z; vx += p.vx; vy += p.vy; vz += p.vz; }
+    const n = list.length;
+    x /= n; y /= n; z /= n;
+    const vl = Math.hypot(vx, vy, vz) || 1;
+    const k = f.fd ? 1 - Math.exp(-dt * 1.5) : 1;
+    f.fd = f.fd || [0, 0, 0];
+    f.fd[0] += (vx / vl - f.fd[0]) * k; f.fd[1] += (vy / vl - f.fd[1]) * k; f.fd[2] += (vz / vl - f.fd[2]) * k;
+    const fl = Math.hypot(f.fd[0], f.fd[2]) || 1, fx = f.fd[0] / fl, fz = f.fd[2] / fl;      // the way they go, in plan
+    const rx = -fz, rz = fx;                                                                     // their right
+    let r = 0;
+    for (const p of list) r = Math.max(r, Math.hypot(p.x - x, p.y - y, p.z - z));
+    // (the radius shrinks when one of them goes down: follow it slowly, the frame does not jump)
+    f.r = f.r == null ? r : f.r + (r - f.r) * (1 - Math.exp(-dt * (r > f.r ? 3 : 0.6)));
+    // near enough that the aircraft are aircraft, not dots: the group fills the frame (the frame is wider than it is high)
+    const half = Math.tan(this.fovWant / 2), need = (f.r + 12) / half * 0.78 + 15;
+    if (f.view === 'pass') {
+      // a fixed camera ahead of the formation and to one side, at their height or a little under: they come on and go by
+      if (!f.fix || (x - f.fix.x) * fx + (z - f.fix.z) * fz > need * 0.6) {
+        const lead = need * 1.6 + 120, off = need * 0.55 * f.side;
+        f.fix = { x: x + fx * lead + rx * off, y: Math.max(25, y - 20 - 30 * f.k), z: z + fz * lead + rz * off };
+      }
+      return this.lookAt(f.fix.x, f.fix.y, f.fix.z, x, y, z);
+    }
+    // flying with it: astern / abeam / ahead (az, from the tail round to the side f.side), above or below (el)
+    const az = f.az, el = f.el;
+    const ca = Math.cos(az), sa = Math.sin(az), ce = Math.cos(el);
+    const ox = (-fx * ca + rx * sa * f.side) * ce, oz = (-fz * ca + rz * sa * f.side) * ce, oy = Math.sin(el);
+    const cy = Math.max(y + oy * need, 18);
+    return this.lookAt(x + ox * need, cy, z + oz * need, x + fx * f.r * 0.4, y, z + fz * f.r * 0.4);
+  }
+
+  /**
+   * Several aircraft attacking one ship: from over the shoulder of the attackers, the ship ahead of them, or from beside the line of their attack, the ship and the
+   * aircraft coming at her in one frame.
+   */
+  computeAttack(dt) {
+    const f = this.flock, S = f && f.ship;
+    if (!S || S.state === 'sunk') return null;
+    // the two or three aircraft nearest the ship: the ones about to drop (the others, kilometres behind, would shrink the frame to nothing)
+    const list = this.flockPlanes().filter((p) => p.target === S).sort((a, b) => Math.hypot(a.x - S.x, a.y - S.y, a.z - S.z) - Math.hypot(b.x - S.x, b.y - S.y, b.z - S.z)).slice(0, 3);
+    // the aircraft that have dropped and gone, or are all down: hold on the ship a moment longer (the torpedoes running, the bombs falling)
+    if (list.length) { let x = 0, y = 0, z = 0; for (const p of list) { x += p.x; y += p.y; z += p.z; } f.at = [x / list.length, y / list.length, z / list.length]; f.lost = 0; }
+    else { f.lost = (f.lost || 0) + dt; if (!f.at) return null; }
+    const A = f.at;
+    // the frame holds the ship and these aircraft
+    const pts = list.map((p) => [p.x, p.y, p.z]);
+    pts.push(A);
+    const T = this.game.world.terrain;
+    if (f.view === 'behind' && list.length) {
+      // over the shoulder of the attackers: behind them and a little above, the ship ahead of them
+      let gr = 0;
+      for (const p of list) gr = Math.max(gr, Math.hypot(p.x - A[0], p.y - A[1], p.z - A[2]));
+      const tx = S.x - A[0], ty = Math.max(S.model.topY * 0.3, 2) - A[1], tz = S.z - A[2], tl = Math.hypot(tx, ty, tz) || 1, ux = tx / tl, uy = ty / tl, uz = tz / tl;
+      const back = gr * 1.1 + 70, sx = -uz * f.side, sz = ux * f.side;
+      const cx = A[0] - ux * back + sx * (gr * 0.4 + 20), cz = A[2] - uz * back + sz * (gr * 0.4 + 20);
+      const cy = Math.max(A[1] - uy * back + 18 + gr * 0.2, 12);
+      return this.lookAt(cx, cy, cz, S.x * 0.75 + A[0] * 0.25, (S.model.topY * 0.3) * 0.75 + A[1] * 0.25, S.z * 0.75 + A[2] * 0.25);
+    }
+    // from the side of the line from the ship to the aircraft, a little behind the ship: the ship in front, the aircraft beyond
+    const dx = A[0] - S.x, dz = A[2] - S.z, d = Math.hypot(dx, dz) || 1, ux = dx / d, uz = dz / d, px = -uz * f.side, pz = ux * f.side;
+    const cx = S.x + dx * 0.45, cz = S.z + dz * 0.45;                                          // the middle of the frame, nearer the ship
+    let ext = S.stats.L * 0.6 + 30;
+    for (const p of pts) ext = Math.max(ext, Math.hypot(p[0] - cx, p[2] - cz) + 20);
+    ext = Math.min(ext, 600);       // (the far ones may leave the frame: better that than a ship and aircraft of a few pixels)
+    const half = Math.tan(this.fovWant / 2) * (this.engine.stats.width / Math.max(1, this.engine.stats.height) || 1.6);
+    const back = ext / half * 0.95 + 80;
+    const camX = cx + px * back * Math.cos(f.k) - ux * back * Math.sin(f.k), camZ = cz + pz * back * Math.cos(f.k) - uz * back * Math.sin(f.k);
+    let maxY = 0;
+    for (const p of pts) maxY = Math.max(maxY, p[1]);
+    let camY = 30 + back * 0.08 + Math.min(maxY, 900) * 0.25;
+    if (T) { const th = T.heightAt(camX, camZ); if (th > -2) camY = Math.max(camY, th + 40); }
+    return this.lookAt(camX, camY, camZ, cx, Math.min(maxY * 0.45, 400) + 5, cz);
+  }
+
+  /** Start a shot of a formation (from formations()). */
+  startFormation(g, now) {
+    const a = this.auto, D = this.director;
+    const views = ['abeam', 'quarter', 'high', 'ahead', 'pass'];
+    const view = views[Math.floor(Math.random() * views.length)];
+    const side = Math.random() < 0.5 ? -1 : 1;
+    // az: from the tail (0) round to the side (pi/2) and ahead (pi); el: above (+) or below (-)
+    const pose = { abeam: [Math.PI * 0.5 + (Math.random() - 0.5) * 0.4, 0.05 + Math.random() * 0.1], quarter: [0.7 + Math.random() * 0.3, 0.15 + Math.random() * 0.1],
+      high: [0.35 + Math.random() * 0.3, 0.45 + Math.random() * 0.2], ahead: [2.3 + Math.random() * 0.4, -0.02 + Math.random() * 0.12], pass: [0, 0] }[view];
+    this.flock = { kind: 'formation', planes: g.planes.slice(), view, side, az: pose[0], el: pose[1], k: Math.random(), fix: null, fd: null, r: null };
+    this.fovWant = (view === 'pass' ? 30 + Math.random() * 10 : 40 + Math.random() * 12) * D2R;
+    a.sub = 'formation'; a.t = D.length('formation'); a.held = 0;
+    this.smooth.init = false;
+    D.started('formation', null, now);
+    D.lastFormation = now;
+  }
+
+  /** Start a shot of an attack on one ship by several aircraft (from attacks()). */
+  startAttack(g, now) {
+    const a = this.auto, D = this.director;
+    // (no view from her deck: the smoke of her funnels and her fires fills it, and the aircraft are specks kilometres away)
+    const view = Math.random() < 0.6 ? 'behind' : 'side';
+    this.flock = { kind: 'attack', ship: g.ship, planes: g.planes.slice(), view, side: Math.random() < 0.5 ? -1 : 1, k: (Math.random() - 0.3) * 0.5, at: null };
+    this.fovWant = (view === 'behind' ? 50 + Math.random() * 8 : 42 + Math.random() * 10) * D2R;
+    this.setTarget(g.ship);
+    a.sub = 'attack'; a.t = D.length('attack'); a.held = 0;
+    this.smooth.init = false;
+    D.started('attack', g.ship, now);
+    D.seenAttack.set(g.ship, now);
+  }
+
   /** A reaction to a big moment: the ship that blows up or goes down seen from a good way off, or the ruins of a base. */
   react(m, now) {
     const a = this.auto, w = this.game.world, D = this.director;
@@ -617,6 +749,19 @@ export class CameraRig {
       if (a.idle > 2.4) return true;
     }
     if (sub === 'base' && !this.baseShot) return true;
+    if (sub === 'formation') {
+      const f = this.flock, list = this.flockPlanes();
+      // the formation has broken up (attacking, landing, shot down) or gone into the cloud of a high altitude
+      if (list.length < 2 || !list.some((p) => FLY.has(p.phase))) return true;
+      // a mountain between the camera and the formation
+      const T = w.terrain, p0 = list[0];
+      if (T && T.blocks(cam.x, cam.y, cam.z, p0.x, p0.y, p0.z)) D.bad += dt; else D.bad = Math.max(0, D.bad - dt * 2);
+      if (D.bad > 0.7) return true;
+    }
+    if (sub === 'attack') {
+      const f = this.flock;
+      if (!f || !f.ship || f.ship.state === 'sunk' || (f.lost || 0) > 3.5) return true;
+    }
     // an island between the camera and what is to be seen
     const subj = sub === 'versus' || sub === 'reverse' ? (this.versus && this.versus.reverse ? this.versus.ship.cmd.main.target : this.versus && this.versus.ship) : t0;
     if ((shipShot && sub !== 'tactical' && sub !== 'wide') || sub === 'versus' || sub === 'reverse') {
@@ -685,6 +830,16 @@ export class CameraRig {
     const big = a.sub === 'plane' && this.planeCam.hold > 0 ? null : D.interrupt(now, a.held);
     if (big) { this.react(big, now); return a.sub; }
     // an aircraft is attacking (dive, torpedo run) or has been shot down: cut to it
+    // several aircraft going for one ship together: cut to it (once per attack), even in the middle of a shot that has run long enough
+    if (w.state === 'running' && a.sub !== 'attack' && (a.t <= 0 || (a.held > 4 && a.sub !== 'plane'))) {
+      const att = attacks(w).filter((g) => now - (D.seenAttack.get(g.ship) ?? -99) > 25);
+      if (att.length && (a.t <= 0 ? Math.random() < 0.75 : att[0].planes.length >= 3 && Math.random() < dt * 2)) { this.startAttack(att[0], now); return a.sub; }
+    }
+    // a formation on its way: now and then, never twice running
+    if (a.t <= 0 && a.sub !== 'formation' && now - D.lastFormation > 30 && Math.random() < 0.3) {
+      const fm = formations(w);
+      if (fm.length) { this.startFormation(fm[0], now); return a.sub; }
+    }
     let planeShot = null;
     if (a.t <= 0) {
       const forced = a.forcePlane && this.planeAlive(a.forcePlane) ? a.forcePlane : null;

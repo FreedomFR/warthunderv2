@@ -9,6 +9,7 @@ import { clearElev, clearMax, pathClear, inArcRel } from '../model/clearance.js'
 const DEPRESS = 4 * D2R;
 const _p = [0, 0, 0];
 const _q = [0, 0, 0];
+const _sol = {};
 
 /** Barrel recoil (0..1): the tube is thrown back in a few hundredths of a second and creeps forward again on the recuperators. */
 export function recoilCurve(t) {
@@ -45,7 +46,7 @@ export function mountSolution(ship, m, target, out) {
   for (let i = 0; i < 4; i++) {
     ax = target.x + rvx * tof - 0 + 0; az = target.z + rvz * tof;
     const range = Math.hypot(ax - px, az - pz);
-    sol = solve(b, range, ay - py);
+    sol = solve(b, range, ay - py, _sol);
     if (!sol) return null;
     tof = sol.tof;
   }

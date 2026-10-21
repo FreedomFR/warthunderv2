@@ -101,9 +101,11 @@ function moduleOfSolid(ship, q) {
   return ship._partMod.get(idx) || null;
 }
 
-/** Fast reject: closest approach of the segment p0->p1 to the ship's centre vs its bounding radius. */
+/** Fast reject: closest approach of the segment p0->p1 to the ship's centre vs its bounding radius (in plan, and above her). */
 export function segmentNearShip(ship, x0, y0, z0, x1, y1, z1) {
   const r = ship.model.radius + 5;
+  // every point of the ship lies within its radius of her centre, however she pitches and rolls: a segment wholly above that cannot touch her
+  if (y0 - ship.y > r && y1 - ship.y > r) return false;
   const dx = x1 - x0, dz = z1 - z0;
   const l2 = dx * dx + dz * dz;
   let t = l2 > 0 ? ((ship.x - x0) * dx + (ship.z - z0) * dz) / l2 : 0;
