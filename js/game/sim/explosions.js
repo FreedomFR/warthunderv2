@@ -3,7 +3,7 @@
 import { clamp } from '../math.js';
 import { blast } from './modules.js';
 import { spawnMountDebris, spawnScrap } from './debris.js';
-import { killPlane } from './aircraft.js';
+import { killPlane } from './planedamage.js';
 
 /** Size scale of the explosion of a ship (a destroyer is 1, a battleship about 3). */
 export function explosionScale(ship) { return clamp(Math.pow(ship.stats.L / 100, 0.8), 0.6, 3.0); }

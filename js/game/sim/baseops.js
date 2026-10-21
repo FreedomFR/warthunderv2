@@ -9,7 +9,7 @@ import { AA } from './aadata.js';
 import { lightAAHitRate } from './airhit.js';
 import { recoilCurve } from './weapons.js';
 import { spawnScrap } from './debris.js';
-import { hitPlane } from './aircraft.js';
+import { hitPlane } from './planedamage.js';
 import { BALANCE } from '../data/balance.js';
 import { initAirfield, stepAirfield, killGroundPlane } from './airfield.js';
 

@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import { BALANCE, BALANCE_FIELDS, setBalance, setBalanceFile, balanceDiff, balanceNeutral } from '../js/game/data/balance.js';
 import { World } from '../js/game/sim/world.js';
 import { spawnFleet } from '../js/game/sim/formation.js';
-import { hitPlane } from '../js/game/sim/aircraft.js';
+import { hitPlane } from '../js/game/sim/planedamage.js';
 
 const ok = (c, m) => { console.log(c ? 'PASS' : 'FAIL', m); if (!c) process.exitCode = 1; };
 

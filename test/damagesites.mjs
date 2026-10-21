@@ -1,6 +1,6 @@
 // Where an aircraft smokes and burns: node test/damagesites.mjs — the sites lie on the aircraft, a hit engine of a multi-engine aircraft is one engine, smoke and fire have a place.
 import { PLANES, damageSites } from '../js/game/model/planes.js';
-import { hitPlane } from '../js/game/sim/aircraft.js';
+import { hitPlane } from '../js/game/sim/planedamage.js';
 
 const ok = (c, m) => { console.log(c ? 'PASS' : 'FAIL', m); if (!c) process.exitCode = 1; };
 let off = [];

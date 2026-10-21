@@ -1,8 +1,7 @@
 // Game orchestrator: ties the simulation world to the ocean engine (hooks), the ship / particle
 // renderers, the camera rig and the UI.
-import { World, TEAM_COLORS } from './sim/world.js';
+import { World } from './sim/world.js';
 import { spawnFleet, teamStart } from './sim/formation.js';
-import { getModel } from './model/cache.js';
 import { ShipRenderer } from './render/shipRenderer.js';
 import { ShipVisuals } from './render/shipVisual.js';
 import { IslandVisuals } from './render/islandVisual.js';

@@ -1,7 +1,7 @@
 // Reusable ship parts. All functions draw into a MeshBuilder in model space
 // (+x bow, +y up from the waterline, +z starboard). `pal` is the ship palette
 // { hull, deck, sup, dark, funnel, cap, mast, boat, glass }.
-import { MAT, rgb, shade, mix } from './meshbuilder.js';
+import { MAT, rgb, shade } from './meshbuilder.js';
 import { drawPlane, floatplaneSpec } from './planes.js';
 import { glyphIndex } from './glyphs.js';
 import { roofRail } from './details.js';
@@ -121,18 +121,6 @@ export function tower(b, o, pal) {
   return { topY: y, tops };
 }
 
-/** Round conning tower with vision slits. */
-export function conningTower(b, o, pal) {
-  const col = rgb(o.col || pal.sup);
-  b.cylinder(o.x, o.y0, o.z || 0, o.r, o.r * 0.9, o.y0 + o.h, col, MAT.HULL, { seg: 18 });
-  b.cylinder(o.x, o.y0 + o.h, o.z || 0, o.r * 0.9, o.r * 0.7, o.y0 + o.h + 0.5, shade(col, 0.9), MAT.HULL, { seg: 18 });
-  const gl = rgb(pal.glass || '#101820');
-  for (let i = 0; i < 6; i++) {
-    const a = (-0.9 + i * 0.36);
-    b.box(o.x + Math.cos(a) * o.r * 0.93, o.y0 + o.h * 0.6, (o.z || 0) + Math.sin(a) * o.r * 0.93, 0.12, 0.28, 0.9, gl, MAT.GLASS);
-  }
-}
-
 /** Pole mast with yardarms. o: { x, z, y0, h, r, yards: [[fracHeight, span], ...], top } */
 export function poleMast(b, o, pal) {
   const col = rgb(o.col || pal.mast);
@@ -229,23 +217,6 @@ export function radar(b, o, pal) {
 export function searchlight(b, x, y, z, r, pal) {
   b.cylinder(x, y, z, r * 0.45, r * 0.4, y + r * 1.2, rgb(pal.dark), MAT.HULL, { seg: 6 });
   b.cyl(x, y + r * 1.2, z, r, r, r, r, y + r * 2.4, shade(rgb(pal.sup), 0.8), MAT.HULL, { seg: 10 });
-}
-
-/** Static AA mounts (decorative): 'bofors2', 'bofors4', 'oerlikon', 'aa25' */
-export function aaGun(b, x, y, z, kind, yaw, pal) {
-  const col = shade(rgb(pal.sup), 0.85), dark = rgb(pal.dark);
-  b.push().translate(x, y, z).rotateY(yaw || 0);
-  if (kind === 'oerlikon') {
-    b.cylinder(0, 0, 0, 0.18, 0.15, 0.55, col, MAT.HULL, { seg: 6 });
-    b.box(0, 0.75, 0, 0.45, 0.4, 0.4, col, MAT.HULL);
-    b.rod(-0.2, 0.9, 0.85, 0, 0.03, 0.025, dark, MAT.DARK, { seg: 5 });
-  } else {
-    const n = kind === 'bofors4' ? 4 : 2;
-    b.cylinder(0, 0, 0, 0.6, 0.55, 0.45, shade(col, 0.9), MAT.HULL, { seg: 8 });
-    b.box(0, 0.7, 0, 1.2, 0.5, 1.2, col, MAT.HULL);
-    for (let i = 0; i < n; i++) b.rod(-0.4, 2.0, 1.05 + Math.floor(i / 2) * 0.3, ((i % 2) - 0.5) * 0.6, 0.06, 0.045, dark, MAT.DARK, { seg: 5 });
-  }
-  b.pop();
 }
 
 /** Round gun tub / sponson. */

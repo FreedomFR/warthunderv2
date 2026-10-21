@@ -150,9 +150,6 @@ export function clearMax(rec, phi) {
   return Math.min(rec.clrHi[i], rec.clrHi[(i + 1) % CLR_N]);
 }
 
-/** May the barrel point at ship-relative bearing `phi` and elevation `e` (rad)? */
-export function canPoint(rec, phi, e) { return e >= clearElev(rec, phi) - 1e-3 && e <= clearMax(rec, phi) + 1e-3; }
-
 /** Choose the arc: the stretch around `arcC` (inside the declared half-width `arcH`) where the barrel can be trained; if `arcC` itself is blocked, the widest free stretch of the declared arc. */
 function arcsFrom(rec, limit) {
   const free = (rel) => clearElev(rec, rec.arcC + rel) <= limit && clearMax(rec, rec.arcC + rel) - clearElev(rec, rec.arcC + rel) >= 10 * D2R;

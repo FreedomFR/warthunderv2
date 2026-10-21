@@ -5,7 +5,7 @@ import { Terrain } from '../js/game/sim/terrain.js';
 import { spawnFleet, teamStart } from '../js/game/sim/formation.js';
 import { makeRng, clamp } from '../js/game/math.js';
 import { PRESETS as SCENARIOS } from '../js/game/scenarios.js';
-import { aaSources, exposure } from '../js/game/sim/routing.js';
+import { aaSources } from '../js/game/sim/routing.js';
 import { safeHeading, formOn } from '../js/game/sim/homeward.js';
 
 let fail = 0;

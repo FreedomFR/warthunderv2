@@ -4,7 +4,6 @@
 import { World } from '../js/game/sim/world.js';
 import { spawnFleet, teamStart } from '../js/game/sim/formation.js';
 import { wrapPi, G } from '../js/game/math.js';
-import { PERF } from '../js/game/sim/airperf.js';
 
 let fail = 0;
 const ok = (c, m) => { console.log(c ? 'PASS' : 'FAIL', m); if (!c) { fail++; process.exitCode = 1; } };

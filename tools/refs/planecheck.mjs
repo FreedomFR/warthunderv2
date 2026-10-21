@@ -1,5 +1,6 @@
 // Render the matte top and side views of an aircraft model of the preview scene (nose to the right), for planecheck.py.
 //   node tools/refs/planecheck.mjs <plane key> [outDir]      (the game must be served on :8080, or on PORT)
+/* global __engine */
 import { chromium } from 'playwright-core';
 import fs from 'node:fs';
 import { launchOptions } from '../browser.mjs';

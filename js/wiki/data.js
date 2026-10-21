@@ -1,6 +1,6 @@
 // Data adapter of the wiki: reads the same spec sheets as the game (js/game/data, js/game/model/planes.js) and turns them into
 // display records (French labels, number formatting, tiers, statistic sections). Nothing is copied: the wiki never goes out of date.
-import { ALL_SHIPS, BY_ID, NATIONS, TYPES, typeName } from '../game/data/ships.js';
+import { ALL_SHIPS, NATIONS, TYPES, typeName } from '../game/data/ships.js';
 import { PLANES, floatplaneSpec, planeTypeFor } from '../game/model/planes.js';
 import { PERF } from '../game/sim/airperf.js';
 import { shipName, ROLE_NAMES } from '../viewer/subjects.js';

@@ -221,6 +221,8 @@ Les tourelles, la conduite de tir, les rechargements et les salves sont déjà g
 
 ## Organisation du code
 
+Le plan complet, **un fichier par ligne** (ce qu'il fait, sa taille, ce qu'il exporte, qui l'importe), est généré dans [CODEMAP.md](CODEMAP.md) (`npm run map` ; `node tools/codemap.mjs --find mot` pour chercher un sujet). Le tableau ci-dessous donne le découpage par grands blocs.
+
 | Chemin | Contenu |
 |---|---|
 | `index.html` | Page, interface (CSS) |
@@ -229,12 +231,12 @@ Les tourelles, la conduite de tir, les rechargements et les salves sont déjà g
 | `js/game/data/` | Fiches des navires (6 nations) |
 | `js/game/model/` | Constructeur de maillages procéduraux : coque loftée, superstructures, tourelles, mâts… |
 | `js/game/model/planes.js` | Générateur des avions (fuselage loftée, ailes, hélice, train, bombes, torpilles) |
-| `js/game/sim/` | Simulation pure (sans GPU) : monde, navires, îles (`terrain.js`), armes, balistique, aviation (`aircraft.js`), modules et dégâts (`modules.js`, `damage.js`), explosions (`explosions.js`), débris (`debris.js`), contrôleurs |
+| `js/game/sim/` | Simulation pure (sans GPU) : monde, navires, îles (`terrain.js`), armes, balistique, aviation (`aircraft.js` l'aviation embarquée, `planeaa.js` la DCA des navires, `planedamage.js` les dégâts et la mort des avions, `flight.js` la dynamique de vol), modules et dégâts (`modules.js`, `damage.js`), explosions (`explosions.js`), débris (`debris.js`), contrôleurs |
 | `js/game/render/` | Rendu des navires (`shipVisual.js`), des avions (`aircraftVisual.js`), particules, effets, ombres |
 | `js/game/audio/` | Synthèse des sons (`synth.js`) ; `js/game/audio.js` : lecture en 3D |
 | `js/game/ui/` | Interface, caméras, plan des dégâts |
 | `js/trailer.js`, `js/trailerScenes.js`, `js/trailerMusic.js`, `tools/trailer/` | Bande-annonce : réalisateur et scènes (`?trailer=1`), partition synthétisée, enregistreur image par image et montage ffmpeg (voir `tools/trailer/README.md`) |
-| `test/` | `models.mjs` (30 modèles), `damage.mjs` (dégâts localisés, explosions), `air.mjs` (aviation), `audio.mjs` (moteur sonore avec une API Web Audio factice), `manual.mjs` (pilotage manuel via ShipCommand), `battle.mjs` / `preset.mjs` (une bataille), `fuzz.mjs` (batailles aléatoires), `islands.mjs` (îles : génération, ligne de vue, échouage, impacts, batailles), `vegetation.mjs` (végétation : placement, climats, modèles, assemblage) |
+| `test/` | `tests.json` (la liste des tests, lue par `tools/runtests.mjs` qui les lance en parallèle), `codemap.mjs` (le plan du code est à jour), `lint.mjs` (ESLint), `models.mjs` (30 modèles), `damage.mjs` (dégâts localisés, explosions), `air.mjs` (aviation), `audio.mjs` (moteur sonore avec une API Web Audio factice), `manual.mjs` (pilotage manuel via ShipCommand), `battle.mjs` / `preset.mjs` (une bataille), `fuzz.mjs` (batailles aléatoires), `islands.mjs` (îles : génération, ligne de vue, échouage, impacts, batailles), `vegetation.mjs` (végétation : placement, climats, modèles, assemblage) |
 | `viewer.html`, `js/viewer.js`, `js/viewer/` | Visualiseur 3D : `scene.js` (modèle, caméra orbitale, soleil, ombres), `controls.js` (souris, tactile, clavier), `panel.js` (interface), `state.js` (état et « lien de débogage »), `subjects.js` (les 54 modèles) |
 | `wiki.html`, `js/wiki.js`, `js/wiki/` | Wiki : `data.js` (adaptateur des fiches techniques), `tiers.js` et `layout.js` (arbre technologique), `tree.js`, `card.js`, `compare.js`, `aircraft.js`, `profile.js` (silhouettes dessinées d'après les fiches), `flags.js`, `styles.js` |
 
@@ -252,7 +254,8 @@ git clone https://github.com/FreedomFR/warthunderv2 && cd warthunderv2
 git checkout main && git pull          # ou la branche de travail
 npm install                            # seulement pour les outils (playwright-core, esbuild)
 npm start                              # http://localhost:8080/
-npm test                               # sans carte graphique
+npm test                               # sans carte graphique, en parallèle (moins de 2 minutes) ; npm run test:fast : environ 25 s
+npm run lint                           # ESLint (noms inexistants) ; npm run map : docs/CODEMAP.md
 ```
 
 - **Outils dans le navigateur** (`npm run check:shaders`, `npm run smoke`, `tools/trailer`, `tools/refs`) : ils pilotent Chrome en mode

@@ -2,6 +2,7 @@
 // with the plans.
 //   node tools/refs/check.mjs <ship> [outDir]          (the game must be served on :8080)
 //   python3 tools/refs/silhouette.py <ship> side <outDir>/<ship>_side_render.png
+/* global __engine */
 import { chromium } from 'playwright-core';
 import fs from 'node:fs';
 import { launchOptions } from '../browser.mjs';

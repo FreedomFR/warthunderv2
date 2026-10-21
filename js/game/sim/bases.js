@@ -224,16 +224,6 @@ export function placeBases(terrain, o) {
   return list;
 }
 
-/** The base whose site (or one of its pads) covers the world point (x, z), or null. */
-export function baseAt(terrain, x, z, margin = 0) {
-  for (const b of terrain.bases) for (const p of b.pads) {
-    const dx = x - p.x, dz = z - p.z, ca = Math.cos(p.ang), sa = Math.sin(p.ang);
-    if (Math.abs(dx * ca + dz * sa) <= p.hl + margin && Math.abs(-dx * sa + dz * ca) <= p.hw + margin) return b;
-  }
-  return null;
-}
-
-export { hdg as axisHeading };
 
 /**
  * The live state of a base (what changes during the battle). The layout above is static; this is what the simulation moves and the render draws:

@@ -1,9 +1,9 @@
 // The scenes added for the v0.2.0 trailer (see js/trailerScenes.js for the older ones and js/trailer.js for the director):
 // islands and forests, shells on the hillside, the shell camera, the cockpit, capsizing.
-import { clamp, lerp, D2R, KN } from './game/math.js';
+import { lerp, D2R } from './game/math.js';
 import { mv, FPS } from './trailer.js';
 import { Terrain } from './game/sim/terrain.js';
-import { H, P3, sail, quiet, unit, dist2, chaseCam, followCam, findPlane } from './trailerScenes.js';
+import { P3, sail, quiet, unit, dist2, chaseCam, findPlane } from './trailerScenes.js';
 import { ManualController } from './game/sim/controllers/manual.js';
 
 /** The islands of `seed` for a scene (the start of the fleets kept clear), with their ground and their forests on the screen. */

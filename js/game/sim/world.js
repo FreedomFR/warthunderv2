@@ -1,5 +1,5 @@
 // The simulation world: ships, shells, torpedoes, aircraft, teams, events, victory.
-import { makeRng, clamp, D2R } from '../math.js';
+import { makeRng, clamp } from '../math.js';
 import { Ship } from './ship.js';
 import { makeStats, pickName } from './shipdata.js';
 import { getModel } from '../model/cache.js';

@@ -1,6 +1,6 @@
 // Autonomous captain. Writes a ShipCommand (see ship.js) every ~0.5 s: picks targets, chooses a fighting
 // range and heading, launches torpedoes and air strikes, avoids collisions, withdraws when crippled.
-import { clamp, wrapPi, D2R } from '../../math.js';
+import { clamp, D2R } from '../../math.js';
 
 const TYPE_VALUE = { DD: 1.0, CL: 1.3, CA: 1.8, BB: 2.5, CV: 2.3, BASE: 1.4 };
 const MAP_RADIUS = 26000;

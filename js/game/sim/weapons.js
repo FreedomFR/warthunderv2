@@ -1,5 +1,5 @@
 // Gunnery (fire control, turret slewing, salvos) and torpedo launching.
-import { clamp, wrapPi, approach, D2R, KN } from '../math.js';
+import { clamp, wrapPi, approach, D2R } from '../math.js';
 import { gunBallistics, solve } from './ballistics.js';
 import { V_EXP, effectiveThickness, spacedPlates, fuzeThickness } from './penetration.js';
 import { mountDims } from '../model/mounts.js';

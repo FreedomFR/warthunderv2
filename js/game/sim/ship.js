@@ -1,7 +1,7 @@
 // A ship in the simulation: kinematics, wave response, damage state and weapon mounts.
 // A ship never decides anything itself: it executes its `cmd` (ShipCommand), which is written by a
 // controller (AI today, a human tomorrow — see controllers/).
-import { clamp, wrapPi, approach, KN, D2R, sat, smoothstep } from '../math.js';
+import { clamp, wrapPi, approach, D2R, sat, smoothstep } from '../math.js';
 import { createModules, createCompartments, AA_HP, AA_ROUNDS, blast } from './modules.js';
 import { shipDmg } from '../data/balance.js';
 import { planeTypeFor } from '../model/planes.js';

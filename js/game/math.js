@@ -24,12 +24,6 @@ export function approach(cur, target, maxStep) {
   return Math.abs(d) <= maxStep ? target : cur + Math.sign(d) * maxStep;
 }
 
-/** Same as approach() for angles (shortest way round). */
-export function approachAngle(cur, target, maxStep) {
-  const d = wrapPi(target - cur);
-  return Math.abs(d) <= maxStep ? target : cur + Math.sign(d) * maxStep;
-}
-
 /** Deterministic PRNG (mulberry32). `?seed=123` makes a whole battle reproducible. */
 export function makeRng(seed = 1) {
   let s = seed >>> 0;
@@ -55,16 +49,6 @@ export function makeRng(seed = 1) {
     return m * Math.cos(TAU * v);
   };
   return rnd;
-}
-
-/**
- * Column-major 4x4 matrix helpers. Ships are rendered camera-relative: the translation is
- * computed in float64 on the CPU and only then stored in the float32 matrix.
- */
-export function mat4Identity(out) {
-  out.fill(0);
-  out[0] = out[5] = out[10] = out[15] = 1;
-  return out;
 }
 
 /**
@@ -154,14 +138,6 @@ export function mat4Point(out, m, x, y, z) {
   out[0] = m[0] * x + m[4] * y + m[8] * z + m[12];
   out[1] = m[1] * x + m[5] * y + m[9] * z + m[13];
   out[2] = m[2] * x + m[6] * y + m[10] * z + m[14];
-  return out;
-}
-
-/** Transform a direction (no translation). */
-export function mat4Dir(out, m, x, y, z) {
-  out[0] = m[0] * x + m[4] * y + m[8] * z;
-  out[1] = m[1] * x + m[5] * y + m[9] * z;
-  out[2] = m[2] * x + m[6] * y + m[10] * z;
   return out;
 }
 

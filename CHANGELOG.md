@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased — a code that is easier to find one's way in, and tests that take two minutes
+
+No change to the game: the fingerprints of the simulation (`tools/simbench.mjs`, four battles of 240 to 600 s) and of the ship meshes (`tools/modelbench.mjs`) are the same before and after.
+- **The tests run in parallel** (`tools/runtests.mjs`, the list in `test/tests.json`): the 40 test scripts took ten minutes one after the other (the chain of `npm test`), they take **under two minutes** on a few processes (the slowest first, from the times of the last run); `npm run test:fast` leaves out the eight slow ones (about 25 s); `--only a,b`, `--list`, `--serial`, `--verbose`. A test file that is not in the list is refused (a test nobody runs is no test), and the failures are shown with their lines.
+- **A map of the code** (`tools/codemap.mjs` -> `docs/CODEMAP.md`, `npm run map`): every file of `js/` on one line (what it is, its size, its exports, how many files import it), the scripts of `tools/` and `test/`; `--find word` for a quick "where is it". It is generated from the first comment of each file, and `test/codemap.mjs` fails when it is stale or when a file has no header comment.
+- **ESLint** (`npm run lint`, `eslint.config.mjs`, `test/lint.mjs`): `no-undef` as an error finds the names that do not exist in paths the tests do not run; it found, while the code was being moved, a `rng` that a move had left behind in a function that the simulation of 600 s does not reach every time. Unused names are warnings (78 are left, in the code and the tests).
+- **Dead code removed** (`tools/unused.mjs` lists the exports that nothing imports: twelve, about a hundred lines: a ship's conning tower and an AA gun that no model draws any more, matrix helpers, a probe shader, ...) and the unused imports of 30 files.
+- **`sim/aircraft.js` split** (1222 lines to 784) along its seams: `sim/flight.js` (the flight dynamics, `guide`), `sim/planeaa.js` (the ships' anti-aircraft fire at aircraft), `sim/planedamage.js` (damage, death throes, ditching, crash). The import that went round in a circle between `baseops.js` and `aircraft.js` is gone.
+- **`CLAUDE.md`**: a "Find your way" section, the new commands and the pitfalls learnt on the way (reserved words of WGSL, how to add a material, heredocs and `pkill`, the git steps after a merge).
+
 ## Unreleased — the performance test measures what the next round of work needs
 
 The first report from a phone gave totals (16 fps, 52.8 ms of GPU) and four A/B costs; the sea view could be slow for the sea, the ships, the particles or the pixels, and the report could not say which. Everything below goes into the report (`ui/bench.js`, `ui/benchprobe.js`, `engine.js`), the text for the eye and the JSON at its end for the next round:

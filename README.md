@@ -147,7 +147,10 @@ modélisés d'après leur conception réelle.
 git clone https://github.com/FreedomFR/warthunderv2 && cd warthunderv2
 npm install                # seulement pour les outils (playwright-core, esbuild)
 npm start                  # serveur local : http://localhost:8080/ (jeu), wiki.html, viewer.html
-npm test                   # modèles, dégâts, son, aviation, batailles complètes : sans carte graphique, environ une minute
+npm test                   # modèles, dégâts, son, aviation, batailles complètes : sans carte graphique, tests en parallèle (moins de 2 minutes)
+npm run test:fast          # les tests rapides seulement (environ 25 s) : à lancer après chaque modification
+npm run lint               # ESLint : les noms qui n'existent pas dans des chemins que les tests n'exécutent pas
+npm run map                # régénère docs/CODEMAP.md, le plan du code (un fichier par ligne)
 npm run build              # régénère naval.html, la version en un seul fichier (esbuild)
 npm run check:shaders      # compile les shaders avec un vrai WebGPU (le serveur doit tourner)
 npm run smoke              # test de fumée dans le navigateur (le serveur doit tourner)

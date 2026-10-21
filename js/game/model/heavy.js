@@ -4,7 +4,7 @@
 //   engN    the engine nacelle number N (a piece that can come off or burn)       bay     the bomb doors, open
 //   prop    ONE propeller whose hub is at the origin (propMounts() says where each engine's propeller goes)
 // All distances in a spec sheet are `d`: metres from the tip of the nose, along the fuselage (the origin of the model is `cg` behind it).
-import { MeshBuilder, MAT, rgb, shade } from './meshbuilder.js';
+import { MAT, rgb, shade } from './meshbuilder.js';
 import { panel, insignia, disc, drawBomb, PAINT, GROUND_PITCH } from './planes.js';
 
 const PI = Math.PI, D2R = PI / 180;
@@ -351,10 +351,6 @@ function tailH(b, s, F, top, bot, acc, dark) {
     void mid;
   }
 }
-
-// ---- landing gear -------------------------------------------------------------------------------------------
-/** Height of the origin above the ground when the aircraft stands on its wheels. */
-export function heavyGroundY(s) { return s.groundY; }
 
 function gearH(b, s, F, skin, dark) {
   const g = s.gearGeom, tyre = rgb('#1b1b1b'), hub = rgb('#9a9c98');

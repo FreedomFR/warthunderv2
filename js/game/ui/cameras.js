@@ -1,6 +1,6 @@
 // Camera rig: free-fly, chase, orbit, tactical (top-down), bridge, shell-cam and an automatic
 // "director" that cuts between the action. It only writes engine.cam each frame.
-import { clamp, wrapPi, lerp, D2R, TAU } from '../math.js';
+import { clamp, wrapPi, D2R, TAU } from '../math.js';
 import { cockpitEye } from '../model/cockpit.js';
 import { DECK_PHASES } from '../sim/deck.js';
 import { Director, formations, attacks, dogfights } from './director.js';

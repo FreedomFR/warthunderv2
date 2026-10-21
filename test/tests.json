@@ -1,0 +1,188 @@
+{
+ "comment": "The tests run by `npm test` (tools/runtests.mjs). `slow`: left out of `npm run test:fast`. Files of test/ that are not listed here must be named in `tools`.",
+ "tests": [
+  {
+   "file": "codemap.mjs",
+   "args": []
+  },
+  {
+   "file": "lint.mjs",
+   "args": []
+  },
+  {
+   "file": "models.mjs",
+   "args": []
+  },
+  {
+   "file": "bases.mjs",
+   "args": [],
+   "slow": true
+  },
+  {
+   "file": "basesim.mjs",
+   "args": []
+  },
+  {
+   "file": "director.mjs",
+   "args": []
+  },
+  {
+   "file": "flyby.mjs",
+   "args": []
+  },
+  {
+   "file": "ui.mjs",
+   "args": []
+  },
+  {
+   "file": "bench.mjs",
+   "args": []
+  },
+  {
+   "file": "balance.mjs",
+   "args": []
+  },
+  {
+   "file": "basemesh.mjs",
+   "args": []
+  },
+  {
+   "file": "overlap.mjs",
+   "args": []
+  },
+  {
+   "file": "spin.mjs",
+   "args": []
+  },
+  {
+   "file": "wiki.mjs",
+   "args": []
+  },
+  {
+   "file": "mobile.mjs",
+   "args": []
+  },
+  {
+   "file": "effects.mjs",
+   "args": [],
+   "slow": true
+  },
+  {
+   "file": "particles.mjs",
+   "args": []
+  },
+  {
+   "file": "mounts.mjs",
+   "args": []
+  },
+  {
+   "file": "damage.mjs",
+   "args": []
+  },
+  {
+   "file": "realism.mjs",
+   "args": []
+  },
+  {
+   "file": "gunnery.mjs",
+   "args": []
+  },
+  {
+   "file": "audio.mjs",
+   "args": [],
+   "slow": true
+  },
+  {
+   "file": "manual.mjs",
+   "args": []
+  },
+  {
+   "file": "air.mjs",
+   "args": [
+    "600"
+   ]
+  },
+  {
+   "file": "airops.mjs",
+   "args": [],
+   "slow": true
+  },
+  {
+   "file": "homeward.mjs",
+   "args": [],
+   "slow": true
+  },
+  {
+   "file": "preload.mjs",
+   "args": []
+  },
+  {
+   "file": "deckops.mjs",
+   "args": []
+  },
+  {
+   "file": "fighters.mjs",
+   "args": [],
+   "slow": true
+  },
+  {
+   "file": "flight.mjs",
+   "args": []
+  },
+  {
+   "file": "gunners.mjs",
+   "args": []
+  },
+  {
+   "file": "fleet.mjs",
+   "args": []
+  },
+  {
+   "file": "hitbox.mjs",
+   "args": [
+    "300"
+   ]
+  },
+  {
+   "file": "planehit.mjs",
+   "args": []
+  },
+  {
+   "file": "damagesites.mjs",
+   "args": []
+  },
+  {
+   "file": "cockpit.mjs",
+   "args": []
+  },
+  {
+   "file": "bombers.mjs",
+   "args": []
+  },
+  {
+   "file": "islands.mjs",
+   "args": [],
+   "slow": true
+  },
+  {
+   "file": "vegetation.mjs",
+   "args": []
+  },
+  {
+   "file": "fuzz.mjs",
+   "args": [
+    "8"
+   ],
+   "slow": true
+  },
+  {
+   "file": "battle.mjs",
+   "args": [
+    "600"
+   ]
+  }
+ ],
+ "tools": [
+  "preset.mjs"
+ ]
+}

@@ -4,7 +4,6 @@
 import { ALL_SHIPS } from '../../js/game/data/ships.js';
 import { buildShipModel } from '../../js/game/model/shipbuilder.js';
 import { TWEAKS } from '../../js/game/model/tweaks.js';
-import { mountDims } from '../../js/game/model/mounts.js';
 
 const D = 180 / Math.PI;
 const only = (process.argv[2] || '').split(',').filter(Boolean);

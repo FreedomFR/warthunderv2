@@ -1,7 +1,7 @@
 // Fine detail for the ship models: lifelines, boats on their davits, life rafts, ventilators, anchors and hawse pipes, rigging,
 // searchlight platforms, depth charge racks, carrier catwalks. Everything here is built into the 'fine' group of the model, which
 // the renderer only draws when the ship is close enough for the detail to be visible (see ShipVisuals).
-import { MAT, rgb, shade, mix } from './meshbuilder.js';
+import { MAT, rgb, shade } from './meshbuilder.js';
 
 const clamp = (v, a, c) => (v < a ? a : v > c ? c : v);
 
@@ -101,28 +101,6 @@ export function anchorAndHawse(b, hull, x, y, pal) {
 /** Standing rigging: thin stays between two points. */
 export function stay(b, p0, p1, col, w = 0.06) {
   b.beam(p0, p1, w, w, col, MAT.HULL, { caps: false });
-}
-
-/** Searchlight platform ring around a funnel / mast with `n` lights. */
-export function lightRing(b, o, pal) {
-  const col = shade(rgb(pal.sup), 0.9), dark = rgb(pal.dark);
-  b.cyl(o.x, o.y, o.z || 0, o.rx, o.rz, o.rx, o.rz, o.y + 0.12, col, MAT.HULL, { seg: 14, capBottom: true });
-  for (let i = 0; i < (o.n ?? 3); i++) {
-    const a = (i + 0.5) / (o.n ?? 3) * Math.PI * 2 + (o.phase || 0);
-    const px = o.x + Math.cos(a) * (o.rx - 0.35), pz = (o.z || 0) + Math.sin(a) * (o.rz - 0.35);
-    b.cylinder(px, o.y + 0.12, pz, 0.12, 0.1, o.y + 0.7, dark, MAT.DARK, { seg: 5 });
-    b.cyl(px, o.y + 0.7, pz, 0.38, 0.38, 0.38, 0.38, o.y + 1.22, col, MAT.HULL, { seg: 8 });
-    b.box(px + Math.cos(a) * 0.4, o.y + 0.96, pz + Math.sin(a) * 0.4, 0.1, 0.34, 0.34, dark, MAT.DARK);
-  }
-  if (o.rail !== false) {
-    const n = 16;
-    for (let i = 0; i < n; i++) {
-      const a0 = i / n * Math.PI * 2, a1 = (i + 1) / n * Math.PI * 2;
-      const p0 = [o.x + Math.cos(a0) * o.rx, o.y + 0.95, (o.z || 0) + Math.sin(a0) * o.rz], p1 = [o.x + Math.cos(a1) * o.rx, o.y + 0.95, (o.z || 0) + Math.sin(a1) * o.rz];
-      b.beam(p0, p1, 0.045, 0.045, col, MAT.HULL, { caps: false });
-      b.beam([p0[0], o.y + 0.12, p0[2]], p0, 0.035, 0.035, col, MAT.HULL, { caps: false });
-    }
-  }
 }
 
 /** Depth charge racks at the stern: two tracks of drums plus a couple of K-gun projectors. */

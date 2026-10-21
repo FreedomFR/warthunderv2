@@ -189,16 +189,6 @@ const SLEW_TURRET = 1.5, SLEW_HAND = 2.2, SLEW_REST = 0.5;          // rad/s
 const REACH = 520;                                                    // m: what a gunner shoots at
 const M = new Float64Array(16), _mz = [0, 0, 0];
 
-/** Can a gunner of this aircraft bear on the point at (dx, dy, dz) from it? (any of its gun positions) */
-export function gunnerCan(b, dx, dy, dz) {
-  const guns = planeGuns(b.spec, b.typeKey);
-  if (!guns.length) return false;
-  mat4Ship(M, 0, 0, 0, b.heading, (b.pitch || 0) + (b.aoa || 0), b.roll || 0);
-  const l = Math.hypot(dx, dy, dz) || 1, lx = (dx * M[0] + dy * M[1] + dz * M[2]) / l, ly = (dx * M[4] + dy * M[5] + dz * M[6]) / l, lz = (dx * M[8] + dy * M[9] + dz * M[10]) / l;
-  const yaw = Math.atan2(lz, lx), pitch = Math.asin(clamp(ly, -1, 1));
-  return guns.some((g) => inArc(g, yaw, pitch));
-}
-
 /** Turn an angle towards a goal by at most `step`. */
 const toward = (a, goal, step) => { const d = wrapPi(goal - a); return Math.abs(d) <= step ? goal : a + Math.sign(d) * step; };
 

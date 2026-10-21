@@ -1,5 +1,5 @@
 // Ambience loops and damage creaks.
-import { TAU, prng, SVF, env, mk, normalize, jit, seamless, ring } from './core.js';
+import { TAU, prng, SVF, mk, normalize, jit, seamless, ring } from './core.js';
 
 export const AMBIENCE = {
   hull_groan(sr, seed) {
