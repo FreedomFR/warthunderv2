@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased — the main guns firing
+
+Compared with the photographs and films of battleships firing (Iowa's broadsides), the 1989 Naval Surface Warfare Center 16-inch gunblast experiments, the physics of muzzle flash (a supersonic jet, a shock "bottle" closed by a Mach disk, the fuel-rich gas burning again downstream as it mixes with the air: primary, intermediate and secondary flash) and what other games do (War Thunder's naval effects, the usual layers of open-source muzzle and explosion effects):
+- **A light for the flash** (`flashLight` in `render/effects.js`, `FLASH_WGSL` in `wgsl/common.js`, `engine.setFlash`): the brightest flash of the moment (a salvo, a high-explosive hit of a big shell, a magazine going up) lights the ship's turrets, deck and superstructure, the sea (the water glows, the waves catch it) and the smoke round it (lit orange from inside) for a tenth of a second, falling off as 1 / r^2. Nothing was lit by a salvo before.
+- **The phases of the blast** (`blast` in `render/fx/guns.js`): the muzzle glow, small and reddish; the intermediate flash, white, 22 calibres ahead (at the Mach disk); the secondary flash, the big yellow-orange fireball, now a cone of lobes opening ahead of the muzzle that burns out in 0.3-0.5 s (it stayed orange for over a second); a vortex ring of pale smoke rolling forward off the edge of the Mach disk; sparks of the flash-reducing salts and a few burning fragments of the powder bags thrown far ahead, falling into the sea.
+- **The blast cloud**: tan to brown powder smoke that shoots out along the bore, spreads, stops and hangs for 8-14 s drifting with the wind, about 150 m across for a 16-inch gun as in the photographs (it was a smaller grey cloud gone in a few seconds).
+- **The sea**: the pressure rings spread wider (to about 90 m from the muzzle for a 16-inch gun), a low skirt of spray is thrown out all round under the muzzle, and the dish pressed into the sea is a round patch of churned water. The sheet of foam ahead of the muzzle and the condensation halo drew white rectangles on the sea seen from above (one wide stroke; a 90 m billboard cut by the sea): the first is now a fan of strokes, the second is gone.
+- Pictures: the `firetest` scene (`tools/trailer/record.mjs firetest ...`), `tools/shellshots.mjs`.
+
 ## Unreleased — the flight physics of the aircraft
 
 The aircraft were flown kinematically: the speed went to what was asked at up to 9 m/s2 whatever the aircraft (a B-17 could climb at 30 degrees, 25 m/s, without losing speed), a turn cost no speed, nothing stalled, every type rolled at 80 degrees a second. They now fly as a point mass under the forces of a propeller aircraft (`guide` in `sim/aircraft.js`, `aeroOf` / `dragAcc` / `thrustAcc` in `sim/airperf.js`):

@@ -154,6 +154,7 @@ export class HitFx {
     // high explosive: instant, bright and wide (on contact, or just behind a thin skin)
     const inside = e.inside, big = k === 'penetrate' ? 1.0 : 0.85;
     p.add({ kind: K.FLASH, x: e.x, y: e.y + 1, z: e.z, s0: 16 * cs * big, s1: 36 * cs * big, life: 0.14, r: 1, g: 0.82, b: 0.52, a0: 6.5, a1: 0 });
+    if (cs >= 0.8) this.flashLight(e.x, e.y + 2, e.z, 8 * cs * big, 25, 0.15);
     p.add({ kind: K.FLASH, x: e.x, y: e.y + 2, z: e.z, s0: 9 * cs, s1: 18 * cs, life: 0.3, r: 1, g: 0.6, b: 0.25, a0: 7, a1: 0 });
     const nf = Math.round((7 * big + 2) * es);
     for (let i = 0; i < nf; i++) p.add({ kind: K.FIRE, x: e.x + rr(-2, 2) * cs, y: e.y + rr(0, 3) * cs, z: e.z + rr(-2, 2) * cs, vx: rr(-9, 9), vy: rr(3, 16), vz: rr(-9, 9), s0: 5 * cs, s1: rr(12, 22) * cs, life: rr(0.4, 0.95), r: 1, g: 0.72, b: 0.3, a0: 4.4, a1: 0, drag: 1.3 });
@@ -202,6 +203,7 @@ export class HitFx {
     }
     // ---- primary explosion (ammunition): flash, fireball, shock wave, rising smoke column ----
     p.add({ kind: K.FLASH, x: e.x, y: e.y + 6, z: e.z, s0: 100 * s, s1: 300 * s, life: 0.8, r: 1, g: 0.66, b: 0.32, a0: 7, a1: 0 });
+    this.flashLight(e.x, e.y + 20 * s, e.z, 60 * s, 60, 1.2, [1, 0.6, 0.3]);      // a magazine going up lights the sea and the ships round it
     p.add({ kind: K.FLASH, x: e.x, y: e.y + 4, z: e.z, s0: 50 * s, s1: 170 * s, life: 1.5, r: 1, g: 0.5, b: 0.18, a0: 4, a1: 0 });
     const nf = Math.round(70 * this.emitScale + 30);
     for (let i = 0; i < nf; i++) {

@@ -38,75 +38,90 @@ export class GunFx {
     const vx = dy * uz - dz * uy, vy = dz * ux - dx * uz, vz = dx * uy - dy * ux;
     const at = (a, r1, r2) => [b[0] + dx * a + ux * r1 + vx * r2, b[1] + dy * a + uy * r1 + vy * r2, b[2] + dz * a + uz * r1 + vz * r2];
 
-    // the first instant: a white-hot flash and a jet along the bore (its hot end at the muzzle)
-    p.add({ kind: K.FLASH, x: b[0] + dx * R * 0.5, y: b[1] + dy * R * 0.5, z: b[2] + dz * R * 0.5, s0: R * 1.1, s1: R * 2.4, life: 0.08, r: 1, g: 0.86, b: 0.58, a0: 10, a1: 0 });
+    // The phases of the blast, from the photographs and high-speed films of heavy guns firing and the physics of muzzle flash (the gas leaves the bore faster than sound,
+    // a shock "bottle" closed by a Mach disk forms ahead of the muzzle, the fuel-rich gas burns again as it mixes with the air):
+    //  - the muzzle glow, small and reddish, at the muzzle; the intermediate flash, white, 20-25 calibres ahead, at the Mach disk;
+    //  - the secondary flash, the big yellow-orange fireball, a cone opening ahead of the muzzle: it lasts a few tenths of a second (it used to stay orange for over a second)
+    //    and it lights the ship, the sea and the smoke round it (Effects.flashLight);
+    //  - the blast "sphere" of smoke, tan to brown, which shoots out and stops (about 150 m across for a 16-inch gun, 180 m in full bloom) and hangs for many seconds;
+    //  - a vortex ring rolling off the edge of the Mach disk, sparks of the flash-reducing salts and burning fragments of the powder bags, the pressure on the sea.
+    const cal1 = cal * 0.001;
+    p.add({ kind: K.FLASH, x: b[0] + dx * R * 0.12, y: b[1] + dy * R * 0.12, z: b[2] + dz * R * 0.12, s0: R * 0.3, s1: R * 0.55, life: 0.05, r: 1, g: 0.55, b: 0.38, a0: 6, a1: 0 });
+    const ia = cal1 * 22;
+    p.add({ kind: K.FLASH, x: b[0] + dx * ia, y: b[1] + dy * ia, z: b[2] + dz * ia, s0: R * 0.45, s1: R * 0.8, life: 0.045, r: 1, g: 0.95, b: 0.85, a0: 9, a1: 0 });
+    p.add({ kind: K.FLASH, x: b[0] + dx * R * 1.4, y: b[1] + dy * R * 1.4, z: b[2] + dz * R * 1.4, s0: R * 1.5, s1: R * 2.6, life: 0.12, r: 1, g: 0.78, b: 0.45, a0: 9, a1: 0 });
+    if (first) this.flashLight(b[0] + dx * R * 1.3, b[1] + dy * R * 1.3, b[2] + dz * R * 1.3, R * 1.4, heavy ? 45 : mid ? 30 : 18, heavy ? 0.2 : 0.12);
     const jl = R * 2.6;
-    p.add({ kind: K.TRACER, x: b[0] + dx * jl * 0.5, y: b[1] + dy * jl * 0.5, z: b[2] + dz * jl * 0.5, vx: -dx * 2, vy: -dy * 2, vz: -dz * 2, s0: R * 0.55, life: 0.075, r: 1, g: 0.82, b: 0.5, a0: 9, a1: 0, stretch: jl });
-    // the shock ring: a thin ring of vapour thrown outward round the bore a barrel's width ahead of the muzzle, as the shell clears the tube
-    if (mid) {
-      const nr = Math.max(6, Math.round((heavy ? 16 : 10) * es * lod));
+    p.add({ kind: K.TRACER, x: b[0] + dx * jl * 0.5, y: b[1] + dy * jl * 0.5, z: b[2] + dz * jl * 0.5, vx: -dx * 2, vy: -dy * 2, vz: -dz * 2, s0: R * 0.5, life: 0.06, r: 1, g: 0.82, b: 0.5, a0: 8, a1: 0, stretch: jl });
+    // hot glow round the fireball
+    p.add({ kind: K.FIRE, x: b[0] + dx * R * 1.2, y: b[1] + dy * R * 1.2, z: b[2] + dz * R * 1.2, s0: R * 2.2, s1: R * 3.4, life: heavy ? 0.3 : 0.2, r: 1, g: 0.55, b: 0.18, a0: heavy ? 1.6 : 1.1, a1: 0 });
+
+    // the fireball: lobes along a cone that opens ahead of the muzzle, the far ones bigger, burning out in a few tenths of a second
+    const nl = Math.max(3, Math.round((heavy ? 13 : mid ? 7 : 4) * es * lod));
+    for (let i = 0; i < nl; i++) {
+      const a = R * (0.25 + 2.6 * Math.pow(rnd(), 0.8)), spread = a * 0.32;
+      const q = at(a, rr(-1, 1) * spread, rr(-0.8, 1) * spread), lr = R * (0.32 + 0.3 * a / R) * rr(0.8, 1.1);
+      const sp = rr(8, 34) * Math.sqrt(c) * (heavy ? 1 : 0.7) * (1.2 - a / (3 * R));
+      p.add({
+        kind: K.FIREBALL, x: q[0], y: q[1], z: q[2], vx: dx * sp + rr(-2, 2), vy: dy * sp + rr(0.5, 3), vz: dz * sp + rr(-2, 2),
+        s0: lr * 0.55, s1: lr * rr(1.0, 1.25), life: heavy ? rr(0.28, 0.55) : rr(0.18, 0.4), r: 1, g: 1, b: 1, a0: 1, a1: 0, drag: 4.0, grav: -0.5,
+      });
+    }
+    // the vortex ring off the edge of the Mach disk: a thin ring of pale smoke that rolls forward and widens
+    if (mid && lod > 0.5) {
+      const nr = Math.max(8, Math.round((heavy ? 18 : 11) * es));
       for (let i = 0; i < nr; i++) {
         const th = (i / nr) * 6.283, c1 = Math.cos(th), s1 = Math.sin(th);
-        const q = at(R * 1.5, c1 * R * 0.12, s1 * R * 0.12), sp = R * rr(1.6, 2.4);
-        p.add({ kind: K.SMOKE, x: q[0], y: q[1], z: q[2], vx: (ux * c1 + vx * s1) * sp + dx * R * 1.5, vy: (uy * c1 + vy * s1) * sp + dy * R * 1.5, vz: (uz * c1 + vz * s1) * sp + dz * R * 1.5, s0: R * 0.22, s1: R * 0.8, life: 0.45, r: 1, g: 0.92, b: 0.82, a0: 0.55, a1: 0, drag: 2.6 });
+        const q = at(R * 1.5, c1 * R * 0.2, s1 * R * 0.2), sp = R * rr(1.5, 2.1);
+        p.add({ kind: K.SMOKE, x: q[0], y: q[1], z: q[2], vx: (ux * c1 + vx * s1) * sp + dx * R * 1.3, vy: (uy * c1 + vy * s1) * sp + dy * R * 1.3, vz: (uz * c1 + vz * s1) * sp + dz * R * 1.3, s0: R * 0.16, s1: R * 0.5, life: rr(1.2, 2.2), r: 0.82, g: 0.78, b: 0.72, a0: 0.45, a1: 0, drag: 1.9, wind: 0.6 });
       }
     }
-    // hot glow around the fireball (light on the smoke and the sea)
-    p.add({ kind: K.FIRE, x: b[0] + dx * R * 1.1, y: b[1] + dy * R * 1.1, z: b[2] + dz * R * 1.1, s0: R * 2.4, s1: R * 3.8, life: heavy ? 0.4 : 0.28, r: 1, g: 0.55, b: 0.18, a0: heavy ? 1.8 : 1.2, a1: 0 });
-
-    // the fireball: a cluster of lobes about a barrel's length ahead of the muzzle
-    const nl = Math.max(2, Math.round((heavy ? 10 : mid ? 6 : 4) * es * lod));
-    for (let i = 0; i < nl; i++) {
-      const a = rr(0.2, 1.7) * R, r1 = rr(-0.7, 0.7) * R, r2 = rr(-0.5, 0.6) * R;
-      const q = at(a, r1, r2), lr = R * rr(0.6, 1.05);
-      const sp = rr(5, 26) * Math.sqrt(c) * (heavy ? 1 : 0.7);
-      p.add({
-        kind: K.FIREBALL, x: q[0], y: q[1], z: q[2], vx: dx * sp + rr(-2, 2), vy: dy * sp + rr(0.5, 4), vz: dz * sp + rr(-2, 2),
-        s0: lr * 0.6, s1: lr * rr(1.05, 1.3), life: (heavy ? rr(0.9, 1.6) : rr(0.4, 0.8)), r: 1, g: 1, b: 1, a0: 1, a1: 0, drag: 3.0, grav: -0.5,
-      });
-    }
-    // a ring of smoke thrown off the muzzle (heavy guns)
-    if (heavy && lod > 0.5) {
-      const nr = stoch(9 * es);
-      for (let i = 0; i < nr; i++) {
-        const th = (i / Math.max(nr, 1)) * 6.283 + rnd() * 0.3, cs = Math.cos(th), sn = Math.sin(th);
-        const q = at(R * 0.5, cs * R * 0.5, sn * R * 0.5), rad = rr(9, 15) * Math.sqrt(c), fw = rr(16, 26) * Math.sqrt(c);
-        p.add({
-          kind: K.SMOKE, x: q[0], y: q[1], z: q[2],
-          vx: dx * fw + (ux * cs + vx * sn) * rad, vy: dy * fw + (uy * cs + vy * sn) * rad + 1, vz: dz * fw + (uz * cs + vz * sn) * rad,
-          s0: R * 0.22, s1: R * rr(0.7, 1.0), life: rr(1.6, 2.6), r: 0.3, g: 0.27, b: 0.24, a0: 0.5, a1: 0, drag: 1.7, wind: 1, grav: -0.2,
-        });
-      }
-    }
-    // the cloud: brown-grey powder smoke that expands, hangs over the water and drifts with the wind
-    // (lighter guns: a smaller, greyer cloud that thins out in a few seconds, or a rapid-firing battery would hide its own ship)
-    const ns = stoch((heavy ? 8 : mid ? 3.5 : 1.5) * es * lod);
-    const grow = heavy ? [2.2, 3.6] : mid ? [1.9, 3.0] : [1.5, 2.3], life = heavy ? [6, 12] : mid ? [3, 6] : [1.8, 3.6];
+    // the blast cloud: tan and brown smoke of the powder that shoots out along the bore, spreads, stops, and hangs over the water drifting with the wind
+    // (a lighter gun: a smaller, greyer cloud that thins in a few seconds, or a rapid-firing battery would hide its own ship)
+    const ns = stoch((heavy ? 14 : mid ? 5 : 2) * es * lod);
+    const grow = heavy ? [2.6, 3.6] : mid ? [2.0, 3.0] : [1.5, 2.3], life = heavy ? [8, 14] : mid ? [4, 8] : [2, 4];
     for (let i = 0; i < ns; i++) {
-      const q = at(rr(0.4, 1.8) * R, rr(-0.9, 0.9) * R, rr(-0.7, 0.8) * R), sp = rr(3, 11) * Math.sqrt(c), dark = heavy && rnd() < 0.25;
+      const a = R * rr(0.4, 3.2), q = at(a, rr(-0.9, 0.9) * R, rr(-0.6, 0.9) * R), sp = rr(14, 42) * Math.sqrt(c) * (heavy ? 1 : 0.7), tone = rnd();
+      const col = tone < 0.35 ? [0.46, 0.38, 0.3] : tone < 0.75 ? [0.6, 0.52, 0.42] : [0.66, 0.63, 0.58];
       p.add({
-        kind: K.SMOKE, x: q[0], y: q[1], z: q[2], vx: dx * sp + rr(-1.5, 1.5), vy: dy * sp + rr(0.3, 3), vz: dz * sp + rr(-1.5, 1.5),
-        s0: R * 0.6, s1: R * rr(grow[0], grow[1]), life: rr(life[0], life[1]), r: dark ? 0.24 : heavy ? 0.54 : 0.6, g: dark ? 0.21 : heavy ? 0.49 : 0.57, b: dark ? 0.18 : heavy ? 0.43 : 0.53, a0: dark ? 0.5 : heavy ? 0.42 : 0.34, a1: 0, drag: 1.1, wind: 1, grav: -0.3,
+        kind: K.SMOKE, x: q[0], y: q[1], z: q[2], vx: dx * sp + ux * rr(-6, 6), vy: dy * sp + rr(0.5, 4), vz: dz * sp + uz * rr(-6, 6),
+        s0: R * 0.7, s1: R * rr(grow[0], grow[1]), life: rr(life[0], life[1]), r: col[0], g: col[1], b: col[2], a0: heavy ? 0.46 : mid ? 0.38 : 0.32, a1: 0, drag: 1.5, wind: 1, grav: -0.25,
       });
+    }
+    // sparks of the flash-reducing salts and burning fragments of the bags, thrown far ahead of the muzzle; they fall into the sea
+    if (lod > 0.5 && mid) {
+      const nk = Math.round((heavy ? 28 : 10) * es);
+      for (let i = 0; i < nk; i++) {
+        const sp = rr(70, 220) * Math.sqrt(c);
+        p.add({ kind: K.TRACER, x: b[0] + dx * R, y: b[1] + dy * R, z: b[2] + dz * R, vx: (dx + rr(-0.3, 0.3)) * sp, vy: (dy + rr(-0.15, 0.3)) * sp, vz: (dz + rr(-0.3, 0.3)) * sp, s0: 0.22 * Math.max(c, 0.4), life: rr(0.5, 1.3), r: 1, g: 0.55, b: 0.2, a0: 1.6, a1: 0, grav: 9.8, drag: 0.6, stretch: 3 });
+      }
+      for (let i = 0; i < (heavy ? 6 : 2); i++) {
+        const sp = rr(25, 60) * Math.sqrt(c);
+        p.add({ kind: K.FLASH, x: b[0] + dx * R * 1.5, y: b[1] + dy * R * 1.5, z: b[2] + dz * R * 1.5, vx: (dx + rr(-0.4, 0.4)) * sp, vy: dy * sp + rr(2, 10), vz: (dz + rr(-0.4, 0.4)) * sp, s0: 0.45 * Math.max(c, 0.5), s1: 0.2, life: rr(1.5, 3), r: 1, g: 0.5, b: 0.15, a0: 5, a1: 0, grav: 6, drag: 0.7 });
+      }
     }
     // the blast on the sea: a sheet of foam under and ahead of the muzzle, and spray skimming away from it
     if (first || heavy) {
       const h = Math.hypot(dx, dz) || 1, hx = dx / h, hz = dz / h;
       const wy = Math.max(b[1], 1);
-      // the pressure of the blast: a ring that spreads over the sea under the muzzle (white water thrown up), and, for the heavy guns, a halo of condensation
+      // the pressure of the blast: a ring that spreads over the sea under the muzzle (white water thrown up)
+      // (no halo of condensation: a billboard 90 m wide crossing the sea was cut along a straight line by the depth test, a white rectangle seen from above)
       if (first && heavy && d < 3000 && wy < 60) {
-        for (let k = 1; k <= 3; k++) this.later(k * 0.11, () => {
-          const rad = R * (1.0 + 1.0 * k), w = R * 0.1, sg = 12;
+        for (let k = 1; k <= 3; k++) this.later(k * 0.1, () => {
+          const rad = R * (1.2 + 1.2 * k), w = R * 0.12, sg = 14;
           for (let i = 0; i < sg; i++) {
             const a0 = i / sg * 6.283, a1 = (i + 1.1) / sg * 6.283;
             this.engine.foam.add(b[0] + hx * R * 2.5 + Math.cos(a0) * rad, b[2] + hz * R * 2.5 + Math.sin(a0) * rad, b[0] + hx * R * 2.5 + Math.cos(a1) * rad, b[2] + hz * R * 2.5 + Math.sin(a1) * rad, w, 0.1, 0.45, 0.22);
           }
         });
       }
-      if (first && heavy && lod > 0.5) p.add({ kind: K.SMOKE, x: b[0] + dx * R * 1.2, y: b[1] + dy * R * 1.2, z: b[2] + dz * R * 1.2, s0: R * 2, s1: R * 5, life: 0.35, r: 0.95, g: 0.97, b: 1, a0: 0.3, a1: 0, drag: 2 });
       if (d < 2600 && cal >= 120 && wy < 60) {
+        // (a fan of strokes opening ahead of the muzzle: one wide stroke drew a white rectangle on the sea)
         const len = R * (heavy ? 6.5 : 4);
-        this.engine.foam.add(b[0], b[2], b[0] + hx * len, b[2] + hz * len, R * (heavy ? 2.2 : 1.6), 0, heavy ? 1.0 : 0.6, heavy ? 0.9 : 0.5);
+        for (let k = -2; k <= 2; k++) {
+          const th = k * 0.22, fx = hx * Math.cos(th) - hz * Math.sin(th), fz = hz * Math.cos(th) + hx * Math.sin(th), l = len * (1 - Math.abs(k) * 0.18);
+          this.engine.foam.add(b[0], b[2], b[0] + fx * l, b[2] + fz * l, R * (heavy ? 0.9 : 0.65) * (1 - Math.abs(k) * 0.15), 0, heavy ? 0.7 : 0.45, heavy ? 0.7 : 0.4);
+        }
       }
       if (lod > 0.5 && cal >= 120 && wy < 60) {
         const nsp = Math.round((heavy ? 9 : 4) * es);
@@ -117,6 +132,16 @@ export class GunFx {
             s0: R * 0.3, s1: R * rr(0.8, 1.3), life: rr(1.1, 2.4), r: 0.9, g: 0.94, b: 0.98, a0: 0.5, a1: 0, grav: 4, drag: 0.9, wind: 0.5,
           });
         }
+      }
+      // a heavy gun: the blast presses a dish into the sea under the muzzle (about 180 m across for a 16-inch gun) and throws a low skirt of spray out all round it
+      if (first && heavy && lod > 0.5 && wy < 60) {
+        const cx = b[0] + hx * R * 2.2, cz = b[2] + hz * R * 2.2, nsk = Math.round(16 * es);
+        for (let i = 0; i < nsk; i++) {
+          const th = (i / nsk) * 6.283 + rr(-0.15, 0.15), sp = rr(18, 40) * Math.sqrt(c);
+          p.add({ kind: K.SPRAY, x: cx + Math.cos(th) * R * 0.8, y: 0.4, z: cz + Math.sin(th) * R * 0.8, vx: Math.cos(th) * sp, vy: rr(1.5, 5), vz: Math.sin(th) * sp, s0: R * 0.25, s1: R * rr(0.7, 1.0), life: rr(1.2, 2.4), r: 0.92, g: 0.95, b: 0.98, a0: 0.45, a1: 0, grav: 4, drag: 1.4, wind: 0.4 });
+        }
+        // (the dish: a rosette of short strokes, a round patch of churned water, not one wide stroke, which drew a white rectangle)
+        if (d < 3000) for (let i = 0; i < 6; i++) { const th = i / 6 * Math.PI, ex = Math.cos(th) * R * 2.2, ez = Math.sin(th) * R * 2.2; this.engine.foam.add(cx - ex, cz - ez, cx + ex, cz + ez, R * 0.9, 0, 0.28, 0.25); }
       }
     }
   }
