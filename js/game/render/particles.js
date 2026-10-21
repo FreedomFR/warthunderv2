@@ -22,6 +22,7 @@ export class Particles {
     this.count = 0;
     this.tr = new Float32Array(MAX_TRANSIENT * INST);
     this.nT = 0;                    // transient instances (tracers), rebuilt every frame
+    this.detail = 2;                // the level of detail of the smoke (setDetail)
     this.wind = [3, 0];
     this.ready = this._init();
   }
@@ -42,9 +43,31 @@ export class Particles {
 
   async _init() {
     const g = this.engine.gpu;
-    const module = await g.shader(PARTICLES, 'particles');
-    this.pipeline = await this.device.createRenderPipelineAsync({
-      label: 'particles', layout: 'auto',
+    this.module = await g.shader(PARTICLES, 'particles');
+    this.pipelines = new Map();                       // detail -> { pipeline, bindGroup } (an 'auto' layout belongs to its pipeline, so each has its own bind group)
+    const first = await this._make(this.detail);
+    this.pipelines.set(this.detail, first);
+    this.pipeline = first.pipeline; this.bindGroup = first.bindGroup;
+  }
+
+  async _make(detail) {
+    const g = this.engine.gpu;
+    const pipeline = await this._pipeline(detail);
+    const bindGroup = this.device.createBindGroup({
+      layout: pipeline.getBindGroupLayout(0),
+      entries: [
+        { binding: 0, resource: { buffer: g.frameUBO } }, { binding: 1, resource: g.transView }, { binding: 2, resource: g.skyView },
+        { binding: 3, resource: g.sampClamp }, { binding: 4, resource: g.envCubeView }, { binding: 5, resource: { buffer: g.sunVisBuf } },
+      ],
+    });
+    return { pipeline, bindGroup };
+  }
+
+  /** The pipeline of one level of detail of the smoke (a constant of the shader, see SMOKE_DETAIL in wgsl/particles.js) */
+  _pipeline(detail) {
+    const g = this.engine.gpu, module = this.module;
+    return this.device.createRenderPipelineAsync({
+      label: 'particles' + detail, layout: 'auto',
       vertex: {
         module, entryPoint: 'vs',
         buffers: [{ arrayStride: INST * 4, stepMode: 'instance', attributes: [
@@ -53,20 +76,24 @@ export class Particles {
         ] }],
       },
       fragment: {
-        module, entryPoint: 'fs',
+        module, entryPoint: 'fs', constants: { SMOKE_DETAIL: detail },
         targets: [{ format: g.HDR, blend: { color: { srcFactor: 'one', dstFactor: 'one-minus-src-alpha', operation: 'add' }, alpha: { srcFactor: 'one', dstFactor: 'one-minus-src-alpha', operation: 'add' } } }],
       },
       primitive: { topology: 'triangle-list', cullMode: 'none' },
       depthStencil: { format: g.DEPTH, depthWriteEnabled: false, depthCompare: 'greater' },
       multisample: { count: g.MSAA },
     });
-    this.bindGroup = this.device.createBindGroup({
-      layout: this.pipeline.getBindGroupLayout(0),
-      entries: [
-        { binding: 0, resource: { buffer: g.frameUBO } }, { binding: 1, resource: g.transView }, { binding: 2, resource: g.skyView },
-        { binding: 3, resource: g.sampClamp }, { binding: 4, resource: g.envCubeView }, { binding: 5, resource: { buffer: g.sunVisBuf } },
-      ],
-    });
+  }
+
+  /** How much work the smoke gets, 0 (a phone) .. 2 (a PC): the new pipeline is built in the background and takes over when it is ready. */
+  setDetail(d) {
+    d = Math.max(0, Math.min(2, d | 0));
+    if (d === this.detail) return;
+    this.detail = d;
+    if (!this.pipelines) return;                       // (before the first pipeline: _init builds the right one)
+    const use = (v) => { this.pipeline = v.pipeline; this.bindGroup = v.bindGroup; };
+    if (this.pipelines.has(d)) { use(this.pipelines.get(d)); return; }
+    this._make(d).then((v) => { this.pipelines.set(d, v); if (this.detail === d) use(v); });
   }
 
   /**

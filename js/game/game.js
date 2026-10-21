@@ -92,6 +92,8 @@ export class Game {
     this.shadowsOn = this.userShadows && q.shadows;
     this.ui?.onRenderScale?.(this.engine.getRenderScale());
     this.vegetation?.setQuality(this.qLevel);
+    // the smoke: lit as a volume on a PC, the cheap lighting at the middle of the ladder, two octaves and no haze at the bottom (a phone fills a lot of smoke)
+    this.particles?.setDetail(this.pdetail ?? (this.qLevel <= 1 ? 2 : this.qLevel === 2 ? 1 : 0));
     // the volumetric clouds: fewer steps lower down the ladder, the flat layer of the sky at the two lowest levels
     this.engine.setClouds?.({ on: this.qLevel < 3, steps: [220, 180, 150, 120, 120][this.qLevel], stepScale: [1, 1.2, 1.45, 1.7, 1.7][this.qLevel], light: this.qLevel < 2 ? 5 : 4 });
   }
@@ -101,6 +103,8 @@ export class Game {
     this.shipRenderer = new ShipRenderer(e);
     this.particles = new Particles(e);
     this.particles.setMax(this.particleMax);
+    { const pd = new URLSearchParams(location.search).get('pdetail'); if (pd != null) this.pdetail = Number(pd); }       // (tools: ?pdetail=0..2 forces the smoke's level of detail)
+    this.particles.setDetail(this.pdetail ?? (this.qLevel <= 1 ? 2 : this.qLevel === 2 ? 1 : 0));
     await Promise.all([this.shipRenderer.ready, this.particles.ready]);
     this.effects = new Effects(e, this.particles, this);
     this.camera = new CameraRig(e, this.canvas, this);

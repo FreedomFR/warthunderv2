@@ -12,6 +12,9 @@ export const PARTICLES = FRAME_WGSL + FLASH_WGSL + ATMO_CORE_WGSL + HAZE_WGSL + 
 @group(0) @binding(5) var<storage, read> sunVis: array<f32, 4>;
 ` + SKY_RENDER_FUNCS + /* wgsl */ `
 const ENV_MAXMIP: f32 = ${ENV_MIPS - 1}.0;
+// how much work a puff of smoke gets (a pipeline constant, see Particles.setDetail): 2 lit as a volume with the haze of the surfaces, 1 the cheap lighting with the haze,
+// 0 the cheap lighting, two octaves of noise and no haze (what a phone can fill)
+override SMOKE_DETAIL: u32 = 2u;
 
 struct VIn {
   @builtin(vertex_index) vi: u32,
@@ -106,30 +109,45 @@ fn smokeH(q: vec2f) -> f32 {
   switch (kind) {
     case 0u: {   // smoke / mist: billowy puff with a noise-eroded edge, lit by the sun and the sky
       let p = in.uv * 2.1 + vec2f(seed * 17.0, seed * 5.0);
-      let wv = vec2f(vnoise(p * 1.4 + vec2f(3.1, 1.7)), vnoise(p * 1.4 + vec2f(8.7, 4.3))) - vec2f(0.5);
-      let q = p + wv * 1.7;
-      let n = vnoise(q) * 0.5 + vnoise(q * 2.1 + vec2f(5.0, 2.0)) * 0.3 + vnoise(q * 4.4 + vec2f(9.0, 7.0)) * 0.2;
+      var q = p;
+      var n = 0.0;
+      if (SMOKE_DETAIL >= 1u) {
+        let wv = vec2f(vnoise(p * 1.4 + vec2f(3.1, 1.7)), vnoise(p * 1.4 + vec2f(8.7, 4.3))) - vec2f(0.5);
+        q = p + wv * 1.7;
+        n = smokeH(q);
+      } else {
+        n = vnoise(q) * 0.65 + vnoise(q * 2.3 + vec2f(5.0, 2.0)) * 0.35;      // (two octaves, no domain warp: a phone fills a lot of smoke)
+      }
       let r = d / (0.7 + 0.42 * n);
       let dens = smoothstep(1.0, 0.3, r) * (0.5 + 0.75 * n);
       alpha = clamp(dens, 0.0, 1.0) * in.col.a * smoothstep(0.0, 0.05, in.misc.w);      // (it comes in over the first part of its life: smoke does not pop out of the flames)
-      // a normal for the puff: a dome facing the lens, bent by the slope of the noise, turned to the screen with the sprite and then to the world;
-      // the sun lights it softly (smoke scatters: no hard terminator), the sky and the sea light it from its own side (a pale top, a dark underside
-      // with the bounce of the water), and looking towards the sun its edges glow
-      let gx = smokeH(q + vec2f(0.12, 0.0)) - n;
-      let gy = smokeH(q + vec2f(0.0, 0.12)) - n;
-      let dome = sqrt(max(1.0 - d * d, 0.05));
-      let nl = normalize(vec3f(in.uv.x - gx * 5.0, in.uv.y - gy * 5.0, dome));
-      let cr = cos(in.misc.x); let sr = sin(in.misc.x);
-      let toCam = -normalize(in.rel);
-      let nw = normalize(normalize(F.camRight.xyz) * (nl.x * cr - nl.y * sr) + normalize(F.camUp.xyz) * (nl.x * sr + nl.y * cr) + toCam * nl.z);
-      let Ls = normalize(F.sunDir.xyz);
-      let wrapL = clamp((dot(nw, Ls) + 0.55) / 1.55, 0.0, 1.0);
-      let towardSun = pow(max(dot(normalize(in.rel), Ls), 0.0), 6.0);
       let sunE = sunIlluminance() * sunVis[0];
-      let skyN = textureSampleLevel(envCube, sampC, nw, ENV_MAXMIP - 2.0).rgb;
-      // (and the flash of a salvo: the smoke round the fireball lit from inside, orange)
-      let lit = sunE * 0.085 * (0.10 + 0.95 * wrapL) * mix(0.6, 1.0, n) + sunE * 0.05 * towardSun * (1.0 - 0.6 * d) + skyN * 0.95 + flashIrr(in.rel, vec3f(0.0)) * 0.09 * mix(0.6, 1.0, n);
-      rgb = rgb * lit * mix(0.78, 1.12, smoothstep(0.1, 0.9, d));
+      if (SMOKE_DETAIL >= 2u) {
+        // a normal for the puff: a dome facing the lens, bent by the slope of the noise, turned to the screen with the sprite and then to the world;
+        // the sun lights it softly (smoke scatters: no hard terminator), the sky and the sea light it from its own side (a pale top, a dark underside
+        // with the bounce of the water), and looking towards the sun its edges glow
+        let gx = smokeH(q + vec2f(0.12, 0.0)) - n;
+        let gy = smokeH(q + vec2f(0.0, 0.12)) - n;
+        let dome = sqrt(max(1.0 - d * d, 0.05));
+        let nl = normalize(vec3f(in.uv.x - gx * 5.0, in.uv.y - gy * 5.0, dome));
+        let cr = cos(in.misc.x); let sr = sin(in.misc.x);
+        let toCam = -normalize(in.rel);
+        let nw = normalize(normalize(F.camRight.xyz) * (nl.x * cr - nl.y * sr) + normalize(F.camUp.xyz) * (nl.x * sr + nl.y * cr) + toCam * nl.z);
+        let Ls = normalize(F.sunDir.xyz);
+        let wrapL = clamp((dot(nw, Ls) + 0.55) / 1.55, 0.0, 1.0);
+        let towardSun = pow(max(dot(normalize(in.rel), Ls), 0.0), 6.0);
+        let skyN = textureSampleLevel(envCube, sampC, nw, ENV_MAXMIP - 2.0).rgb;
+        // (and the flash of a salvo: the smoke round the fireball lit from inside, orange)
+        let lit = sunE * 0.085 * (0.10 + 0.95 * wrapL) * mix(0.6, 1.0, n) + sunE * 0.05 * towardSun * (1.0 - 0.6 * d) + skyN * 0.95 + flashIrr(in.rel, vec3f(0.0)) * 0.09 * mix(0.6, 1.0, n);
+        rgb = rgb * lit * mix(0.78, 1.12, smoothstep(0.1, 0.9, d));
+      } else {
+        // the cheap lighting: light comes from the sun side of the screen, a bright rim facing it, a dark body, a shaded far side
+        let sd = vec2f(dot(normalize(F.sunDir.xyz), normalize(F.camRight.xyz)), dot(normalize(F.sunDir.xyz), normalize(F.camUp.xyz)));
+        let facing = clamp(0.5 + 0.9 * dot(in.uv, sd) * (0.4 + n), 0.0, 1.0);
+        let amb = textureSampleLevel(envCube, sampC, vec3f(0.0, 1.0, 0.0), ENV_MAXMIP - 2.0).rgb;
+        let lit = sunE * 0.085 * (0.25 + 0.95 * facing) * mix(0.55, 1.0, n) + amb * (0.55 + 0.4 * facing) + flashIrr(in.rel, vec3f(0.0)) * 0.09 * mix(0.6, 1.0, n);
+        rgb = rgb * lit * mix(0.7, 1.15, smoothstep(0.1, 0.9, d));
+      }
       // young dark smoke over a fire is lit from below by the flames: an orange base that fades in a second or two (the dark colours only)
       let dark = clamp(1.0 - dot(in.col.rgb, vec3f(0.33)) * 3.0, 0.0, 1.0);
       rgb += vec3f(1.0, 0.36, 0.08) * 0.55 * dark * (1.0 - smoothstep(0.0, 0.1, in.misc.w)) * (1.0 - 0.5 * d);
@@ -221,10 +239,13 @@ fn smokeH(q: vec2f) -> f32 {
     out = rgb * add * T;
     return vec4f(out, 0.0);
   }
-  let hz = normalize(vec3f(in.rel.x, 0.002, in.rel.z));
-  let fogCol = skyAtmo(hz);
+  var fogCol = vec3f(0.0);
+  var hazeK = 0.0;
+  if (SMOKE_DETAIL >= 1u) { fogCol = skyAtmo(normalize(vec3f(in.rel.x, 0.002, in.rel.z))); hazeK = 1.0; }
   let a = alpha * near;
-  out = (rgb * T + fogCol * (1.0 - T)) * a;
+  // (most of a puff's quad is edge: what would add nothing is not blended at all, which is what fills a phone)
+  if (a * occl < 0.004) { discard; }
+  out = (rgb * T + fogCol * (1.0 - T) * hazeK) * a;
   return vec4f(out, a * occl);
 }
 `;
