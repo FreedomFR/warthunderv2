@@ -1,6 +1,7 @@
 // Ocean surface + sky background rendering.
 import { FRAME_WGSL, ATMO_CORE_WGSL, HAZE_WGSL, SHADOW_STRUCT_WGSL, SHADOW_FUNC_WGSL, SANE_WGSL, ENV_MIPS, ENV_SIZE, N, CASCADES } from './common.js';
 import { SKY_RENDER_FUNCS, SKY_CLOUD_FUNCS } from './sky.js';
+import { CLOUD_SHADOW_FN } from './clouds.js';
 
 const RENDER_BINDINGS = /* wgsl */ `
 @group(0) @binding(0) var<uniform> F: Frame;
@@ -33,7 +34,7 @@ struct VO { @builtin(position) pos: vec4f, @location(0) ndc: vec2f };
   let eh = highEdge(hh.q, hh.t * pixAng / hh.mu, 6);
   let aa = vec2f(fwidth(el), fwidth(eh));
   var sunT = 1.0;
-  let cl = cloudLayers(d2, pixAng, aa, &sunT);
+  let cl = cloudLayersX(d2, pixAng, aa, &sunT, F.camFwd.w < 0.5);
   let L = skyAtmo(d2) * (1.0 - cl.a) + cl.rgb + sunDisk(dir) * sunT;
   return vec4f(sane(L), 1.0);
 }
@@ -51,7 +52,8 @@ export const OCEAN = FRAME_WGSL + ATMO_CORE_WGSL + HAZE_WGSL + SHADOW_STRUCT_WGS
 @group(0) @binding(12) var shadowTex: texture_depth_2d;
 @group(0) @binding(13) var shadowSamp: sampler_comparison;
 @group(0) @binding(14) var<uniform> SH: ShadowU;
-` + SHADOW_FUNC_WGSL + SKY_RENDER_FUNCS + /* wgsl */ `
+@group(0) @binding(15) var cloudShadowTex: texture_2d<f32>;
+` + SHADOW_FUNC_WGSL + SKY_RENDER_FUNCS + CLOUD_SHADOW_FN + /* wgsl */ `
 const ENV_MAXMIP: f32 = ${ENV_MIPS - 1}.0;
 const ENV_TEXELS_PER_RAD: f32 = ${ENV_SIZE}.0 / 1.5708;
 const TEX_N: f32 = ${N}.0;
@@ -158,7 +160,8 @@ fn foamPattern(xz: vec2f, t: f32) -> f32 {
   let J = (1.0 + jxx) * (1.0 + jzz) - jxz * jxz;
 
   // ships cast shadows on the sea
-  let sunE = sunIlluminance() * sunVis[0] * shadowAt(in.rel);
+  // under the volumetric clouds, their own shadow at this point of the sea; otherwise how much of the sun the flat layer hides
+  let sunE = sunIlluminance() * select(sunVis[0], cloudShadowAt(in.rel), F.camFwd.w > 0.5) * shadowAt(in.rel);
   let skyUp = textureSampleLevel(envCube, sampC, vec3f(0.0, 1.0, 0.0), ENV_MAXMIP).rgb;
   // average radiance of the whole upper hemisphere (incl. the bright horizon band)
   let skyHemi = skyUp * 0.4 + 0.15 * (

@@ -84,7 +84,13 @@ Lot 2 (cuirassés et porte-avions des autres nations) : **fait, avec des réserv
 - [ ] **Lumière du tir** : le flash n'éclaire pas la coque ni l'eau alentour (pas de lumière dynamique) ; surtout visible la nuit.
 - [ ] **Onde de choc** visible sur l'eau (anneau de souffle) en plus de l'écume.
 - [ ] **Tir de nuit** : flamme plus longue et plus rouge, éclairage des tourelles (le tir de jour est le seul contrôlé).
-- [ ] **Performance réelle** : mesurer une bordée de 9 tubes à plusieurs navires, avec les qualités haute / moyenne / basse (le GPU est maintenant disponible : RTX 3080 ; le test de fumée tourne à environ 60 images/s).
+- [x] **Performance mesurée** (`tools/perf.mjs`, sur la RTX 3080) : grande bataille Alliés contre Axe, archipel et bases fortifiées, 1920×1080, qualité haute, vitesse ×4 : 60 images/s, GPU 6 ms, processeur 4,2 ms par image (7,3 ms avant les optimisations d'octobre 2026), 99 % des images en moins de 17 ms. La simulation est 1,2 à 2,5 fois plus rapide, à bataille strictement identique (`tools/simbench.mjs`).
+- [ ] **Performance, pistes restantes** : la visée des tourelles (`mountSolution`, `feasible`) recalcule tout à chaque pas pour chaque tourelle ; la construction des modèles (5 s pour les 30 navires, surtout l'occlusion ambiante `bakeAO`) pourrait se faire dans un Worker ou être mise en cache ; la fluidité n'a été mesurée que sur la RTX (pas sur un téléphone ni sur une petite carte graphique).
+- [x] **Caméra automatique, avions en groupe** : formations, attaques groupées et combats de chasseurs (le chasseur et sa proie dans le même cadre, à moins de 450 m) filmés.
+- [ ] **Caméra, attaque groupée vue du pont** : abandonnée pour l'instant (la fumée des cheminées remplit l'image, les avions sont des points à plusieurs kilomètres).
+
+- [x] **Nuages volumiques** : cumulus en volume (vus de la mer et du dessus, devant et derrière les avions), ombres des nuages sur la mer et les navires.
+- [ ] **Ciel, pistes restantes** : la couche haute (cirrus) reste plate ; pas d'accumulation temporelle (un léger grain dans les nuages à demi-résolution) ; pas d'éclairs ni de grains (averses) ; les particules derrière un nuage restent visibles par-dessus ; les reflets de l'eau montrent encore l'ancienne couche plate.
 
 ## 4. Vidéo et version
 

@@ -160,13 +160,14 @@ for (const k of keys) {
     l = draw(k, { engFire: PLANES[k].engines.map((e, i) => (i === 1 ? 1 : 0)) });
     ok(count(l, 'burn1') === 1 && count(l, 'burn0') === 0, `${k}: a burning engine is drawn charred`);
     l = draw(k, { inCockpit: true });
-    ok(l.includes('hull') && !l.includes('whole') && !l.includes('body') && !l.includes('prop') && l.includes('wingL') && l.includes('tail') && count(l, 'disc ' + k) === n, `${k}: from the pilot's seat: no nose skin, the hull behind, ${count(l, 'disc ' + k)} propeller blurs, the dials and the yoke`);
+    // (the blurs of the propellers are drawn by the particles, see-through: the aircraft lists their hubs in pv.discs)
+    ok(l.includes('hull') && !l.includes('whole') && !l.includes('body') && !l.includes('prop') && l.includes('wingL') && l.includes('tail') && pv.discs.length === n, `${k}: from the pilot's seat: no nose skin, the hull behind, ${pv.discs.length} propeller blurs, the dials and the yoke`);
   }
   // a single-engine aircraft is drawn as before
   let l = draw('sbd');
   ok(l.includes('whole') && count(l, 'prop') === 1 && !l.includes('burn0'), 'a Dauntless: the aircraft and its propeller');
   l = draw('sbd', { inCockpit: true });
-  ok(l.includes('whole') && count(l, 'disc sbd') === 1 && !l.includes('hull'), 'a Dauntless from the cockpit: the whole aircraft and one propeller blur');
+  ok(l.includes('cabin') && !l.includes('whole') && !l.includes('body') && l.includes('tail') && l.includes('wingL') && pv.discs.length === 1 && !l.includes('hull'), 'a Dauntless from the cockpit: the fuselage open over the cockpit, the tail, the wings and one propeller blur');
   // parked on an apron: the propellers are drawn, stopped
   calls.length = 0;
   const M = new Float64Array(16); M[0] = M[5] = M[10] = M[15] = 1;

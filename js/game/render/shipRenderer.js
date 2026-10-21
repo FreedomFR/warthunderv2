@@ -62,6 +62,7 @@ export class ShipRenderer {
         { binding: 6, resource: sh.view },
         { binding: 7, resource: sh.sampler },
         { binding: 8, resource: { buffer: sh.ubo } },
+        { binding: 9, resource: g.cshadowView },
       ],
     });
     // depth-only shadow pass (same vertex / instance layouts)

@@ -65,23 +65,24 @@ export function gunBallistics(g) {
   return b;
 }
 
-/** Interpolate the firing table at `range`. Returns { elev, tof, vImpact, fall } or null when out of range. */
-function lookup(b, range) {
+/** Interpolate the firing table at `range`. Returns { elev, tof, vImpact, fall } (in `out` when given) or null when out of range. */
+function lookup(b, range, out = {}) {
   const R = b.ranges;
   if (range <= 0 || range > R[R.length - 1]) return null;
   let lo = 0, hi = R.length - 1;
   while (hi - lo > 1) { const m = (lo + hi) >> 1; if (R[m] <= range) lo = m; else hi = m; }
   const f = (range - R[lo]) / (R[hi] - R[lo] || 1);
-  const l = (a) => a[lo] + (a[hi] - a[lo]) * f;
-  return { elev: l(b.elevs), tof: l(b.tofs), vImpact: l(b.vi), fall: l(b.falls) };
+  const E = b.elevs, T = b.tofs, V = b.vi, F = b.falls;
+  out.elev = E[lo] + (E[hi] - E[lo]) * f; out.tof = T[lo] + (T[hi] - T[lo]) * f; out.vImpact = V[lo] + (V[hi] - V[lo]) * f; out.fall = F[lo] + (F[hi] - F[lo]) * f;
+  return out;
 }
 
 /**
  * Fire-control solution against a target at horizontal range `range` and height difference dh
- * (target - muzzle). Small correction on the elevation for the height difference.
+ * (target - muzzle). Small correction on the elevation for the height difference. `out`: an object to fill instead of a new one.
  */
-export function solve(b, range, dh = 0) {
-  const s = lookup(b, range);
+export function solve(b, range, dh = 0, out) {
+  const s = lookup(b, range, out);
   if (!s) return null;
   s.elev += dh / Math.max(range, 200) * 0.9;
   return s;

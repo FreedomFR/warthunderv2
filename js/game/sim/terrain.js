@@ -158,6 +158,15 @@ export class Island {
   }
 }
 
+/**
+ * The samples k = 0..n of a segment of length L that lie over a circle: t0 is where along the segment (0..1) it comes nearest the centre, c2 the square of that distance, R2 the
+ * square of the radius. Returns [first, last] (a sample or so of margin on each side).
+ */
+function chord(t0, c2, R2, L, n) {
+  const h = Math.sqrt(Math.max(0, R2 - c2)) / Math.max(L, 1e-6);
+  return [Math.max(0, Math.floor((t0 - h) * n) - 1), Math.min(n, Math.ceil((t0 + h) * n) + 1)];
+}
+
 export class Terrain {
   constructor(islands = []) {
     this.islands = islands;
@@ -191,9 +200,12 @@ export class Terrain {
       let t0 = 0;
       if (L2 > 1e-6) t0 = clamp(((is.x - x0) * dx + (is.z - z0) * dz) / L2, 0, 1);
       const cx = x0 + dx * t0 - is.x, cz = z0 + dz * t0 - is.z;
-      if (cx * cx + cz * cz > is.R * is.R || is.top < Math.min(y0, y1) - 1) continue;
+      const c2 = cx * cx + cz * cz, R2 = is.R * is.R;
+      if (c2 > R2 || is.top < Math.min(y0, y1) - 1) continue;
       const L = Math.sqrt(L2), n = Math.max(2, Math.ceil(L / (is.cell * 1.5)));
-      for (let k = 0; k <= n; k++) {
+      // only the samples over the island's circle can be in the ground (outside it the height is that of the deep sea)
+      const [k0, k1] = chord(t0, c2, R2, L, n);
+      for (let k = k0; k <= k1; k++) {
         const f = k / n, x = x0 + dx * f, z = z0 + dz * f;
         if (is.heightAt(x, z) > y0 + (y1 - y0) * f) return true;
       }
@@ -209,9 +221,14 @@ export class Terrain {
     for (const is of this.islands) {
       const t0 = clamp(((is.x - x0) * dx + (is.z - z0) * dz) / L2, 0, 1);
       const cx = x0 + dx * t0 - is.x, cz = z0 + dz * t0 - is.z;
-      if (cx * cx + cz * cz > is.R * is.R) continue;
+      const c2 = cx * cx + cz * cz, R2 = is.R * is.R;
+      if (c2 > R2) continue;
       const n = Math.max(2, Math.ceil(D / (is.cell * 1.5)));
-      for (let i = 1; i < n; i++) {
+      const [i0, i1] = chord(t0, c2, R2, D, n);
+      // the arc is a parabola: over the circle it is lowest at one end of the chord; above the island's top there it clears it all
+      const yA = (f) => y0 + tanE * D * f - k * D * f * D * f + 0.5;
+      if (Math.min(yA(Math.max(i0, 1) / n), yA(Math.min(i1, n - 1) / n)) > is.top) continue;
+      for (let i = Math.max(1, i0); i < Math.min(n, i1 + 1); i++) {
         const f = i / n, sd = D * f;
         if (is.heightAt(x0 + dx * f, z0 + dz * f) > y0 + tanE * sd - k * sd * sd + 0.5) return true;
       }

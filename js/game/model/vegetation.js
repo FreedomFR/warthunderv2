@@ -96,21 +96,21 @@ function pick(is, x, z, h, u, r, line) {
 }
 
 /**
- * The plants of the square [x0, x0 + size) x [z0, z0 + size) of the world: a Float32Array of records of 8 numbers,
+ * The plants of the square [x0, x0 + size) x [z0, z0 + sizeZ) of the world (sizeZ = size: a square): a Float32Array of records of 8 numbers,
  * x, y, z, yaw, height (m), species + 8 * variant, tone (0..1, the colour of this plant), rnd (0..1).
  * The nodes of a fixed grid (STEP metres) are shaken a little and kept or not by the cover, so that two adjacent squares agree.
  */
-export function scatter(is, x0, z0, size) {
+export function scatter(is, x0, z0, size, sizeZ = size) {
   const out = [];
   const C = CLIMATE[climateOf(is)];
   const line = C.line(is.top);
-  const i0 = Math.floor(x0 / STEP), i1 = Math.ceil((x0 + size) / STEP), j0 = Math.floor(z0 / STEP), j1 = Math.ceil((z0 + size) / STEP);
+  const i0 = Math.floor(x0 / STEP), i1 = Math.ceil((x0 + size) / STEP), j0 = Math.floor(z0 / STEP), j1 = Math.ceil((z0 + sizeZ) / STEP);
   const seed = is.seed | 0;
   const g = 3.2;
   const dry = is.biome === 'rock' || is.biome === 'volcanic';
   for (let j = j0; j < j1; j++) for (let i = i0; i < i1; i++) {
     const x = (i + 0.12 + 0.76 * ihash(i, j, seed + 1)) * STEP, z = (j + 0.12 + 0.76 * ihash(i, j, seed + 2)) * STEP;
-    if (x < x0 || x >= x0 + size || z < z0 || z >= z0 + size) continue;
+    if (x < x0 || x >= x0 + size || z < z0 || z >= z0 + sizeZ) continue;
     const h = is.heightAt(x, z);
     if (h < 0.5) continue;
     if (is.pads.length && is.padAt(x, z) > 0.04) continue;           // no trees on the ground of a base (nor in the way of its guns)

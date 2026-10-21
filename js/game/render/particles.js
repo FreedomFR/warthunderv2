@@ -10,7 +10,7 @@ const F = 24;              // floats per particle in the pool
 const X = 0, Y = 1, Z = 2, VX = 3, VY = 4, VZ = 5, AGE = 6, LIFE = 7, S0 = 8, S1 = 9, R = 10, G = 11, B = 12, A0 = 13, A1 = 14,
   ROT = 15, ROTV = 16, GRAV = 17, DRAG = 18, KIND = 19, SEED = 20, STRETCH = 21, WIND = 22;
 
-export const K = { SMOKE: 0, FIRE: 1, SPRAY: 2, TRACER: 3, FLASH: 4, FIREBALL: 5, FLAME: 6 };      // FLAME: an upright tongue of flame (does not turn with the camera roll or spin)
+export const K = { SMOKE: 0, FIRE: 1, SPRAY: 2, TRACER: 3, FLASH: 4, FIREBALL: 5, FLAME: 6, DISC: 7 };      // DISC: the blur of a propeller seen from the cockpit      // FLAME: an upright tongue of flame (does not turn with the camera roll or spin)
 
 export class Particles {
   constructor(engine) {
@@ -145,6 +145,16 @@ export class Particles {
     d[o + 12] = 0; d[o + 13] = kind; d[o + 14] = 0; d[o + 15] = 0;
   }
 
+  /** The blur of a propeller seen from the pilot's seat (transient): a faint translucent disc of radius r at (x, y, z), its blades drawn as arcs turned by `rot`. */
+  propDisc(x, y, z, r, rot, blades = 3, a = 1) {
+    if (this.nT >= MAX_TRANSIENT) return;
+    const cam = this.engine.cam, o = this.nT++ * INST, d = this.tr;
+    d[o] = x - cam.x; d[o + 1] = y - cam.y; d[o + 2] = z - cam.z; d[o + 3] = r;
+    d[o + 4] = 0.03; d[o + 5] = 0.03; d[o + 6] = 0.03; d[o + 7] = a;
+    d[o + 8] = 0; d[o + 9] = 1; d[o + 10] = 0; d[o + 11] = 0;
+    d[o + 12] = rot; d[o + 13] = K.DISC; d[o + 14] = blades; d[o + 15] = 0;
+  }
+
   /** Pack the pool (camera relative), then append this frame's transient instances. */
   upload() {
     const cam = this.engine.cam;
@@ -152,9 +162,25 @@ export class Particles {
     // the particles that cover what is behind them (smoke, spray, fireballs) are drawn first, then the ones that add light (flames, flashes, tracers): a flame is
     // seen in front of the smoke that hangs over it instead of being hidden by it
     const order = this._order && this._order.length >= this.n ? this._order : (this._order = new Uint32Array(this.max));
+    // the particles out of the view are left out (most of the smoke of a battle is behind the camera or off to the side); the bound is generous, a quad of
+    // half-size `size` (a little more for one that grows) plus the length of a streak
+    const fp = this.cull !== false && this.engine.frustumPlanes ? this.engine.frustumPlanes(this._planes || (this._planes = new Float64Array(16))) : null;
+    const cx = cam.x, cy = cam.y, cz = cam.z;
     let ia = 0, ib = this.n;
-    for (let i = 0; i < this.n; i++) { const k = p[i * F + KIND]; if (k === K.SMOKE || k === K.SPRAY || k === K.FIREBALL) order[ia++] = i; else order[--ib] = i; }
-    for (let j = 0; j < this.n; j++) {
+    for (let i = 0; i < this.n; i++) {
+      const o = i * F;
+      if (fp) {
+        const rx = p[o + X] - cx, ry = p[o + Y] - cy, rz = p[o + Z] - cz, r = Math.max(p[o + S0], p[o + S1]) * 1.5 + p[o + STRETCH] * 1.2 + 1;
+        if (fp[0] * rx + fp[1] * ry + fp[2] * rz + fp[3] < -r || fp[4] * rx + fp[5] * ry + fp[6] * rz + fp[7] < -r
+          || fp[8] * rx + fp[9] * ry + fp[10] * rz + fp[11] < -r || fp[12] * rx + fp[13] * ry + fp[14] * rz + fp[15] < -r) continue;
+      }
+      const k = p[o + KIND];
+      if (k === K.SMOKE || k === K.SPRAY || k === K.FIREBALL) order[ia++] = i; else order[--ib] = i;
+    }
+    // (the ones that add light were put at the end of the list, backwards: close the gap so that the list runs on from the ones that cover)
+    const nLit = this.n - ib, nVis = ia + nLit;
+    if (ib > ia) order.copyWithin(ia, ib, this.n);
+    for (let j = 0; j < nVis; j++) {
       const i = order[j];
       const o = i * F, q = j * INST;
       const t = p[o + AGE] / p[o + LIFE];
@@ -175,8 +201,8 @@ export class Particles {
       } else { d[q + 8] = 0; d[q + 9] = 1; d[q + 10] = 0; d[q + 11] = 0; }
       d[q + 12] = p[o + ROT]; d[q + 13] = k; d[q + 14] = p[o + SEED]; d[q + 15] = t;
     }
-    if (this.nT) d.set(this.tr.subarray(0, this.nT * INST), this.n * INST);
-    this.count = this.n + this.nT;
+    if (this.nT) d.set(this.tr.subarray(0, this.nT * INST), nVis * INST);
+    this.count = nVis + this.nT;
     if (this.count) this.device.queue.writeBuffer(this.buf, 0, d, 0, this.count * INST);
   }
 

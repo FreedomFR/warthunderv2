@@ -2,7 +2,7 @@
 import { World } from '../js/game/sim/world.js';
 import { Terrain } from '../js/game/sim/terrain.js';
 import { spawnFleet, teamStart } from '../js/game/sim/formation.js';
-import { Director } from '../js/game/ui/director.js';
+import { Director, formations, attacks, dogfights } from '../js/game/ui/director.js';
 
 const ok = (c, m) => { console.log(c ? 'PASS' : 'FAIL', m); if (!c) process.exitCode = 1; };
 const w = new World(4); w.addTeam(0); w.addTeam(1);
@@ -57,7 +57,12 @@ const kinds = new Set(seq);
 ok(kinds.size >= 5, `the director uses a variety of shots (${[...kinds].join(' ')})`);
 ok(seq.every((k) => k !== 'versus' && k !== 'reverse'), 'no shot of one ship firing on another while nobody is shooting');
 D.reset();
-ok(D.pickKind(D.weights(a, 0).weights) === 'wide', 'the battle opens on a wide shot');
+{
+  // (the pick is random: count the opening shots of many battles)
+  let wide = 0;
+  for (let i = 0; i < 200; i++) if (D.pickKind(D.weights(a, 0).weights) === 'wide') wide++;
+  ok(wide > 150, `the battle opens on a wide shot (${wide} of 200)`);
+}
 
 // the line of sight
 {
@@ -66,4 +71,41 @@ ok(D.pickKind(D.weights(a, 0).weights) === 'wide', 'the battle opens on a wide s
   const far = { x: isl.x + isl.R * 1.2, z: isl.z, model: { topY: 20 } };
   ok(D.hidden(cam, far), 'a ship on the far side of an island is hidden from a camera on the near side');
   ok(!D.hidden({ x: far.x - 400, y: 30, z: far.z }, far), 'and not from a camera next to her');
+}
+
+// aircraft in groups: formations in the air, attacks by several aircraft on one ship
+{
+  const wave = {}, sec = {};
+  const pl = (o) => ({ id: Math.random(), team: 0, x: 0, y: 900, z: 0, vx: 0, vy: 0, vz: -110, speed: 110, phase: 'cruise', kind: 'torp', ordnance: true, ...o });
+  const vee = [pl({ sec, x: 0 }), pl({ sec, x: 50, z: 40 }), pl({ sec, x: -50, z: 40 }), pl({ sec, x: 0, z: 90 })];
+  const strag = [pl({ wave, x: 5000 }), pl({ wave, x: 5600 }), pl({ wave, x: 6200 })];
+  const fake = { planes: [...vee, ...strag, pl({ sec: {}, x: -4000 })], ships: [] };
+  const f = formations(fake);
+  ok(f.length === 1 && f[0].planes.length === 4 && f[0].r < 120, 'four aircraft of a section flying in a vee are a formation');
+  ok(!f.some((g) => g.planes.some((p) => strag.includes(p))), 'aircraft of one wave strung out over kilometres are not');
+  vee[3].vx = 110; vee[3].vz = 0;
+  ok(formations(fake)[0].planes.length === 3, 'an aircraft turning away is not of the formation any more');
+  vee[0].phase = vee[1].phase = vee[2].phase = 'assemble';
+  ok(formations(fake).length === 0, 'aircraft still forming up are not a formation yet');
+  const tg = { alive: true, x: 0, y: 0, z: 0, stats: { score: 3 } };
+  fake.planes = [pl({ target: tg, phase: 'run', x: 900, y: 40 }), pl({ target: tg, phase: 'run', x: 1000, z: 200, y: 40 }), pl({ target: tg, phase: 'dive', kind: 'dive', y: 1500, x: 300 }), pl({ target: tg, phase: 'cruise', x: 1200 })];
+  const at = attacks(fake);
+  ok(at.length === 1 && at[0].ship === tg && at[0].planes.length === 3, 'three aircraft attacking one ship are an attack to film (the one still on its way is not counted)');
+  fake.planes = fake.planes.slice(0, 1);
+  ok(attacks(fake).length === 0, 'one aircraft alone is not');
+}
+
+// two aircraft fighting
+{
+  const pl = (o) => ({ id: Math.random(), team: 0, x: 0, y: 1500, z: 0, vx: 0, vy: 0, vz: -140, speed: 140, phase: 'engage', fighter: true, ...o });
+  const zero = pl({ team: 1, z: -250 }), hell = pl({ prey: zero }), far = pl({ team: 1, z: -3000, x: 900 }), late = pl({ prey: far, x: 900 });
+  zero.prey = hell;
+  const df = dogfights({ planes: [zero, hell, far, late] });
+  ok(df.length === 2 && df.every((g) => g.prey !== far), 'a fighter close on the tail of its prey is a fight to film, one a few kilometres behind is not');
+  zero.prey = null; zero.fighter = false;
+  const b = dogfights({ planes: [zero, hell] })[0];
+  zero.fighter = true; zero.prey = hell;
+  ok(df[0].score > b.score - 1 && df.some((g) => g.hunter === zero), 'two fighters each after the other are the best fight (and both are hunters)');
+  zero.dying = true;
+  ok(!dogfights({ planes: [zero, hell] }).some((g) => g.prey === zero), 'a prey already going down is not a fight any more');
 }

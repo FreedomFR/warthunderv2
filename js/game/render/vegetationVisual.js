@@ -66,11 +66,21 @@ export class VegetationVisuals {
     return h;
   }
 
-  /** The plants of a super, drawn up and sorted into cells. */
+  /**
+   * The plants of a super, drawn up and sorted into cells: one band of cells a call (drawing up a whole super can take 20 ms, too long for one frame). The bands
+   * follow the rows of the planting grid, so that put end to end they are the plants of the whole super, in the same order. Returns true when the super is done.
+   */
   _fill(it, sup) {
-    const rec = scatter(it.is, sup.x0, sup.z0, SUPER);
+    if (!sup.bands) sup.bands = [];
+    const k = sup.bands.length;
+    sup.bands.push(scatter(it.is, sup.x0, sup.z0 + k * CELL, SUPER, CELL));
+    if (sup.bands.length < NC) return false;
+    const rec = new Float32Array(sup.bands.reduce((a, b) => a + b.length, 0));
+    let o = 0;
+    for (const b of sup.bands) { rec.set(b, o); o += b.length; }
+    sup.bands = null;
     sup.rec = rec;
-    if (!rec.length) { sup.empty = true; return; }
+    if (!rec.length) { sup.empty = true; return true; }
     const lists = Array.from({ length: NC * NC }, () => []);
     for (let k = 0; k < rec.length; k += 8) {
       const ci = Math.min(NC - 1, Math.floor((rec[k] - sup.x0) / CELL)), cj = Math.min(NC - 1, Math.floor((rec[k + 2] - sup.z0) / CELL));
@@ -78,6 +88,7 @@ export class VegetationVisuals {
       for (let q = 0; q < 8; q++) l.push(rec[k + q]);
     }
     sup.cells = lists.map((l, n) => l.length ? { rec: Float32Array.from(l), cx: sup.x0 + ((n % NC) + 0.5) * CELL, cz: sup.z0 + (Math.floor(n / NC) + 0.5) * CELL, m1: null, m2: null, used: 0, x0: sup.x0 + (n % NC) * CELL, z0: sup.z0 + Math.floor(n / NC) * CELL } : null);
+    return true;
   }
 
   /** Queue what is in view for this frame (after r.begin()). */
@@ -110,9 +121,9 @@ export class VegetationVisuals {
           it.supers.set(key, sup);
         }
         if (!sup.rec) {
-          if (scattered >= 1 || !budget()) continue;
-          this._fill(it, sup); scattered++;
-          if (sup.empty) continue;
+          if (scattered >= 2 || !budget()) continue;
+          scattered++;
+          if (!this._fill(it, sup) || sup.empty) continue;
         }
         sup.used = this.frame;
         if (dmin > this.R3) {

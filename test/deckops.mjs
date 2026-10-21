@@ -27,11 +27,15 @@ for (const id of ids) {
   let wave = null, minGap = 1e9, lastTD = -1, worstLz = 0, firstTakeoff = null, lastTakeoff = null, maxOnDeck = 0, called = false, tCall = 0;
   const tdPos = [];
   let parkedMin = parked0, parkedAfter = null;
-  let climbDev = 0, climbY = 1e9, firstGo = 1e9, orbitUp = 0, peakDecel = 0, peakJerk = 0, arrestT = 1e9, arrestN = 0;
+  let climbDev = 0, climbY = 1e9, firstGo = 1e9, orbitUp = 0, peakDecel = 0, peakJerk = 0, arrestT = 1e9, arrestN = 0, rollYaw = 0;
+  const liftOff = [], runT = [];
   const step = (secs, until) => { const f = until && (() => (until() ? false : undefined)); for (let i = 0; i < secs * 10; i++) { w.update(0.1); for (const e of w.drainEvents()) { ev[e.type] = (ev[e.type] || 0) + 1; if (e.type === 'planeTouchdown' && e.ship === ship) { if (lastTD >= 0) minGap = Math.min(minGap, w.time - lastTD); lastTD = w.time; worstLz = Math.max(worstLz, Math.abs(e.lz)); tdPos.push(e.lx); } if (e.type === 'planeLaunch' && e.ship === ship) { lastTakeoff = w.time; firstTakeoff ??= w.time; } }
     if (process.env.TRACE && called) for (const p of w.planes) if (p.owner === ship && !p.service) { const k = p.phase + '/' + (p.ds || '') + (p.leg ? '#' + p.leg : ''); if (p._k !== k) { p._k = k; console.log('   ', w.time.toFixed(0), 'p' + p.id, k); } }
     for (const p of w.planes) if (p.owner === ship) { const set = states.get(p.id) || new Set(); set.add(p.phase + '/' + (p.ds || '')); states.set(p.id, set); }
     for (const p of w.planes) if (p.owner === ship && !p.service) {
+      // the take-off run: how long, and how far from the bow the wheels leave the deck; the landing roll: the aircraft stays along the deck
+      if (p.phase === 'takeoff') { p._t0 ??= w.time; p._lxT = p.lx; } else if (p._t0 != null && !p._toDone) { p._toDone = true; liftOff.push(dp.x1 - p._lxT); runT.push(w.time - p._t0); }
+      if (p.phase === 'rollout') rollYaw = Math.max(rollYaw, Math.abs(p.yaw || 0));
       if (p.phase === 'assemble' && p.asm === 'climb') climbDev = Math.max(climbDev, Math.abs(wrapPi(p.heading - ship.heading)));
       if (p.phase === 'assemble' && p.asm === 'orbit') orbitUp++;
       if (p.wave && !p.wave.cap && (p.phase === 'cruise' || p.phase === 'escort')) firstGo = Math.min(firstGo, w.time);
@@ -59,6 +63,7 @@ for (const id of ids) {
   ok(lifted.every((p) => states.get(p.id).has('queue/lower') && states.get(p.id).has('queue/spot') && states.get(p.id).has('queue/taxi') && states.get(p.id).has('takeoff/run')), `${id}: the aircraft that came up on a lift went through lower, rise, spot and taxi to the take-off run`);
   // 2. call the wave back once it is in the air and has settled
   step(110);
+  ok(runT.length && runT.every((t) => t > 4.5) && liftOff.every((d) => d < 60), `${id}: the take-off run takes the deck ahead of the aircraft (${Math.min(...runT).toFixed(1)}-${Math.max(...runT).toFixed(1)} s, off the deck ${Math.max(...liftOff).toFixed(0)} m or less before the bow)`);
   ok(climbDev < 0.06, `${id}: the aircraft fly straight ahead off the deck until clear of the bow (worst turn ${(climbDev * 57.3).toFixed(1)} degrees)`);
   ok(orbitUp > 0 && firstGo >= lastTakeoff, `${id}: the strike circles over the sea until the last aircraft has taken off (leaves ${(firstGo - lastTakeoff).toFixed(0)} s after the last take-off)`);
   for (const p of wave.planes) if (p.phase === 'cruise' || p.phase === 'assemble' || STRIKE(p)) { p.phase = 'return'; p.asm = null; }
@@ -74,6 +79,7 @@ for (const id of ids) {
   ok(landed >= inAir - 1, `${id}: ${landed} of the ${inAir} aircraft called back landed (touchdowns ${ev.planeTouchdown || 0}, bolters ${ev.bolter || 0}, wire catches ${ev.wireCatch || 0})`);
   ok(arrestN > 0 && peakDecel < 1.5 * G && arrestT > 1.6 && peakJerk < 70, `${id}: the wire stops the aircraft smoothly (${arrestN} arrests, peak ${(peakDecel / G).toFixed(2)} g, jerk ${peakJerk.toFixed(0)} m/s3, shortest ${arrestT.toFixed(1)} s)`);
   ok(total() >= readyBefore + landed - 0, `${id}: the aircraft that landed are back in the air group, being serviced or ready (${readyBefore} -> ${total()})`);
+  ok(rollYaw < 0.3, `${id}: the aircraft stays along the deck as it lands (worst ${(rollYaw * 57.3).toFixed(1)} degrees off the ship's heading)`);
   ok(minGap > 18, `${id}: touchdowns at least ${minGap > 1e8 ? '-' : minGap.toFixed(0)} s apart`);
   ok(worstLz < dp.hw * 0.85, `${id}: touchdowns within ${worstLz.toFixed(1)} m of the centre line (deck half-width ${dp.hw.toFixed(1)} m)`);
   ok(tdPos.every((x) => x > dp.x0 - 2 && x < dp.x0 + 70), `${id}: the wheels come down between the stern and the first wires (x0 + ${Math.min(...tdPos).toFixed(0)}..${Math.max(...tdPos).toFixed(0)} m from the ship's origin ${dp.x0.toFixed(0)})`);
