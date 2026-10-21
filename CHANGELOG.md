@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased — the clouds' shape and texture
+
+Looked at against Guerrilla's Nubis talks (Schneider, SIGGRAPH 2015-2017) and @takram/three-clouds (MIT, a WebGL implementation of the same ideas), from which the formulas below are taken:
+- **The fur on the edges** came from the detail noise: the whole Worley octave sum was subtracted everywhere. The detail now erodes as Nubis does: `remap(d * 2, m / 2, 1)` with `m = pow(detail, 6)` at the base (only small wisps) and `1 - detail` higher up (the gaps between the billows: cauliflower), on a coarser detail tile (450 m instead of 260) that reads at a distance, resolved out to 22 km.
+- **The shapes were smooth extrusions of the coverage map** (peanuts, cones, lenticular blobs). The coverage is now broken into separate cells of 1-3 km (Worley, jittered, each with its own size and height), rounded towards the top by a semicircle in a biased height (a flat base, a domed top), and the shape noise is drawn through it (`remap(shape, 1 - coverage, 1) * coverage`): in the heart of a cloud most of the noise is cloud, towards its edges only the billows are. The shape noise is Hillaire's Perlin-Worley (TileableVolumeNoise) instead of an ad hoc blend.
+- **The popcorn at the horizon**: the steps were the length of the ray through the layer divided by a fixed count (up to 800 m at the horizon, coarser than the noise). They are now 60 m near the camera growing with the distance, 2.5 times longer in clear air, up to 220 of them.
+- **The grain**: the jittered march had no temporal filter. A resolve pass (`CLOUD_RESOLVE`) reprojects the previous frames with the distance of the clouds the march measured, holds them within this frame's neighbours and blends them in (12 %, more when the camera turns or flies fast, none on a near cloud whose parallax is large, none after a cut); the jitter moves by the golden ratio each frame.
+- **Light**: multiple scattering in six octaves (Wrenninge's approximation, as in three-clouds) instead of a near-constant term that made every cloud flat white: the heart white, the thick bases grey; the light march has a jitter of its own (sharing the view's lined the two up in the plane of the sun); powder on the thin edges facing the eye; extinction 200 per km (the clouds are opaque, the sea no longer shows through their body); the sky's light graded with the height.
+- Cost: the big battle at 1920x1080 on the RTX 3080, 60 frames a second, GPU 6.05 ms (as before).
+
 ## Unreleased — the damage can be tuned without touching the code
 
 - **A balance file** (`config/balance.json`, read by `js/game/data/balance.js`): multipliers of the damage taken, from 0 (none) to 5:

@@ -90,7 +90,8 @@ Lot 2 (cuirassés et porte-avions des autres nations) : **fait, avec des réserv
 - [ ] **Caméra, attaque groupée vue du pont** : abandonnée pour l'instant (la fumée des cheminées remplit l'image, les avions sont des points à plusieurs kilomètres).
 
 - [x] **Nuages volumiques** : cumulus en volume (vus de la mer et du dessus, devant et derrière les avions), ombres des nuages sur la mer et les navires.
-- [ ] **Ciel, pistes restantes** : la couche haute (cirrus) reste plate ; pas d'accumulation temporelle (un léger grain dans les nuages à demi-résolution) ; pas d'éclairs ni de grains (averses) ; les particules derrière un nuage restent visibles par-dessus ; les reflets de l'eau montrent encore l'ancienne couche plate.
+- [x] **Nuages : forme et texture refaites** (d'après Nubis de Guerrilla et @takram/three-clouds) : cumulus en tas séparés, bosselés en haut et effilochés en bas, bases grises, plus de bords « poilus » ni de grain (accumulation temporelle).
+- [ ] **Ciel, pistes restantes** : la couche haute (cirrus) reste plate ; un nuage frôlé de très près par un avion rapide garde un léger grain (l'historique y est écarté) ; pas d'éclairs ni de grains (averses) ; les particules derrière un nuage restent visibles par-dessus ; les reflets de l'eau montrent encore l'ancienne couche plate.
 
 ## 4. Vidéo et version
 

@@ -12,7 +12,7 @@ import { N, CASCADES, SKY_W, SKY_H, ENV_SIZE, ENV_MIPS } from './wgsl/common.js'
 import { SIM_INIT, SIM_EVOLVE, FFT_ROWS, FFT_COLS, SIM_MIPS, FOAM_TEX, RGBA8_MIPS, FOAM_UPDATE, ARRAY16_MIPS, FOAM_RES } from './wgsl/sim.js';
 import { TRANS_LUT, MS_LUT, SKYVIEW_LUT, ENV_CUBE, CUBE_MIPS, SUN_VIS } from './wgsl/sky.js';
 import { OCEAN, SKY_BG, WATER_PROBE } from './wgsl/ocean.js';
-import { NOISE_GEN, WEATHER, CLOUD_MARCH, CLOUD_APPLY, CLOUD_SHADOW, CLOUD_NOISE, WEATHER_SIZE, CSHADOW_SIZE } from './wgsl/clouds.js';
+import { NOISE_GEN, WEATHER, CLOUD_MARCH, CLOUD_RESOLVE, CLOUD_APPLY, CLOUD_SHADOW, CLOUD_NOISE, WEATHER_SIZE, CSHADOW_SIZE } from './wgsl/clouds.js';
 import { BLOOM_DOWN, BLOOM_UP, COMPOSITE } from './wgsl/post.js';
 
 const D2R = Math.PI / 180;
@@ -368,7 +368,11 @@ export async function createEngine(canvas, options = {}) {
   // --------------------------------------------------------------------------------------
   // Volumetric clouds (wgsl/clouds.js): ?vclouds=0 keeps the flat layer of the sky shader only
   // --------------------------------------------------------------------------------------
-  const clouds = { on: cloudsAvail, steps: 72, light: 5 };
+  const clouds = { on: cloudsAvail, steps: 200, light: 5, stepScale: 1, blend: 0.12 };
+  let resolvePipe = null;
+  const resolveUBO = mkBuf(112, GU.UNIFORM | GU.COPY_DST, 'cloud resolve ubo');
+  const resolveF = new Float32Array(28);
+  const prevCam = { ok: false, x: 0, y: 0, z: 0, r: [0, 0, 0], u: [0, 0, 0], f: [0, 0, 0] };
   let noisePipe = null, weatherPipe = null, marchPipe = null, applyPipe = null, shadowPipeC = null, bgWeather = null, bgCShadow = null, noiseView = null, weatherView = null, sampWrap3 = null;
   const cloudUBO = mkBuf(48, GU.UNIFORM | GU.COPY_DST, 'cloud ubo');
   const cloudF = new Float32Array(12);
@@ -377,7 +381,7 @@ export async function createEngine(canvas, options = {}) {
   if (cloudsAvail) {
     const [nm, am] = await Promise.all([shader(CLOUD_APPLY, 'cloud apply'), Promise.resolve(null)]);
     void am;
-    [noisePipe, weatherPipe, marchPipe, shadowPipeC] = await Promise.all([computePipe(NOISE_GEN, 'cloud noise'), computePipe(WEATHER, 'cloud weather'), computePipe(CLOUD_MARCH, 'cloud march'), computePipe(CLOUD_SHADOW, 'cloud shadows')]);
+    [noisePipe, weatherPipe, marchPipe, shadowPipeC, resolvePipe] = await Promise.all([computePipe(NOISE_GEN, 'cloud noise'), computePipe(WEATHER, 'cloud weather'), computePipe(CLOUD_MARCH, 'cloud march'), computePipe(CLOUD_SHADOW, 'cloud shadows'), computePipe(CLOUD_RESOLVE, 'cloud resolve')]);
     applyPipe = await device.createRenderPipelineAsync({
       label: 'cloud apply', layout: 'auto',
       vertex: { module: nm, entryPoint: 'vs' },
@@ -483,7 +487,7 @@ export async function createEngine(canvas, options = {}) {
   const skipFoam = qs.get('skipfoam') === '1';
   let W = 0, H = 0;
   let colorMS, depthMS, hdrTex, bloomTex, offTex = null;
-  let cloudTex = null, cloudDistTex = null, bgMarch = null, bgApply = null;
+  let cloudTex = null, cloudDistTex = null, bgMarch = null, bgApply = null, cloudHist = [], bgResolve = [], histCur = 0;
   const matte = qs.get('matte') === '1';
   const mainPass = {
     colorAttachments: [{ view: null, resolveTarget: null, clearValue: matte ? { r: 0, g: 0.5, b: 0, a: 1 } : { r: 0, g: 0, b: 0, a: 1 }, loadOp: 'clear', storeOp: 'discard' }],
@@ -529,13 +533,18 @@ export async function createEngine(canvas, options = {}) {
     mainPass.depthStencilAttachment.view = depthMS.createView();
     if (cloudsAvail) {
       // the clouds at half resolution, and what the passes after the scene need: the colour and the depth kept, the particles drawn after the clouds
-      for (const t of [cloudTex, cloudDistTex]) t && t.destroy();
+      for (const t of [cloudTex, cloudDistTex, ...cloudHist]) t && t.destroy();
       const hw = Math.max(1, Math.ceil(W / 2)), hh = Math.max(1, Math.ceil(H / 2));
       cloudTex = device.createTexture({ label: 'clouds', size: [hw, hh], format: 'rgba16float', usage: TU.TEXTURE_BINDING | TU.STORAGE_BINDING });
-      cloudDistTex = device.createTexture({ label: 'cloud dist', size: [hw, hh], format: 'r32float', usage: TU.TEXTURE_BINDING | TU.STORAGE_BINDING });
+      cloudDistTex = device.createTexture({ label: 'cloud dist', size: [hw, hh], format: 'rg32float', usage: TU.TEXTURE_BINDING | TU.STORAGE_BINDING });
+      // the history of the temporal filter, two textures read and written in turn
+      cloudHist = [0, 1].map((i) => device.createTexture({ label: 'cloud history ' + i, size: [hw, hh], format: 'rgba16float', usage: TU.TEXTURE_BINDING | TU.STORAGE_BINDING }));
+      prevCam.ok = false;
       const dv = depthMS.createView();
       bgMarch = bg(marchPipe, [{ buffer: frameUBO }, transView, skyView, sampClamp, noiseView, sampWrap3, weatherView, dv, cloudTex.createView(), cloudDistTex.createView(), { buffer: cloudUBO }], 'cloud march');
-      bgApply = bg(applyPipe, [cloudTex.createView(), cloudDistTex.createView(), dv, { buffer: applyUBO }], 'cloud apply');
+      // resolve i writes history i from history 1 - i; the image takes history i
+      bgResolve = [0, 1].map((i) => bg(resolvePipe, [cloudTex.createView(), cloudDistTex.createView(), cloudHist[1 - i].createView(), sampClamp, cloudHist[i].createView(), { buffer: resolveUBO }], 'cloud resolve ' + i));
+      bgApply = [0, 1].map((i) => bg(applyPipe, [cloudHist[i].createView(), cloudDistTex.createView(), dv, { buffer: applyUBO }], 'cloud apply ' + i));
       cloudPassA.colorAttachments[0].view = colorMS.createView();
       cloudPassA.depthStencilAttachment.view = depthMS.createView();
       cloudPassApply.colorAttachments[0].view = colorMS.createView();
@@ -944,9 +953,10 @@ export async function createEngine(canvas, options = {}) {
       const vc = cloudsAvail && clouds.on && !matte && engine.showOcean && P.clouds > 0.005;
       if (vc) {
         // the coverage round the camera and the shadows of the clouds on the sea: before the scene, which reads them
-        cloudF[0] = 1.15; cloudF[1] = 1.7; cloudF[2] = 75; cloudF[3] = clouds.steps;
-        cloudF[4] = 3.2; cloudF[5] = 0.26; cloudF[6] = 0.62; cloudF[7] = 60;
-        cloudF[8] = clouds.light; cloudF[9] = 0.55; cloudF[10] = 1.2; cloudF[11] = 0;
+        // p0: base km, thickness km, extinction per km, most steps; p1: shape tile km, detail tile km, coverage, furthest km; p2: light steps, sky light, sun light, step scale
+        cloudF[0] = 1.15; cloudF[1] = 1.7; cloudF[2] = 200; cloudF[3] = clouds.steps;
+        cloudF[4] = 3.2; cloudF[5] = 0.45; cloudF[6] = 0.52; cloudF[7] = 60;
+        cloudF[8] = clouds.light; cloudF[9] = 0.6; cloudF[10] = 1.7; cloudF[11] = clouds.stepScale;
         device.queue.writeBuffer(cloudUBO, 0, cloudF);
         const cw = enc.beginComputePass();
         cw.setPipeline(weatherPipe); cw.setBindGroup(0, bgWeather); cw.dispatchWorkgroups(WEATHER_SIZE / 8, WEATHER_SIZE / 8);
@@ -974,11 +984,25 @@ export async function createEngine(canvas, options = {}) {
         const tanY = Math.tan(cam.fovY * 0.5);
         applyF[0] = 0.05; applyF[1] = 1 / (tanY * W / H); applyF[2] = 1 / tanY; applyF[3] = 1;
         device.queue.writeBuffer(applyUBO, 0, applyF);
+        // the temporal filter: where the previous camera was (relative to this one, km) and how it looked; no history after a cut or a jump of the camera
+        const fr = frameF, tX = Math.tan(cam.fovY * 0.5) * W / H, tY = Math.tan(cam.fovY * 0.5);
+        const cur = { x: cam.x, y: cam.y, z: cam.z, r: [fr[20] / (tX * tX), fr[21] / (tX * tX), fr[22] / (tX * tX)], u: [fr[24] / (tY * tY), fr[25] / (tY * tY), fr[26] / (tY * tY)], f: [fr[28], fr[29], fr[30]] };
+        const jump = !prevCam.ok || Math.hypot(cur.x - prevCam.x, cur.y - prevCam.y, cur.z - prevCam.z) > 400 || cur.f[0] * prevCam.f[0] + cur.f[1] * prevCam.f[1] + cur.f[2] * prevCam.f[2] < 0.94;
+        const pc = prevCam.ok ? prevCam : cur;
+        // the faster the camera turns or flies, the less the history is trusted (it smears behind a fast turn)
+        const turn = Math.acos(Math.min(1, cur.f[0] * pc.f[0] + cur.f[1] * pc.f[1] + cur.f[2] * pc.f[2])), move = Math.hypot(cur.x - pc.x, cur.y - pc.y, cur.z - pc.z);
+        const blend = jump ? 1 : Math.min(0.6, clouds.blend + turn * 6 + move * 0.004);
+        resolveF.set([(pc.x - cur.x) * 0.001, (pc.y - cur.y) * 0.001, (pc.z - cur.z) * 0.001, blend, ...pc.r, 0, ...pc.u, 0, ...pc.f, 0, fr[20], fr[21], fr[22], 0, fr[24], fr[25], fr[26], 0, fr[28], fr[29], fr[30], 0]);
+        device.queue.writeBuffer(resolveUBO, 0, resolveF);
+        Object.assign(prevCam, cur, { ok: true });
+        histCur = 1 - histCur;
         const cc = enc.beginComputePass();
-        cc.setPipeline(marchPipe); cc.setBindGroup(0, bgMarch); cc.dispatchWorkgroups(Math.ceil(Math.ceil(W / 2) / 8), Math.ceil(Math.ceil(H / 2) / 8));
+        const gx = Math.ceil(Math.ceil(W / 2) / 8), gy = Math.ceil(Math.ceil(H / 2) / 8);
+        cc.setPipeline(marchPipe); cc.setBindGroup(0, bgMarch); cc.dispatchWorkgroups(gx, gy);
+        cc.setPipeline(resolvePipe); cc.setBindGroup(0, bgResolve[histCur]); cc.dispatchWorkgroups(gx, gy);
         cc.end();
         const ap = enc.beginRenderPass(cloudPassApply);
-        ap.setPipeline(applyPipe); ap.setBindGroup(0, bgApply); ap.draw(3);
+        ap.setPipeline(applyPipe); ap.setBindGroup(0, bgApply[histCur]); ap.draw(3);
         ap.end();
         const rb = enc.beginRenderPass(cloudPassB);
         if (hooks.drawOverlay) hooks.drawOverlay(rb);
@@ -1134,7 +1158,7 @@ export async function createEngine(canvas, options = {}) {
       return true;
     },
     /** The volumetric clouds: on / off, and their quality (steps along the ray, steps towards the sun). */
-    setClouds(o) { if (o.on != null) clouds.on = !!o.on; if (o.steps) clouds.steps = o.steps; if (o.light) clouds.light = o.light; },
+    setClouds(o) { for (const k of ['steps', 'light', 'stepScale', 'blend']) if (o[k]) clouds[k] = o[k]; if (o.on != null) clouds.on = !!o.on; },
     get cloudsOn() { return cloudsAvail && clouds.on; },
     setRenderScale(s) { renderScale = Math.max(0.25, Math.min(2, s)); W = H = 0; },
     getRenderScale() { return renderScale; },

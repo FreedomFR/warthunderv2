@@ -92,19 +92,28 @@ fn worley(x: vec3f, per: i32, seed: u32) -> f32 {
 fn wfbm(x: vec3f, per: i32, seed: u32) -> f32 {
   return (1.0 - worley(x, per, seed)) * 0.625 + (1.0 - worley(x * 2.0, per * 2, seed + 3u)) * 0.25 + (1.0 - worley(x * 4.0, per * 4, seed + 5u)) * 0.125;
 }
+fn remap(x: f32, a: f32, b: f32, c: f32, d: f32) -> f32 { return c + (x - a) / (b - a) * (d - c); }
+// the Worley fbm of the detail: three overlapping octave sums, as in Hillaire's TileableVolumeNoise
+fn worleyFbm(u: vec3f, c: i32, seed: u32) -> f32 {
+  let n = vec4f(1.0 - worley(u * f32(c), c, seed), 1.0 - worley(u * f32(c * 2), c * 2, seed + 1u), 1.0 - worley(u * f32(c * 4), c * 4, seed + 2u), 1.0 - worley(u * f32(c * 8), c * 8, seed + 3u));
+  let f = vec3f(dot(n.xyz, vec3f(0.625, 0.25, 0.125)), dot(n.yzw, vec3f(0.625, 0.25, 0.125)), dot(n.zw, vec2f(0.75, 0.25)));
+  return dot(f, vec3f(0.625, 0.25, 0.125));
+}
 @compute @workgroup_size(4, 4, 4)
 fn main(@builtin(global_invocation_id) id: vec3u) {
   if (id.x >= S || id.y >= S || id.z >= S) { return; }
   let u = (vec3f(id) + 0.5) / f32(S);
-  // the shape: low-frequency Perlin fbm, made billowy by the Worley cells (the cauliflower of a cumulus)
+  // the shape (r): a Perlin fbm whose valleys are filled by Worley cells (the billows of a cumulus), then cut by a second Worley fbm
   var pf = 0.0;
   var a = 0.5;
-  var per = 4;
-  for (var o = 0; o < 4; o++) { pf += a * perlin(u * f32(per), per, 1u + u32(o)); a *= 0.5; per *= 2; }
-  pf = clamp(pf * 0.9 + 0.5, 0.0, 1.0);
-  let w0 = wfbm(u * 4.0, 4, 20u);
-  let shape = clamp((pf - (1.0 - w0)) / max(w0, 1e-3) * 0.5 + w0 * 0.65, 0.0, 1.0);
-  textureStore(dst, id, vec4f(shape, wfbm(u * 8.0, 8, 40u), wfbm(u * 16.0, 16, 60u), wfbm(u * 32.0, 32, 80u)));
+  var per = 8;
+  for (var o = 0; o < 3; o++) { pf += a * perlin(u * f32(per), per, 1u + u32(o)); a *= 0.5; per *= 2; }
+  pf = clamp(pf * 1.1 + 0.5, 0.0, 1.0);
+  let wf = dot(vec3f(1.0 - worley(u * 8.0, 8, 20u), 1.0 - worley(u * 32.0, 32, 21u), 1.0 - worley(u * 56.0, 56, 22u)), vec3f(0.625, 0.25, 0.125));
+  let pw = remap(pf, 0.0, 1.0, wf, 1.0);
+  let shape = clamp(remap(pw, worleyFbm(u, 4, 30u) - 1.0, 1.0, 0.0, 1.0), 0.0, 1.0);
+  // the detail (g): a finer Worley fbm (sampled at a smaller tile); b: a second one, offset, for the shadows' softer edges
+  textureStore(dst, id, vec4f(shape, worleyFbm(u, 2, 40u), worleyFbm(u, 4, 60u), 1.0));
 }
 `;
 
@@ -128,9 +137,26 @@ fn main(@builtin(global_invocation_id) id3: vec3u) {
   // the same field as the flat layer (sky.js lowEdge): where it is above 0 there is cloud; the coverage grows with it
   let e = lowEdge(q, tex * 0.6, 6);
   let cov = clamp(e * 1.6 + 0.32, 0.0, 1.0);
-  // r: coverage, g: how tall the clouds grow there (towering where the coverage is high, a second field for variety)
-  let tall = clamp(0.35 + 0.65 * cov + gnoise(q * 0.11 + vec2f(5.1, 2.3)) * 0.35, 0.15, 1.0);
-  textureStore(dst, id.xy, vec4f(cov, tall, 0.0, 1.0));
+  // a field of cumulus is separate clouds: cells of 1-3 km (Worley, jittered) break the coverage into heaps of different sizes, with clear sky between them
+  let t = F.cloudP.w;
+  let cq = q / 1.7 + vec2f(t * 0.0023, t * 0.0007);
+  let ci = floor(cq);
+  var d1 = 9.0;
+  var sz = 0.0;
+  for (var j = -1; j <= 1; j++) {
+    for (var i = -1; i <= 1; i++) {
+      let c = ci + vec2f(f32(i), f32(j));
+      let h = hashGrad(vec2i(c) + vec2i(91, 37));
+      let r = 0.55 + 0.45 * hashGrad(vec2i(c) + vec2i(13, 71)).x;          // the size of this cell's cloud
+      let dd = length(c + 0.5 + h * 0.38 - cq) / r;
+      if (dd < d1) { d1 = dd; sz = r; }
+    }
+  }
+  let cell = clamp(1.0 - d1 * 0.95, 0.0, 1.0);
+  let lw = clamp(cov * (0.25 + 0.95 * cell) + gnoise(q * 1.3 + vec2f(2.7, 8.1)) * 0.12, 0.0, 1.0);
+  // r: the local weather, g: how tall the clouds grow there (the big cells in the cloudy regions tower; one height per cell: varying it across a cell made cones), b: the coverage alone
+  let tall = clamp(0.15 + 0.85 * cov * sz + gnoise(q * 0.11 + vec2f(5.1, 2.3)) * 0.2, 0.12, 1.0);
+  textureStore(dst, id.xy, vec4f(lw, tall, cov, 1.0));
 }
 `;
 
@@ -149,33 +175,40 @@ fn weatherAt(xz: vec2f) -> vec2f {
   return w * vec2f(smoothstep(0.0, 0.08, e), 1.0);
 }
 
-// the height profile of a cumulus: a sharp flat base, a rounded top that rises with 'tall'
-fn profile(hf: f32, tall: f32) -> f32 {
-  let top = 0.25 + 0.75 * tall;
-  return smoothstep(0.0, 0.06, hf) * (1.0 - smoothstep(top * 0.55, top, hf));
-}
+fn remap01(x: f32, a: f32, b: f32) -> f32 { return clamp((x - a) / (b - a), 0.0, 1.0); }
 
-// p: world position (km, y = height above the sea); detail: with the eroding octaves; returns the density 0..1
+// p: world position (km, y = height above the sea); detail: with the eroding detail noise (near: it is only resolved there); returns the density 0..1.
+// After Schneider (Nubis, 2015-2017) and @takram/three-clouds: the local weather, rounded towards the top of each cloud (a semicircle in a biased height, so
+// that the base is flat and the top a dome), turned into a density by the coverage with a soft edge, eroded by the shape noise (the billows), then by
+// the detail: billowy cauliflower at the top, wispy at the base.
 fn density(p: vec3f, detail: bool) -> f32 {
   let hf = (p.y - CU.p0.x) / CU.p0.y;
   if (hf < 0.0 || hf > 1.0) { return 0.0; }
   let w = weatherAt(p.xz);
-  let base = w.x * profile(hf, w.y);
-  if (base < 0.01) { return 0.0; }
-  // the clouds drift with the wind and boil slowly at the top
+  let top = 0.25 + 0.75 * w.y;
+  if (hf >= top || w.x < 0.02) { return 0.0; }
+  let hn = hf / top;                                   // height within this cloud
+  let x = pow(hn, 0.35) * 2.0 - 1.0;
+  let hs = 1.0 - x * x;
+  let cov = CU.p1.z;
+  let fac = 1.0 - cov * hs;
+  // the coverage: soft, it falls off from the heart of the cell to its edge, and with the height
+  let base = remap01(mix(w.x, 1.0, 0.4), fac, fac + 0.4);
+  if (base <= 0.0) { return 0.0; }
+  // the clouds drift with the wind and boil slowly
   let t = F.cloudP.w;
   let wind = vec3f(F.windP[0].x, 0.0, F.windP[0].y) * t * 0.004 + vec3f(0.0, -t * 0.0004, 0.0);
-  let n = textureSampleLevel(noiseTex, sampW, (p + wind) / CU.p1.x, 0.0);
-  // the shape noise carves the cells, more at the edges of a cloud than in its heart
-  var d = clamp((base - (1.0 - n.r) * 0.72) / (1.0 - (1.0 - n.r) * 0.72 + 1e-3), 0.0, 1.0);
+  let n = textureSampleLevel(noiseTex, sampW, (p + wind) / CU.p1.x, 0.0).r;
+  // the shape noise drawn through the coverage (Schneider): in the heart of a cloud most of it is cloud, towards its edges only its billows are, so that the
+  // outline of a cumulus is heaps of rounded lumps, not the smooth surface of the coverage
+  var d = remap01(n, 1.0 - base, 1.0) * base;
   if (detail && d > 0.0) {
-    let m = textureSampleLevel(noiseTex, sampW, (p + wind * 1.6) / CU.p1.y, 0.0);
-    let dn = m.g * 0.625 + m.b * 0.25 + m.a * 0.125;
-    // wispy at the base, cauliflower higher up
-    let er = mix(1.0 - dn, dn, smoothstep(0.1, 0.5, hf)) * CU.p1.z;
-    d = clamp((d - er) / (1.0 - er + 1e-3), 0.0, 1.0);
+    let dn = textureSampleLevel(noiseTex, sampW, (p + wind * 1.3) / CU.p1.y, 0.0).g;
+    let m = mix(pow(dn, 6.0), 1.0 - dn, remap01(hn, 0.2, 0.4));
+    d = remap01(d * 2.0, m * 0.5, 1.0);
   }
-  return d;
+  // denser up in the cloud than at its ragged base
+  return clamp(d * (0.3 + 0.7 * hn), 0.0, 1.0);
 }
 
 `;
@@ -228,7 +261,7 @@ export const CLOUD_MARCH = FRAME_WGSL + ATMO_CORE_WGSL + CLOUD_U + /* wgsl */ `
 @group(0) @binding(6) var weatherTex: texture_2d<f32>;
 @group(0) @binding(7) var depthTex: texture_depth_multisampled_2d;
 @group(0) @binding(8) var outTex: texture_storage_2d<rgba16float, write>;
-@group(0) @binding(9) var outDist: texture_storage_2d<r32float, write>;
+@group(0) @binding(9) var outDist: texture_storage_2d<rg32float, write>;
 @group(0) @binding(10) var<uniform> CU: CloudU;
 ` + SKY_RENDER_FUNCS + DENSITY_FUNCS + /* wgsl */ `
 fn hg(c: f32, g: f32) -> f32 { let g2 = g * g; return (1.0 - g2) / (4.0 * PI * pow(max(1.0 + g2 - 2.0 * g * c, 1e-4), 1.5)); }
@@ -276,68 +309,139 @@ fn main(@builtin(global_invocation_id) id3: vec3u) {
   if (ts.y > ts.x) {
     let camKm = F.camPos.xyz * 0.001;
     let cosT = dot(dir, F.sunDir.xyz);
-    // dual-lobe phase: a strong forward lobe (the silver lining against the sun), a weak back lobe
-    let phA = mix(hg(cosT, 0.8), hg(cosT, -0.3), 0.3);
-    let phB = mix(hg(cosT, 0.4), hg(cosT, -0.15), 0.3);
     let ambTop = skyAtmo(vec3f(0.0, 1.0, 0.0));
     let ambSide = skyAtmo(normalize(vec3f(dir.x, 0.06, dir.z)));
     let sunUp = F.sunDir.y;
-    // a jitter of the first step, different from one pixel and one frame to the next (the banding of the steps becomes a fine grain)
-    let jit = fract(52.9829189 * fract(dot(vec2f(id.xy) + f32(u32(F.post.z) % 16u) * vec2f(5.3, 7.1), vec2f(0.06711056, 0.00583715))));
-    let len = ts.y - ts.x;
-    let n = CU.p0.w;
-    var dt = max(len / n, 0.02);
-    var t = ts.x + dt * jit;
+    // the first step jittered, differently from one pixel and one frame to the next (interleaved gradient noise moved by the golden ratio): the banding
+    // of the steps becomes a grain, which the temporal filter (CLOUD_RESOLVE) averages out
+    let jit = fract(52.9829189 * fract(dot(vec2f(id.xy), vec2f(0.06711056, 0.00583715))) + F.post.z * 0.61803399);
+    // steps of 60 m near the camera, growing with the distance (a cloud far away is small on the screen); longer in clear air
+    let step0 = 0.06 * CU.p2.w;
+    var t = ts.x + step0 * (1.0 + ts.x * 0.02) * jit;
     var wsum = 0.0;
     var tw = 0.0;
-    for (var i = 0; i < 160; i++) {
-      if (t >= ts.y || T < 0.015) { break; }
+    let maxI = i32(CU.p0.w);
+    for (var i = 0; i < maxI; i++) {
+      if (t >= ts.y || T < 0.01) { break; }
+      let dt = step0 * (1.0 + t * 0.02);
       let pr = ro + dir * t;
       let h = length(pr) - RG;
       let p = vec3f(camKm.x + dir.x * t, h, camKm.z + dir.z * t);
       let coarse = density(p, false);
-      if (coarse <= 0.0) { t += dt * 2.2; continue; }
-      let d = density(p, true);
-      if (d > 0.002) {
+      if (coarse <= 0.0) { t += dt * 2.5; continue; }
+      // (the detail is only resolved near the camera: further away it would alias into noise)
+      let d = select(coarse, density(p, true), t < 22.0);
+      if (d > 0.003) {
         let ext = d * CU.p0.z;
-        // the light towards the sun: a few steps that grow, the coarse density only
+        // the optical depth towards the sun: steps that double, the shape without its detail
         var tauL = 0.0;
-        var sl = 0.035;
-        var q = p;
+        var sl = 0.04;
+        // (a jitter of its own: the same as the view ray's lines the two marches up in the plane of the sun, a bright band through the clouds)
+        let jl = fract(jit * 7.31 + f32(i) * 0.6180339 + 0.37);
+        var q = p + F.sunDir.xyz * sl * jl;
         for (var k = 0; k < i32(CU.p2.x); k++) {
           q += F.sunDir.xyz * sl;
           tauL += density(q, false) * sl;
-          sl *= 1.9;
+          sl *= 2.0;
         }
         tauL *= CU.p0.z;
         let hf = clamp((h - CU.p0.x) / CU.p0.y, 0.0, 1.0);
         let sunC = sampleTrans(RG + h, sunUp) * F.sunDir.w;
-        // multiple scattering in three octaves (each one less extinct and less peaked), with the 'powder' darkening of thin edges facing the eye
-        let powder = 1.0 - exp(-ext * 0.06);
-        // (the light that has scattered many times inside a cumulus is nearly isotropic and goes deep: it is what makes the heart of a cloud white, not grey)
-        let ms = phA * exp(-tauL) + (0.6 * phB * exp(-tauL * 0.25) + 0.11 * exp(-tauL * 0.07)) * CU.p2.z;
-        let sun = sunC * ms * mix(1.0, powder * 2.0, 0.35);
-        // the sky's light: from above on the tops, from the sides and the sea under the bases
-        let amb = mix(ambSide * 0.55 + ambTop * 0.15, ambTop * 0.9 + ambSide * 0.2, hf) * CU.p2.y * (1.0 - 0.45 * exp(-tauL * 0.4));
-        let L = sun + amb;
+        // multiple scattering in octaves (Wrenninge, Oz the Great and Powerful): each octave less extinct, weaker and less peaked. It is what makes the
+        // heart of a cumulus white and its thick base grey, not the flat white of a constant term
+        var ms = 0.0;
+        var ca = 1.0;
+        for (var o = 0; o < 6; o++) {
+          let g = 0.8 * ca;
+          ms += ca * exp(-tauL * ca) * mix(hg(cosT, g), hg(cosT, -0.3 * ca), 0.25);
+          ca *= 0.5;
+        }
+        var L = sunC * ms * CU.p2.z;
+        // the sky's light: more on the tops than under the base (a crude gradient, better than none in the shadows)
+        L += mix(ambSide * 0.6 + ambTop * 0.1, ambTop * 0.75 + ambSide * 0.25, hf) * CU.p2.y * (0.45 + 0.55 * hf);
+        // powder: the thin edges facing the eye are darker (little light has scattered into them), less so against the sun
+        L *= 1.0 - 0.75 * exp(-ext * 0.12) * (1.0 - 0.6 * smoothstep(0.4, 1.0, cosT));
         let a = 1.0 - exp(-ext * dt);
         col += T * L * a;
         T *= 1.0 - a;
         tw += t * a * T;
-        wsum += a;
+        wsum += a * T;
       }
-      // finer steps inside the clouds, coarser in the gaps and further away
-      dt = max(len / n, 0.02) * (1.0 + t * 0.01);
       t += dt;
     }
-    used = select(ts.x, tw / max(wsum, 1e-4), wsum > 0.0);
+    used = select(ts.x, tw / max(wsum, 1e-4), wsum > 1e-4);
     // aerial perspective: a far cloud fades into the haze (the sky and the sea behind it are hazed by their own shaders)
     let fade = exp(-max(used, 0.0) * 0.022 * (0.6 + 0.4 * F.atmo.x));
     col *= fade;
     T = 1.0 - (1.0 - T) * fade;
   }
   textureStore(outTex, id.xy, vec4f(col, T));
-  textureStore(outDist, id.xy, vec4f(min(sceneKm, 1e5), 0.0, 0.0, 0.0));
+  // r: the scene's distance (the upsampling), g: the clouds' (the reprojection of the temporal filter; the far sky when there are none)
+  textureStore(outDist, id.xy, vec4f(min(sceneKm, 1e5), select(min(sceneKm, 300.0), used, T < 0.98), 0.0, 0.0));
+}
+`;
+
+// ---- the temporal filter -----------------------------------------------------------------------------------------------------------------------------------------
+// Each frame marches with a new jitter: the result of the frames before, reprojected to where the clouds were then (with the distance of the clouds that the march
+// measured), is blended with this frame's, held within the range of this frame's neighbours (no ghost of a cloud that is not there any more).
+export const CLOUD_RESOLVE = /* wgsl */ `
+struct RU {
+  prevPos: vec4f,     // the previous camera's position (km) relative to this one's; w = blend of the new frame (1: no history)
+  prevR: vec4f,       // the previous camera's right axis / tan(fovX/2)
+  prevU: vec4f,       // up / tan(fovY/2)
+  prevF: vec4f,       // forward
+  curR: vec4f,        // this frame's camera: right * tan(fovX/2), up * tan(fovY/2), forward (as the march builds its rays)
+  curU: vec4f,
+  curF: vec4f,
+};
+@group(0) @binding(0) var curTex: texture_2d<f32>;
+@group(0) @binding(1) var distTex: texture_2d<f32>;
+@group(0) @binding(2) var histTex: texture_2d<f32>;
+@group(0) @binding(3) var samp: sampler;
+@group(0) @binding(4) var outTex: texture_storage_2d<rgba16float, write>;
+@group(0) @binding(5) var<uniform> R: RU;
+@compute @workgroup_size(8, 8, 1)
+fn main(@builtin(global_invocation_id) id3: vec3u) {
+  let id = vec2i(id3.xy);
+  let hs = vec2i(textureDimensions(curTex));
+  if (id.x >= hs.x || id.y >= hs.y) { return; }
+  let c = textureLoad(curTex, id, 0);
+  // the range of this frame's neighbours (3x3), a little widened
+  var lo = c;
+  var hi = c;
+  for (var j = -1; j <= 1; j++) {
+    for (var i = -1; i <= 1; i++) {
+      if (i == 0 && j == 0) { continue; }
+      let q = textureLoad(curTex, clamp(id + vec2i(i, j), vec2i(0), hs - 1), 0);
+      lo = min(lo, q); hi = max(hi, q);
+    }
+  }
+  let mid = (lo + hi) * 0.5;
+  lo = mid + (lo - mid) * 1.1;
+  hi = mid + (hi - mid) * 1.1;
+  var k = R.prevPos.w;
+  var outv = c;
+  if (k < 0.999) {
+    // where this texel's cloud was on the previous frame's screen
+    let full = vec2f(hs) * 2.0;
+    let px = vec2f(id) * 2.0 + 1.5;
+    let ndc = vec2f(px.x / full.x * 2.0 - 1.0, 1.0 - px.y / full.y * 2.0);
+    let dir = normalize(R.curF.xyz + ndc.x * R.curR.xyz + ndc.y * R.curU.xyz);
+    let dk = textureLoad(distTex, id, 0).g;
+    // a near cloud moves across the screen with the camera (parallax) and its depth is a mean through a soft volume: trust the history less there
+    k = max(k, clamp(length(R.prevPos.xyz) / max(dk, 0.01) * 150.0, 0.0, 1.0));
+    let rel = dir * dk - R.prevPos.xyz;
+    let z = dot(rel, R.prevF.xyz);
+    if (z > 1e-4) {
+      let pn = vec2f(dot(rel, R.prevR.xyz), dot(rel, R.prevU.xyz)) / z;
+      let uv = vec2f(pn.x * 0.5 + 0.5, 0.5 - pn.y * 0.5);
+      if (all(uv > vec2f(0.0)) && all(uv < vec2f(1.0))) {
+        let h = clamp(textureSampleLevel(histTex, samp, uv, 0.0), lo, hi);
+        outv = mix(h, c, k);
+      }
+    }
+  }
+  textureStore(outTex, id, outv);
 }
 `;
 

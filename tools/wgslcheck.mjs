@@ -5,7 +5,7 @@ import { chromium } from 'playwright-core';
 import { launchOptions } from './browser.mjs';
 
 const url = process.argv[2] || 'http://localhost:8080';
-const LIST = [['/js/wgsl/ship.js', ['SHIP', 'SHIP_SHADOW']], ['/js/wgsl/ocean.js', ['OCEAN', 'SKY_BG']], ['/js/wgsl/particles.js', ['PARTICLES']], ['/js/wgsl/post.js', ['BLOOM_DOWN', 'BLOOM_UP', 'COMPOSITE']], ['/js/wgsl/clouds.js', ['NOISE_GEN', 'WEATHER', 'CLOUD_SHADOW', 'CLOUD_MARCH', 'CLOUD_APPLY']]];
+const LIST = [['/js/wgsl/ship.js', ['SHIP', 'SHIP_SHADOW']], ['/js/wgsl/ocean.js', ['OCEAN', 'SKY_BG']], ['/js/wgsl/particles.js', ['PARTICLES']], ['/js/wgsl/post.js', ['BLOOM_DOWN', 'BLOOM_UP', 'COMPOSITE']], ['/js/wgsl/clouds.js', ['NOISE_GEN', 'WEATHER', 'CLOUD_SHADOW', 'CLOUD_MARCH', 'CLOUD_RESOLVE', 'CLOUD_APPLY']]];
 const browser = await chromium.launch(launchOptions());
 const page = await browser.newPage();
 await page.goto(`${url}/__none__.html`).catch(() => {});

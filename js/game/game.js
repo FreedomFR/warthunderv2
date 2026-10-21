@@ -92,7 +92,7 @@ export class Game {
     this.ui?.onRenderScale?.(this.engine.getRenderScale());
     this.vegetation?.setQuality(this.qLevel);
     // the volumetric clouds: fewer steps lower down the ladder, the flat layer of the sky at the two lowest levels
-    this.engine.setClouds?.({ on: this.qLevel < 3, steps: [72, 60, 48, 40, 40][this.qLevel], light: this.qLevel < 2 ? 5 : 4 });
+    this.engine.setClouds?.({ on: this.qLevel < 3, steps: [220, 180, 150, 120, 120][this.qLevel], stepScale: [1, 1.2, 1.45, 1.7, 1.7][this.qLevel], light: this.qLevel < 2 ? 5 : 4 });
   }
 
   async init() {
