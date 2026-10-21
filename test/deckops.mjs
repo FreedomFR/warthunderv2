@@ -81,7 +81,8 @@ for (const id of ids) {
   ok(total() >= readyBefore + landed - 0, `${id}: the aircraft that landed are back in the air group, being serviced or ready (${readyBefore} -> ${total()})`);
   ok(rollYaw < 0.3, `${id}: the aircraft stays along the deck as it lands (worst ${(rollYaw * 57.3).toFixed(1)} degrees off the ship's heading)`);
   // (after a bolter the next aircraft, already in the groove behind it, lands as it comes: that gap is not the spacing of the approaches)
-  ok(minGap > 18, `${id}: touchdowns at least ${minGap > 1e8 ? '-' : minGap.toFixed(0)} s apart`);
+  // (a landing every 20-30 seconds, as in the war; never less than 15)
+  ok(minGap > 15, `${id}: touchdowns at least ${minGap > 1e8 ? '-' : minGap.toFixed(0)} s apart`);
   ok(worstLz < dp.hw * 0.85, `${id}: touchdowns within ${worstLz.toFixed(1)} m of the centre line (deck half-width ${dp.hw.toFixed(1)} m)`);
   ok(tdPos.every((x) => x > dp.x0 - 2 && x < dp.x0 + 70), `${id}: the wheels come down between the stern and the first wires (x0 + ${Math.min(...tdPos).toFixed(0)}..${Math.max(...tdPos).toFixed(0)} m from the ship's origin ${dp.x0.toFixed(0)})`);
   const bad = [...states.entries()].filter(([pid, set]) => set.has('rollout/arrest') && !set.has('taxiIn/ride'));

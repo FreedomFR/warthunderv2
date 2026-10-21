@@ -21,6 +21,22 @@ export const CAMERA_MODES = [
 const ATTACK = new Set(['rollin', 'dive', 'pullout', 'run', 'break']);
 /** Phases of an aircraft still flying with its formation. */
 const FLY = new Set(['assemble', 'cruise', 'climb', 'egress', 'return', 'escort', 'cap', 'ip']);
+/** Is it time for a new place of the fly-by camera (the view "passage")? When there is none, it is for another aircraft, it has been there too long, the aircraft has gone by and drawn away, or is far. */
+export function flybyDue(f, p, fx, fz, slow) {
+  if (!f || f.plane !== p) return true;
+  const past = (p.x - f.x) * fx + (p.z - f.z) * fz, away = Math.hypot(p.x - f.x, p.y - f.y, p.z - f.z);
+  return f.age > (slow ? 9 : 13) || (!slow && (past > Math.max(60, p.speed * 2.4) || away > 1300)) || (slow && away > 160);
+}
+
+/** A new place for the fly-by camera: ahead of the aircraft along its path (about six seconds of its flight), to the side the last one was not (80-130 m off the path), a little above. */
+export function flybyPlace(prev, p, fx, fy, fz, zoom, slow, rnd = Math.random) {
+  const hf = Math.hypot(fx, fz) || 1, rx = -fz / hf, rz = fx / hf;
+  const side = prev && prev.plane === p ? -prev.side : ((p.id & 1) ? 1 : -1);
+  const lead = slow ? 22 : clamp(p.speed * 6, 280, 760) * zoom, off = slow ? 34 + 14 * rnd() : (75 + 55 * rnd()) * zoom;
+  const gy = Math.max(p.y + fy * lead, 6);
+  return { x: p.x + fx * lead + rx * side * off, y: gy + (slow ? 4 + 3 * rnd() : 8 + 22 * rnd()), z: p.z + fz * lead + rz * side * off, age: 0, side, plane: p };
+}
+
 export const PLANE_VIEWS = [
   { id: 'chase', name: 'poursuite' }, { id: 'side', name: 'passage' }, { id: 'victim', name: 'depuis le navire visé' },
 ];
@@ -462,14 +478,17 @@ export class CameraRig {
       return this.lookAt(p.x + px2, Math.max(p.y + oy, 6), p.z + pz2, p.x + fx * 12, p.y + fy * 12, p.z + fz * 12);
     }
     if (pc.view === 'side') {
-      // a fixed camera placed ahead of the aircraft to one side: it sweeps past
-      if (!pc.fix || (p.x - pc.fix.x) * fx + (p.z - pc.fix.z) * fz > 25 || pc.fix.age > 12) {
-        const side = (p.id & 1) ? 1 : -1, lead = clamp(p.speed * 2.1, 90, 330) * zoom;
-        const off = 45 + 40 * Math.random();
-        pc.fix = { x: p.x + fx * lead + ch * side * off, y: Math.max(p.y + fy * lead * 0.5 + 5, 6), z: p.z + fz * lead + sh * side * off, age: 0 };
+      // a fly-by: the camera waits ahead of the aircraft, off to one side, and lets it come, go by and draw away; then a cut to a new place ahead of it. A long approach
+      // (about six seconds), well clear of the path (eighty to a hundred and thirty metres: at fifty it crossed the frame in a blink), the lens narrow at a distance and wider as it
+      // comes, a cut at the moment it has drawn away, not a slide of the camera to the new place (which carried it through the aircraft)
+      const slow = p.speed < 20;                                  // parked, taxiing, rolling: nothing to fly by, a camera near it
+      if (flybyDue(pc.fix, p, fx, fz, slow)) {
+        pc.fix = flybyPlace(pc.fix, p, fx, fy, fz, zoom, slow);
+        this.smooth.init = false;                                // a cut
       }
       pc.fix.age += dt;
-      this.fovWant = 30 * D2R;
+      const dist = Math.hypot(p.x - pc.fix.x, p.y - pc.fix.y, p.z - pc.fix.z), L = (p.spec && p.spec.L) || 10;
+      this.fovWant = clamp(2 * Math.atan(L * 3.2 / Math.max(dist, 1)), (slow ? 28 : 9) * D2R, 46 * D2R);
       return this.lookAt(pc.fix.x, pc.fix.y, pc.fix.z, p.x + fx * 3, p.y, p.z + fz * 3);
     }
     // 'victim': from the deck of the ship the aircraft is attacking

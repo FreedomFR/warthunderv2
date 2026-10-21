@@ -184,4 +184,26 @@ export const IMPACTS = {
     });
     return normalize(d, 0.92);
   },
+  /**
+   * A building coming down (3.8 s): the crack of the frame, a collapse that sounds like a lot of different things falling (planks,
+   * masonry, sheet metal, each a damped resonance of its own, closer together at first and then fewer), a low rumble of the mass
+   * settling and the hiss of dust.
+   */
+  rubble(sr, seed) {
+    const r = prng(seed), J = (x, f = 0.1) => jit(r, x, f), L = 3.9;
+    const d = mk(sr, L, (d, n) => {
+      const rum = new SVF(sr), dust = new SVF(sr), crk = new SVF(sr);
+      for (let i = 0; i < n; i++) {
+        const t = i / sr, nz = r() * 2 - 1, e = (1 - Math.exp(-t / 0.15)) * Math.exp(-t / 1.4);
+        d[i] = rum.step(nz, 90, 0.8).lp * 1.6 * e + dust.step(nz, 2600, 0.7).hp * 0.16 * e * e + crk.step(nz, 1100, 1.1).bp * 1.4 * Math.exp(-t / 0.05);
+      }
+    });
+    // the pieces: a rate that starts high and falls, each a different material (wood 250-600 Hz, masonry 700-1800, sheet metal 1500-3500, ringing)
+    for (let t = 0.04; t < 3.4;) {
+      const k = Math.exp(-t / 1.3), kind = r(), f = kind < 0.4 ? 250 + 350 * r() : kind < 0.8 ? 700 + 1100 * r() : 1500 + 2000 * r();
+      ring(d, sr, t, f, (0.3 + 0.9 * r()) * (0.25 + k), kind < 0.4 ? 0.03 : kind < 0.8 ? 0.012 : 0.07);
+      t += (0.012 + 0.2 * r()) / (0.25 + 1.6 * k);
+    }
+    return normalize(d, 0.92);
+  },
 };

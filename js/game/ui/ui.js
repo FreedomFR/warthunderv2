@@ -59,7 +59,7 @@ export function createUI(game) {
   const teamsBox = h('div', { class: 'teams' });
   const infoCard = h('div', { class: 'card info' });
   const btnSpawn = h('button', { class: 'btn primary', onclick: () => doSpawn() }, 'Faire apparaître les flottes');
-  const btnStart = h('button', { class: 'btn go', disabled: true, onclick: () => { game.start(); } }, 'Lancer le combat');
+  const btnStart = h('button', { class: 'btn go', disabled: true, onclick: () => { game.startWhenReady(); } }, 'Lancer le combat');
   const sepVal = h('output', {}, '12 km');
   const sepInput = h('input', { type: 'range', min: 4, max: 25, step: 0.5, value: 12, oninput: (e) => { game.config.sep = Number(e.target.value) * 1000; sepVal.textContent = e.target.value + ' km'; changed(); } });
   const seedInput = h('input', { type: 'number', value: game.config.seed, style: 'width:84px', onchange: (e) => { game.config.seed = Number(e.target.value) | 0; changed(); } });
@@ -238,6 +238,8 @@ export function createUI(game) {
   const feed = h('div', { id: 'feed', class: 'hud' });
   const labelsBox = h('div', { id: 'labels' });
   const banner = h('div', { id: 'banner', class: 'hidden' });
+  // the loading screen before a battle: the sounds are synthesised (there are no sample files), a few seconds the first time
+  const loadBar = h('i'), loadText = h('span', {}, ''), loadBox = h('div', { id: 'loading', class: 'hidden' }, h('b', {}, 'Préparation des sons'), h('div', { class: 'bar' }, loadBar), loadText);
 
   // ---- results ----
   const results = h('div', { id: 'results', class: 'hidden panel' });
@@ -361,7 +363,7 @@ export function createUI(game) {
   }
   if (game.audio.muted) setTimeout(() => { const b = document.getElementById('btn-sound'); if (b) b.textContent = 'Son coupé'; }, 0);
 
-  root.append(labelsBox, setup, topbar, teamsHud, camBar, caption, tip, minimap.el, shipInfo, planeInfo, feed, banner, results, score, hitlog, helpEl, settings);
+  root.append(labelsBox, setup, topbar, teamsHud, camBar, caption, tip, minimap.el, shipInfo, planeInfo, feed, banner, loadBox, results, score, hitlog, helpEl, settings);
   refreshToggles();
   setHudVisible(false);
 
@@ -398,6 +400,13 @@ export function createUI(game) {
       tip.classList.remove('hidden');
       clearTimeout(state.tipT); state.tipT = setTimeout(() => tip.classList.add('hidden'), 16000);
     }
+  };
+  ui.onLoading = (done, total) => {
+    const left = total - done > 0;
+    loadBox.classList.toggle('hidden', !left);
+    btnStart.disabled = left;
+    if (left) { loadBar.style.width = (100 * done / Math.max(1, total)).toFixed(0) + '%'; loadText.textContent = `${done} / ${total}`; }
+    else if (game.state === 'ready') btnStart.disabled = false;
   };
   ui.onReset = () => { setup.classList.remove('collapsed'); refreshToggles(); setHudVisible(false); btnStart.disabled = true; btnSpawn.textContent = 'Faire apparaître les flottes'; };
   ui.onFinished = () => {

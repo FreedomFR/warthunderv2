@@ -1,5 +1,6 @@
 // Aircraft effects: hits, crashes, ditching, the wake of a flying machine and the deck (touch-down, arrestor wire). (mixed into Effects, see ../effects.js)
-import { clamp } from '../../math.js';
+import { clamp, mat4Ship, mat4Point } from '../../math.js';
+import { damageSites } from '../../model/planes.js';
 import { K } from '../particles.js';
 import { DECK_PHASES } from '../../sim/deck.js';
 import { rnd, rr } from './common.js';
@@ -113,6 +114,46 @@ export class AirFx {
     }
   }
 
+  /**
+   * The smoke and the flames of a damaged aircraft come from where it is hit: the engine (the nacelle of the one that is lost or burning on a multi-engine aircraft), the root
+   * of a wing (the fuel), the stump of a wing that has come off; they stream back from there along the path. One that is dying burns at all of them.
+   */
+  planeDamage(dt, p, d, fx, fz, hot, tail) {
+    const D = damageSites(p.spec), L = p.spec ? p.spec.L : 10, cs = clamp(L / 10, 0.7, 2.2), lim = d > 5000 ? 0.5 : 1;
+    const M = this._m || (this._m = new Float64Array(16)), P = this._pt || (this._pt = [0, 0, 0]);
+    mat4Ship(M, p.x, p.y, p.z, p.heading, (p.pitch || 0) + (p.aoa || 0), p.roll || 0);
+    const at = (s) => { mat4Point(P, M, s.x, s.y, s.z); return [P[0], P[1], P[2]]; };
+    // the sites of smoke and of flames
+    const smoke = [], fire = [];
+    const eng0 = { ...D.engines[0], eng: 0 };
+    if (p.smoke > 0 || p.fire > 0) smoke.push(p.smokeSite || p.fireSite || eng0);
+    if (p.fire > 0 && p.fireSite) { fire.push(p.fireSite); if (p.fireSite !== smoke[0]) smoke.push(p.fireSite); }
+    if (p.lost && p.lost.wingL) { smoke.push({ ...D.wings.L, eng: -1 }); if (hot) fire.push({ ...D.wings.L, eng: -1 }); }
+    if (p.lost && p.lost.wingR) { smoke.push({ ...D.wings.R, eng: -1 }); if (hot) fire.push({ ...D.wings.R, eng: -1 }); }
+    if (p.lost && p.lost.tail) { smoke.push({ ...D.tail, eng: -1 }); }
+    if (p.dying) {
+      // the whole aircraft goes up in flames: every engine that burns, both wing roots
+      if (p.engFire) D.engines.forEach((e, i) => { if (p.engFire[i] > 0) fire.push({ ...e, eng: i }); });
+      if (!fire.length) fire.push(eng0);
+      fire.push({ ...D.wings.L, eng: -1 }, { ...D.wings.R, eng: -1 });
+      if (!smoke.length) smoke.push(eng0);
+    }
+    if (!smoke.length && !fire.length) return;
+    const acc = this.acc.planeSmoke, rate = (hot ? 34 : 15) * this.emitScale * lim;
+    let a = (acc.get(p.id) || 0) + dt * rate;
+    while (a >= 1) {
+      a -= 1;
+      const s = smoke[Math.floor(rnd() * smoke.length)], q = at(s), dark = hot ? 0.035 : 0.2;
+      this.p.add({ kind: K.SMOKE, x: q[0] + rr(-0.3, 0.3), y: q[1] + rr(-0.2, 0.3), z: q[2] + rr(-0.3, 0.3), vx: p.vx * 0.15, vy: rr(0.5, 2), vz: p.vz * 0.15, s0: 0.9 * cs, s1: rr(7, 14) * cs, life: rr(5, 9), r: dark, g: dark, b: dark, a0: hot ? 0.9 : 0.55, a1: 0, drag: 0.5, wind: 1, grav: -0.1 });
+      if (fire.length && rnd() < 0.8) {
+        // a tongue of flame at the site and a second a little behind it: a flame blown back along the wing or the nacelle
+        const f = fire[Math.floor(rnd() * fire.length)], q2 = at(f), back = rnd() * 2.2 * cs;
+        this.p.add({ kind: K.FLAME, x: q2[0] - fx * back, y: q2[1] + 0.2, z: q2[2] - fz * back, vx: p.vx * 0.55, vy: p.vy * 0.5 + 0.8, vz: p.vz * 0.55, s0: 0.9 * cs, s1: rr(1.5, 2.6) * cs, life: rr(0.25, 0.5), rot: 0, rotV: 0, r: 1, g: 0.5, b: 0.12, a0: 15, a1: 0, drag: 1.2 });
+      }
+    }
+    acc.set(p.id, a);
+  }
+
   /** Smoke and flames trailing damaged aircraft; prop wash behind aircraft skimming the water. */
   updatePlanes(dt, world, cam) {
     const acc = this.acc.planeSmoke;
@@ -123,17 +164,7 @@ export class AirFx {
       const tail = p.spec ? p.spec.L * 0.38 : 4;
       const hot = p.fire > 0.5 || p.dying;
       if (DECK_PHASES.has(p.phase) && !p.hidden && d < 2500) this.deckPlane(dt, p, d, fx, fz, acc);
-      if (p.smoke > 0 || p.fire > 0) {
-        let a = (acc.get(p.id) || 0) + dt * (hot ? 38 : 16) * this.emitScale * (d > 5000 ? 0.5 : 1);
-        while (a >= 1) {
-          a -= 1;
-          const jx = rr(-0.8, 0.8), jy = rr(-0.5, 0.5), jz = rr(-0.8, 0.8);
-          const dark = hot ? 0.035 : 0.2;
-          this.p.add({ kind: K.SMOKE, x: p.x - fx * tail + jx, y: p.y + jy, z: p.z - fz * tail + jz, vx: p.vx * 0.15, vy: rr(0.5, 2), vz: p.vz * 0.15, s0: 1.4, s1: rr(8, 15), life: rr(5, 9), r: dark, g: dark, b: dark, a0: hot ? 0.9 : 0.55, a1: 0, drag: 0.5, wind: 1, grav: -0.1 });
-          if (hot && rnd() < 0.7) this.p.add({ kind: K.FLAME, x: p.x - fx * (tail * 0.4) + jx, y: p.y + jy + 0.3, z: p.z - fz * (tail * 0.4) + jz, vx: p.vx * 0.5, vy: p.vy * 0.5 + 1, vz: p.vz * 0.5, s0: 1.7, s1: rr(2, 3.2), life: rr(0.25, 0.5), rot: 0, rotV: 0, r: 1, g: 0.5, b: 0.12, a0: 15, a1: 0, drag: 1.2 });
-        }
-        acc.set(p.id, a);
-      }
+      if (p.smoke > 0 || p.fire > 0 || p.dying) this.planeDamage(dt, p, d, fx, fz, hot, tail);
       // spray and foam under an aircraft flying low over the sea
       if (p.y < 30 && d < 1600 && !DECK_PHASES.has(p.phase) && p.phase !== 'final') {
         const k = 1 - p.y / 30;

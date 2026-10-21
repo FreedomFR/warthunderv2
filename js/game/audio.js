@@ -3,6 +3,7 @@
 // according to the camera, and the loud ones ring in an open-sea reverb. Continuous sounds (aircraft engines, the Stuka
 // siren, fires, ship machinery, wind) follow their sources every frame, with Doppler shift for aircraft.
 import { makeLibrary, makeReverbIR } from './audio/synth.js';
+import { makeSynthPool } from './audio/synthPool.js';
 import { C_SOUND } from './audio/common.js';
 import { airCutoff, seaEchoDelay, shadowed, enclosure } from './audio/propagation.js';
 import { eventMethods } from './audio/events.js';
@@ -67,7 +68,9 @@ export class GameAudio {
     this.shock = 0;
     this.master.connect(this.muffle); this.muffle.connect(comp);
     if (limiter) limiter.connect(ctx.destination); else comp.connect(ctx.destination);
-    this.lib = makeLibrary(ctx.sampleRate, (n, sr) => ctx.createBuffer(1, n, sr));
+    // (in the page, the sounds are built by a few workers: the battle never waits for them; the offline recorder and the tests build them here)
+    this.pool = !this.offline ? makeSynthPool() : null;
+    this.lib = makeLibrary(ctx.sampleRate, (n, sr) => ctx.createBuffer(1, n, sr), this.pool);
     if (!this.offline && typeof setTimeout !== 'undefined') this.lib.warm();       // build every variant in the background
     // two spaces: the open sea (a short wash and a few echoes off the ships) and the rock and steel around (a bay, a cliff, a big hull)
     const mkVerb = (seconds, kind, gain) => {
@@ -97,6 +100,24 @@ export class GameAudio {
     const sg = ctx.createGain(); sg.gain.value = 0.3;
     sw.connect(sg); sg.connect(this.master); sw.start(0, Math.random() * 12);
     this.swell = sg;
+  }
+
+  /**
+   * The audio engine before the first click: a context created now starts suspended (the browser asks for a gesture) but can already hold the
+   * buffers, so the sounds are built while the first screen plays; the first click resumes it (`unlock`).
+   */
+  early() {
+    if (this.ctx || typeof AudioContext === 'undefined') return;
+    try { this.build(new AudioContext()); } catch (e) { /* the first click will try again */ }
+  }
+
+  /**
+   * Builds the sounds that are not ready yet, before the battle begins (they were built in the background while it ran, and a heavy
+   * one blocks the page for a good part of a second). Resolves at once when there is nothing to do: no audio, muted, offline.
+   */
+  preload(onProgress) {
+    if (!this.lib || this.offline || this.muted) return Promise.resolve();
+    return this.lib.ready(onProgress);
   }
 
   toggleMute() {
@@ -225,6 +246,9 @@ export class GameAudio {
       this.planeLoops(w, cam);
       this.shipLoops(w, cam, dt);
       this.scan(w, cam, dt);
+      this.baseLoops(w, cam);
+      this.torpedoLoops(w, cam);
+      this.shoreLoops(w, cam, dt);
       // wind in the cockpit
       const cp = this.game.camera.mode === 'cockpit' && this.game.camera.plane;
       const wv = this.loop('wind', 'wind');

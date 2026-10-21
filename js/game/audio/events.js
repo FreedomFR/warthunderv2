@@ -74,7 +74,7 @@ export const eventMethods = {
           const s = e.ship;
           if (e.kind === 'aa') { const w = s.toWorld(e.x, e.y, e.z, [0, 0, 0]); this.play('explosion_small', w[0], w[1], w[2], { gain: 0.35, ref: 450, pri: 1, rate: R(1.2, 1.5) }); break; }
           const w = s.toWorld(e.x, e.y, e.z, [0, 0, 0]);
-          if (e.kind === 'engine') this.play('boiler_burst', w[0], w[1], w[2], { gain: 0.95, ref: 1100, pri: 3, wet: 0.3 });
+          if (e.kind === 'engine') { this.play('boiler_burst', w[0], w[1], w[2], { gain: 0.95, ref: 1100, pri: 3, wet: 0.3 }); (this.steam ||= new Map()).set(s, this.ctx.currentTime + 30 + 20 * rnd()); }
           else if (e.kind === 'director' || e.kind === 'radar') { this.play('zap', w[0], w[1], w[2], { gain: 0.8, ref: 450, pri: 2 }); this.play('crash_metal', w[0], w[1], w[2], { gain: 0.4, ref: 600, pri: 1, when: 0.1, rate: 1.3 }); }
           else if (e.kind === 'tubes') this.play('explosion_small', w[0], w[1], w[2], { gain: 0.7, ref: 900, pri: 2 });
           else if (e.kind === 'hangar' || e.kind === 'avgas') this.play('explosion_med', w[0], w[1], w[2], { gain: 0.85, ref: 1700, pri: 3, wet: 0.4 });
@@ -85,6 +85,7 @@ export const eventMethods = {
         case 'magazineFlooded': {
           const w = e.ship.toWorld(e.x, e.y, e.z, [0, 0, 0]);
           this.play('bulkhead', w[0], w[1], w[2], { gain: 0.5, ref: 500, pri: 1, rate: 0.85 });
+          this.play('valve', w[0], w[1], w[2], { gain: 0.5, ref: 260, pri: 1, when: 0.4, rate: R(0.9, 1.1) });          // the valves of the magazine flooding open
           break;
         }
         case 'shipBreak': {
@@ -99,6 +100,10 @@ export const eventMethods = {
           this.play('bulkhead', s.x, 2, s.z, { gain: 0.7, ref: 900, pri: 2, when: 1.6 });
           this.play('hull_groan', s.x, 4, s.z, { gain: 0.8, ref: 1300, pri: 2, when: 3.6, rate: R(0.6, 0.9) });
           if (!e.magazine) this.play('boiler_burst', s.x, 2, s.z, { gain: 0.7, ref: 1200, pri: 2, when: 5.5 + rnd() * 4, rate: 0.9 });
+          // air forced out of the hull as it fills, and the big bubbles that come up after it has gone under
+          this.play('air_vent', s.x, 3, s.z, { gain: 0.7, ref: 700, pri: 2, when: 1.0 + rnd(), rate: R(0.85, 1.1) });
+          this.play('bubbles_big', s.x, 0, s.z, { gain: 0.8, ref: 800, pri: 2, when: 6 + rnd() * 3, rate: R(0.9, 1.1) });
+          this.play('bubbles_big', s.x, 0, s.z, { gain: 0.6, ref: 700, pri: 1, when: 11 + rnd() * 4, rate: R(0.8, 1) });
           break;
         }
         case 'debrisSplash': {
@@ -108,7 +113,29 @@ export const eventMethods = {
         }
         case 'torpedoLaunch': this.play('torpedo_launch', e.x, 1, e.z, { gain: 0.8, ref: 800, pri: 2 }); break;
         case 'torpedoDrop': this.play('splash_small', e.x, e.y, e.z, { gain: 0.5, ref: 300, pri: 1, rate: 0.8 }); break;
-        case 'collision': this.play('collision', e.x, 4, e.z, { gain: 1.1, ref: 1300, pri: 3, wet: 0.3 }); break;
+        case 'collision':
+          this.play('collision', e.x, 4, e.z, { gain: 1.1, ref: 1300, pri: 3, wet: 0.3 });
+          // two short blasts of the whistle: "I am altering my course to starboard" is the nearest thing to "watch out"
+          this.play('horn', e.x, 20, e.z, { gain: 0.8, ref: 3000, pri: 2, wet: 0.35, when: 1.2, rate: R(0.9, 1.05) });
+          this.play('horn', e.x, 20, e.z, { gain: 0.8, ref: 3000, pri: 2, wet: 0.35, when: 2.9, rate: R(0.9, 1.05) });
+          break;
+        case 'counterFlood': this.play('valve', e.ship.x, 2, e.ship.z, { gain: 0.6, ref: 260 + e.ship.stats.L * 0.3, pri: 1, rate: R(0.9, 1.1) }); break;
+        case 'fireStart': {
+          const w = e.ship.toWorld(e.x, e.y, e.z, [0, 0, 0]);
+          this.play('fire_start', w[0], w[1], w[2], { gain: 0.6, ref: 450, pri: 1, wet: 0.15, rate: R(0.85, 1.15) });
+          break;
+        }
+        // ---- the bases ----
+        case 'baseHit': {
+          const destroyed = e.state === 2;
+          if (e.part != null) {
+            const kind = e.base.layout.parts[e.part].kind, big = kind === 'hangar' || kind === 'depot' || kind === 'tank' ? 1 : 0.75;
+            if (destroyed) this.play('rubble', e.x, e.y, e.z, { gain: big, ref: 1500, pri: 3, wet: 0.35, when: 0.3, rate: R(0.85, 1.1) });
+            else this.play('crash_metal', e.x, e.y, e.z, { gain: 0.45, ref: 650, pri: 1, wet: 0.1, rate: R(1, 1.3) });
+          } else if (destroyed) this.play('crash_metal', e.x, e.y, e.z, { gain: 0.8, ref: 1000, pri: 2, wet: 0.2, when: 0.2, rate: R(0.8, 1) });
+          break;
+        }
+        case 'baseDown': this.play('rubble', e.x, 8, e.z, { gain: 1.1, ref: 3200, pri: 3, wet: 0.5, when: 1.0, rate: 0.75 }); break;
         // ---- anti-aircraft ----
         case 'aaFire': {
           if (rnd() > (this.active > 40 ? 0.3 : 0.7)) break;          // a lot of guns: sample the bursts
@@ -136,6 +163,8 @@ export const eventMethods = {
           break;
         }
         case 'planeDitch': this.play('splash_big', e.x, 1, e.z, { gain: 0.5, ref: 500, pri: 1, rate: 1.2 }); break;
+        case 'bombDrop': this.play('bomb_drop', e.x, e.y, e.z, { gain: 0.6, ref: 420, pri: 1, rate: R(0.9, 1.1) }); break;
+        case 'planeEngineOut': this.play('engine_sputter', e.plane.x, e.plane.y, e.plane.z, { gain: 0.85, ref: 950, pri: 2, wet: 0.2, rate: R(0.92, 1.08) }); break;
         case 'planeTouchdown': this.play('touchdown', e.plane.x, e.plane.y, e.plane.z, { gain: 0.8, ref: 700, pri: 1, rate: R(0.92, 1.1) }); break;
         case 'wireCatch': this.play('arrest', e.plane.x, e.plane.y, e.plane.z, { gain: 0.7, ref: 700, pri: 1, when: 0.05 }); break;
         case 'engineStart': this.play('engine_start', e.plane.x, e.plane.y, e.plane.z, { gain: 0.45, ref: 450, pri: 0, rate: R(0.92, 1.08) }); break;

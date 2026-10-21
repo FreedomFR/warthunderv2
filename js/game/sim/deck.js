@@ -14,7 +14,7 @@ const LIFT_DOWN = 2.4, LIFT_UP = 2.9;  // seconds for the platform to go down / 
 const UNFOLD = 2.8, FOLD = 3.4;      // seconds to spread / fold the wings
 const TAXI = 7;                      // taxi speed (m/s)
 const GAP = 14.5;                    // between aircraft in the queue (m)
-const CLEAR_X = 95;                  // an aircraft that has rolled this far past the stern end has left the landing area (m)
+const CLEAR_X = 75;                  // an aircraft that has rolled this far past the stern end has left the landing area (m)
 const RUN_ACC = 5.8;                 // take-off acceleration (m/s^2)
 const STRIKE_EVERY = 4.5;            // seconds between two aircraft of the park going below
 const RESPOT_EVERY = 5.5;
@@ -455,10 +455,10 @@ function stepDeckInner(world, p, dt) {
         D.wire.ax -= 22 * dt;
         if (D.wire.ax <= D.wire.x) D.wire = null;
       }
-      if (p.ts > 0.9) p.hook = Math.max(0, p.hook - dt / 0.9);
+      if (p.ts > 0.6) p.hook = Math.max(0, p.hook - dt / 0.8);
       p.u = 0;
       place(p, ship, p.lx, p.lz);
-      if (p.ts > 2.1) {
+      if (p.ts > 1.5) {
         p.phase = 'taxiIn'; p.ds = 'wait'; p.ts = 0; p.lx0 = p.lx; p.lz0 = p.lz; p.lift = null; p.hook = 0;
       }
       return true;
@@ -508,7 +508,8 @@ function stepDeckInner(world, p, dt) {
       // wait short of the lift while it is in use by another aircraft
       const free = (!l.user || l.user === p) && l.h >= 0.99;
       const limit = free ? l.x : l.x - l.hl - 13;
-      const [lx, lz] = taxi(p, ship, dt, l.x, l.z, limit, 6);
+      // (the deck crew wave it on: clear of the wires at a brisk 8 m/s while the next aircraft is coming)
+      const [lx, lz] = taxi(p, ship, dt, l.x, l.z, limit, D.landing.length > 1 || D.circuit > 0 ? 8 : 6);
       place(p, ship, lx, lz);
       if (free && Math.abs(lx - l.x) < 0.35 && p.u < 0.3) { l.user = p; l.tgt = 0; p.lift = l; p.ds = 'ride'; p.ts = 0; p.u = 0; }
       return true;

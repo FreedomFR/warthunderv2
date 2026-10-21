@@ -1,5 +1,5 @@
 // Ambience loops and damage creaks.
-import { TAU, prng, SVF, env, mk, normalize, jit, seamless } from './core.js';
+import { TAU, prng, SVF, env, mk, normalize, jit, seamless, ring } from './core.js';
 
 export const AMBIENCE = {
   hull_groan(sr, seed) {
@@ -64,18 +64,93 @@ export const AMBIENCE = {
     });
     return normalize(seamless(d, sr, 0.25), 0.7, true);
   },
-  /** Gurgling water in a flooding compartment (loops). */
-  gurgle(sr, seed) {
-    const r = prng(seed);
-    const d = mk(sr, 3.2, (d, n) => {
-      const a = new SVF(sr); let ph = 0;
-      for (let i = 0; i < n; i++) {
-        const t = i / sr, nz = r() * 2 - 1;
-        ph += TAU * (260 + 180 * Math.sin(TAU * 2.6 * t) + 120 * Math.sin(TAU * 7.3 * t)) / sr;
-        d[i] = a.step(nz, 520, 1.3).bp * 0.6 * (0.6 + 0.4 * Math.sin(TAU * 5 * t)) + Math.sin(ph) * 0.2 * (0.5 + 0.5 * Math.sin(TAU * 3.4 * t) ** 2);
+  /**
+   * A gull (1.5 s): the "kyow kyow kyow" of a herring gull, three falling calls, each a breathy buzz with strong harmonics under a
+   * pitch that jumps up and glides down, a throat formant that follows it, the last call weaker.
+   */
+  gull(sr, seed) {
+    const r = prng(seed), J = (x, f = 0.1) => jit(r, x, f), L = 1.6;
+    const calls = [0.05, 0.5 + 0.06 * r(), 0.98 + 0.08 * r()].map((t0, k) => ({ t0, f: J(1350, 0.1) * (1 - 0.06 * k), len: J(0.3, 0.15) * (1 - 0.1 * k), a: 1 - 0.25 * k }));
+    const d = mk(sr, L, (d, n) => {
+      const hiss = new SVF(sr), form = new SVF(sr);
+      for (const c of calls) {
+        let ph = 0;
+        const i0 = Math.floor(c.t0 * sr), len = Math.floor(c.len * sr);
+        for (let i = 0; i < len && i0 + i < n; i++) {
+          const q = i / len, t = i / sr;
+          // up in the first fifth, then down; a fast shake (the voice breaking) on top
+          const f = c.f * (q < 0.2 ? 0.8 + q * 1.5 : 1.1 - 0.45 * (q - 0.2)) * (1 + 0.025 * Math.sin(TAU * 38 * t));
+          ph += TAU * f / sr;
+          const e = Math.sin(Math.PI * Math.pow(q, 0.7)) * c.a;
+          let v = 0; for (let h = 1; h <= 6; h++) v += Math.sin(ph * h) / (h * 0.9);
+          const nz = r() * 2 - 1;
+          d[i0 + i] += (form.step(v, 2300, 1.2).bp * 1.4 + v * 0.3 + hiss.step(nz, 3000, 1).bp * 0.5) * e;
+        }
       }
     });
-    return normalize(seamless(d, sr, 0.2), 0.6, true);
+    return normalize(d, 0.8);
+  },
+  /** A hull creaking as it works in the swell (1.1 s): a short stick-slip of steel plate, higher and lighter than the groan of a ship in trouble. */
+  creak(sr, seed) {
+    const r = prng(seed), J = (x, f = 0.1) => jit(r, x, f), L = 1.2, f0 = J(210, 0.25);
+    const d = mk(sr, L, (d, n) => {
+      let ph = 0, ph2 = 0; const bp = new SVF(sr);
+      for (let i = 0; i < n; i++) {
+        const t = i / sr, nz = r() * 2 - 1, g = Math.sin(Math.PI * t / L) ** 2;
+        const slip = Math.sin(TAU * (19 + 11 * t) * t) > -0.2 ? 1 : 0.25;
+        ph += TAU * (f0 + 70 * Math.sin(t * 5.1) + 90 * t) / sr; ph2 += TAU * f0 * 2.76 * (1 + 0.05 * Math.sin(t * 7.3)) / sr;
+        d[i] = (Math.sin(ph) * 0.7 + Math.sin(ph2) * 0.35 + bp.step(nz, 900, 3).bp * 0.5) * g * slip;
+      }
+    });
+    return normalize(d, 0.75);
+  },
+  /**
+   * The air-raid siren of a base (loops, 12 s): a rotor siren winding up and down, the pitch rising slowly (the motor spinning up)
+   * and falling away again, with the harmonics and the roughness of the chopped air, a little slower to fall than to rise.
+   */
+  air_raid(sr, seed) {
+    const r = prng(seed), L = 12;
+    const d = mk(sr, L, (d, n) => {
+      let ph = 0, ph2 = 0;
+      const lp = new SVF(sr);
+      for (let i = 0; i < n; i++) {
+        const t = i / sr, c = 0.5 - 0.5 * Math.cos(TAU * t / L), rise = Math.pow(c, 0.85);
+        const f = 330 + 330 * rise;
+        ph += TAU * f / sr; ph2 += TAU * f * 2.003 / sr;
+        const chop = 0.88 + 0.12 * Math.sin(ph * 12);                    // the rotor's blades chopping the air
+        const v = Math.sin(ph) + 0.55 * Math.sin(ph2 + 0.5) + 0.3 * Math.sin(ph * 3) + 0.14 * Math.sin(ph * 5);
+        d[i] = lp.step(v * chop + (r() * 2 - 1) * 0.08, 3200, 0.7).lp * (0.55 + 0.45 * rise);
+      }
+    });
+    return normalize(d, 0.7, true);
+  },
+  /** A ship's steam whistle (2.6 s): a low note with a second a major third above, a slow attack and a breath of steam, cut off by the valve. */
+  horn(sr, seed) {
+    const r = prng(seed), J = (x, f = 0.1) => jit(r, x, f), L = 2.6, f0 = J(100, 0.18), dur = J(1.9, 0.1);
+    const d = mk(sr, L, (d, n) => {
+      let a = 0, b = 0, c = 0; const lp = new SVF(sr), br = new SVF(sr);
+      for (let i = 0; i < n; i++) {
+        const t = i / sr, nz = r() * 2 - 1;
+        const e = Math.min(1, t / 0.22) * (t < dur ? 1 : Math.exp(-(t - dur) / 0.08));
+        const f = f0 * (0.97 + 0.03 * Math.min(1, t / 0.3)) * (1 + 0.003 * Math.sin(TAU * 5.2 * t));
+        a += TAU * f / sr; b += TAU * f * 1.26 / sr; c += TAU * f * 1.5 / sr;
+        let v = 0; for (let h = 1; h <= 7; h++) v += (Math.sin(a * h) + 0.8 * Math.sin(b * h + 1) + 0.5 * Math.sin(c * h + 2)) / (h * 1.1);
+        d[i] = (lp.step(v, 2000, 0.7).lp * 0.7 + br.step(nz, 1800, 0.9).bp * 0.18) * e;
+      }
+    });
+    return normalize(d, 0.8);
+  },
+  /** The general-quarters alarm (2.4 s): the navy's rapid gong, a bronze bell struck about six times a second, each stroke ringing into the next. */
+  gq_gong(sr, seed) {
+    const r = prng(seed), J = (x, f = 0.1) => jit(r, x, f), L = 2.4, f0 = J(690, 0.05);
+    const d = mk(sr, L, (d, n) => {
+      for (let t = 0.02; t < 2.0; t += 1 / J(6.2, 0.05)) {
+        const a = 0.85 + 0.15 * r();
+        ring(d, sr, t, f0, a, 0.16); ring(d, sr, t, f0 * 2.4, a * 0.45, 0.09); ring(d, sr, t, f0 * 4.1, a * 0.22, 0.05); ring(d, sr, t, f0 * 0.5, a * 0.3, 0.2);
+        const i0 = Math.floor(t * sr); for (let i = 0; i < 160 && i0 + i < n; i++) d[i0 + i] += (r() * 2 - 1) * 0.5 * Math.exp(-i / 40);        // the click of the clapper
+      }
+    });
+    return normalize(d, 0.8);
   },
   /**
    * The sea itself (loops, 12 s): long swells washing past, each a slow rise and fall of a broad wash of noise, with a deep

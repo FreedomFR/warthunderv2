@@ -5,11 +5,17 @@ import { PRESETS } from './game/scenarios.js';
 import { TEAM_COLORS } from './game/sim/world.js';
 import { isMobile, maxPixelRatio } from './game/device.js';
 import { setBalanceFile, setBalance } from './game/data/balance.js';
+import { preloadModels } from './game/preload.js';
 
 const canvas = document.getElementById('c');
 const qs = new URLSearchParams(location.search);
 if (isMobile()) document.body.classList.add('mobile');
+const S = window.__splash || { set() {}, hide() {}, off: true };
+// (the first screen plays the trailer while this loads; the tools and the preview skip it, and then skip the preloading too)
+const quick = !!S.off || qs.get('start') === '1';
+S.set('Moteur graphique…', 0.05);
 const engine = await createEngine(canvas, { maxDpr: maxPixelRatio() });
+S.set('Navires et effets…', 0.3);
 window.__engine = engine;
 
 if (qs.has('preview')) {
@@ -22,6 +28,7 @@ if (qs.has('preview')) {
   try { const saved = JSON.parse(localStorage.getItem('naval.balance') || 'null'); if (saved) setBalance(saved); } catch (e) { /* storage blocked or bad data: the file's values */ }
   const game = new Game(engine, canvas, { seed: Number(qs.get('seed')) || (Math.random() * 1e6) | 0, islands: qs.has('islands') ? Number(qs.get('islands')) : 1, bases: qs.has('bases') ? Number(qs.get('bases')) : 1 });
   await game.init();
+  S.set('Interface…', 0.42);
   window.__game = game;
   const { createUI } = await import('./game/ui/ui.js');
   game.ui = createUI(game);
@@ -37,6 +44,21 @@ if (qs.has('preview')) {
     T.sink = (...a) => window.__sink(...a);
     window.__trailer = { T, scenes: Object.keys(SCENES), run: async (name) => { await SCENES[name](T); await T.finish(name); }, music: (spec) => T.music(spec) };
   }
+  // everything that can be built before the first click is built now, while the first screen plays: the sounds (on workers) and the models
+  if (!quick) {
+    const prog = { sounds: 0, models: 0 };
+    const show = (label) => S.set(label, 0.45 + 0.27 * prog.sounds + 0.27 * prog.models);
+    game.audio.early();
+    const lib = game.audio.lib;
+    // (muted: nothing to wait for, the library builds itself in the background if the sound is switched on later)
+    const sounds = !lib ? Promise.resolve() : game.audio.muted ? (lib.warm(), Promise.resolve()) : lib.ready((d, t) => { prog.sounds = d / Math.max(1, t); show(`Sons ${d} / ${t}`); });
+    const models = preloadModels((d, t, name) => { prog.models = d / t; show(`Navires et avions : ${name}`); });
+    // (after a few seconds a button lets the player in while the rest goes on)
+    let iv = 0;
+    await Promise.race([Promise.all([sounds, models]), new Promise((r) => { iv = setInterval(() => { if (S.skipped) r(); }, 200); })]);
+    clearInterval(iv);
+    S.set('Prêt', 1);
+  }
   // quick start from the URL: ?scenario=duel&start=1&cam=orbit
   const preset = PRESETS.find((p) => p.id === qs.get('scenario'));
   if (preset) {
@@ -51,4 +73,5 @@ if (qs.has('preview')) {
     game.ui.doSpawn();
   }
 }
+S.hide();
 engine.start();

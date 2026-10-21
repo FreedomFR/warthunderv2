@@ -112,7 +112,8 @@ const run = (w, secs, on) => { const t1 = w.time + secs; while (w.time < t1) { w
   for (const b of w.bases) if (b.team === 1) for (const q of b.parked) if (q) q.svc = 1e9;
   const types = new Set(af.parked.filter(Boolean).map((p) => p.typeKey));
   const c = {}, phases = new Set();
-  let nan = 0, bombs = 0, underground = 0, rightTurn = 0, finalSwing = 0;
+  let lastLaunch = null, lastLand = null, onTop = 0; const launchGaps = [], landGaps = [];
+  let nan = 0, bombs = 0, underground = 0, rightTurn = 0, finalSwing = 0, rollNoGear = 0, lowGoAround = 0, goArounds = 0;
   const F = () => af._fld;
   w.start();
   run(w, 1700, (ev) => {
@@ -129,8 +130,19 @@ const run = (w, secs, on) => { const t1 = w.time + secs; while (w.time < t1) { w
         if (p._lined) finalSwing = Math.max(finalSwing, off);
       } else p._lined = false;
       p._ph = p.heading;
+      // the wheels stay down on the landing roll, and a go-around is flown from a good height (not with the wheels a few metres off the runway: it scrapes it)
+      if (p.phase === 'lroll' && !p.gearDown) rollNoGear++;
+      if (p.phase === 'goaround' && p._pp !== 'goaround') { goArounds++; if (p.y - F().y < 25) lowGoAround++; }
+      p._pp = p.phase;
     }
-    for (const e of ev) { c[e.type] = (c[e.type] || 0) + 1; if (e.type === 'bombDrop' && e.plane.base === af) bombs++; }
+    for (const e of ev) {
+      c[e.type] = (c[e.type] || 0) + 1; if (e.type === 'bombDrop' && e.plane.base === af) bombs++;
+      if (e.plane && e.plane.base === af && e.type === 'planeLaunch') { if (lastLaunch != null && w.time - lastLaunch < 120) launchGaps.push(w.time - lastLaunch); lastLaunch = w.time; }
+      if (e.plane && e.plane.base === af && e.type === 'planeTouchdown') { if (lastLand != null && w.time - lastLand < 120) landGaps.push(w.time - lastLand); lastLand = w.time; }
+    }
+    // two aircraft rolling on the runway: never on top of each other
+    const rolling = w.planes.filter((q) => q.base === af && q.ground && (q.phase === 'groundRun' || q.phase === 'lroll'));
+    for (let i = 0; i < rolling.length; i++) for (let j = i + 1; j < rolling.length; j++) if (Math.hypot(rolling[i].x - rolling[j].x, rolling[i].z - rolling[j].z) < 60) onTop++;
     for (const p of w.planes) {
       if (p.base !== af) continue;
       phases.add(p.phase);
@@ -142,18 +154,24 @@ const run = (w, secs, on) => { const t1 = w.time + secs; while (w.time < t1) { w
   ok(['taxiOut', 'holdshort', 'lineup', 'groundRun', 'climb', 'assemble', 'cruise', 'run', 'return', 'lfinal', 'lroll', 'taxiBack'].every((p) => phases.has(p)), `a sortie goes through every phase (${[...phases].join(' ')})`);
   ok(bombs > 0, `the bombers drop their bombs on the ship (${bombs})`);
   ok((c.planeTouchdown || 0) > 0, `and some of them come back and land (${c.planeTouchdown || 0})`);
+  // traffic in a stream, as in the war: the next aircraft takes off while the one before is still rolling (a take-off every 25-35 s, it was 50), lands as the one before rolls out
+  const med = (a2) => { const t = a2.slice().sort((x, y) => x - y); return t.length ? t[Math.floor(t.length / 2)] : 0; };
+  ok(launchGaps.length >= 4 && med(launchGaps) < 36 && Math.min(...launchGaps) > 12, `take-offs follow each other closely (${launchGaps.length} gaps, median ${med(launchGaps).toFixed(0)} s, shortest ${Math.min(...launchGaps).toFixed(0)} s)`);
+  ok(landGaps.every((g) => g > 14) && onTop === 0, `landings are spaced (${landGaps.length} gaps, shortest ${landGaps.length ? Math.min(...landGaps).toFixed(0) : '-'} s) and two aircraft are never on top of each other on the runway (${onTop} frames)`);
+  ok(rollNoGear === 0, `the undercarriage stays down on the landing roll (${rollNoGear} frames with it up)`);
+  ok(lowGoAround === 0, `no go-around is begun a few metres off the runway (${goArounds} go-arounds, ${lowGoAround} low)`);
   ok(rightTurn < 0.8 && finalSwing < 0.35, `the landing circuit turns to the left (longest turn to the right ${(rightTurn * 57.3).toFixed(0)} degrees) and a lined-up final stays lined up (worst ${(finalSwing * 57.3).toFixed(0)} degrees)`);
   void types; void es;
 }
-// the wave leaves one after the other, no two on the runway
+// the wave leaves one after the other: the next begins its run when the one before is far enough ahead, never on top of it
 {
   const { w } = arena(4);
   const af = w.bases.find((b) => b.layout.kind === 'airfield' && b.team === 0);
   still(w.addShip('iowa', 1, af.layout.x + 20000, af.layout.z, 0));
   let both = 0;
   w.start();
-  run(w, 900, () => { const on = w.planes.filter((p) => p.base === af && (p.phase === 'groundRun' || p.phase === 'lroll')).length; if (on > 1) both++; });
-  ok(both === 0, 'never two aircraft rolling on the same runway');
+  run(w, 900, () => { const on = w.planes.filter((p) => p.base === af && (p.phase === 'groundRun' || p.phase === 'lroll')); for (let i = 0; i < on.length; i++) for (let j = i + 1; j < on.length; j++) if (Math.hypot(on[i].x - on[j].x, on[i].z - on[j].z) < 150) both++; });
+  ok(both === 0, 'two aircraft rolling on the runway are never within 150 m of each other');
 }
 // the fuel decides: no tank, no sortie
 {

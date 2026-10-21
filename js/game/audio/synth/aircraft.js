@@ -130,4 +130,54 @@ export const AIRCRAFT = {
     });
     return normalize(d, 0.8);
   },
+  /**
+   * An engine failing (2.9 s): the firing becomes ragged, then misses (the note drops, gaps open), with backfires through the
+   * exhaust, and the sound of an engine that has stopped being an engine runs down into the windmilling of the propeller.
+   */
+  engine_sputter(sr, seed) {
+    const r = prng(seed), J = (x, f = 0.1) => jit(r, x, f), L = 3;
+    const d = mk(sr, L, (d, n) => {
+      // firing strokes: first even, then more and more of them missing, the rate falling
+      let t = 0.02;
+      while (t < 2.5) {
+        const run = Math.min(1, t / 2.5), miss = r() < 0.12 + 0.6 * run;
+        const f = J(88 - 28 * run, 0.12), a = (miss ? 0.12 : 1) * (1 - 0.5 * run) * (0.6 + 0.4 * r());
+        const i0 = Math.floor(t * sr), len = Math.floor(0.06 * sr);
+        for (let i = 0; i < len && i0 + i < n; i++) d[i0 + i] += a * (Math.sin(TAU * f * i / sr) * 0.6 + (r() * 2 - 1) * 0.7) * Math.exp(-i / sr / 0.022);
+        t += (1 / (24 - 14 * run)) * (0.7 + 0.6 * r()) * (miss ? 1.5 : 1);
+      }
+      // backfires: a sharp bang through the stack
+      const bp = new SVF(sr);
+      for (let k = 0; k < 4; k++) {
+        const t0 = 0.5 + 2 * r(), i0 = Math.floor(t0 * sr), len = Math.floor(0.12 * sr), f = J(300, 0.4);
+        for (let i = 0; i < len && i0 + i < n; i++) d[i0 + i] += (bp.step(r() * 2 - 1, f, 1.2).bp * 1.6 + Math.sin(TAU * 110 * i / sr) * 0.35) * Math.exp(-i / sr / 0.03) * 2.2;
+      }
+      // the propeller windmilling afterwards
+      const lp = new SVF(sr);
+      for (let i = Math.floor(2 * sr); i < n; i++) d[i] += lp.step(r() * 2 - 1, 180, 0.7).lp * 0.5 * Math.min(1, (i / sr - 2) / 0.3) * Math.exp(-(i / sr - 2) / 0.6);
+    });
+    return normalize(d, 0.85);
+  },
+  /** Tyres rolling on a runway or a deck (loops, 3 s): a low rumble, the hiss of the rubber, and a soft thump from each joint in the surface. */
+  ground_roll(sr, seed) {
+    const r = prng(seed), L = 3, joints = 6;
+    const d = mk(sr, L, (d, n) => {
+      const rum = new SVF(sr), hiss = new SVF(sr), th = new SVF(sr);
+      for (let i = 0; i < n; i++) {
+        const t = i / sr, nz = r() * 2 - 1, q = (t * joints / L) % 1, joint = Math.exp(-q / 0.06);
+        d[i] = rum.step(nz, 95, 0.8).lp * 1.3 + hiss.step(nz, 1500, 0.8).bp * 0.32 + th.step(nz, 140, 0.9).lp * joint * 1.1 * (0.8 + 0.2 * Math.sin(t * 3));
+      }
+    });
+    return normalize(seamless(d, sr, 0.15), 0.7, true);
+  },
+  /** A bomb let go (0.9 s): the clack of the shackle, the clang of the rack, and the rush of air round the bay doors and the falling store. */
+  bomb_drop(sr, seed) {
+    const r = prng(seed), J = (x, f = 0.1) => jit(r, x, f), L = 1.0;
+    const d = mk(sr, L, (d, n) => {
+      const w = new SVF(sr);
+      for (let i = 0; i < n; i++) { const t = i / sr; d[i] = w.step(r() * 2 - 1, 900 + 1500 * Math.min(1, t / 0.6), 0.7).bp * 0.5 * Math.min(1, t / 0.12) * Math.exp(-t / 0.4); }
+    });
+    ring(d, sr, 0, J(1450), 1.0, 0.025); ring(d, sr, 0, J(2400), 0.6, 0.015); ring(d, sr, 0.004, J(620), 0.9, 0.05); ring(d, sr, 0.07, J(980), 0.4, 0.03);
+    return normalize(d, 0.8);
+  },
 };

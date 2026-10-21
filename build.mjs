@@ -17,13 +17,16 @@ const result = await build({
   // the offline trailer director is only used by tools/trailer, not shipped in the single-file page
   external: ['./trailer.js', './trailerScenes.js', './trailerScenes020.js'],
 });
+// the worker that builds the sounds: its code goes into the page as text (a page opened from disk cannot load a worker file)
+const worker = await build({ entryPoints: [path.join(root, 'js/game/audio/synthWorker.js')], bundle: true, minify: true, format: 'iife', target: 'es2022', write: false, legalComments: 'none' });
+const workerTag = `<script>window.__SYNTH_WORKER = ${JSON.stringify(worker.outputFiles[0].text).replace(/<\/script/gi, '<\\/script')};</script>`;
 const js = result.outputFiles[0].text.replace(/<\/script/gi, '<\\/script');
 // the balance file (config/balance.json) goes into the page: a page opened from disk cannot read it
 const balance = fs.readFileSync(path.join(root, 'config/balance.json'), 'utf8');
 JSON.parse(balance);
 const balanceTag = `<script>window.__BALANCE_FILE = ${balance.replace(/<\/script/gi, '<\\/script')};</script>`;
 const minPage = page
-  .replace(SCRIPT_TAG, () => `${balanceTag}<script type="module">${js}</script>`)
+  .replace(SCRIPT_TAG, () => `${balanceTag}${workerTag}<script type="module">${js}</script>`)
   .replace(/<style>([\s\S]*?)<\/style>/, (_, css) => `<style>${css.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\s+/g, ' ').replace(/ ?([{}:;,>]) ?/g, '$1').trim()}</style>`);
 fs.writeFileSync(path.join(root, 'naval.html'), minPage);
 console.log('wrote naval.html', (minPage.length / 1024).toFixed(0) + ' KB');

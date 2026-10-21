@@ -22,13 +22,13 @@ const Y_SHOULDER = 0.1, Y_ROAD = 0.115, Y_TAXI = 0.13, Y_RUNWAY = 0.145, Y_APRON
 // ---- flat work -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 /** An oriented rectangle on the ground: centre (cx, cz), half length hl along the angle `ang` (0 = +x), half width hw. */
-function rect(b, cx, cz, hl, hw, ang, y, col, mat = MAT.CANVAS) {
+function rect(b, cx, cz, hl, hw, ang, y, col, mat = MAT.PAVEMENT) {
   const c = Math.cos(ang), s = Math.sin(ang);
   const P = (u, v) => [cx + u * c - v * s, y, cz + u * s + v * c];
   b.quad(P(-hl, -hw), P(hl, -hw), P(hl, hw), P(-hl, hw), col, mat, [cx, y - 1, cz], 1);
 }
 /** A strip of width w from (x0, z0) to (x1, z1). */
-function strip(b, x0, z0, x1, z1, w, y, col, mat = MAT.CANVAS) {
+function strip(b, x0, z0, x1, z1, w, y, col, mat = MAT.PAVEMENT) {
   const l = Math.hypot(x1 - x0, z1 - z0);
   if (l < 0.01) return;
   rect(b, (x0 + x1) / 2, (z0 + z1) / 2, l / 2, w / 2, Math.atan2(z1 - z0, x1 - x0), y, col, mat);
@@ -57,8 +57,8 @@ function runway(g, gf, rw, pal, rng, headingDeg) {
   const len = rw.len, hw = rw.hw, hl = len / 2;
   const tone = [76, 76, 78];
   // gravel shoulder (the cleared strip round the runway)
-  rect(g, 0, 0, hl + 14, hw + 7, 0, Y_SHOULDER, C(pal.dirt[0]), MAT.TERRAIN);
-  rect(g, 0, 0, hl + 14, hw + 3.5, 0, Y_SHOULDER + 0.004, C(pal.dirt[1]), MAT.TERRAIN);
+  rect(g, 0, 0, hl + 14, hw + 7, 0, Y_SHOULDER, C(pal.dirt[0]), MAT.GRAVEL);
+  rect(g, 0, 0, hl + 14, hw + 3.5, 0, Y_SHOULDER + 0.004, C(pal.dirt[1]), MAT.GRAVEL);
   const seg = 28, n = Math.ceil(len / seg);
   for (let i = 0; i < n; i++) {
     const s0 = -hl + i * seg, s1 = Math.min(hl, s0 + seg);
@@ -116,7 +116,7 @@ function taxiways(g, gf, L, loc, rng) {
 function aprons(g, gf, L, loc, pal) {
   for (const ap of L.aprons) {
     const c = loc(ap.x, ap.z), ang = ap.ang - L.ang;
-    rect(g, c[0], c[1], ap.hl + 4, ap.hw + 4, ang, Y_SHOULDER + 0.012, C(pal.dirt[0]), MAT.TERRAIN);
+    rect(g, c[0], c[1], ap.hl + 4, ap.hw + 4, ang, Y_SHOULDER + 0.012, C(pal.dirt[0]), MAT.GRAVEL);
     const k = C(pal.conc);
     // slabs of concrete in slightly different tones
     const sl = 15, nx = Math.ceil(ap.hl * 2 / sl), nz = Math.ceil(ap.hw * 2 / sl);
@@ -177,14 +177,14 @@ function airfieldSite(L, loc, pal, rng, g, gf, d, df) {
   aprons(g, gf, L, loc, pal);
   // roads: behind the hangars and spurs to the apron
   const ty = hw + 205;
-  strip(g, -340, ty, 360, ty, 7, Y_ROAD, C(pal.dirt[2]), MAT.TERRAIN);
-  for (const s of [-10, 260, -len / 2 + 120]) strip(g, s, hw + 146, s, ty, 6, Y_ROAD, C(pal.dirt[2]), MAT.TERRAIN);
-  strip(g, -len / 2 + 120, ty, -len / 2 + 120, ty + 40, 6, Y_ROAD, C(pal.dirt[2]), MAT.TERRAIN);
-  strip(g, 200, ty, 235, ty + 28, 6, Y_ROAD, C(pal.dirt[2]), MAT.TERRAIN);
+  strip(g, -340, ty, 360, ty, 7, Y_ROAD, C(pal.dirt[2]), MAT.GRAVEL);
+  for (const s of [-10, 260, -len / 2 + 120]) strip(g, s, hw + 146, s, ty, 6, Y_ROAD, C(pal.dirt[2]), MAT.GRAVEL);
+  strip(g, -len / 2 + 120, ty, -len / 2 + 120, ty + 40, 6, Y_ROAD, C(pal.dirt[2]), MAT.GRAVEL);
+  strip(g, 200, ty, 235, ty + 28, 6, Y_ROAD, C(pal.dirt[2]), MAT.GRAVEL);
   // oil stains and tie-down rings where the aircraft park
   for (let i = 0; i < L.slots.length; i++) {
     const sl = L.slots[i], p = loc(sl.x, sl.z);
-    disc(gf, p[0] + 1.5, Y_STAIN, p[1], 1.6 + hash2(i, 3) * 1.3, [118, 115, 108], MAT.CANVAS, { salt: i }, 10, 2.6);
+    disc(gf, p[0] + 1.5, Y_STAIN, p[1], 1.6 + hash2(i, 3) * 1.3, [118, 115, 108], MAT.PAVEMENT, { salt: i }, 10, 2.6);
   }
   // upright decoration: windsock beside the runway, flag poles at the barracks and the tower, floodlights round the apron
   windsock(d, 300, -hw - 17, 0.6 + hash2(L.id, 1) * 0.8);
@@ -220,13 +220,13 @@ function airfieldSite(L, loc, pal, rng, g, gf, d, df) {
 function batterySite(L, loc, pal, rng, g, gf, d, df) {
   const gunsC = L.guns.filter((q) => q.kind === 'coastal').map((q) => loc(q.x, q.z));
   const tt = gunsC.map((p) => p[1]), span = (Math.max(...tt) - Math.min(...tt)) / 2 + 36;
-  rect(g, -8, 0, 62, span + 6, 0, Y_SHOULDER, C(pal.dirt[1]), MAT.TERRAIN);
-  rect(g, 0, 0, 56, span, 0, Y_SHOULDER + 0.005, shade(C(pal.dirt[1]), 0.93), MAT.TERRAIN);
+  rect(g, -8, 0, 62, span + 6, 0, Y_SHOULDER, C(pal.dirt[1]), MAT.GRAVEL);
+  rect(g, 0, 0, 56, span, 0, Y_SHOULDER + 0.005, shade(C(pal.dirt[1]), 0.93), MAT.GRAVEL);
   const road = C(pal.dirt[2]);
-  strip(g, 6, -span + 6, 6, span - 6, 5, Y_ROAD, road, MAT.TERRAIN);
-  strip(g, -100, 0, 6, 0, 6, Y_ROAD, road, MAT.TERRAIN);
-  for (const p of gunsC) strip(g, 6, p[1], p[0] - 12, p[1], 4.5, Y_ROAD, road, MAT.TERRAIN);
-  for (const q of L.parts.filter((q) => q.kind === 'bunker')) { const p = loc(q.x, q.z); strip(g, p[0], Math.sign(p[1]) * 6, p[0], p[1] - Math.sign(p[1]) * 8, 4, Y_ROAD, road, MAT.TERRAIN); }
+  strip(g, 6, -span + 6, 6, span - 6, 5, Y_ROAD, road, MAT.GRAVEL);
+  strip(g, -100, 0, 6, 0, 6, Y_ROAD, road, MAT.GRAVEL);
+  for (const p of gunsC) strip(g, 6, p[1], p[0] - 12, p[1], 4.5, Y_ROAD, road, MAT.GRAVEL);
+  for (const q of L.parts.filter((q) => q.kind === 'bunker')) { const p = loc(q.x, q.z); strip(g, p[0], Math.sign(p[1]) * 6, p[0], p[1] - Math.sign(p[1]) * 8, 4, Y_ROAD, road, MAT.GRAVEL); }
   // the national flag at the post, a mast, the fence all round
   const post = L.parts.find((q) => q.kind === 'post');
   if (post) { const p = loc(post.x, post.z); flagStaff(d, p[0] - 12, 0, p[1] - 9, 10, 3.6); }

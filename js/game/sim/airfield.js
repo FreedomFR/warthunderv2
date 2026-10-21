@@ -11,6 +11,7 @@ import { clamp, wrapPi, approach, D2R, G } from '../math.js';
 import { planeTypeFor, PLANES, groundY, GROUND_PITCH } from '../model/planes.js';
 import { perfOf } from './airperf.js';
 import { fighterFields, fighterSteer } from './fighters.js';
+import { safeHeading, homeCourse } from './homeward.js';
 import { guide, setVel, planeId, bombId, FIGHT_CTX } from './aircraft.js';
 
 const GROUND_STATES = new Set(['parked', 'taxiOut', 'holdshort', 'lineup', 'groundRun', 'lroll', 'taxiBack', 'park']);
@@ -228,22 +229,77 @@ function approachPoint(base, d, h) {
 /** Metres before the threshold (negative past it) of an aircraft, along the extended centre line. */
 function alongFinal(F, q) { const T0 = F.toW(F.sThr, 0); return -((q.x - T0[0]) * F.u[0] + (q.z - T0[1]) * F.u[1]); }
 
-/** Is the final approach free for `p` to turn onto: no other aircraft on it within 2.6 km of the entry point? */
+// Traffic in a stream, as in the war: the aircraft of a wave come back one behind the other, a landing every 20-35 seconds, and the next one is landing as the one before
+// is rolling out (not when it has left the runway); the next one takes off while the one before is still rolling, once it is far enough ahead.
+const SEP_LAND = (p) => (p.fighter ? 26 : 36);        // seconds between two touchdowns on the final (the arrival is predicted to within about 10 s)
+const GAP_ROLL = (p) => (p.fighter ? 240 : 380);      // metres ahead on the runway that the aircraft before must be when the next begins its take-off roll
+const GAP_ROLLOUT = 420;                              // and the one that has landed, when the next touches down
+
+/** The time to fly `base` metres of base leg and `fin` metres of final at the speeds of the type (circuit speed on the base leg, approach speed on the final, 8 s for the turn). */
+const flyTime = (pf, base, fin) => base / (pf.vp * 0.95) + fin / pf.va + 8;
+
+/** Seconds before an aircraft on the final or on the base leg touches down (what it has still to fly at the speeds of its type); Infinity for the others. */
+function etaToLand(F, q) {
+  const pf = perfOf(q);
+  if (q.phase === 'lfinal') return Math.max(0, alongFinal(F, q)) / ((Math.max(q.speed, pf.va) + pf.va) / 2);        // (still slowing to the approach speed, if it is above it)
+  if (q.phase === 'return' && q.leg === 'base') {
+    const T0 = F.toW(F.sThr, 0), e = (q.x - T0[0]) * F.r[0] + (q.z - T0[1]) * F.r[1];
+    return flyTime(pf, Math.max(-e, 0), Math.max(alongFinal(F, q), FINAL_A));      // (the final from where it is: it enters base 3 to 5 km out)
+  }
+  return Infinity;
+}
+
+/** The same for `p`, about to turn onto the base leg or the final: the rest of the downwind leg, the base leg, the final. */
+function etaOfEntry(F, p, pf) {
+  const T0 = F.toW(F.sThr, 0), px = p.x - T0[0], pz = p.z - T0[1], ap = -(px * F.u[0] + pz * F.u[1]), e = Math.abs(px * F.r[0] + pz * F.r[1]);
+  if (e < 400) return Math.max(ap, 0) / pf.va + 4;                                // lined up already
+  return Math.max(0, FINAL_A - ap) / pf.vp + flyTime(pf, e, Math.max(ap, FINAL_A));
+}
+
+/** Is the final free for `p` to turn onto: no other aircraft on the final or on the base leg who would touch down within the spacing of its own touchdown? */
 function finalClear(world, base, F, p) {
-  const ap = alongFinal(F, p);
+  const pf = perfOf(p), mine = etaOfEntry(F, p, pf), sep = SEP_LAND(p);
   for (const q of world.planes) {
-    if (q === p || q.base !== base || q.dying || q.gone || (q.phase !== 'lfinal' && q.phase !== 'goaround')) continue;
-    if (Math.abs(alongFinal(F, q) - Math.max(ap, FINAL_A)) < 2400) return false;
+    if (q === p || q.base !== base || q.dying || q.gone) continue;
+    const eta = etaToLand(F, q);
+    if (eta < Infinity && Math.abs(eta - mine) < Math.max(sep, SEP_LAND(q))) return false;
   }
   return true;
 }
 
-/** May the aircraft take the runway (to take off or to roll out after landing): nobody rolling on it? */
-function takeRunway(base, p) {
-  const air = base.air;
-  if (air.rwy && air.rwy !== p && !air.rwy.gone && !air.rwy.dying) return false;
-  air.rwy = p;
-  return true;
+/** Seconds before the runway is free of the aircraft that holds it (landing roll, take-off roll, lining up). */
+function runwayClearIn(F, h) {
+  if (h.phase === 'lroll') return Math.max(0, h.speed - 11) / 2.8 + 2;
+  if (h.phase === 'groundRun') return Math.max(0, (perfOf(h).vto ?? 38) - h.speed) / 1.4;
+  return 40;
+}
+
+/**
+ * Will the runway still be taken when `p` reaches it in `eta` seconds? The aircraft that holds it counts only if it is still rolling then and will not be far enough down
+ * the runway: a landing roll slowing (2.8 m/s2), a take-off roll gathering speed (1.4 m/s2), from where it is now.
+ */
+function runwayBusyAt(base, p, eta) {
+  const h = base.air.rwy;
+  if (!h || h === p || h.gone || h.dying) return false;
+  const F = fieldOf(base);
+  if (runwayClearIn(F, h) <= eta - 4) return false;
+  const t = Math.min(eta, h.phase === 'lroll' ? Math.max(0, h.speed - 11) / 2.8 : eta), a = h.phase === 'lroll' ? -2.8 : h.phase === 'groundRun' ? 1.4 : 0;
+  const pred = F.D * (F.sOf(h.x, h.z) - F.sThr) + h.speed * t + 0.5 * a * t * t;
+  return pred < GAP_ROLLOUT + 150;
+}
+
+/**
+ * May the aircraft take the runway (to line up for a take-off, or to roll out after landing)? Nobody on it, or the one that holds it rolling well ahead: a take-off roll
+ * (GAP_ROLL of the take-off, GAP_ROLLOUT for a landing, ahead of where this one will be) or a landing roll that has gone far down the runway.
+ */
+function takeRunway(base, p, landing = false) {
+  const air = base.air, h = air.rwy;
+  if (!h || h === p || h.gone || h.dying) { air.rwy = p; return true; }
+  if (h.phase === 'lroll' || h.phase === 'groundRun') {
+    const F = fieldOf(base), ahead = F.D * (F.sOf(h.x, h.z) - F.sOf(p.x, p.z)), start = landing ? 0 : F.D * (F.sOf(h.x, h.z) - F.sStart);
+    if (landing ? ahead > GAP_ROLLOUT : start > 30 && h.speed > 4) { air.rwy = p; return true; }
+  }
+  return false;
 }
 const freeRunway = (base, p) => { if (base.air.rwy === p) base.air.rwy = null; };
 
@@ -279,9 +335,14 @@ export function stepBasePlane(world, p, dt) {
     case 'holdshort': {
       // on the taxiway beside the runway, until the runway is free and nobody is about to land
       p.eng = 0.4; onGround(base, p); p.speed = approach(p.speed, 0, 3 * dt);
-      // an aircraft on its final approach has the right of way
+      // an aircraft on its final approach has the right of way: not the whole final (an aircraft goes out between two landings), only what it needs to line up, roll and be
+      // airborne: one that is within about 45 seconds of touching down, one going round, one rolling out in front of the head of the runway
       let inbound = false;
-      for (const q of world.planes) if (q.base === base && !q.dying && !q.gone && (q.phase === 'lfinal' || q.phase === 'goaround' || q.phase === 'lroll') && alongFinal(F, q) < 5500) { inbound = true; break; }
+      const need = p.fighter ? 36 : 46;
+      for (const q of world.planes) {
+        if (q.base !== base || q.dying || q.gone) continue;
+        if ((q.phase === 'lfinal' && etaToLand(F, q) < need) || (q.phase === 'goaround' && alongFinal(F, q) < 1500) || (q.phase === 'lroll' && F.D * (F.sOf(q.x, q.z) - F.sStart) < 160)) { inbound = true; break; }
+      }
       if (!inbound && world.state === 'running' && world.time - base.air.lastRoll > (p.fighter ? 6 : 9) && takeRunway(base, p)) {
         p.phase = 'lineup'; p.path = [F.toW(F.sHold, 0), F.toW(F.sStart, 0)]; p.pi = 0;
       }
@@ -289,9 +350,18 @@ export function stepBasePlane(world, p, dt) {
     }
     case 'lineup': {
       p.eng = 0.5; onGround(base, p);
-      if (drive(world, base, p, dt, TAXI * 0.8)) {
-        p.heading += clamp(wrapPi(F.rwHdg - p.heading), -0.6 * dt, 0.6 * dt);
-        if (Math.abs(wrapPi(F.rwHdg - p.heading)) < 0.04) {
+      if (drive(world, base, p, dt, TAXI * 1.15)) {
+        p.heading += clamp(wrapPi(F.rwHdg - p.heading), -0.8 * dt, 0.8 * dt);
+        // the run begins when the aircraft before has gone far enough down the runway (or is airborne ahead), and nobody is about to land
+        let gap = 1e9;
+        for (const q of world.planes) {
+          if (q === p || q.base !== base || q.dying || q.gone || !(q.phase === 'groundRun' || (q.phase === 'climb' && q.y - F.y < 60))) continue;
+          const ahead = F.D * (F.sOf(q.x, q.z) - F.sOf(p.x, p.z));
+          if (ahead > -50) gap = Math.min(gap, ahead);
+        }
+        let landing = false;
+        for (const q of world.planes) if (q.base === base && !q.dying && !q.gone && q.phase === 'lfinal' && etaToLand(F, q) < (p.fighter ? 26 : 34)) { landing = true; break; }
+        if (Math.abs(wrapPi(F.rwHdg - p.heading)) < 0.04 && gap >= GAP_ROLL(p) && !landing) {
           p.phase = 'groundRun'; p.rs = F.sOf(p.x, p.z); p.rt = F.tOf(p.x, p.z); p.u = 0; p.speed = 0; p.t = 0; base.air.lastRoll = world.time;
           p.runLen = Math.abs(F.D * F.len / 2 - p.rs);
           world.events.push({ type: 'planeLaunch', plane: p, ship: base.owner });
@@ -409,7 +479,8 @@ function stepAir(world, p, dt, base, F, pf, T) {
   const rng = world.rng, wave = p.wave;
   // the fuel, the battle is over, the wave is turned back: go home
   if (p.fuel < 500 && !LANDING.has(p.phase) && AIR_BOMBER.has(p.phase)) p.phase = 'return';
-  if (p.gearDown && p.phase !== 'lfinal' && p.phase !== 'goaround' && p.age > p.t0Air + 6) p.gearDown = false;
+  // (not once the wheels are on the ground: the landing roll with the undercarriage drawn up was a bomber rolling on its belly)
+  if (p.gearDown && !p.ground && p.phase !== 'lfinal' && p.phase !== 'goaround' && p.age > p.t0Air + 6) p.gearDown = false;
   switch (p.phase) {
     case 'assemble': {
       // a circle over the field, climbing, until the whole wave is in the air
@@ -492,6 +563,7 @@ function stepAir(world, p, dt, base, F, pf, T) {
       const tg = p.target;
       const away = tg ? Math.atan2(p.x - tg.x, -(p.z - tg.z)) : p.heading;
       hdg = p.t < 14 ? p.heading : away + p.jitter * 0.6;
+      if (p.t > 14) { const T = F.toW(F.sThr, 0); hdg = safeHeading(world, p, T[0], T[1], world.time).hdg; }       // home, out of the reach of the guns
       gam = 0.0; spd = pf.vc; o = { bankMax: 22 * D2R };
       if (p.t > 40) p.phase = 'return';
       break;
@@ -532,6 +604,15 @@ function stepAir(world, p, dt, base, F, pf, T) {
         gam = clamp((hC + 150 - p.y) / 700, -0.1, 0.1);
         // slowing to the circuit speed on the way in (throttled back a heavy bomber loses only about half a metre a second each second: it has to start early)
         spd = pf.vp + (pf.vc - pf.vp) * clamp((d - 2500) / 9000, 0, 1);
+        // a long way out the bombers of the wave close up behind one of them and keep out of the reach of the guns on the way
+        if (d > 6000 && !p.fighter && wave) {
+          const group = wave.planes.filter((q) => !q.fighter && !q.dying && !q.gone && (q.phase === 'egress' || (q.phase === 'return' && (!q.leg || q.leg === 'join'))));
+          if (group.length && group.includes(p)) {
+            const c = homeCourse(world, p, wave, group, tx, tz, pf, hC + 150);
+            hdg = c.hdg; gam = c.gam; spd = c.spd;
+            if (!c.lead) o = { bankMax: 35 * D2R };
+          }
+        }
         // at the entry: on to the downwind leg with a turn to the left (or a small one to the right); coming in the other way, it goes on round to the left until it can
         if (d < 1500) {
           if (wrapPi(downHdg - p.heading) < 0.45) p.leg = 'down';
@@ -588,7 +669,7 @@ function stepAir(world, p, dt, base, F, pf, T) {
       // the wheels meet the runway
       if (h <= gy + 0.3 && a < 500 && Math.abs(e) < F.hw && a > -F.len * 0.55) {
         // somebody else on the runway: round again
-        if (!takeRunway(base, p)) { p.phase = 'goaround'; p.t = 0; break; }
+        if (!takeRunway(base, p, true)) { p.phase = 'goaround'; p.t = 0; break; }
         p.phase = 'lroll'; p.ground = true; p.eng = 0.2; p.t = 0;
         // the attitude of the flare goes over to the ground (the angle of attack is no longer added on top); the tail comes down
         p.rs = s; p.rt = F.tOf(p.x, p.z); p.gp = p.pitch + (p.aoa || 0); p.pitch = p.gp; p.aoa = 0; p.gearDown = true;
@@ -596,8 +677,15 @@ function stepAir(world, p, dt, base, F, pf, T) {
         world.events.push({ type: 'planeTouchdown', plane: p, back: 4 });
         return true;
       }
-      // a bad approach, the runway occupied, or the runway not reached: round again
-      if (a < 700 && a > 0 && base.air.rwy && base.air.rwy !== p && !base.air.rwy.gone && !base.air.rwy.dying) { p.phase = 'goaround'; p.t = 0; break; }
+      // a bad approach, the runway occupied, or the runway not reached: round again. The decision is taken while it is still high (a go-around at the last moment, with the
+      // wheels a few metres off the ground, scrapes the runway): the runway will still be taken when it gets there (the one that holds it rolling out or rolling for take-off
+      // does not count once it is far enough down the runway), or another aircraft is less than 400-550 m ahead of it on the final
+      if (a > 0 && a < 2600 && runwayBusyAt(base, p, a / Math.max(p.speed, 30))) { p.phase = 'goaround'; p.t = 0; break; }
+      if (a > 200 && a < 2500) {
+        let close = false;
+        for (const q of world.planes) { if (q !== p && q.base === base && !q.dying && !q.gone && q.phase === 'lfinal') { const gap = a - alongFinal(F, q); if (gap > 0 && gap < (p.fighter ? 380 : 560)) { close = true; break; } } }
+        if (close) { p.phase = 'goaround'; p.t = 0; break; }
+      }
       if ((a < 400 && Math.abs(e) > 45 + Math.max(0, a) * 0.05) || a < -F.len * 0.5) { p.phase = 'goaround'; p.t = 0; }
       if (a > 12000) p.phase = 'return';
       break;

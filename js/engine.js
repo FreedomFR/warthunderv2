@@ -98,7 +98,8 @@ export async function createEngine(canvas, options = {}) {
 
   const fail = (msg) => {
     const el = document.getElementById('err');
-    if (el) { el.style.display = 'block'; el.textContent = msg; }
+    if (el) { el.style.display = 'block'; el.textContent = msg; el.style.zIndex = 60; }
+    window.__splash?.hide(true);
     log('FATAL ' + msg);
     throw new Error(msg);
   };

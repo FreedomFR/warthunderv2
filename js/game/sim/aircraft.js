@@ -3,13 +3,14 @@
 // ships' anti-aircraft guns (damaged aircraft smoke, burn and fall until they hit the sea or a ship), then
 // returns and lands on the carrier. Bombs and torpedoes are simulated bodies, so where they hit decides the damage.
 import { clamp, wrapPi, approach, D2R, G } from '../math.js';
-import { planeTypeFor, PLANES, groundY, GROUND_PITCH, hookBack } from '../model/planes.js';
+import { planeTypeFor, PLANES, groundY, GROUND_PITCH, hookBack, damageSites } from '../model/planes.js';
 import { planeDmg } from '../data/balance.js';
 import { AA, FLAK_RANGE } from './aadata.js';
 import { clearElev, clearMax, inArcRel } from '../model/clearance.js';
 import { perfOf, aeroOf, dragAcc, thrustAcc } from './airperf.js';
 import { lightAAHitRate, extentToward } from './airhit.js';
 import { chooseApproach, aaSources, density, refugeShip } from './routing.js';
+import { safeHeading, homeCourse } from './homeward.js';
 import { fighterSteer, fighterFields, bomberDefense, markHunted, FIGHT_PHASES } from './fighters.js';
 import { deckOf, planLaunch, settleService, beginRecovery, launching, stepDeck, stepDeckShip, touchdown, clearToLand, deckClearFor, DECK_PHASES } from './deck.js';
 import { segmentNearShip, segmentHit, resolveBombHit, resolveNearMiss, resolveCrashHit } from './damage.js';
@@ -30,7 +31,7 @@ const rn = (world, a, b) => a + (b - a) * world.rng();
 // ---- the circuit round a carrier ---------------------------------------------------------------------------------------
 // Opposite course past the ship on the side away from the island, a 180-degree turn at a steady bank that ends on the ship's course about 1.5 km
 // astern, then the groove down to the wires. All in the ship's frame (x forward, z to starboard).
-const GROOVE_GATE = 3600;                 // the next aircraft turns in when the one ahead is this close behind its touchdown point (m)
+const GROOVE_GATE = 3000;                 // the next aircraft turns in when the one ahead is this close behind its touchdown point (m)
 function circuit(ship, p) {
   const dp = ship.model.deckPoints, isl = ship.model.island;
   const side = isl && isl.z < 0 ? 1 : -1;       // the circuit is on the side away from the island
@@ -637,9 +638,10 @@ function stepPlane(world, p, dt) {
       break;
     }
     case 'egress': {
-      // away from the enemy at low level, then climb
+      // away from the enemy at low level, then climb; once clear of the target, home by a course that keeps out of the guns' reach
       const away = tgt ? Math.atan2(p.x - tgt.x, -(p.z - tgt.z)) : p.heading;
       hdg = away + p.jitter * 0.5;
+      if (p.t > 8 && carrierOk) hdg = safeHeading(world, p, ship.x, ship.z, world.time).hdg;
       gam = p.t < 14 ? clamp((90 - p.y) / 200, -0.06, 0.06) : 0.1;
       spd = Math.min(pf.vmax * 0.9, pf.vc * 1.2);
       if (p.t > 22) p.phase = 'return';
@@ -647,14 +649,23 @@ function stepPlane(world, p, dt) {
     }
     case 'return': {
       if (!carrierOk) { p.phase = 'ditch'; break; }
-      // to the start of the circuit, ahead of the carrier on the side away from the island
+      // to the start of the circuit, ahead of the carrier on the side away from the island; on the way the section closes up behind its leader,
+      // and keeps out of the reach of the enemy's guns (sim/homeward.js)
       const cc = circuit(ship, p), pt = cc.point();
-      const dx = pt[0] - p.x, dz = pt[2] - p.z;
-      hdg = Math.atan2(dx, -dz);
-      gam = clamp((ship.y + cc.altDown - p.y) / 700, -0.08, 0.1);
-      spd = pf.vc;
+      const dx = pt[0] - p.x, dz = pt[2] - p.z, dHome = Math.hypot(dx, dz);
+      const alt = ship.y + cc.altDown;
+      if (dHome > 3500) {
+        const group = p.sec ? p.sec.members.filter((m) => !m.dying && !m.gone && (m.phase === 'return' || m.phase === 'egress')) : [p];
+        const c = homeCourse(world, p, p.sec || p, group.length ? group : [p], pt[0], pt[2], pf, alt);
+        hdg = c.hdg; gam = c.gam; spd = c.spd;
+        if (!c.lead) o = { bankMax: 45 * D2R };
+      } else {
+        hdg = Math.atan2(dx, -dz);
+        gam = clamp((alt - p.y) / 700, -0.08, 0.1);
+        spd = pf.vc;
+      }
       if (Math.hypot(ship.x - p.x, ship.z - p.z) < 14000) beginRecovery(world, ship);      // the deck park goes below before the first one lands
-      if (Math.hypot(dx, dz) < 900) {
+      if (dHome < 900) {
         p.phase = 'pattern'; p.leg = 1; p.t = 0; p.gearDown = true; p.t0Air = p.age; p.holdT = 0;
       }
       break;
@@ -1040,13 +1051,50 @@ export function hitPlane(world, ship, p, dmg, cal, cause = 'aa') {
   p.hp -= dmg;
   world.events.push({ type: 'planeHit', plane: p, ship, x: p.x, y: p.y, z: p.z, cal, dmg });
   const frac = p.hp / p.maxHp;
-  if (frac < 0.65 && p.smoke < 0.4) p.smoke = 0.4 + world.rng() * 0.3;
-  if (frac < 0.4 && p.fire < 0.3) p.fire = 0.4;
+  // where it smokes and where it burns: an engine, or the root of a wing (the fuel); the smoke and the flames of the picture come from there (render/fx/air.js)
+  if (frac < 0.65 && p.smoke < 0.4) { p.smoke = 0.4 + world.rng() * 0.3; p.smokeSite = damageSite(world, p, false); }
+  if (frac < 0.4 && p.fire < 0.3) {
+    p.fire = 0.4; p.fireSite = damageSite(world, p, true);
+    // the nacelle that burns is drawn charred and glowing (render/aircraftVisual.js)
+    if (p.fireSite.eng >= 0 && p.spec.engines) { p.engFire = p.engFire || new Array(p.spec.engines.length).fill(0); p.engFire[p.fireSite.eng] = 0.7; }
+  }
   if (p.hp <= 0) { if (ship && cause === 'aa') ship.aaKills++; killPlane(world, p, cause, ship); return; }
   // a lucky hit: engine, pilot, wing
   const r = world.rng();
-  if (r < 0.06 * dmg + 0.03 * dmg) { p.lost.engine = true; p.smoke = 1; world.events.push({ type: 'planeEngineOut', plane: p }); }
+  if (r < 0.06 * dmg + 0.03 * dmg) { loseEngine(world, p); world.events.push({ type: 'planeEngineOut', plane: p }); }
   else if (r < 0.1 * dmg + 0.02 && dmg > 0.8) killPlane(world, p, cause, ship);
+}
+
+/**
+ * A place on the aircraft that is hit: { x, y, z (the model's frame), eng (the index of the engine, or -1) }. Of a multi-engine aircraft the engine that is already lost, else
+ * one of them (or the wing beside it); of a single-engine one, mostly the engine, else the root of a wing (the fuel), now and then the fuselage tank.
+ */
+function damageSite(world, p, fire) {
+  const D = damageSites(p.spec), n = D.engines.length, r = world.rng();
+  if (n > 1) {
+    const lost = p.lost.engines ? p.lost.engines.findIndex(Boolean) : -1, k = lost >= 0 && r < 0.6 ? lost : Math.floor(world.rng() * n);
+    const e = D.engines[k];
+    if (r > 0.7) { const w = e.z < 0 ? D.wings.L : D.wings.R; return { x: w.x, y: w.y, z: w.z, eng: -1 }; }
+    return { ...e, eng: k };
+  }
+  if (r < 0.6) return { ...D.engines[0], eng: 0 };
+  if (r < 0.9) { const w = world.rng() < 0.5 ? D.wings.L : D.wings.R; return { x: w.x, y: w.y, z: w.z, eng: -1 }; }
+  return { x: -0.3, y: 0.1, z: 0, eng: -1 };
+}
+
+/** An engine is lost: one of a multi-engine aircraft's (the others go on), the only one of a single-engine aircraft's. Smoke comes from it, and a fire that starts burns it. */
+function loseEngine(world, p) {
+  const D = damageSites(p.spec), n = D.engines.length;
+  if (n > 1) {
+    p.lost.engines = p.lost.engines || new Array(n).fill(false);
+    const free = p.lost.engines.map((v, i) => (v ? -1 : i)).filter((i) => i >= 0);
+    if (!free.length) return;
+    const k = free[Math.floor(world.rng() * free.length)];
+    p.lost.engines[k] = true;
+    p.smokeSite = { ...D.engines[k], eng: k };
+    if (p.lost.engines.every(Boolean)) p.lost.engine = true;
+  } else { p.lost.engine = true; p.smokeSite = { ...D.engines[0], eng: 0 }; }
+  p.smoke = Math.max(p.smoke, 1);
 }
 
 /** Start the death throes of an aircraft: it falls and burns, and the crash is seen to the end. */
