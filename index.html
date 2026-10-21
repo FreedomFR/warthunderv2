@@ -170,6 +170,22 @@
   details.fold summary { cursor: pointer; font-weight: 600; opacity: .8; padding: 3px 0; }
   .helpgrid i { grid-column: 1 / -1; font-style: normal; font-size: 11px; text-transform: uppercase; letter-spacing: .6px; opacity: .5; margin-top: 6px; border-bottom: 1px solid var(--line); }
   /* ---- finding one's way: the map, the line under the picture, the first-battle tip ---- */
+  /* ---- the performance test (ui/bench.js) ---- */
+  #bench { position: fixed; left: 12px; top: 12px; width: min(420px, calc(100vw - 24px)); max-height: calc(100vh - 24px); overflow: auto; z-index: 60; }
+  #bench .bsz { display: block; width: 100%; text-align: left; margin: 8px 0 0; padding: 9px 11px; }
+  #bench .bsz small { display: block; opacity: .7; margin-top: 2px; }
+  #bench.running { width: min(300px, calc(100vw - 24px)); padding: 9px 12px; opacity: .92; }
+  #bench .bl { margin: 5px 0 6px; font-weight: 600; }
+  #bench .bs { opacity: .65; font-size: 11.5px; margin: 5px 0 7px; font-variant-numeric: tabular-nums; }
+  #bench .bbar { height: 6px; background: #ffffff22; border-radius: 3px; overflow: hidden; }
+  #bench .bbar i { display: block; height: 100%; width: 0; background: var(--amber); transition: width .25s; }
+  #bench .bsum { font-size: 12px; margin: 8px 0; line-height: 1.5; }
+  #bench .brep { width: 100%; box-sizing: border-box; font: 10.5px/1.35 ui-monospace, Consolas, monospace; background: #00000055; color: var(--ink); border: 1px solid #ffffff22; border-radius: 6px; padding: 6px; resize: vertical; white-space: pre; }
+  #bench .bstat { color: var(--amber); font-size: 12px; flex: 0 0 auto; }
+  #bench .row { margin: 6px 0; }
+  #benchshield { position: fixed; inset: 0; z-index: 55; }
+  body.benching #setup, body.benching #topbar, body.benching #cambar, body.benching #caption, body.benching #teamshud, body.benching #shipinfo, body.benching #planeinfo, body.benching #feed, body.benching #hitlog, body.benching #minimap,
+  body.benching #tip, body.benching #labels, body.benching #settings, body.benching #score, body.benching #banner, body.benching #mbar, body.benching #mmenu, body.benching #joy, body.benching #jbtns, body.benching #help { display: none !important; }
   #minimap { position: fixed; left: 12px; top: 12px; padding: 4px; line-height: 0; }
   #minimap.under { display: none; }
   #minimap.big { top: 58px; }

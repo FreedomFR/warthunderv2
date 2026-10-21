@@ -1,5 +1,5 @@
 // Ocean surface + sky background rendering.
-import { FRAME_WGSL, ATMO_CORE_WGSL, HAZE_WGSL, SHADOW_STRUCT_WGSL, SHADOW_FUNC_WGSL, SANE_WGSL, ENV_MIPS, ENV_SIZE, N, CASCADES } from './common.js';
+import { FRAME_WGSL, FLASH_WGSL, ATMO_CORE_WGSL, HAZE_WGSL, SHADOW_STRUCT_WGSL, SHADOW_FUNC_WGSL, SANE_WGSL, ENV_MIPS, ENV_SIZE, N, CASCADES } from './common.js';
 import { SKY_RENDER_FUNCS, SKY_CLOUD_FUNCS } from './sky.js';
 import { CLOUD_SHADOW_FN } from './clouds.js';
 
@@ -40,7 +40,7 @@ struct VO { @builtin(position) pos: vec4f, @location(0) ndc: vec2f };
 }
 `;
 
-export const OCEAN = FRAME_WGSL + ATMO_CORE_WGSL + HAZE_WGSL + SHADOW_STRUCT_WGSL + RENDER_BINDINGS + SANE_WGSL + /* wgsl */ `
+export const OCEAN = FRAME_WGSL + FLASH_WGSL + ATMO_CORE_WGSL + HAZE_WGSL + SHADOW_STRUCT_WGSL + RENDER_BINDINGS + SANE_WGSL + /* wgsl */ `
 @group(0) @binding(4) var dispTex: texture_2d_array<f32>;
 @group(0) @binding(5) var derivTex: texture_2d_array<f32>;
 @group(0) @binding(6) var momTex: texture_2d_array<f32>;
@@ -267,7 +267,13 @@ fn foamPattern(xz: vec2f, t: f32) -> f32 {
     return vec4f(fwl.r, fwl.g, fwl.b, 1.0) * 0.5;
   }
   var col = body * (1.0 - Fr) + refl * Fr + spec;
-  col = mix(col, foamLit, foamMask * 0.95);
+  // the flash of a salvo on the sea: the water under it glows, the waves catch it
+  let fE = flashIrr(in.rel, nrm);
+  if (fE.r + fE.g > 0.0) {
+    let Lf = normalize(F.flashP.xyz - in.rel);
+    col += F.waterCol.rgb * fE * 0.9 + fE * fresnelWater(max(dot(V, normalize(V + Lf)), 0.0)) * pow(max(dot(reflect(-V, nrm), Lf), 0.0), 18.0) * 2.5;
+  }
+  col = mix(col, foamLit + foamAlb * fE * 0.3, foamMask * 0.95);
 
   // ---- aerial perspective ----
   // aerial perspective: atmosphere extinction plus a marine haze floor

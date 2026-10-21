@@ -293,7 +293,7 @@ export async function createEngine(canvas, options = {}) {
       shadow.enabled = !!enabled;
     },
   };
-  const frameUBO = mkBuf(384, GU.UNIFORM | GU.COPY_DST, 'frame ubo');
+  const frameUBO = mkBuf(416, GU.UNIFORM | GU.COPY_DST, 'frame ubo');
   const sunVisBuf = mkBuf(16, GU.STORAGE, 'sun visibility');
   const transView = transLUT.createView();
   const msView = msLUT.createView();
@@ -602,7 +602,9 @@ export async function createEngine(canvas, options = {}) {
   // Uniform data
   // --------------------------------------------------------------------------------------
   const simF = new Float32Array(56);
-  const frameF = new Float32Array(96);
+  const frameF = new Float32Array(104);
+  // the light of the brightest flash of the moment (world position, fireball radius, irradiance there): set by the game every frame (setFlash), null for none
+  let flash = null;
   const atmoF = new Float32Array(4);
   const proj = new Float32Array(16), view = new Float32Array(16), viewProj = new Float32Array(16);
   const LOOP = 600.0;  // s, spectrum time loop (frequencies quantised to it)
@@ -753,6 +755,9 @@ export async function createEngine(canvas, options = {}) {
     f[90] = (33.1e-3 + 4.40e-3 * P.haze) * 1e-3;
     f[91] = 1.1e-4;
     f[92] = 1.5; f[93] = P.clouds; f[94] = 2.2; f[95] = time;
+    if (flash) { f[96] = flash.x - cam.x; f[97] = flash.y - cam.y; f[98] = flash.z - cam.z; f[99] = flash.r; f[100] = flash.cr; f[101] = flash.cg; f[102] = flash.cb; }
+    else { f[96] = f[97] = f[98] = 0; f[99] = 1; f[100] = f[101] = f[102] = 0; }
+    f[103] = 0;
     device.queue.writeBuffer(frameUBO, 0, f);
   }
 
@@ -1123,6 +1128,13 @@ export async function createEngine(canvas, options = {}) {
 
   const engine = {
     device, canvas, P, qs, cam, hooks, water, foam, shadow, stats, hasTS, offscreen,
+    /** what the browser says about the GPU (the performance test's report): vendor, architecture, device, description, and a few limits */
+    adapterInfo: (() => {
+      const i = adapter.info || {}, L = adapter.limits || {};
+      return { vendor: i.vendor || '', architecture: i.architecture || '', device: i.device || '', description: i.description || '', isFallback: !!adapter.isFallbackAdapter,
+        features: [...adapter.features].filter((f) => /timestamp|f16|bgra|float32|indirect|dual-source|clip|subgroups/.test(f)).sort(),
+        maxTextureDimension2D: L.maxTextureDimension2D, maxBufferSize: L.maxBufferSize, maxComputeInvocationsPerWorkgroup: L.maxComputeInvocationsPerWorkgroup };
+    })(),
     /** draw the ocean surface (off: sky only) */
     showOcean: qs.get('ocean') !== '0',
     /** shared GPU resources for game pipelines (same pass layout as the ocean) */
@@ -1158,6 +1170,8 @@ export async function createEngine(canvas, options = {}) {
       return true;
     },
     /** The volumetric clouds: on / off, and their quality (steps along the ray, steps towards the sun). */
+    /** The light of a flash this frame: { x, y, z (world, m), r (fireball radius, m), cr, cg, cb (irradiance at r, in the sun's units) }, or null. */
+    setFlash(o) { flash = o; },
     setClouds(o) { for (const k of ['steps', 'light', 'stepScale', 'blend']) if (o[k]) clouds[k] = o[k]; if (o.on != null) clouds.on = !!o.on; },
     get cloudsOn() { return cloudsAvail && clouds.on; },
     setRenderScale(s) { renderScale = Math.max(0.25, Math.min(2, s)); W = H = 0; },

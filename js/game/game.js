@@ -73,7 +73,8 @@ export class Game {
     this.particles?.setMax(n);
   }
 
-  get autoScale() { return this.canAuto && this.qualityMode === 'auto'; }
+  // (benchLock: the performance test holds the quality where it is)
+  get autoScale() { return this.canAuto && this.qualityMode === 'auto' && !this.benchLock; }
 
   /** Select 'auto' | 'high' | 'medium' | 'low'. */
   setQuality(mode) {

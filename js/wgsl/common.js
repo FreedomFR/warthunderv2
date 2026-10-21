@@ -31,7 +31,28 @@ struct Frame {
   foamP:    vec4f,     // J threshold, J gain, foam intensity, lace sharpness
   fogExt:   vec4f,     // rgb extinction per metre near sea level
   cloudP:   vec4f,     // altitude km, coverage, optical density, wind time
+  flashP:   vec4f,     // the light of a gun's flash (or of an explosion): its centre relative to the camera (m), w = the radius of the fireball (m)
+  flashC:   vec4f,     // its irradiance at that radius (rgb, the units of the sun's); 0: none
 };
+`;
+
+// The light of the brightest flash of the moment (a salvo, a magazine going up): on the ship, the sea and the smoke round it. It falls off as 1 / r^2 from the
+// fireball (held at its centre), to nothing at 14 radii; N: the normal of the surface (a zero vector: lit from every side, for the smoke).
+export const FLASH_WGSL = /* wgsl */ `
+fn flashIrr(rel: vec3f, N: vec3f) -> vec3f {
+  let c = F.flashC.rgb;
+  if (c.r + c.g + c.b <= 0.0) { return vec3f(0.0); }
+  let d = F.flashP.xyz - rel;
+  let r2 = dot(d, d);
+  let R = max(F.flashP.w, 1.0);
+  let far = 14.0 * R;
+  if (r2 > far * far) { return vec3f(0.0); }
+  let r = sqrt(r2);
+  let fall = R * R / max(r2, 0.3 * R * R) * (1.0 - smoothstep(0.35 * far, far, r));
+  let l = d / max(r, 1e-3);
+  let ndl = select(1.0, clamp((dot(N, l) + 0.25) / 1.25, 0.0, 1.0), dot(N, N) > 0.5);
+  return c * fall * ndl;
+}
 `;
 
 // Fraction of the near-sea-level haze seen along a ray from the camera down to the sea: the haze is an

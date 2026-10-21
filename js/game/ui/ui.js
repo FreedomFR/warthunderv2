@@ -69,6 +69,7 @@ export function createUI(game) {
   const setup = h('div', { id: 'setup', class: 'panel' },
     h('div', { class: 'title' }, h('span', { class: 'big' }, 'Combat naval'), h('span', { class: 'sub' }, 'Simulation de la Seconde Guerre mondiale')),
     h('div', { class: 'row' }, h('a', { class: 'btn small', href: 'wiki.html', target: '_blank', title: 'Fiches techniques et arbres par nation' }, 'Wiki des navires'), h('a', { class: 'btn small', href: 'viewer.html', target: '_blank', title: 'Voir chaque navire et avion en 3D' }, 'Visualiseur 3D')),
+    h('div', { class: 'row' }, h('button', { class: 'btn small', title: 'Une bataille filmée sous plusieurs angles, puis un rapport de performance à copier ou partager', onclick: () => startBench() }, 'Test de performance')),
     h('div', { class: 'step' }, h('b', {}, '1'), 'Un scénario tout prêt… '),
     h('div', { class: 'row' }, presetSel, h('button', { class: 'btn', onclick: () => loadPreset(presetSel.value) }, 'Charger')),
     h('div', { class: 'step' }, h('b', {}, '2'), '… ou vos propres flottes'),
@@ -279,6 +280,7 @@ export function createUI(game) {
     const qsel = h('select', { onchange: (e) => game.setQuality(e.target.value) },
       ...[['auto', 'Automatique'], ['high', 'Haute'], ['medium', 'Moyenne'], ['low', 'Basse']].map(([v, l]) => h('option', { value: v, selected: game.qualityMode === v }, l)));
     settings.append(h('label', { class: 'slider' }, h('span', {}, 'Qualité graphique'), qsel, h('span')));
+    settings.append(h('div', { class: 'row' }, h('button', { class: 'btn small', title: 'Une bataille filmée sous plusieurs angles, puis un rapport de performance à copier ou partager', onclick: () => { settings.classList.add('hidden'); startBench(); } }, 'Test de performance (rapport)')));
     settings.append(h('label', { class: 'slider' }, h('span', {}, 'Ombres des navires'), h('input', { type: 'checkbox', checked: game.shadowsOn, onchange: (e) => { game.userShadows = e.target.checked; game.applyQuality(); } }), h('span')));
     settings.append(h('label', { class: 'slider', title: 'Spatialisation binaurale des sons forts (canons, explosions) : à activer avec un casque.' },
       h('span', {}, 'Son binaural (casque)'), h('input', { type: 'checkbox', checked: game.audio.hrtf, onchange: (e) => game.audio.setHrtf(e.target.checked) }), h('span')));
@@ -342,6 +344,14 @@ export function createUI(game) {
     refresh();
     ui.refreshBalance = refresh;
   }
+
+  // the performance test (ui/bench.js): loaded when it is asked for
+  async function startBench(auto) {
+    const { Bench } = await import('./bench.js');
+    ui.bench ||= new Bench(game, ui);
+    if (auto) ui.bench.start(auto); else ui.bench.open();
+  }
+  ui.startBench = startBench;
 
   function toggleSettings() { const open = settings.classList.toggle('hidden') === false; if (open && game.state !== 'setup') setup.classList.add('collapsed'); refreshToggles(); }
   function toggleSound() {

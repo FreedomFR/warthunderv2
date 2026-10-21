@@ -1,7 +1,7 @@
 // Warship surface shader. Lit with the same sky / sun / aerial-perspective model as the ocean so
 // ships sit in the scene. Everything is procedural (no textures): plating seams, deck planks,
 // weathering, wet hull near the waterline, soot and fire glow when damaged.
-import { FRAME_WGSL, ATMO_CORE_WGSL, HAZE_WGSL, SHADOW_STRUCT_WGSL, SHADOW_FUNC_WGSL, SANE_WGSL, ENV_MIPS } from './common.js';
+import { FRAME_WGSL, FLASH_WGSL, ATMO_CORE_WGSL, HAZE_WGSL, SHADOW_STRUCT_WGSL, SHADOW_FUNC_WGSL, SANE_WGSL, ENV_MIPS } from './common.js';
 import { SKY_RENDER_FUNCS } from './sky.js';
 import { CLOUD_SHADOW_FN } from './clouds.js';
 import { PALETTES } from '../game/model/livery.js';
@@ -17,7 +17,7 @@ ${PALETTES.map((p, i) => `    case ${i}u: { if (tone == 0u) { return ${hexToVec(
 }`;
 const GLYPH_WGSL = `var<private> GLYPH: array<vec2<u32>, ${GLYPH_BITS.length}> = array<vec2<u32>, ${GLYPH_BITS.length}>(${GLYPH_BITS.map((g) => `vec2<u32>(${g[0]}u, ${g[1]}u)`).join(', ')});`;
 
-export const SHIP = FRAME_WGSL + ATMO_CORE_WGSL + HAZE_WGSL + SHADOW_STRUCT_WGSL + SANE_WGSL + /* wgsl */ `
+export const SHIP = FRAME_WGSL + FLASH_WGSL + ATMO_CORE_WGSL + HAZE_WGSL + SHADOW_STRUCT_WGSL + SANE_WGSL + /* wgsl */ `
 @group(0) @binding(0) var<uniform> F: Frame;
 @group(0) @binding(1) var transLUT: texture_2d<f32>;
 @group(0) @binding(2) var skyLUT: texture_2d<f32>;
@@ -679,6 +679,8 @@ fn gauge(kind: u32, uv: vec2f, ias: f32, alt: f32, hdg: f32, vsi: f32, bank: f32
   var col = albedo * (diffSun + amb * ao * 1.15);
   // leaves let the sun through: the side facing away from it glows yellow-green
   col += albedo * vec3f(1.0, 0.93, 0.5) * sunE * max(-NdL, 0.0) * trans * 0.5 / PI * step(-0.02, Ld.y);
+  // the flash of a salvo (or of an explosion) lights the turrets, the deck and the superstructure round it for a tenth of a second
+  col += albedo * flashIrr(in.rel, N) * (0.4 + 0.6 * ao) / PI;
 
   // specular: sun GGX + environment reflection
   let H = normalize(V + Ld);

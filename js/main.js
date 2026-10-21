@@ -26,6 +26,8 @@ if (qs.has('preview')) {
   const { createUI } = await import('./game/ui/ui.js');
   game.ui = createUI(game);
   if (isMobile()) (await import('./game/ui/mobile.js')).initMobile(game, game.ui);
+  // ?bench=1: the performance test dialog; ?bench=auto[&size=large]: the test at once (for the tools)
+  if (qs.has('bench')) game.ui.startBench(qs.get('bench') === 'auto' ? (qs.get('size') === 'large' ? 'large' : 'medium') : undefined);
   if (qs.has('trailer')) {
     // offline trailer recorder (tools/trailer): scripted scenes, see js/trailer.js
     const { Trailer } = await import('./trailer.js');

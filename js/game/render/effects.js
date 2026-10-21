@@ -20,7 +20,17 @@ export class Effects {
     this._v = [0, 0, 0];
     this.rings = [];          // expanding shock waves on the water
     this.timers = [];         // delayed effects (the cap of a smoke column)
+    this.flashes = [];        // the lights of the flashes of the moment (flashLight)
     this.acc = { planeSmoke: new Map() };
+  }
+
+  /**
+   * The light of a flash (a salvo, an explosion) at (x, y, z): a fireball of radius r whose irradiance at r is `power` (the sun's units), rising in a hundredth of a
+   * second and dying away over `life` seconds. The brightest of the moment, as seen from the camera, lights the scene (engine.setFlash).
+   */
+  flashLight(x, y, z, r, power, life, col = [1, 0.66, 0.36]) {
+    this.flashes.push({ x, y, z, r, power, life, t: 0, col });
+    if (this.flashes.length > 24) this.flashes.shift();
   }
 
   /** Run `fn` after `sec` simulated seconds (the cap of a smoke column, the second blast of an explosion). */
@@ -85,6 +95,17 @@ export class Effects {
   _update(dt, world) {
     for (let i = this.timers.length - 1; i >= 0; i--) { const tm = this.timers[i]; tm.t -= dt; if (tm.t <= 0) { this.timers.splice(i, 1); tm.fn(); } }
     const cam = this.engine.cam;
+    // the flash that lights the scene: the one that looks brightest from the camera (its power, as it dies away, over its distance squared)
+    let best = null, bs = 0;
+    for (let i = this.flashes.length - 1; i >= 0; i--) {
+      const f = this.flashes[i];
+      f.t += dt;
+      if (f.t > f.life) { this.flashes.splice(i, 1); continue; }
+      const k = Math.min(1, f.t / 0.012) * Math.exp(-3.2 * f.t / f.life), d2 = (f.x - cam.x) ** 2 + (f.y - cam.y) ** 2 + (f.z - cam.z) ** 2;
+      const sc = f.power * k * f.r * f.r / Math.max(d2, f.r * f.r);
+      if (sc > bs) { bs = sc; best = { f, k }; }
+    }
+    if (this.engine.setFlash) this.engine.setFlash(best ? { x: best.f.x, y: best.f.y, z: best.f.z, r: best.f.r, cr: best.f.power * best.k * best.f.col[0], cg: best.f.power * best.k * best.f.col[1], cb: best.f.power * best.k * best.f.col[2] } : null);
     const P = this.engine.P;
     const wa = P.windDir * D2R, ws = Math.min(8, P.windSpeed * 0.6);
     this.p.wind[0] = Math.cos(wa) * ws; this.p.wind[1] = Math.sin(wa) * ws;

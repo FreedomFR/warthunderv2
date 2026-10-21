@@ -1,9 +1,9 @@
 // Camera-facing particle quads: smoke, fire, spray, tracers, flashes. Premultiplied alpha: smoke /
 // spray use alpha, fire / tracers / flashes write alpha 0 so they add light.
-import { FRAME_WGSL, ATMO_CORE_WGSL, HAZE_WGSL, ENV_MIPS } from './common.js';
+import { FRAME_WGSL, FLASH_WGSL, ATMO_CORE_WGSL, HAZE_WGSL, ENV_MIPS } from './common.js';
 import { SKY_RENDER_FUNCS } from './sky.js';
 
-export const PARTICLES = FRAME_WGSL + ATMO_CORE_WGSL + HAZE_WGSL + /* wgsl */ `
+export const PARTICLES = FRAME_WGSL + FLASH_WGSL + ATMO_CORE_WGSL + HAZE_WGSL + /* wgsl */ `
 @group(0) @binding(0) var<uniform> F: Frame;
 @group(0) @binding(1) var transLUT: texture_2d<f32>;
 @group(0) @binding(2) var skyLUT: texture_2d<f32>;
@@ -112,7 +112,8 @@ fn vnoise(p: vec2f) -> f32 {
       let facing = clamp(0.5 + 0.9 * dot(in.uv, sd) * (0.4 + n), 0.0, 1.0);
       let sunE = sunIlluminance() * sunVis[0];
       let amb = textureSampleLevel(envCube, sampC, vec3f(0.0, 1.0, 0.0), ENV_MAXMIP - 2.0).rgb;
-      let lit = sunE * 0.085 * (0.25 + 0.95 * facing) * mix(0.55, 1.0, n) + amb * (0.55 + 0.4 * facing);
+      // (and the flash of a salvo: the smoke round the fireball lit from inside, orange)
+      let lit = sunE * 0.085 * (0.25 + 0.95 * facing) * mix(0.55, 1.0, n) + amb * (0.55 + 0.4 * facing) + flashIrr(in.rel, vec3f(0.0)) * 0.09 * mix(0.6, 1.0, n);
       rgb = rgb * lit * mix(0.7, 1.15, smoothstep(0.1, 0.9, d));
       // young dark smoke over a fire is lit from below by the flames: an orange base that fades in a second or two (the dark colours only)
       let dark = clamp(1.0 - dot(in.col.rgb, vec3f(0.33)) * 3.0, 0.0, 1.0);
@@ -149,7 +150,7 @@ fn vnoise(p: vec2f) -> f32 {
       // lit from the sun's side: the edge facing it is bright, the far side a little shaded
       let sd2 = vec2f(dot(normalize(F.sunDir.xyz), normalize(F.camRight.xyz)), dot(normalize(F.sunDir.xyz), normalize(F.camUp.xyz)));
       let face = clamp(0.55 + 0.7 * dot(in.uv, sd2), 0.0, 1.3);
-      rgb = rgb * (amb * 1.15 + sunE * 0.1 * face) * 1.25;
+      rgb = rgb * (amb * 1.15 + sunE * 0.1 * face + flashIrr(in.rel, vec3f(0.0)) * 0.1) * 1.25;
     }
     case 3u: {   // tracer streak (additive): a white-hot head in a coloured glow, the tail fading behind it
       let along = in.uv.x * 0.5 + 0.5;
