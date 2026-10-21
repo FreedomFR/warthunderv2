@@ -51,6 +51,9 @@ struct VOut {
     // x runs along the streak (centre at p), y across it; a streak coming at the lens is cut so that its near end stays well off it (it would open into a cone)
     var len = v.dir.w;
     if (u32(v.misc.y + 0.5) == 3u) { len = min(len, length(v.a.xyz) * 0.6); }
+    // the glow of a shell (misc.z = 1) seen end on, going away or coming at the lens: its whole length would pile up in one bright point (a salvo of them, a
+    // bouquet of stars); a shell has no tracer, what is seen is the heat haze along its path, which end on is nothing
+    if (v.misc.z > 0.5) { col = vec4f(col.rgb, col.a * smoothstep(0.1, 0.45, sl)); }
     p += axis * (c.x * len * 0.5) + side * (c.y * size);
   } else {
     let cr = cos(v.misc.x); let sr = sin(v.misc.x);

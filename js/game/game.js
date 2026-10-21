@@ -331,6 +331,7 @@ export class Game {
     // shells in flight: the body of the shell itself when the camera is near (a few hundred metres), a glowing tracer streak along the path at any
     // distance (red-orange for armour-piercing, yellow-white for high explosive) and a thin trail of hot vapour that hangs behind it
     const running = w.state === 'running' && !this.paused;
+    const dusk = clamp(1.6 - this.engine.P.sunElev / 25, 0.55, 1.4);      // the glow of the shells: faint in full sun, more at dusk
     for (const s of w.shells) {
       const sp = Math.hypot(s.vx, s.vy, s.vz);
       if (sp < 1) continue;
@@ -346,12 +347,12 @@ export class Game {
       // a shell passing a few metres from the lens is a smear across the screen: fade it out
       const f = clamp((d3 - 10) / 35, 0, 1);
       if (f <= 0) continue;
-      const k = 6 * clamp(d / 150, 0.35, 1) * f * f * (3 - 2 * f);
+      // (a naval shell has no tracer: what shows is a faint warm streak, the hot gases round it just out of the muzzle; in full daylight barely so, brighter at dusk.
+      // It used to be drawn six times as bright with a white head: seen end on, a salvo was a bouquet of stars)
+      const k = 2.2 * dusk * clamp(d / 150, 0.35, 1) * f * f * (3 - 2 * f);
       const fresh = clamp(1 - s.age / 0.5, 0, 1);                 // the first half second: the hot gases still round the shell
-      if (ap) this.particles.streak(s.x, s.y, s.z, ux, uy, uz, len * (1 + d / 8000), wid, 1, 0.42, 0.18, k * (1 + fresh));
-      else this.particles.streak(s.x, s.y, s.z, ux, uy, uz, len * (1 + d / 8000) * 0.8, wid * 1.15, 1, 0.84, 0.46, k * (1 + fresh));
-      // a bright head
-      this.particles.streak(s.x, s.y, s.z, ux, uy, uz, len * 0.18, wid * 1.5, 1, 0.95, 0.8, k * 0.9);
+      if (ap) this.particles.streak(s.x, s.y, s.z, ux, uy, uz, len * (1 + d / 8000), wid, 1, 0.42, 0.18, k * (1 + fresh), K.TRACER, 1);
+      else this.particles.streak(s.x, s.y, s.z, ux, uy, uz, len * (1 + d / 8000) * 0.8, wid * 1.15, 1, 0.78, 0.42, k * (1 + fresh), K.TRACER, 1);
       // vapour trail: one puff every few tens of metres of flight (not one per simulated step: hundreds of shells in the air would fill the particle pool and starve the muzzle flashes)
       if (running && s._trailT !== w.time && d < 4500 && s.age > 0.04) {
         const cs = clamp(cal / 300, 0.3, 1.5), tr = this.effects.emitScale ?? 1;

@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased — the shells no longer look like fireworks
+
+Seen from a ship's camera towards the enemy, the shells in flight were clusters of bright white stars (looked at with the new `tools/shellshots.mjs`):
+- **A shell seen end on** (one's own going away from the bridge, the enemy's coming at it) piled the whole length of its glowing streak, and of the white "head" drawn over it, into one point at full brightness; the bloom made it a star, a salvo of nine a bouquet. The glow of a shell now fades out when it is seen end on (`misc.z` of a streak, `wgsl/particles.js`): a naval shell has no tracer, what shows is the heat haze along its path, which end on is nothing.
+- **Their brightness**: a third of what it was (2.2 instead of 6), without the white head, fainter still in full sun and brighter at dusk (`game.js`): a faint warm streak seen from the side, still enough to follow a salvo.
+- **The hits**: the sparks of a hit on a ship are half as many and less than half as bright (dull orange specks in daylight, not twenty bright streaks), the flash of a high-explosive burst smaller and warmer (`render/fx/hits.js`). The tracers of the light AA and of the aircraft guns are not changed (those are real tracers).
+
 ## Unreleased — the clouds' shape and texture
 
 Looked at against Guerrilla's Nubis talks (Schneider, SIGGRAPH 2015-2017) and @takram/three-clouds (MIT, a WebGL implementation of the same ideas), from which the formulas below are taken:

@@ -134,7 +134,7 @@ export class Particles {
   beginFrame() { this.nT = 0; }
 
   /** transient streak (shell tracer etc.), world coordinates; direction (dx,dy,dz) unit */
-  streak(x, y, z, dx, dy, dz, length, width, r, g, b, a, kind = K.TRACER) {
+  streak(x, y, z, dx, dy, dz, length, width, r, g, b, a, kind = K.TRACER, shell = 0) {
     if (this.nT >= MAX_TRANSIENT) return;
     const cam = this.engine.cam;
     const o = this.nT++ * INST;
@@ -142,7 +142,7 @@ export class Particles {
     d[o] = x - cam.x; d[o + 1] = y - cam.y; d[o + 2] = z - cam.z; d[o + 3] = width;
     d[o + 4] = r; d[o + 5] = g; d[o + 6] = b; d[o + 7] = a;
     d[o + 8] = dx; d[o + 9] = dy; d[o + 10] = dz; d[o + 11] = length;
-    d[o + 12] = 0; d[o + 13] = kind; d[o + 14] = 0; d[o + 15] = 0;
+    d[o + 12] = 0; d[o + 13] = kind; d[o + 14] = shell; d[o + 15] = 0;
   }
 
   /** The blur of a propeller seen from the pilot's seat (transient): a faint translucent disc of radius r at (x, y, z), its blades drawn as arcs turned by `rot`. */
