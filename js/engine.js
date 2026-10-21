@@ -12,6 +12,7 @@ import { N, CASCADES, SKY_W, SKY_H, ENV_SIZE, ENV_MIPS } from './wgsl/common.js'
 import { SIM_INIT, SIM_EVOLVE, FFT_ROWS, FFT_COLS, SIM_MIPS, FOAM_TEX, RGBA8_MIPS, FOAM_UPDATE, ARRAY16_MIPS, FOAM_RES } from './wgsl/sim.js';
 import { TRANS_LUT, MS_LUT, SKYVIEW_LUT, ENV_CUBE, CUBE_MIPS, SUN_VIS } from './wgsl/sky.js';
 import { OCEAN, SKY_BG, WATER_PROBE } from './wgsl/ocean.js';
+import { NOISE_GEN, WEATHER, CLOUD_MARCH, CLOUD_APPLY, CLOUD_SHADOW, CLOUD_NOISE, WEATHER_SIZE, CSHADOW_SIZE } from './wgsl/clouds.js';
 import { BLOOM_DOWN, BLOOM_UP, COMPOSITE } from './wgsl/post.js';
 
 const D2R = Math.PI / 180;
@@ -354,10 +355,53 @@ export async function createEngine(canvas, options = {}) {
     fragment: { module: compMod, entryPoint: 'fs', targets: [{ format: swapFormat }] },
   });
 
+  // the shadows of the volumetric clouds on the sea and the ships (wgsl/clouds.js CLOUD_SHADOW); white when there are none
+  const cloudsAvail = qs.get('vclouds') !== '0';
+  const cshadowTex = device.createTexture({ label: 'cloud shadows', size: cloudsAvail ? [CSHADOW_SIZE, CSHADOW_SIZE] : [1, 1], format: 'rgba16float', usage: TU.TEXTURE_BINDING | TU.STORAGE_BINDING | TU.COPY_DST });
+  device.queue.writeTexture({ texture: cshadowTex }, new Uint16Array([0x3c00, 0, 0, 0x3c00]), { bytesPerRow: 8 }, [1, 1]);
+  const cshadowView = cshadowTex.createView();
   const bgOcean = [0, 1].map((i) => bg(oceanPipe, [{ buffer: frameUBO }, transView, skyView, sampClamp,
     fullArr(dispTex), fullArr(derivTex), fullArr(momTex), foamTex.createView(), envCubeView, sampRepeat,
-    fullArr(foamW[i]), { buffer: sunVisBuf }, shadowView, shadowSamp, { buffer: shadowUBO }], 'ocean' + i));
+    fullArr(foamW[i]), { buffer: sunVisBuf }, shadowView, shadowSamp, { buffer: shadowUBO }, cshadowView], 'ocean' + i));
   const bgSky = bg(skyPipe, [{ buffer: frameUBO }, transView, skyView, sampClamp], 'sky');
+
+  // --------------------------------------------------------------------------------------
+  // Volumetric clouds (wgsl/clouds.js): ?vclouds=0 keeps the flat layer of the sky shader only
+  // --------------------------------------------------------------------------------------
+  const clouds = { on: cloudsAvail, steps: 72, light: 5 };
+  let noisePipe = null, weatherPipe = null, marchPipe = null, applyPipe = null, shadowPipeC = null, bgWeather = null, bgCShadow = null, noiseView = null, weatherView = null, sampWrap3 = null;
+  const cloudUBO = mkBuf(48, GU.UNIFORM | GU.COPY_DST, 'cloud ubo');
+  const cloudF = new Float32Array(12);
+  const applyUBO = mkBuf(16, GU.UNIFORM | GU.COPY_DST, 'cloud apply ubo');
+  const applyF = new Float32Array(4);
+  if (cloudsAvail) {
+    const [nm, am] = await Promise.all([shader(CLOUD_APPLY, 'cloud apply'), Promise.resolve(null)]);
+    void am;
+    [noisePipe, weatherPipe, marchPipe, shadowPipeC] = await Promise.all([computePipe(NOISE_GEN, 'cloud noise'), computePipe(WEATHER, 'cloud weather'), computePipe(CLOUD_MARCH, 'cloud march'), computePipe(CLOUD_SHADOW, 'cloud shadows')]);
+    applyPipe = await device.createRenderPipelineAsync({
+      label: 'cloud apply', layout: 'auto',
+      vertex: { module: nm, entryPoint: 'vs' },
+      // premultiplied: scene * T + radiance
+      fragment: { module: nm, entryPoint: 'fs', targets: [{ format: HDR, blend: { color: { srcFactor: 'one', dstFactor: 'src-alpha', operation: 'add' }, alpha: { srcFactor: 'zero', dstFactor: 'one', operation: 'add' } } }] },
+      primitive: { topology: 'triangle-list' },
+      multisample: { count: MSAA },
+    });
+    const noiseTex = device.createTexture({ label: 'cloud noise', size: [CLOUD_NOISE, CLOUD_NOISE, CLOUD_NOISE], dimension: '3d', format: 'rgba8unorm', usage: TU.TEXTURE_BINDING | TU.STORAGE_BINDING });
+    noiseView = noiseTex.createView({ dimension: '3d' });
+    const enc = device.createCommandEncoder();
+    const cp = enc.beginComputePass();
+    cp.setPipeline(noisePipe);
+    cp.setBindGroup(0, bg(noisePipe, [noiseView], 'cloud noise'));
+    cp.dispatchWorkgroups(CLOUD_NOISE / 4, CLOUD_NOISE / 4, CLOUD_NOISE / 4);
+    cp.end();
+    device.queue.submit([enc.finish()]);
+    const weatherTex = device.createTexture({ label: 'cloud weather', size: [WEATHER_SIZE, WEATHER_SIZE], format: 'rgba16float', usage: TU.TEXTURE_BINDING | TU.STORAGE_BINDING });
+    weatherView = weatherTex.createView();
+    // (the coverage only needs the frame: the other bindings of the sky functions are not in its layout)
+    bgWeather = device.createBindGroup({ label: 'cloud weather', layout: weatherPipe.getBindGroupLayout(0), entries: [{ binding: 0, resource: { buffer: frameUBO } }, { binding: 4, resource: weatherView }] });
+    sampWrap3 = device.createSampler({ magFilter: 'linear', minFilter: 'linear', addressModeU: 'repeat', addressModeV: 'repeat', addressModeW: 'repeat' });
+    bgCShadow = bg(shadowPipeC, [{ buffer: frameUBO }, sampClamp, noiseView, sampWrap3, weatherView, cshadowView, { buffer: cloudUBO }], 'cloud shadows');
+  }
 
   // --------------------------------------------------------------------------------------
   // Water height queries (async read-back, a few frames of latency). Point 0 is the camera so
@@ -439,10 +483,21 @@ export async function createEngine(canvas, options = {}) {
   const skipFoam = qs.get('skipfoam') === '1';
   let W = 0, H = 0;
   let colorMS, depthMS, hdrTex, bloomTex, offTex = null;
+  let cloudTex = null, cloudDistTex = null, bgMarch = null, bgApply = null;
   const matte = qs.get('matte') === '1';
   const mainPass = {
     colorAttachments: [{ view: null, resolveTarget: null, clearValue: matte ? { r: 0, g: 0.5, b: 0, a: 1 } : { r: 0, g: 0, b: 0, a: 1 }, loadOp: 'clear', storeOp: 'discard' }],
     depthStencilAttachment: { view: null, depthClearValue: 0, depthLoadOp: 'clear', depthStoreOp: 'discard' },
+  };
+  // with the clouds the main pass is split: the scene (colour and depth kept), the clouds over it, then the particles (resolved into the HDR target)
+  const cloudPassA = {
+    colorAttachments: [{ view: null, clearValue: matte ? { r: 0, g: 0.5, b: 0, a: 1 } : { r: 0, g: 0, b: 0, a: 1 }, loadOp: 'clear', storeOp: 'store' }],
+    depthStencilAttachment: { view: null, depthClearValue: 0, depthLoadOp: 'clear', depthStoreOp: 'store' },
+  };
+  const cloudPassApply = { colorAttachments: [{ view: null, loadOp: 'load', storeOp: 'store' }] };
+  const cloudPassB = {
+    colorAttachments: [{ view: null, resolveTarget: null, loadOp: 'load', storeOp: 'discard' }],
+    depthStencilAttachment: { view: null, depthLoadOp: 'load', depthStoreOp: 'discard' },
   };
   const compPass = {
     colorAttachments: [{ view: null, clearValue: { r: 0, g: 0, b: 0, a: 1 }, loadOp: 'clear', storeOp: 'store' }],
@@ -464,7 +519,7 @@ export async function createEngine(canvas, options = {}) {
     canvas.width = W; canvas.height = H;
     for (const t of [colorMS, depthMS, hdrTex, bloomTex, offTex]) t && t.destroy();
     colorMS = device.createTexture({ size: [W, H], format: HDR, sampleCount: MSAA, usage: TU.RENDER_ATTACHMENT });
-    depthMS = device.createTexture({ size: [W, H], format: DEPTH, sampleCount: MSAA, usage: TU.RENDER_ATTACHMENT });
+    depthMS = device.createTexture({ size: [W, H], format: DEPTH, sampleCount: MSAA, usage: TU.RENDER_ATTACHMENT | TU.TEXTURE_BINDING });
     hdrTex = device.createTexture({ size: [W, H], format: HDR, usage: TU.RENDER_ATTACHMENT | TU.TEXTURE_BINDING });
     offTex = offscreen ? device.createTexture({ size: [W, H], format: swapFormat, usage: TU.RENDER_ATTACHMENT | TU.COPY_SRC }) : null;
     const bw = Math.max(1, W >> 1), bh = Math.max(1, H >> 1);
@@ -472,6 +527,22 @@ export async function createEngine(canvas, options = {}) {
     mainPass.colorAttachments[0].view = colorMS.createView();
     mainPass.colorAttachments[0].resolveTarget = hdrTex.createView();
     mainPass.depthStencilAttachment.view = depthMS.createView();
+    if (cloudsAvail) {
+      // the clouds at half resolution, and what the passes after the scene need: the colour and the depth kept, the particles drawn after the clouds
+      for (const t of [cloudTex, cloudDistTex]) t && t.destroy();
+      const hw = Math.max(1, Math.ceil(W / 2)), hh = Math.max(1, Math.ceil(H / 2));
+      cloudTex = device.createTexture({ label: 'clouds', size: [hw, hh], format: 'rgba16float', usage: TU.TEXTURE_BINDING | TU.STORAGE_BINDING });
+      cloudDistTex = device.createTexture({ label: 'cloud dist', size: [hw, hh], format: 'r32float', usage: TU.TEXTURE_BINDING | TU.STORAGE_BINDING });
+      const dv = depthMS.createView();
+      bgMarch = bg(marchPipe, [{ buffer: frameUBO }, transView, skyView, sampClamp, noiseView, sampWrap3, weatherView, dv, cloudTex.createView(), cloudDistTex.createView(), { buffer: cloudUBO }], 'cloud march');
+      bgApply = bg(applyPipe, [cloudTex.createView(), cloudDistTex.createView(), dv, { buffer: applyUBO }], 'cloud apply');
+      cloudPassA.colorAttachments[0].view = colorMS.createView();
+      cloudPassA.depthStencilAttachment.view = depthMS.createView();
+      cloudPassApply.colorAttachments[0].view = colorMS.createView();
+      cloudPassB.colorAttachments[0].view = colorMS.createView();
+      cloudPassB.colorAttachments[0].resolveTarget = hdrTex.createView();
+      cloudPassB.depthStencilAttachment.view = depthMS.createView();
+    }
     const hdrView = hdrTex.createView();
     const bv = [];
     for (let m = 0; m < BLOOM_LEVELS; m++) bv.push(bloomTex.createView({ baseMipLevel: m, mipLevelCount: 1 }));
@@ -655,7 +726,7 @@ export async function createEngine(canvas, options = {}) {
     f[16] = cam.x; f[17] = cam.y; f[18] = cam.z; f[19] = time;
     f[20] = rxx * tanX; f[21] = ryy * tanX; f[22] = rzz * tanX; f[23] = 0;
     f[24] = ux * tanY; f[25] = uy * tanY; f[26] = uz * tanY; f[27] = 0;
-    f[28] = fx; f[29] = fy; f[30] = fz; f[31] = 0;
+    f[28] = fx; f[29] = fy; f[30] = fz; f[31] = cloudsAvail && clouds.on && engine.showOcean && !matte ? 1 : 0;      // w: the low clouds are the volume (wgsl/clouds.js), not the flat layer of the sky
     const se = P.sunElev * D2R, sa = P.sunAzim * D2R;
     f[32] = Math.sin(sa) * Math.cos(se); f[33] = Math.sin(se); f[34] = -Math.cos(sa) * Math.cos(se); f[35] = 14.0;
     f[36] = W; f[37] = H; f[38] = 1 / W; f[39] = 1 / H;
@@ -870,7 +941,19 @@ export async function createEngine(canvas, options = {}) {
     let outTex = null;
     if (!computeOnly) {
       if (hooks.preMain) hooks.preMain(enc);
-      const rp = enc.beginRenderPass(mainPass);
+      const vc = cloudsAvail && clouds.on && !matte && engine.showOcean && P.clouds > 0.005;
+      if (vc) {
+        // the coverage round the camera and the shadows of the clouds on the sea: before the scene, which reads them
+        cloudF[0] = 1.15; cloudF[1] = 1.7; cloudF[2] = 75; cloudF[3] = clouds.steps;
+        cloudF[4] = 3.2; cloudF[5] = 0.26; cloudF[6] = 0.62; cloudF[7] = 60;
+        cloudF[8] = clouds.light; cloudF[9] = 0.55; cloudF[10] = 1.2; cloudF[11] = 0;
+        device.queue.writeBuffer(cloudUBO, 0, cloudF);
+        const cw = enc.beginComputePass();
+        cw.setPipeline(weatherPipe); cw.setBindGroup(0, bgWeather); cw.dispatchWorkgroups(WEATHER_SIZE / 8, WEATHER_SIZE / 8);
+        cw.setPipeline(shadowPipeC); cw.setBindGroup(0, bgCShadow); cw.dispatchWorkgroups(CSHADOW_SIZE / 8, CSHADOW_SIZE / 8);
+        cw.end();
+      }
+      const rp = enc.beginRenderPass(vc ? cloudPassA : mainPass);
       if (hooks.drawOpaque) hooks.drawOpaque(rp);
       if (nodeCount && engine.showOcean) {      // ?ocean=0: model previews without the sea (much faster on a software rasteriser); the 3D viewer toggles it
         rp.setPipeline(oceanPipe);
@@ -885,8 +968,25 @@ export async function createEngine(canvas, options = {}) {
         rp.setBindGroup(0, bgSky);
         rp.draw(3);
       }
-      if (hooks.drawOverlay) hooks.drawOverlay(rp);
-      rp.end();
+      if (vc) {
+        rp.end();
+        // the clouds: the march through the layer at half resolution (up to the depth of the scene), then over the image
+        const tanY = Math.tan(cam.fovY * 0.5);
+        applyF[0] = 0.05; applyF[1] = 1 / (tanY * W / H); applyF[2] = 1 / tanY; applyF[3] = 1;
+        device.queue.writeBuffer(applyUBO, 0, applyF);
+        const cc = enc.beginComputePass();
+        cc.setPipeline(marchPipe); cc.setBindGroup(0, bgMarch); cc.dispatchWorkgroups(Math.ceil(Math.ceil(W / 2) / 8), Math.ceil(Math.ceil(H / 2) / 8));
+        cc.end();
+        const ap = enc.beginRenderPass(cloudPassApply);
+        ap.setPipeline(applyPipe); ap.setBindGroup(0, bgApply); ap.draw(3);
+        ap.end();
+        const rb = enc.beginRenderPass(cloudPassB);
+        if (hooks.drawOverlay) hooks.drawOverlay(rb);
+        rb.end();
+      } else {
+        if (hooks.drawOverlay) hooks.drawOverlay(rp);
+        rp.end();
+      }
 
       for (let m = 0; m < BLOOM_LEVELS; m++) {
         const p = enc.beginRenderPass(downPasses[m]);
@@ -1003,7 +1103,7 @@ export async function createEngine(canvas, options = {}) {
     showOcean: qs.get('ocean') !== '0',
     /** shared GPU resources for game pipelines (same pass layout as the ocean) */
     gpu: {
-      device, HDR, DEPTH, MSAA, swapFormat, frameUBO, transView, skyView, sampClamp, sampRepeat, envCubeView, sunVisBuf,
+      device, HDR, DEPTH, MSAA, swapFormat, frameUBO, transView, skyView, sampClamp, sampRepeat, envCubeView, sunVisBuf, cshadowView,
       mkBuf, shader, ocean: { FOAM_LEVEL_SIZE },
     },
     get width() { return W; },
@@ -1033,6 +1133,9 @@ export async function createEngine(canvas, options = {}) {
       }
       return true;
     },
+    /** The volumetric clouds: on / off, and their quality (steps along the ray, steps towards the sun). */
+    setClouds(o) { if (o.on != null) clouds.on = !!o.on; if (o.steps) clouds.steps = o.steps; if (o.light) clouds.light = o.light; },
+    get cloudsOn() { return cloudsAvail && clouds.on; },
     setRenderScale(s) { renderScale = Math.max(0.25, Math.min(2, s)); W = H = 0; },
     getRenderScale() { return renderScale; },
     /** flag a parameter change: 'spec' rebuilds the wave spectrum, 'lut' the atmosphere, anything refreshes the env map */

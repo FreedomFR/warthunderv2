@@ -89,6 +89,9 @@ Lot 2 (cuirassés et porte-avions des autres nations) : **fait, avec des réserv
 - [x] **Caméra automatique, avions en groupe** : formations, attaques groupées et combats de chasseurs (le chasseur et sa proie dans le même cadre, à moins de 450 m) filmés.
 - [ ] **Caméra, attaque groupée vue du pont** : abandonnée pour l'instant (la fumée des cheminées remplit l'image, les avions sont des points à plusieurs kilomètres).
 
+- [x] **Nuages volumiques** : cumulus en volume (vus de la mer et du dessus, devant et derrière les avions), ombres des nuages sur la mer et les navires.
+- [ ] **Ciel, pistes restantes** : la couche haute (cirrus) reste plate ; pas d'accumulation temporelle (un léger grain dans les nuages à demi-résolution) ; pas d'éclairs ni de grains (averses) ; les particules derrière un nuage restent visibles par-dessus ; les reflets de l'eau montrent encore l'ancienne couche plate.
+
 ## 4. Vidéo et version
 
 - [x] **Bande-annonce 0.1.0** faite (`docs/trailer-v0.1.0.mp4`, 89 s, 1080p 60 images/s : deux batailles de flottes, 26 navires, tirs) + comparatif côte à côte avec la 0.0.1 (`docs/comparatif-0.0.1-0.1.0.mp4`) ; l'ancienne est conservée.

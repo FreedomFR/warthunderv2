@@ -3,6 +3,7 @@
 // weathering, wet hull near the waterline, soot and fire glow when damaged.
 import { FRAME_WGSL, ATMO_CORE_WGSL, HAZE_WGSL, SHADOW_STRUCT_WGSL, SHADOW_FUNC_WGSL, SANE_WGSL, ENV_MIPS } from './common.js';
 import { SKY_RENDER_FUNCS } from './sky.js';
+import { CLOUD_SHADOW_FN } from './clouds.js';
 import { PALETTES } from '../game/model/livery.js';
 import { GLYPH_BITS } from '../game/model/glyphs.js';
 
@@ -26,7 +27,8 @@ export const SHIP = FRAME_WGSL + ATMO_CORE_WGSL + HAZE_WGSL + SHADOW_STRUCT_WGSL
 @group(0) @binding(6) var shadowTex: texture_depth_2d;
 @group(0) @binding(7) var shadowSamp: sampler_comparison;
 @group(0) @binding(8) var<uniform> SH: ShadowU;
-` + SHADOW_FUNC_WGSL + SKY_RENDER_FUNCS + PALETTE_WGSL + GLYPH_WGSL + /* wgsl */ `
+@group(0) @binding(9) var cloudShadowTex: texture_2d<f32>;
+` + SHADOW_FUNC_WGSL + SKY_RENDER_FUNCS + CLOUD_SHADOW_FN + PALETTE_WGSL + GLYPH_WGSL + /* wgsl */ `
 const ENV_MAXMIP: f32 = ${ENV_MIPS - 1}.0;
 
 struct VIn {
@@ -663,7 +665,7 @@ fn gauge(kind: u32, uv: vec2f, ias: f32, alt: f32, hdg: f32, vsi: f32, bank: f32
   // ---- lighting ----
   // shadow: surfaces facing away from the sun are already dark; the map handles occlusion by other geometry
   let shadow = shadowAt(in.rel + Ng * 0.35);
-  let sunE = sunIlluminance() * sunVis[0] * shadow * mix(1.0, 0.3, interior);
+  let sunE = sunIlluminance() * select(sunVis[0], cloudShadowAt(in.rel), F.camFwd.w > 0.5) * shadow * mix(1.0, 0.3, interior);
   let NdL = dot(N, Ld);
   // soft terminator: ships have lots of small features, a bit of wrap avoids hard black faces
   let wrap = clamp((NdL + 0.15) / 1.15, 0.0, 1.0);

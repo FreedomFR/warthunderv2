@@ -322,13 +322,15 @@ fn shadeLayer(dir: vec3f, h: CloudHit, hc: f32, d: f32, s1: f32, s2: f32, s3: f3
 // returns (premultiplied radiance, fraction of the background sky hidden)
 // aa: per-layer edge change per pixel (fwidth of the edge function); negative = estimate it
 // from the pixel footprint (compute passes, which have no derivatives)
-fn cloudLayers(dir: vec3f, pixAng: f32, aa: vec2f, sunT: ptr<function, f32>) -> vec4f {
+fn cloudLayers(dir: vec3f, pixAng: f32, aa: vec2f, sunT: ptr<function, f32>) -> vec4f { return cloudLayersX(dir, pixAng, aa, sunT, true); }
+// low = false: the high layer only (the low clouds are drawn as a volume, wgsl/clouds.js)
+fn cloudLayersX(dir: vec3f, pixAng: f32, aa: vec2f, sunT: ptr<function, f32>, low: bool) -> vec4f {
   *sunT = 1.0;
   if (dir.y <= 0.0) { return vec4f(0.0); }
   let sxz = F.sunDir.xz / max(length(F.sunDir.xz), 1e-4);
   var lo = vec4f(0.0);
   var loVis = 1.0;
-  if (F.cloudP.y > 0.001) {
+  if (F.cloudP.y > 0.001 && low) {
     let hc = F.cloudP.x;
     let h = hitLayer(dir, hc);
     // clear band near the horizon, where the low sun shines under the clouds
