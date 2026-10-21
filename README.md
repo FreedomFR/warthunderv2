@@ -54,6 +54,10 @@ Les caméras en détail : **1 Auto** (un réalisateur suit l'action), **2 Poursu
 l'impact), **6 Tactique** (vue de dessus), **7 Libre**, **8 Avions** (suit un avion ; `V` change de vue), **9 Cockpit** (vue du pilote, glisser pour regarder autour).
 La ligne sous l'image dit toujours ce que montre la caméra et qui est qui, aux couleurs des équipes.
 
+## Tester les performances de votre appareil
+
+Le bouton **Test de performance** (écran de départ, ou *Réglages*) lance une bataille filmée sous plusieurs angles pendant environ deux minutes, en coupant tour à tour les nuages, les ombres, la moitié des pixels et les particules pour voir ce que chacun coûte. À la fin, un **rapport** (appareil, GPU, images par seconde de chaque vue, ce qui limite, la chauffe) se copie, se partage ou se télécharge. Ne touchez pas à l'écran pendant le test ; branchez le téléphone si possible.
+
 ## Régler les dégâts
 
 Les dégâts reçus se règlent sans toucher au code, par des multiplicateurs (1 = normal, 2 = deux fois plus, 0 = aucun) :

@@ -1128,6 +1128,13 @@ export async function createEngine(canvas, options = {}) {
 
   const engine = {
     device, canvas, P, qs, cam, hooks, water, foam, shadow, stats, hasTS, offscreen,
+    /** what the browser says about the GPU (the performance test's report): vendor, architecture, device, description, and a few limits */
+    adapterInfo: (() => {
+      const i = adapter.info || {}, L = adapter.limits || {};
+      return { vendor: i.vendor || '', architecture: i.architecture || '', device: i.device || '', description: i.description || '', isFallback: !!adapter.isFallbackAdapter,
+        features: [...adapter.features].filter((f) => /timestamp|f16|bgra|float32|indirect|dual-source|clip|subgroups/.test(f)).sort(),
+        maxTextureDimension2D: L.maxTextureDimension2D, maxBufferSize: L.maxBufferSize, maxComputeInvocationsPerWorkgroup: L.maxComputeInvocationsPerWorkgroup };
+    })(),
     /** draw the ocean surface (off: sky only) */
     showOcean: qs.get('ocean') !== '0',
     /** shared GPU resources for game pipelines (same pass layout as the ocean) */
