@@ -71,7 +71,7 @@ function houseRadius(rec) {
 export function computeClearance(model, solids, hull, opts = {}) {
   // a mount that a structure built after it has swallowed (a platform, a director tower) stands on that structure instead: up to 2.4 m higher
   const settle = (rec) => {
-    if (rec.look) return;                                  // copied from a reference model: it stands where the model has it
+    if (rec.look || rec.placed) return;                    // copied from a reference model, or put on its free deck: it stands where it was put
     let top = -1;
     for (const s of solids) if (s[2] < rec.y - 0.2 && s[3] > rec.y + 0.2 && s[3] - rec.y <= 2.4 && inFoot(s, rec.x, rec.z, -0.1)) top = Math.max(top, s[3]);
     if (top > 0) { rec.y = top; rec.settled = true; }
@@ -120,7 +120,7 @@ export function computeClearance(model, solids, hull, opts = {}) {
     }
     rec.clr = clr; rec.clrHi = clrHi;
     arcsFrom(rec, isAA ? BLOCKED.aa : rec.group === 'main' ? BLOCKED.main : BLOCKED.sec, !!opts.bothBeams);
-    if (rec.look && rec.noArc) {                      // a mount copied from the reference model stands where the model has it, in a place the hand-made masses round it may close: it keeps the outward half circle
+    if ((rec.look || rec.placed) && rec.noArc) {                      // a mount copied from the reference model stands where the model has it, in a place the hand-made masses round it may close: it keeps the outward half circle
       rec.noArc = false; rec.arcC = isAA ? rec.yaw0 : rec.arcC; rec.arcH = Math.PI / 2; rec.arcMin = -Math.PI / 2; rec.arcMax = Math.PI / 2;
       rec.clr = new Float32Array(CLR_N).fill(0.05); rec.clrHi = new Float32Array(CLR_N).fill(1.4);
     }
@@ -170,7 +170,7 @@ function both(rec, free, H, step) {
 
 /** Choose the arc: the stretch around `arcC` (inside the declared half-width `arcH`) where the barrel can be trained; if `arcC` itself is blocked, the widest free stretch of the declared arc. */
 function arcsFrom(rec, limit, bothBeams = false) {
-  const free = (rel) => clearElev(rec, rec.arcC + rel) <= limit && clearMax(rec, rec.arcC + rel) - clearElev(rec, rec.arcC + rel) >= (rec.look ? 6 : 10) * D2R;      // a mount copied from a model stands where the model has it: a lower ceiling still counts as free
+  const free = (rel) => clearElev(rec, rec.arcC + rel) <= limit && clearMax(rec, rec.arcC + rel) - clearElev(rec, rec.arcC + rel) >= ((rec.look || rec.placed) ? 6 : 10) * D2R;      // a mount copied from a model stands where the model has it: a lower ceiling still counts as free
   const step = 1.5 * D2R, H = rec.arcH;
   if (free(0)) {
     let lo = 0, hi = 0;

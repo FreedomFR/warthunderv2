@@ -677,6 +677,13 @@ export function buildShipModel(spec, tw = {}) {
       note(y + 3);
     }
   }
+  // tw.aaAt: light mounts at given places [{ k (AA_TYPES key), x, y, z, yaw? }] (found on the free deck of the drawn model by tools/refs/freespots.mjs): the ones a model lacks to make up the real count
+  for (const a of tw.aaAt || []) {
+    const ty = AA_TYPES[a.k];
+    model.aaMounts.push({ variant: ty.v, cal: ty.cal, n: ty.n, bore: ty.bore, x: a.x, y: a.y, z: a.z, rad: ty.n >= 3 ? 1.1 : 0.7, yaw0: a.yaw ?? (a.z >= 0 ? Math.PI / 2 : -Math.PI / 2), label: ty.label, placed: true });
+    model.aa.push([a.x, a.y + 1.2, a.z]);
+    note(a.y + 3);
+  }
   const claimed = new Set();
   for (const pl of elPl.filter((q) => !AA_TYPES[q.type])) {
     let best = null, bd = 80;
