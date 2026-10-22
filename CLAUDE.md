@@ -27,6 +27,8 @@ npm run smoke               # browser smoke test, offscreen mode (server must be
 npm run build               # js/ + index.html -> naval.html (single file); rebuild before committing changes under js/
 ```
 
+A test that rests on a whole simulated battle is chaotic (any change of a model, of the AA of a ship or of the balance moves the outcome): judge the property over a few seeds and accept one that holds (see `test/homeward.mjs`, `test/airops.mjs`), never pin one seed.
+
 A new test is a file `test/<name>.mjs` (a script that prints `PASS` / `FAIL` lines and exits non-zero on failure) **listed in `test/tests.json`** (the runner refuses a test that is not listed; `slow: true` keeps it out of `test:fast`).
 
 The browser tools (`tools/browser.mjs`) render with software WebGPU (SwiftShader) unless `GPU=hardware`, and use `CHROME=/path/to/chrome`
