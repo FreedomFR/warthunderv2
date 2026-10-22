@@ -10,8 +10,8 @@ const FOOT = 1.0;          // the lowest metre of a house is its pedestal, sunk 
 /** The box of the house of a mount in its own frame (x forward, z to starboard, y above the pivot). */
 export function houseBox(model, rec, aa) {
   const mm = aa
-    ? getMountModel({ kind: 'aa', cal: rec.cal, n: rec.n, bore: rec.bore, col: model.pal.sup, variant: rec.variant })
-    : getMountModel({ kind: rec.kind, cal: rec.cal, n: rec.n, bore: rec.bore, col: model.pal.sup, variant: rec.variant, top: model.pal.top });
+    ? getMountModel({ kind: 'aa', cal: rec.cal, n: rec.n, bore: rec.bore, col: model.pal.sup, variant: rec.variant, look: rec.look })
+    : getMountModel({ kind: rec.kind, cal: rec.cal, n: rec.n, bore: rec.bore, col: model.pal.sup, variant: rec.variant, top: model.pal.top, look: rec.look });
   const b = mm.house.aabb;
   return { x0: b[0], y0: b[1], z0: b[2], x1: b[3], y1: b[4], z1: b[5] };
 }
@@ -85,6 +85,7 @@ export function clearHouses(model, solids, hull, supportBelow, o = {}) {
   const obs = obstacles(solids);
   let moved = 0;
   for (const rec of model.mounts) {
+    if (rec.look) continue;                              // copied from a reference model: it stands where the model has it
     const box = houseBox(model, rec, false), cur = buriedIn(model, rec, false, obs, hull, { box, carrier: o.carrier });
     if (cur.depth < 0.3) continue;
     const out = rec.z < 0 ? -1 : 1;

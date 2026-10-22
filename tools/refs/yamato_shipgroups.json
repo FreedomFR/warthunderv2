@@ -1,0 +1,184 @@
+{
+ "ship": "Yamato",
+ "skip_groups": [
+  "TurretShape",
+  "TurretShape1",
+  "TurretShape10",
+  "TurretShape11",
+  "TurretShape12",
+  "TurretShape13",
+  "TurretShape14",
+  "TurretShape15",
+  "TurretShape16",
+  "TurretShape17",
+  "TurretShape18",
+  "TurretShape19",
+  "TurretShape2",
+  "TurretShape20",
+  "TurretShape21",
+  "TurretShape22",
+  "TurretShape23",
+  "TurretShape24",
+  "TurretShape25",
+  "TurretShape26",
+  "TurretShape27",
+  "TurretShape28",
+  "TurretShape29",
+  "TurretShape3",
+  "TurretShape30",
+  "TurretShape31",
+  "TurretShape32",
+  "TurretShape33",
+  "TurretShape34",
+  "TurretShape35",
+  "TurretShape36",
+  "TurretShape37",
+  "TurretShape38",
+  "TurretShape39",
+  "TurretShape4",
+  "TurretShape40",
+  "TurretShape41",
+  "TurretShape42",
+  "TurretShape43",
+  "TurretShape44",
+  "TurretShape45",
+  "TurretShape46",
+  "TurretShape47",
+  "TurretShape48",
+  "TurretShape49",
+  "TurretShape5",
+  "TurretShape50",
+  "TurretShape51",
+  "TurretShape52",
+  "TurretShape53",
+  "TurretShape54",
+  "TurretShape55",
+  "TurretShape56",
+  "TurretShape57",
+  "TurretShape58",
+  "TurretShape59",
+  "TurretShape6",
+  "TurretShape60",
+  "TurretShape61",
+  "TurretShape62",
+  "TurretShape7",
+  "TurretShape8",
+  "TurretShape9"
+ ],
+ "skip_material": [
+  "CM001_Propeller"
+ ],
+ "cuts": [
+  {
+   "group": "MidBack_DeckHouseShape",
+   "id": "tower",
+   "kind": "bridge",
+   "label": "Passerelle",
+   "box": [
+    -9,
+    9,
+    17,
+    46,
+    -16,
+    16
+   ]
+  },
+  {
+   "group": "MidBack_DeckHouseShape",
+   "id": "funnel0",
+   "kind": "funnel",
+   "label": "Chemin\u00e9e",
+   "box": [
+    -31,
+    -11,
+    18,
+    40,
+    -8,
+    8
+   ]
+  }
+ ],
+ "rules": [
+  {
+   "group": "^JD098_Director_Type_98_15m",
+   "to": "part",
+   "id": "director0",
+   "kind": "director",
+   "label": "Directeur de tir de 15 m",
+   "track": true
+  },
+  {
+   "group": "^Rotate_yShape$",
+   "to": "part",
+   "id": "director1",
+   "kind": "director",
+   "label": "Directeur de tir de 10 m",
+   "track": true
+  },
+  {
+   "group": "^Rangefinder_4_5Shape",
+   "to": "part",
+   "kind": "director",
+   "label": "T\u00e9l\u00e9m\u00e8tre de 4,5 m",
+   "track": true
+  },
+  {
+   "match": "^JRS0",
+   "to": "part",
+   "kind": "radar",
+   "label": "Radar",
+   "spin": true
+  },
+  {
+   "group": "^(CatapultShape|Cradle1Shape|Cradle2Shape)$",
+   "to": "part",
+   "id": "cat0",
+   "kind": "catapult",
+   "label": "Catapulte"
+  },
+  {
+   "group": "^(CatapultShape1|Cradle1Shape1|Cradle2Shape1)$",
+   "to": "part",
+   "id": "cat1",
+   "kind": "catapult",
+   "label": "Catapulte"
+  },
+  {
+   "match": "^JM086_Crane",
+   "to": "part",
+   "id": "crane",
+   "kind": "crane",
+   "label": "Grue"
+  },
+  {
+   "match": "^JM039_Cutter",
+   "to": "part",
+   "id": "cutter",
+   "kind": "structure",
+   "label": "Canot"
+  },
+  {
+   "match": "^JSB018_Yamato_1944_hull_wire",
+   "to": "fine"
+  },
+  {
+   "match": "^JSB018_Yamato_1944_hull_\\d",
+   "to": "static",
+   "cls": "hull"
+  },
+  {
+   "match": "^JSB018_Yamato_1944_deck",
+   "to": "static",
+   "cls": "deck"
+  },
+  {
+   "match": "^(JM059|JM109|JM110|JM111|JM026|JM025|JM033|JM013|JM007|CM008|JM368|JM014|CM005|JM030|JM310|JM029|JM002|JM112)",
+   "to": "fine"
+  },
+  {
+   "match": ".*",
+   "to": "static",
+   "cls": "equip"
+  }
+ ]
+}

@@ -18,7 +18,7 @@ for (const spec of ALL_SHIPS) {
   models[spec.id] = m;
   const all = [...m.mounts.map((r, i) => ({ r, n: `${r.group}${r.label || i}` })), ...m.aaMounts.map((r, i) => ({ r, n: `aa${i}` }))];
   for (const { r, n } of all) {
-    for (const s of m.solids) if (s[2] < r.y - 0.2 && s[3] > r.y + 0.2 && inFoot(s, r.x, r.z, -0.1)) { ok(false, `${spec.id}: ${n} is buried in a structure (y ${s[2].toFixed(1)}..${s[3].toFixed(1)})`); break; }
+    if (!r.look) for (const s of m.solids) if (s[2] < r.y - 0.2 && s[3] > r.y + 0.2 && inFoot(s, r.x, r.z, -0.1)) { ok(false, `${spec.id}: ${n} is buried in a structure (y ${s[2].toFixed(1)}..${s[3].toFixed(1)})`); break; }
     ok(!r.noArc, `${spec.id}: ${n} has no free arc at all`);
     if (!r.noArc) ok(r.arcMax - r.arcMin > 40 / D, `${spec.id}: ${n} can only train over ${((r.arcMax - r.arcMin) * D).toFixed(0)} degrees`);
   }

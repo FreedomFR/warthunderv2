@@ -494,7 +494,10 @@ function giobertiExtras(ctx) {
 // the after deckhouse), the bridge 0.24-0.40 (a lower house, a lower bridge with a rounded drum, the compass bridge, a round tower to 14.65 m with the director), the pole foremast at 0.3875
 // (24.8 m) with its aerial frame, the big oval funnel at 0.4386 (8.4 x 3.3 m, its top cut on a slope, 11.4-12.4 m), the two torpedo banks at 0.5817 / 0.7003 round the deckhouse of the
 // star-shell gun at 0.65, the machine-gun platforms, boats, rafts, the winch and depth-charge throwers aft and the mainmast at 0.7503 (22.9 m)
+import * as V4 from './gioberti_v4.js';
+
 export const GIOBERTI = {
+  v4: V4,
   mainVariant: 'it120o', dirKind: 'drum', own: true, ownTubes: true, aa: [{ k: 'm13', f: 0.3523, z: 2.85, y: 4.4, noTub: true }, { k: 'm13', f: 0.3877, z: 3.8, y: 0.1, noTub: true }, { k: 'm13', f: 0.5066, z: 3.1, y: 2.2, noTub: true }], bulwark: 0, camber: 0.03, bow: { rake: 2.45, forefoot: 1.1 }, mid: { pb: 1.4, pbRun: 0.9, pbEntry: 1.3 }, stern: { overhang: 3.75, tail: 2.8, oex: 0.3 },
   fb: [[0, 6.08], [0.025, 5.98], [0.05, 5.88], [0.075, 5.8], [0.1, 5.7], [0.15, 5.58], [0.2, 5.48], [0.25, 5.38], [0.3, 5.3], [0.35, 5.25], [0.4, 5.2], [0.4035, 3.04], [0.5, 3.04], [1, 3.04]],
   planDeck: [[0,0], [0.004,0.09], [0.01,0.193], [0.02,0.285], [0.03,0.364], [0.04,0.44], [0.05,0.503], [0.07,0.583], [0.09,0.655], [0.12,0.741], [0.15,0.794], [0.2,0.857], [0.25,0.89], [0.3,0.917], [0.35,0.938], [0.4,1.014], [0.45,0.984], [0.5,0.996], [0.55,1], [0.6,0.994], [0.65,0.985], [0.7,0.962], [0.75,0.93], [0.8,0.882], [0.85,0.816], [0.88,0.764], [0.91,0.7], [0.93,0.649], [0.95,0.583], [0.96,0.545], [0.97,0.503], [0.98,0.446], [0.99,0.391], [1,0.096]],

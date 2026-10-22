@@ -17,10 +17,12 @@ const STEP = 0.35, FOOT = 1.0;
 /** The rows of the audit of one ship: [{ name, share, depth, bug, at, by }] */
 export function auditShip(spec) {
   const m = buildShipModel(spec, TWEAKS[spec.id] || {});
+  if (TWEAKS[spec.id]?.bakedHull || TWEAKS[spec.id]?.baked) return [];                           // a ship drawn from a baked reference mesh: what the model shows cannot collide with itself (its box solids only serve the arcs)
   const solids = obstacles(m.solids), rows = [];
   const items = [...m.mounts.map((r, i) => ({ r, aa: false, name: `${r.group}${r.label ? ':' + r.label : '#' + i}` })), ...m.aaMounts.map((r, i) => ({ r, aa: true, name: `aa#${i}(${r.variant})` }))];
   const boxes = [];
   for (const { r, aa, name } of items) {
+    if (r.look) continue;                                             // a mount copied from the reference model stands where the model has it: the procedural masses round it are the ones that give way
     const hb = houseBox(m, r, aa), t = buriedIn(m, r, aa, solids, m.hull, { box: hb, carrier: spec.type === 'CV' });
     boxes.push({ name, r, hb, yaw: aa ? (r.arcC ?? r.yaw0 ?? 0) : (r.arcC || 0) });
     if (t.share > 0.01) rows.push({ name, share: t.share, depth: t.depth, bug: r.group === 'main' ? (t.share > TURRET && t.depth > 0.4) : t.depth > DEPTH, at: `(${r.x.toFixed(1)}, ${r.z.toFixed(1)}) y=${r.y.toFixed(1)}`, by: t.by });

@@ -1,0 +1,127 @@
+{
+ "ship": "Shokaku",
+ "skip_groups": [
+  "Type-89_Twin#0",
+  "Type-89_Twin#1",
+  "Type-89_Twin#2",
+  "Type-89_Twin#3",
+  "Type-89_Twin#4",
+  "Type-89_Twin#5",
+  "Type-89_TwinShield#0",
+  "Type-89_TwinShield#1",
+  "Type-96#0",
+  "Type-96#1",
+  "Type-96#10",
+  "Type-96#11",
+  "Type-96#12",
+  "Type-96#13",
+  "Type-96#14",
+  "Type-96#15",
+  "Type-96#2",
+  "Type-96#3",
+  "Type-96#4",
+  "Type-96#5",
+  "Type-96#6",
+  "Type-96#7",
+  "Type-96#8",
+  "Type-96#9",
+  "Type-96_Triple_Mod2#0",
+  "Type-96_Triple_Mod2#1"
+ ],
+ "skip_material": [
+  "Propellor",
+  "Rudder"
+ ],
+ "cuts": [
+  {
+   "group": "^(BaseMetal#(?!1215$)|MetalCable|Shokaku_Props|Japanese_Props|BlackMetal|Optics|Netting|mesh_37)",
+   "gre": true,
+   "id": "tower",
+   "kind": "bridge",
+   "label": "Îlot",
+   "box": [
+    24,
+    54,
+    15.2,
+    40,
+    6,
+    22
+   ]
+  },
+  {
+   "group": "^(BaseMetal#(?!1215$)|MetalCable|Shokaku_Props|Japanese_Props|BlackMetal|Optics|Netting|mesh_37)",
+   "gre": true,
+   "id": "funnel0",
+   "kind": "funnel",
+   "label": "Cheminée",
+   "box": [
+    -11,
+    -0.5,
+    9,
+    16.5,
+    14,
+    23
+   ]
+  },
+  {
+   "group": "^(BaseMetal#(?!1215$)|MetalCable|Shokaku_Props|Japanese_Props|BlackMetal|Optics|Netting|mesh_37)",
+   "gre": true,
+   "id": "funnel1",
+   "kind": "funnel",
+   "label": "Cheminée",
+   "box": [
+    0.5,
+    14,
+    9,
+    16.5,
+    14,
+    23
+   ]
+  }
+ ],
+ "rules": [
+  {
+   "match": "^Type9[45]_Director",
+   "to": "part",
+   "kind": "director",
+   "label": "Directeur de tir",
+   "track": true
+  },
+  {
+   "match": "Crane",
+   "to": "part",
+   "kind": "crane",
+   "label": "Grue"
+  },
+  {
+   "match": "(MotorVessel|Vessel|Sampan)",
+   "to": "part",
+   "kind": "structure",
+   "label": "Canot"
+  },
+  {
+   "group": "^BaseMetal#1215$",
+   "to": "static",
+   "cls": "flightdeck"
+  },
+  {
+   "match": "HangarDoors",
+   "to": "static",
+   "cls": "hull"
+  },
+  {
+   "match": "Hull_Part",
+   "to": "static",
+   "cls": "hull"
+  },
+  {
+   "match": "(MetalCable|Netting|Optics|BlackMetal|Props|mesh_37)",
+   "to": "fine"
+  },
+  {
+   "match": ".*",
+   "to": "static",
+   "cls": "equip"
+  }
+ ]
+}

@@ -7,6 +7,10 @@
 // families, drawn after photographs (see tools/refs in the repository notes): the US Mk 7 16"/50 triple turret, the
 // Japanese Type 94 46 cm triple, the German Drh LC/34 38 cm twin and the US 5"/38 twin (Mk 28) and single (Mk 30) mounts.
 import { MeshBuilder, MAT, rgb, shade } from './meshbuilder.js';
+import { HOUSE_DATA } from './mountdata.js';
+import { decodeBaked } from './bakedmesh.js';
+import { ELEMENTS } from './elements.js';
+import { paintInto, reference } from './v4ship.js';
 
 const cache = new Map();
 
@@ -23,9 +27,9 @@ const FAMILY = {
   // Yamato 1945 profile and plan (Commons, Alexpl, after the Kure museum photographs; heights scaled to the builders' freeboards):
   // 18.5 m long, 14.4 m wide without the rangefinder arms, 3.9 m high (the profile is drawn 10 % flat: heights read at its own vertical
   // scale; roofs 11.7 and 15.1 m above the waterline), barrels 13.3 m clear of the ports, turret 2 2.7 m above turret 1
-  type94: { kind: 'turret', cal: 460, n: 3, spacing: 3.52, trunX: 3.6, trunY: 2.4, face: 7.6, port: 6.4, fwd: 16.1, back: 2.9, rB: 0.70, rP: 0.60, rM: 0.35, bagR: 1.05, bagLen: 1.3, recoil: 1.3, lift: 2.7, h: 3.9, barbR: 6.6, barb: 0.1, whiteMuzzle: true },
+  type94: { kind: 'turret', cal: 460, n: 3, spacing: 2.94, trunX: 3.6, trunY: 1.68, face: 8.3, port: 7.6, fwd: 17.84, back: 2.9, rB: 0.70, rP: 0.50, rM: 0.262, bagR: 1.05, bagLen: 1.3, recoil: 1.3, lift: 2.7, h: 3.9, barbR: 6.6, barb: 0.1 },
   // Yamato's 15.5 cm/60 triple (ex-Mogami): 8.6 m long, 3.4 m high, barrels 5.9 m clear of the face, on a 7.3-7.9 m barbette
-  type3_155: { kind: 'turret', cal: 155, n: 3, spacing: 1.7, trunX: 1.2, trunY: 1.44, face: 3.6, port: 3.2, fwd: 8.3, back: 1.2, rB: 0.26, rP: 0.2, rM: 0.11, bagR: 0.33, bagLen: 0.5, recoil: 0.6, lift: 2.6, h: 3.44, barbR: 3.0 },
+  type3_155: { kind: 'turret', cal: 155, n: 3, spacing: 1.51, trunX: 1.2, trunY: 0.95, face: 3.0, port: 2.7, fwd: 8.2, back: 1.2, rB: 0.26, rP: 0.21, rM: 0.115, bagR: 0.33, bagLen: 0.5, recoil: 0.6, lift: 2.6, h: 3.0, barbR: 2.5 },
   // Bismarck profile (Commons, CC0) and Bundesarchiv photographs: 13.3 m long, 3.5 m high, barrels 13.5 m clear of the face, on a
   // 1.2 m barbette; the superfiring turrets 3.4 m higher
   drh34: { kind: 'turret', cal: 380, n: 2, spacing: 4.6, trunX: 2.6, trunY: 1.6, face: 5.8, port: 5.2, fwd: 16.1, back: 2.6, rB: 0.58, rP: 0.49, rM: 0.29, bagR: 0.85, bagLen: 1.1, recoil: 1.15, lift: 3.4, h: 3.5, barbR: 5.3, barb: 1.2 },
@@ -81,7 +85,10 @@ const FAMILY = {
   // Type 1936A (Mob) 15 cm: the forward Drh LC/38 twin turret (low, 2.9 m high) and the TbtKC/36 single shield mounts aft (3.1 m wide, barrels 5.4 m clear of the pivot); dimensions
   // read on a small 3-view (about +-0.8 m), the single on the deckhouse and the superfiring one 2.3 m above their decks
   de150_2: { kind: 'turret', cal: 150, n: 2, spacing: 1.5, trunX: 0.5, trunY: 1.35, face: 2.8, port: 2.5, fwd: 7.0, back: 1.0, rB: 0.2, rP: 0.16, rM: 0.09, bagR: 0.26, bagLen: 0.4, recoil: 0.5, lift: 2.3, h: 2.9, barbR: 2.5 },
-  de150_1: { kind: 'shield', cal: 150, n: 1, spacing: 0, trunX: 0.5, trunY: 1.3, face: 1.9, fwd: 5.6, back: 1.0, rB: 0.2, rP: 0.16, rM: 0.09, bagR: 0.0, bagLen: 0, recoil: 0.5, lift: 2.3, h: 2.6 },
+  // Graf Spee MPL C/28 15 cm single, measured on the reference model: a hexagonal shield 3.2 m wide and 3.0 m long, flat roof 2.55 m over the deck, the gun port in the flat front, the barrel 4.8 m clear of it
+  de150_1: { kind: 'shield', cal: 150, n: 1, spacing: 0, trunX: 0.5, trunY: 1.6, face: 1.45, fwd: 5.4, back: 1.0, rB: 0.2, rP: 0.16, rM: 0.09, bagR: 0.0, bagLen: 0, recoil: 0.5, lift: 2.3, h: 2.55 },
+  // Graf Spee Dopp LC/31 10.5 cm twin (reference model): the cradle in a low open-topped box 3.7 m long and 2.3 m wide, the front plate leaning back, two barrels 0.5 m apart
+  dop105: { kind: 'dp', cal: 105, n: 2, spacing: 0.5, trunX: 0.3, trunY: 1.0, face: 2.0, port: 1.75, fwd: 6.3, back: 1.0, rB: 0.13, rP: 0.1, rM: 0.055, bagR: 0.0, bagLen: 0, recoil: 0.4, lift: 1.7, h: 1.6 },
   // Le Fantasque 138.6 mm Mle 1929 single shielded mount (scaled class sheet, 7.4 px/m): a house 4.4 m long, 3.0 m high, barrels 5.2 m clear of the pivot, the superfiring mounts
   // on a bridge / deckhouse top 2.5 m higher
   fr138: { kind: 'shield', cal: 138.6, n: 1, spacing: 0, trunX: 0.5, trunY: 1.35, face: 2.1, fwd: 6.2, back: 1.0, rB: 0.18, rP: 0.14, rM: 0.08, bagR: 0.0, bagLen: 0, recoil: 0.5, lift: 2.5, h: 2.9 },
@@ -98,12 +105,25 @@ const FAMILY = {
   type3_120: { kind: 'shield', cal: 120, n: 1, spacing: 0, trunX: 0.4, trunY: 1.5, face: 1.0, fwd: 4.6, back: 1.0, rB: 0.2, rP: 0.15, rM: 0.1, bagR: 0.0, bagLen: 0, recoil: 0.45, lift: 2.7, h: 2.6 },
   // Charles F. Adams class 5"/54 Mk 42 (measured on a reference model, see ships/adams.js): the training axis 2.05 m behind the face of the house, the trunnion at the face, 2 m above the ring, the barrel 4.6 m clear of it
   mk42: { kind: 'shield', cal: 127, n: 1, spacing: 0, trunX: 1.95, trunY: 2.0, face: 2.05, fwd: 4.6, back: 1.0, rB: 0.26, rP: 0.21, rM: 0.095, bagR: 0.0, bagLen: 0, recoil: 0.35, lift: 0, h: 4.4 },
+  type89c: { kind: 'dp', cal: 127, n: 2, spacing: 0.78, trunX: 0.4, trunY: 1.7, face: 3.0, fwd: 4.6, back: 0.9, rB: 0.19, rP: 0.15, rM: 0.085, bagR: 0.3, bagLen: 0.3, recoil: 0.5, lift: 3.0, h: 2.6 },
   mk28: { kind: 'dp', cal: 127, n: 2, spacing: 0.78, trunX: 0.55, trunY: 1.35, face: 1.9, fwd: 3.6, back: 0.9, rB: 0.19, rP: 0.15, rM: 0.085, bagR: 0.3, bagLen: 0.3, recoil: 0.5, lift: 3.0, h: 2.9 },
   mk30: { kind: 'shield', cal: 127, n: 1, spacing: 0, trunX: 0.5, trunY: 1.3, face: 1.5, fwd: 3.4, back: 0.9, rB: 0.19, rP: 0.15, rM: 0.085, bagR: 0.0, bagLen: 0, recoil: 0.5, lift: 1.7, h: 2.9 },
 };
 
 /** Numbers of a mount without building it: { trunnion, muzzle (trunnion -> muzzle), spacing, recoil, lift, height } */
 export function mountDims(s) {
+  const d = mountDimsOf(s);
+  const k = s.look && elementKind(s.look);
+  if (k && k.trunnion) { d.trunnion = k.trunnion.slice(); d.muzzle = k.muzzle; }          // the pivot and the muzzle of a mount copied from the reference model
+  return d;
+}
+
+function elementKind(look) {
+  const [ship, kind] = look.split('/'), el = ELEMENTS[ship];
+  return el && el.KINDS[kind];
+}
+
+function mountDimsOf(s) {
   const f = s.variant && FAMILY[s.variant];
   if (f) return { trunnion: [f.trunX, f.trunY], muzzle: f.fwd, spacing: f.spacing, recoil: f.recoil, lift: f.lift, height: f.h, barbR: f.barbR || 0, barb: f.barb };
   const calM = s.cal / 1000, n = s.n;
@@ -125,7 +145,7 @@ function aaLen(s) {
 }
 
 export function getMountModel(spec) {
-  const key = [spec.kind, spec.cal, spec.n, spec.bore, spec.col, spec.variant || '', JSON.stringify(spec.top || '')].join('|');
+  const key = [spec.kind, spec.cal, spec.n, spec.bore, spec.col, spec.variant || '', JSON.stringify(spec.top || ''), spec.look || ''].join('|');
   let m = cache.get(key);
   if (!m) { m = makeMount(spec); cache.set(key, m); }
   return m;
@@ -172,10 +192,10 @@ function houseMk7(hb, col, dark, f) {
 function houseType94(hb, col, dark, f) {
   const light = shade(col, 1.1), shadow = shade(col, 0.8);
   hb.cylinder(0, -0.1, 0, 6.6, 6.7, 0.2, shadow, MAT.HULL, { seg: 28 });
-  hb.block({ x0: -10.6, x1: f.face, hw: 7.2, y0: 0.15, y1: f.h, tx0: -10.4, tx1: 5.0, thw: 7.0 }, col, MAT.HULL);   // walls, sloped face, roof
+  hb.block({ x0: -10.9, x1: f.face, hw: 6.6, y0: 0.15, y1: f.h, tx0: -9.0, tx1: 1.9, thw: 4.4 }, col, MAT.HULL);   // walls, sloped face and sides, roof (measured: 16 m long, 13 m wide at the base, 8.8 m at the roof)
   hb.block({ x0: -11.6, x1: -10.4, hw: 5.0, y0: 0.8, y1: 3.4, tx0: -11.3, thw: 4.8 }, shade(col, 0.9), MAT.HULL);   // rear overhang
-  hb.rodZ(-8.4, f.h - 0.9, -8.6, 8.6, 0.5, 0.5, shade(col, 0.88), MAT.HULL, { seg: 10 });                          // rangefinder arms
-  for (const sg of [-1, 1]) hb.cyl(-8.4, f.h - 1.6, sg * 8.2, 0.8, 0.8, 0.7, 0.7, f.h - 0.2, light, MAT.HULL, { seg: 10 });
+  hb.rodZ(-6.2, f.h - 0.9, -6.2, 6.2, 0.5, 0.5, shade(col, 0.88), MAT.HULL, { seg: 10 });                          // rangefinder arms
+  for (const sg of [-1, 1]) hb.cyl(-6.2, f.h - 1.6, sg * 6.0, 0.8, 0.8, 0.7, 0.7, f.h - 0.2, light, MAT.HULL, { seg: 10 });
   for (const sg of [-1, 1]) hb.cylinder(-4.0, f.h - 0.1, sg * 3.8, 0.55, 0.5, f.h + 0.6, shadow, MAT.HULL, { seg: 8 });
   hb.box(-1.5, f.h + 0.04, 0, 3.4, 0.1, 2.6, light, MAT.HULL);
   for (let i = 0; i < f.n; i++) {
@@ -184,16 +204,17 @@ function houseType94(hb, col, dark, f) {
   }
 }
 
-/** Japanese 15.5 cm/60 triple turret (Yamato's secondary battery): a small copy of the big turrets, sloped face, rangefinder ears aft. */
+/** Japanese 15.5 cm/60 triple turret (Yamato's secondary battery), measured on the reference model: 8.0 m long, 5.8 m wide, a sloped front face with a rounded roof edge, a raised
+ *  rangefinder box on the roof behind the middle, the rear hanging over the barbette; the three barrels 1.5 m apart. */
 function houseType3(hb, col, dark, f) {
-  const light = shade(col, 1.1), shadow = shade(col, 0.82);
-  hb.cylinder(0, -0.05, 0, 2.9, 2.95, 0.12, shadow, MAT.HULL, { seg: 20 });
-  hb.block({ x0: -5.0, x1: f.face, hw: 3.3, y0: 0.1, y1: f.h, tx0: -4.8, tx1: 2.4, thw: 3.15 }, col, MAT.HULL);
-  for (const sg of [-1, 1]) hb.block({ x0: -3.9, x1: -2.6, hw: 0.35, zc: sg * 3.55, y0: 1.5, y1: 2.5, tx0: -3.8, tx1: -2.8, thw: 0.3 }, light, MAT.HULL);
-  for (const sg of [-1, 1]) hb.cylinder(-1.8, f.h - 0.05, sg * 1.6, 0.3, 0.27, f.h + 0.35, shadow, MAT.HULL, { seg: 6 });
+  const shadow = shade(col, 0.82);
+  hb.cylinder(0, -0.05, 0, 3.0, 3.05, 0.14, shadow, MAT.HULL, { seg: 24 });
+  hb.block({ x0: -4.5, x1: f.face, hw: 2.95, y0: 0.1, y1: f.h, tx0: -4.3, tx1: 2.0, thw: 2.6 }, col, MAT.HULL);          // walls, sloped face, rounded roof front
+  hb.block({ x0: -4.0, x1: -0.9, hw: 2.1, y0: f.h - 0.05, y1: f.h + 0.65, tx0: -3.8, tx1: -1.1, thw: 1.9 }, shade(col, 0.95), MAT.HULL);   // the raised roof box
+  for (const sg of [-1, 1]) hb.cylinder(-0.6, f.h - 0.05, sg * 1.5, 0.28, 0.25, f.h + 0.3, shadow, MAT.HULL, { seg: 6 });
   for (let i = 0; i < f.n; i++) {
     const z = (i - (f.n - 1) / 2) * f.spacing;
-    hb.block({ x0: f.port - 0.3, x1: f.port + 0.25, hw: 0.42, zc: z, y0: f.trunY - 0.4, y1: f.trunY + 0.4 }, dark, MAT.DARK);
+    hb.block({ x0: f.port - 0.3, x1: f.port + 0.25, hw: 0.45, zc: z, y0: f.trunY - 0.4, y1: f.trunY + 0.4 }, dark, MAT.DARK);
   }
 }
 
@@ -389,7 +410,78 @@ function houseDrhLC28(hb, col, dark, f) {
   }
 }
 
-const HOUSES = { drh28_283: houseDrhLC28, it120o: houseIt120o, type3c_127: houseType3C, mk42: houseMk42, type3_120: houseType3_120, de37: houseFlak37, mk7: houseMk7, type94: houseType94, type3_155: houseType3, drh28_150: houseDrh28, lit381: houseLit381, lit152: houseLit152, rich380: houseRich380, fr152: houseFr152, it152: houseIt152, us152: houseUs152, brit152: houseBrit152, it120: houseIt120, de150_2: houseDe150_2, de150_1: houseMk30, fr138: houseMk30, brit120: houseBrit120, type3_127: houseType3_127, brit203: houseBrit203, type41_152: houseType41_152, us203: houseUs203, fr203: houseFr203, fr152_30: houseFr152_30, zara203: houseZara203, type3_203: houseType3_203, drh203: houseDrh203, drh34: houseDrh34, mk28: houseMk28, mk30: houseMk30 };
+/** Japanese 12.7 cm Type 89 twin in its armoured cupola (the Yamato, measured on a reference model): a round wall 6.5 m across, a sloping hood over it with the gun slot in front. */
+function houseType89c(hb, col, dark, f) {
+  const mid = shade(col, 0.95), light = shade(col, 1.08);
+  hb.cylinder(0, 0, 0, 3.25, 3.25, 1.3, shade(col, 0.92), MAT.HULL, { seg: 20 });
+  hb.block({ x0: -3.0, x1: f.face, hw: 2.9, y0: 1.3, y1: f.h, tx0: -2.1, tx1: 1.4, thw: 1.9 }, mid, MAT.HULL);               // the hood, sloping on every side
+  hb.block({ x0: -3.4, x1: -2.4, hw: 1.5, y0: 0.7, y1: 1.9, tx0: -3.1, thw: 1.1 }, shade(col, 0.9), MAT.HULL);                // the rear bulge
+  hb.cylinder(-0.8, f.h - 0.05, 0.9, 0.25, 0.22, f.h + 0.3, light, MAT.HULL, { seg: 6 });
+  for (let i = 0; i < f.n; i++) {
+    const z = (i - (f.n - 1) / 2) * f.spacing;
+    hb.block({ x0: f.face - 0.5, x1: f.face - 0.05, hw: 0.32, zc: z, y0: f.trunY - 0.32, y1: f.trunY + 0.32 }, dark, MAT.DARK);
+  }
+}
+
+/** Graf Spee MPL C/28 15 cm single: a hexagonal shield (pointed at the rear, flat across the front) on a ring pedestal, the gun port in the flat front. */
+function houseMpl28(hb, col, dark, f) {
+  const light = shade(col, 1.08), shadow = shade(col, 0.82);
+  hb.cylinder(0, -0.1, 0, 1.5, 1.55, 0.7, shadow, MAT.HULL, { seg: 16 });
+  hb.prism([[-1.6, -0.6], [-0.5, -1.55], [f.face - 0.2, -1.55], [f.face, -1.4], [f.face, 1.4], [f.face - 0.2, 1.55], [-0.5, 1.55], [-1.6, 0.6]], 0.55, f.h, col, MAT.HULL, { topScale: 0.95 });
+  hb.block({ x0: f.face - 0.1, x1: f.face + 0.18, hw: 0.55, y0: f.trunY - 0.5, y1: f.trunY + 0.5 }, dark, MAT.DARK);   // the gun port
+  hb.box(-0.9, f.h + 0.03, 0, 1.2, 0.08, 1.0, light, MAT.HULL);                                                          // roof hatch
+}
+
+/** Graf Spee Dopp LC/31 10.5 cm twin: a low box with the front plate leaning back, open at the top over the cradle, a ring pedestal under it. */
+function houseDop105(hb, col, dark, f) {
+  const shadow = shade(col, 0.82);
+  hb.cylinder(0, 0, 0, 0.8, 1.0, 0.45, shadow, MAT.HULL, { seg: 14 });
+  hb.block({ x0: -1.7, x1: f.face, hw: 1.15, y0: 0.4, y1: f.h, tx0: -1.7, tx1: f.face - 0.7, thw: 1.0 }, col, MAT.HULL);   // walls and the sloped front plate
+  hb.block({ x0: -2.4, x1: -1.7, hw: 0.8, y0: 0.4, y1: 1.2, tx0: -2.2, thw: 0.7 }, shade(col, 0.9), MAT.HULL);              // the rear housing
+  for (let i = 0; i < f.n; i++) {
+    const z = (i - (f.n - 1) / 2) * f.spacing;
+    hb.block({ x0: f.face - 0.5, x1: f.face + 0.05, hw: 0.2, zc: z, y0: f.trunY - 0.2, y1: f.trunY + 0.25 }, dark, MAT.DARK);
+  }
+}
+
+/** The outline of a house stage: u0..u1 along the mount, half width hw, the front corners cut by `ch` (the gun-port side is narrower: 0.55 of hw). */
+const stageRing = ([u0, u1, hw, ch]) => [[u0, -hw], [u0, hw], [u1 - ch, hw], [u1, hw * 0.55], [u1, -hw * 0.55], [u1 - ch, -hw]];
+
+/**
+ * A gun house of flat faces read on the reference model: stages = [[y0, y1, [u0, u1, hw, ch] at y0, [u0, u1, hw, ch] at y1], ...] (y from the base of the house), each a loft between
+ * two six-corner outlines (a vertical wall when they are equal, a sloped one when they differ); `extras` = boxes [u0, u1, hw, y0, y1].
+ */
+function stagedHouse(stages, extras = [], o = {}) {
+  return (hb, col, dark, f) => {
+    stages.forEach(([y0, y1, a, b], k) => hb.loft(stageRing(a), y0, stageRing(b), y1, shade(col, 0.97 + 0.05 * (k % 2)), MAT.HULL, { bottom: k === 0 }));
+    for (const [u0, u1, hw, y0, y1] of extras) hb.block({ x0: u0, x1: u1, hw, y0, y1 }, shade(col, 1.05), MAT.HULL);
+    for (let i = 0; i < f.n; i++) {
+      const z = (i - (f.n - 1) / 2) * f.spacing;
+      hb.block({ x0: f.port - 0.3, x1: f.port + 0.3, hw: o.hw ?? 0.7, zc: z, y0: f.trunY - (o.hh ?? 0.7), y1: f.trunY + (o.hh ?? 0.7) }, dark, MAT.DARK);
+    }
+  };
+}
+
+/**
+ * A gun house drawn from the cross-sections read on the reference model (mountdata.js): each solid is an extrusion or a loft between two outlines, the gun ports are dark plates in the face.
+ * o: { port: [half width, half height] of the ports }
+ */
+function measuredHouse(key, o = {}) {
+  return (hb, col, dark, f) => {
+    HOUSE_DATA[key].forEach(({ skin, poly }, k) => {
+      const c = shade(col, 0.96 + 0.06 * (k % 2));
+      if (poly) { hb.poly3d(poly.verts, poly.faces, c, MAT.HULL); return; }
+      for (let i = 0; i + 1 < skin.length; i++) hb.loft(skin[i][1], skin[i][0], skin[i + 1][1], skin[i + 1][0], c, MAT.HULL, { top: i + 2 === skin.length, bottom: i === 0 });
+    });
+    for (let i = 0; i < f.n; i++) {
+      const z = (i - (f.n - 1) / 2) * f.spacing;
+      const px = f.port ?? f.face - 0.3;
+      hb.block({ x0: px - 0.3, x1: px + 0.3, hw: o.hw ?? 0.7, zc: z, y0: f.trunY - (o.hh ?? 0.7), y1: f.trunY + (o.hh ?? 0.7) }, dark, MAT.DARK);
+    }
+  };
+}
+
+const HOUSES = { dop105: houseDop105, de150_1: houseMpl28, type89c: measuredHouse('type89c', { hw: 0.3, hh: 0.3 }), drh28_283: houseDrhLC28, it120o: houseIt120o, type3c_127: houseType3C, mk42: houseMk42, type3_120: houseType3_120, de37: houseFlak37, mk7: houseMk7, type94: stagedHouse([[0.38, 2.0, [-8.2, 8.6, 6.9, 3.5], [-7.9, 7.25, 6.0, 3.0]], [2.0, 3.0, [-8.0, 7.1, 6.9, 3.0], [-7.95, 6.1, 5.3, 2.6]], [3.0, 3.9, [-7.95, 6.1, 5.3, 2.6], [-7.1, 5.0, 4.4, 2.0]]], [], { hw: 1.0, hh: 0.9 }), type3_155: stagedHouse([[0, 1.5, [-4.8, 3.0, 3.0, 1.2], [-4.8, 2.85, 3.0, 1.2]], [1.5, 2.1, [-4.8, 2.85, 3.0, 1.2], [-4.8, 1.7, 3.1, 1.0]]], [[-3.7, -0.7, 4.3, 2.0, 3.0]], { hw: 0.4, hh: 0.4 }), drh28_150: houseDrh28, lit381: houseLit381, lit152: houseLit152, rich380: houseRich380, fr152: houseFr152, it152: houseIt152, us152: houseUs152, brit152: houseBrit152, it120: houseIt120, de150_2: houseDe150_2, fr138: houseMk30, brit120: houseBrit120, type3_127: houseType3_127, brit203: houseBrit203, type41_152: houseType41_152, us203: houseUs203, fr203: houseFr203, fr152_30: houseFr152_30, zara203: houseZara203, type3_203: houseType3_203, drh203: houseDrh203, drh34: houseDrh34, mk28: houseMk28, mk30: houseMk30 };
 
 /**
  * Paint the flat roof of a gun house: `top.col` recolours it (Kriegsmarine turret tops were dark grey); `top.bands` = [stripe, ground]
@@ -425,7 +517,27 @@ function makeFamily(s, f) {
   return { house: hb.build(), guns: gb.build(), trunnion: [f.trunX, f.trunY], muzzleX: f.fwd, barrelLen: f.fwd, height: f.h, recoil: f.recoil, lift: f.lift };
 }
 
+/**
+ * The mount as the game builds it; when the record carries `look` ('<ship>/<kind>': an element copied from the reference model of that ship, see elements.js), its house and its barrels
+ * are the model's own objects, in the mount's frame (the house at the training axis, the barrels at the trunnion), whatever the game's family says about the shape.
+ */
 function makeMount(s) {
+  const mm = makeMountProcedural(s);
+  if (!s.look) return mm;
+  const [ship] = s.look.split('/'), el = ELEMENTS[ship], k = elementKind(s.look);
+  if (!k || !k.house) return mm;
+  const hb = new MeshBuilder(), gb = new MeshBuilder();
+  // the texture colours of the model only give the lights and darks: the paint is the game's (the colour of the ship's structure), so that the copies belong to their ship and keep its livery
+  const pal = { hull: s.col || '#6b7076', deck: '#6b6258', sup: s.col || '#6b7076' };
+  const ref = reference([k.house], el.MOUNT_SCALE);
+  paintInto(hb, k.house, el.MOUNT_SCALE, pal, 'part', ref);
+  let guns = mm.guns;
+  if (k.guns) { paintInto(gb, k.guns, el.MOUNT_SCALE, pal, 'part', ref); guns = gb.build(); }
+  else if (s.kind === 'aa') guns = gb.build();                  // a light mount whose guns are part of the copied object: no separate barrels
+  return { ...mm, house: hb.build(), guns, ...(k.trunnion ? { trunnion: k.trunnion.slice(), muzzleX: k.muzzle, barrelLen: k.muzzle } : {}) };
+}
+
+function makeMountProcedural(s) {
   const fam = s.variant && FAMILY[s.variant];
   if (fam && HOUSES[s.variant]) return makeFamily(s, fam);
   const col = rgb(s.col || '#6b7076');
@@ -525,6 +637,14 @@ function aaMount(hb, gb, s, col, dark) {
     hb.block({ x0: -0.55, x1: 0.45, hw: 0.5, y0: 0.55, y1: 1.4, tx0: -0.5, tx1: 0.3, thw: 0.45 }, col, MAT.HULL);
     for (let i = 0; i < n; i++) gb.rod(-0.35, 1.8, 0, (i - (n - 1) / 2) * 0.24, 0.07, 0.045, dark, MAT.DARK, { seg: 8 });
     s._tx = 0.2; s._ty = 1.2; s._len = 1.8;
+    return;
+  }
+  if (v === 'iijn25' && n === 3) {   // the shielded triple 25 mm Type 96, measured on a reference model: a 3.6 m round base, a domed shield, three barrels side by side through the slot in front
+    hb.cylinder(0, 0, 0, 1.8, 1.8, 0.55, shade(col, 0.88), MAT.HULL, { seg: 16 });
+    hb.sphere(-0.1, 0.5, 0, 1.7, 1.15, 1.7, col, MAT.HULL, { half: true, seg: 16, rings: 6 });
+    hb.block({ x0: 0.9, x1: 1.55, hw: 0.95, y0: 0.7, y1: 1.45, tx0: 1.0, tx1: 1.45, thw: 0.7 }, shade(col, 0.82), MAT.DARK);   // the slot
+    for (let i = 0; i < n; i++) gb.rod(0.2, 2.1, 0, (i - 1) * 0.42, 0.07, 0.05, dark, MAT.DARK, { seg: 8 });
+    s._tx = 0.6; s._ty = 1.0; s._len = 1.6;
     return;
   }
   if (v === 'iijn25') {   // shielded triple 25 mm

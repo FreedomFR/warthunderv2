@@ -1,0 +1,67 @@
+{
+ "ship": "Yamato",
+ "elements": [
+  {
+   "id": "t46",
+   "type": "main",
+   "material": "JGM164_460mm45",
+   "min_tris": 5000,
+   "split": true,
+   "barrel_len": 6,
+   "cal": 460,
+   "group": "main"
+  },
+  {
+   "id": "t155",
+   "type": "sec155",
+   "material": "JGS156_155mm_60",
+   "min_tris": 3000,
+   "split": true,
+   "barrel_len": 3,
+   "cal": 155,
+   "group": "sec"
+  },
+  {
+   "id": "c127a",
+   "type": "sec127",
+   "material": "JGS157_127mm40_Type89_Mod_A",
+   "min_tris": 2000,
+   "split": true,
+   "barrel_len": 1.5,
+   "cal": 127,
+   "group": "sec"
+  },
+  {
+   "id": "m127",
+   "type": "sec127",
+   "material": "JGS009_127mm40_Type_89",
+   "min_tris": 2000,
+   "split": true,
+   "barrel_len": 1.5,
+   "cal": 127,
+   "group": "sec"
+  },
+  {
+   "id": "s25",
+   "type": "t25",
+   "material": "JGA004_25mm_Type96_Triple",
+   "min_tris": 300,
+   "facing": "mass",
+   "group": "aa"
+  },
+  {
+   "id": "o25",
+   "type": "t25",
+   "material": "JGA010_25mm_Type96",
+   "min_tris": 300,
+   "facing": "mass",
+   "group": "aa"
+  }
+ ],
+ "align": {
+  "dx": 0,
+  "dy": 0,
+  "dz": 0,
+  "note": "the hull is now the v4 model itself: no alignment"
+ }
+}

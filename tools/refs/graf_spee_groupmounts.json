@@ -1,0 +1,54 @@
+{
+ "ship": "Admiral Graf Spee",
+ "elements": [
+  {
+   "id": "t283",
+   "type": "main",
+   "cal": 283,
+   "group": "main",
+   "material": "280mm_SK_C-28",
+   "min_tris": 2000,
+   "split": true,
+   "barrel_len": 5
+  },
+  {
+   "id": "s150",
+   "type": "sec150",
+   "cal": 150,
+   "group": "sec",
+   "material": "15_cm_SK_C-28_Single",
+   "min_tris": 150,
+   "split": true,
+   "barrel_len": 2.5,
+   "split_axis": "z"
+  },
+  {
+   "id": "d105",
+   "type": "sec105",
+   "cal": 105,
+   "group": "sec",
+   "material": "105mm_SK_C-33",
+   "min_tris": 1000,
+   "split": true,
+   "barrel_len": 2.5
+  },
+  {
+   "id": "a37",
+   "type": "t37",
+   "cal": 37,
+   "group": "aa",
+   "material": "37mm_SK_C-30",
+   "min_tris": 1000,
+   "facing": "mass"
+  },
+  {
+   "id": "a20",
+   "type": "o20",
+   "cal": 20,
+   "group": "aa",
+   "material": "20mm_Flak_38",
+   "min_tris": 500,
+   "facing": "mass"
+  }
+ ]
+}

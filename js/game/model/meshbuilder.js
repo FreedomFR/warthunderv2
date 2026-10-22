@@ -37,6 +37,7 @@ export const MAT = {
   GRAVEL: 25,   // packed earth and gravel of the yards, shoulders and roads of a base
 };
 
+import { triangulate } from './triangulate.js';
 import { bakeAO } from './ao.js';
 
 export const VERTEX_STRIDE = 24;
@@ -121,6 +122,22 @@ export class MeshBuilder {
     return this.p.length / 3 - 1;
   }
   tri(a, b, c) { this.idx.push(a, b, c); }
+
+  /** Append ready-made geometry (a baked reference mesh): pos / nrm = x y z per vertex, rgb = 0..255 per vertex, idx = triangles; everything goes through the current transform. */
+  raw(pos, nrm, rgb, idx, mat = MAT.HULL, ao = this.ao) {
+    const base = this.p.length / 3, n = pos.length / 3;
+    for (let i = 0; i < n; i++) this.vert(pos[i * 3], pos[i * 3 + 1], pos[i * 3 + 2], nrm[i * 3], nrm[i * 3 + 1], nrm[i * 3 + 2], [rgb[i * 3], rgb[i * 3 + 1], rgb[i * 3 + 2]], mat, ao);
+    for (let i = 0; i < idx.length; i++) this.idx.push(base + idx[i]);
+    return this;
+  }
+
+  /** Run `fn` for its bounding boxes only (`solids`: the arcs and the clearances are read from them): what it draws is thrown away. */
+  ghost(fn) {
+    const L = [this.p.length, this.n.length, this.c.length, this.idx.length];
+    fn();
+    this.p.length = L[0]; this.n.length = L[1]; this.c.length = L[2]; this.idx.length = L[3];
+    return this;
+  }
   quadIdx(a, b, c, d) { this.idx.push(a, b, c, a, c, d); }
 
   /** world(position) of the last vertex pushed through the current transform (for oriented tests) */
@@ -273,6 +290,83 @@ export class MeshBuilder {
         const j = (i + 1) % n;
         this.triFlat([cx, y0, cz], [poly[i][0], y0, poly[i][1]], [poly[j][0], y0, poly[j][1]], o.sideCol || col, mat, ref, ao * 0.6);
       }
+    }
+    return this;
+  }
+
+  /**
+   * Extruded polygon with holes from y0 to y1 (any outline, concave too): rings = [outer, hole, ...] as [x, z] points, flat caps. The side faces face away from the solid on every ring.
+   */
+  slab(rings, y0, y1, col, mat = MAT.HULL, o = {}) {
+    const outer = rings[0];
+    if (this.solids) {
+      this._track(Math.min(...outer.map((q) => q[0])), Math.max(...outer.map((q) => q[0])), y0, y1, Math.min(...outer.map((q) => q[1])), Math.max(...outer.map((q) => q[1])));
+      const m = this.m;
+      this.solids[this.solids.length - 1].poly = outer.map((q) => [m[0] * q[0] + m[8] * q[1] + m[12], m[2] * q[0] + m[10] * q[1] + m[14]]);
+    }
+    const area = (r) => { let s = 0; for (let i = 0; i < r.length; i++) { const a = r[i], b = r[(i + 1) % r.length]; s += a[0] * b[1] - b[0] * a[1]; } return s; };
+    const rs = rings.map((r, k) => ((area(r) > 0) === (k === 0) ? r : r.slice().reverse()));       // outer counter-clockwise, holes clockwise: the solid is on the left of every edge
+    const ao = o.ao ?? this.ao;
+    for (const r of rs) for (let i = 0; i < r.length; i++) {
+      const a = r[i], b = r[(i + 1) % r.length], dx = b[0] - a[0], dz = b[1] - a[1], l = Math.hypot(dx, dz) || 1;
+      const ref = [(a[0] + b[0]) / 2 - dz / l * 0.3, (y0 + y1) / 2, (a[1] + b[1]) / 2 + dx / l * 0.3];
+      this.quad([a[0], y0, a[1]], [b[0], y0, b[1]], [b[0], y1, b[1]], [a[0], y1, a[1]], o.sideCol || col, mat, ref, ao);
+    }
+    if (o.top !== false || o.bottom) {
+      const flat = rs.flat();
+      let cx = 0, cz = 0; for (const p of rs[0]) { cx += p[0]; cz += p[1]; }
+      const ref = [cx / rs[0].length, (y0 + y1) / 2, cz / rs[0].length];
+      for (const [i, j, k] of triangulate(rs)) {
+        if (o.top !== false) this.triFlat([flat[i][0], y1, flat[i][1]], [flat[j][0], y1, flat[j][1]], [flat[k][0], y1, flat[k][1]], o.topCol || col, o.topMat ?? mat, [flat[i][0], y0, flat[i][1]], ao);
+        if (o.bottom) this.triFlat([flat[i][0], y0, flat[i][1]], [flat[j][0], y0, flat[j][1]], [flat[k][0], y0, flat[k][1]], o.sideCol || col, mat, [flat[i][0], y1, flat[i][1]], ao * 0.6);
+      }
+      void ref;
+    }
+    return this;
+  }
+
+  /**
+   * A convex polyhedron from its plane faces: verts = [[x, y, z], ...], faces = [[i, j, ...], ...] (each a loop of vertex indices round a flat face, either way round). The faces are oriented away from the centre.
+   */
+  poly3d(verts, faces, col, mat = MAT.HULL, o = {}) {
+    const ao = o.ao ?? this.ao;
+    let cx = 0, cy = 0, cz = 0;
+    for (const v of verts) { cx += v[0]; cy += v[1]; cz += v[2]; }
+    const ref = [cx / verts.length, cy / verts.length, cz / verts.length];
+    if (this.solids) {
+      this._track(Math.min(...verts.map((v) => v[0])), Math.max(...verts.map((v) => v[0])), Math.min(...verts.map((v) => v[1])), Math.max(...verts.map((v) => v[1])), Math.min(...verts.map((v) => v[2])), Math.max(...verts.map((v) => v[2])));
+    }
+    for (const f of faces) for (let i = 1; i + 1 < f.length; i++) this.triFlat(verts[f[0]], verts[f[i]], verts[f[i + 1]], col, mat, ref, ao);
+    return this;
+  }
+
+  /**
+   * Loft between two outlines of the same number of points (a tapered or leaning house): rA at y0, rB at y1, corresponding point to point, counter-clockwise; flat caps. Convex-ish
+   * outlines only for the caps' orientation test (the sides are oriented by the edges, the caps by the loft's axis).
+   */
+  loft(rA, y0, rB, y1, col, mat = MAT.HULL, o = {}) {
+    const n = rA.length, ao = o.ao ?? this.ao;
+    if (this.solids) {
+      const xs = [...rA, ...rB].map((q) => q[0]), zs = [...rA, ...rB].map((q) => q[1]);
+      this._track(Math.min(...xs), Math.max(...xs), y0, y1, Math.min(...zs), Math.max(...zs));
+      const m = this.m;
+      this.solids[this.solids.length - 1].poly = rA.map((q) => [m[0] * q[0] + m[8] * q[1] + m[12], m[2] * q[0] + m[10] * q[1] + m[14]]);
+    }
+    let sgn = 0; for (let i = 0; i < n; i++) { const a = rA[i], b = rA[(i + 1) % n]; sgn += a[0] * b[1] - b[0] * a[1]; }
+    const ccw = sgn > 0;
+    for (let i = 0; i < n; i++) {
+      const j = (i + 1) % n, a = rA[i], b = rA[j];
+      const dx = b[0] - a[0], dz = b[1] - a[1], l = Math.hypot(dx, dz) || 1, s = ccw ? 1 : -1;
+      const ref = [(a[0] + b[0]) / 2 - s * dz / l * 0.3, (y0 + y1) / 2, (a[1] + b[1]) / 2 + s * dx / l * 0.3];
+      const A = [a[0], y0, a[1]], B = [b[0], y0, b[1]], C = [rB[j][0], y1, rB[j][1]], D = [rB[i][0], y1, rB[i][1]];
+      this.triFlat(A, B, C, col, mat, ref, ao);                                   // two triangles: the side of a twisted loft is not flat
+      this.triFlat(A, C, D, col, mat, ref, ao);
+    }
+    for (const [ring, y, ry] of [[rB, y1, y0], [rA, y0, y1]]) {
+      if (y === y0 && !o.bottom) continue;
+      if (y === y1 && o.top === false) continue;
+      const flat = ring;
+      for (const [i, j, k] of triangulate([ring])) this.triFlat([flat[i][0], y, flat[i][1]], [flat[j][0], y, flat[j][1]], [flat[k][0], y, flat[k][1]], o.topCol || col, o.topMat ?? mat, [flat[i][0], ry, flat[i][1]], y === y0 ? ao * 0.6 : ao);
     }
     return this;
   }
