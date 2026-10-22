@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased — the ships drawn from models take more of the model's colours
+
+- **The weather deck** of the models that keep it apart (`v4ship.js`): the horizontal faces of the hull plating above the water are now drawn with the deck material in the deck colour of the spec sheet (the Yamato's stained-black planking, the destroyers' linoleum), flat-lit. Their winding is not reliable in these models (the Yamato's deck faces are wound downwards), which is why the deck used to come out as the grey of the paint.
+- **Chroma**: the colour variations of the textures (rust, red lead, tarred plates, a painted marking) ride on the livery's paint (`CHROMA`, the chroma of the texture against the median chroma of the ship, bounded); the hull plating takes less of it than the structure.
+- `bake.py --split=<m> --splitarea=<m2> --rawout=<dir>` writes the mesh with its big triangles cut (a texture sampled at the vertices of a big triangle smears the paint) and the groups kept; tried on the Yamato, the cut triangles run across the texture islands and paint red slivers on the deck, so the Yamato file is unchanged.
+
 ## Unreleased — the right-hand panels no longer overlap
 
 - The fleets, the reload rings and the ship's sheet are stacked in a column that follows their real heights (`layoutRight` in `ui/ui.js`): the rings sit under the fleets table (it grows with the number of ships: they used to be drawn over its last rows) and the sheet takes what is left, scrolling when short.

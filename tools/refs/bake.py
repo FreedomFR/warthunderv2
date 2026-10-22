@@ -32,10 +32,12 @@ print(f'{nv} vertices, {nf} triangles', file=sys.stderr)
 
 # long triangles are split first (midpoints, uv interpolated): a texture is sampled at the vertices, so a big flat plate (a flight deck, a hull plank) must have vertices wherever its paint changes
 SPLIT = float(fl.get('split', 2.0))
+SPLIT_AREA = float(fl.get('splitarea', 0))
 def split_long(pos, uv, vm, idx, L):
     for _ in range(6):
         e = np.stack([np.linalg.norm(pos[idx[:, 1]] - pos[idx[:, 0]], axis=1), np.linalg.norm(pos[idx[:, 2]] - pos[idx[:, 1]], axis=1), np.linalg.norm(pos[idx[:, 0]] - pos[idx[:, 2]], axis=1)], axis=1)
-        big = e.max(axis=1) > L
+        ar = np.linalg.norm(np.cross(pos[idx[:, 1]] - pos[idx[:, 0]], pos[idx[:, 2]] - pos[idx[:, 0]]), axis=1) / 2
+        big = (e.max(axis=1) > L) & (ar > SPLIT_AREA)        # (thin long things, rails and barrels, are left as they are)
         if not big.any():
             break
         keep, tb = idx[~big], idx[big]
@@ -53,8 +55,20 @@ def split_long(pos, uv, vm, idx, L):
         new = np.concatenate([np.stack([a, ab, ca], 1), np.stack([ab, b, bc], 1), np.stack([ca, bc, c], 1), np.stack([ab, bc, ca], 1)])
         idx = np.concatenate([keep, new.astype(idx.dtype)])
     return pos, uv, vm, idx
+vp = np.fromfile(os.path.join(src, 'vpart.i32'), dtype=np.int32) if os.path.exists(os.path.join(src, 'vpart.i32')) else None
 if SPLIT > 0:
+    nv0 = len(pos)
     pos, uv, vm, idx = split_long(pos, uv, vm, idx.astype(np.int64), SPLIT)
+    if vp is not None:       # a new vertex is on the middle of an edge: it belongs to the group of the triangle it was cut from (the group of the first corner of that edge)
+        vp = np.concatenate([vp, np.full(len(pos) - nv0, -1, dtype=np.int32)])
+        for _ in range(8):
+            bad = np.where(vp[idx[:, 0]] < 0)[0]
+            if len(bad) == 0: break
+            for c in range(3):
+                ok = (vp[idx[:, c]] >= 0)
+                for t in range(3):
+                    sel = ok & (vp[idx[:, t]] < 0)
+                    vp[idx[sel, t]] = vp[idx[sel, c]]
     nv, nf = len(pos), len(idx)
     print(f'split to {nv} vertices, {nf} triangles', file=sys.stderr)
 # the colour of the textures at each vertex
@@ -84,6 +98,16 @@ for mi, m in enumerate(info['mats']):
         except Exception as e:
             print('texture', m['diffuse'], e, file=sys.stderr)
     col[sel] = f
+RAWOUT = fl.get('rawout')
+if RAWOUT:       # the split mesh with its colours and groups, as `bakeraw` writes it: for shipgroups.py (a texture sampled at the vertices of big triangles smears the paint, so they are cut first)
+    os.makedirs(RAWOUT, exist_ok=True)
+    pos.astype(np.float32).tofile(os.path.join(RAWOUT, 'pos.f32')); idx.astype(np.uint32).tofile(os.path.join(RAWOUT, 'idx.u32'))
+    (np.clip(col, 0, 1) * 255).astype(np.uint8).tofile(os.path.join(RAWOUT, 'colfull.u8'))
+    if vp is not None: vp.astype(np.int32).tofile(os.path.join(RAWOUT, 'vpart.i32'))
+    vm.astype(np.int16).tofile(os.path.join(RAWOUT, 'vmat.i16')); uv.astype(np.float32).tofile(os.path.join(RAWOUT, 'uv.f32'))
+    json.dump({**info, 'vertices': int(len(pos)), 'triangles': int(len(idx))}, open(os.path.join(RAWOUT, 'info.json'), 'w'))
+    print(f'split mesh written to {RAWOUT}: {len(pos)} vertices, {len(idx)} triangles', file=sys.stderr)
+    sys.exit(0)
 (np.clip(col, 0, 1) * 255).astype(np.uint8).tofile(os.path.join(src, 'colfull.u8'))               # the full resolution colours, for bakemounts.py
 print(f'colours read ({time.time() - t0:.0f} s)', file=sys.stderr)
 
