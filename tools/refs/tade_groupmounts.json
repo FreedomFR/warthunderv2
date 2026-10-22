@@ -1,0 +1,101 @@
+{
+ "ship": "Tade",
+ "layout": "refs/tade/layout.json",
+ "elements": [
+  {
+   "id": "g0",
+   "type": "main",
+   "cal": 120,
+   "group": "main",
+   "layout_match": {
+    "group": "main",
+    "name": "m0"
+   },
+   "radius": 4.0,
+   "below": 1.0,
+   "above": 2.5,
+   "materials": [
+    "b21d938b",
+    "12b354da",
+    "77880b29"
+   ],
+   "gun_box": [
+    32.05,
+    36.0,
+    6.2,
+    7.4,
+    -0.35,
+    0.35
+   ],
+   "no_cradle": true,
+   "barrel_len": 1.2,
+   "radius_x": 5.4,
+   "radius_z": 1.7,
+   "min_part_tris": 1
+  },
+  {
+   "id": "g1",
+   "type": "main",
+   "cal": 120,
+   "group": "main",
+   "layout_match": {
+    "group": "main",
+    "name": "m1"
+   },
+   "radius": 4.0,
+   "below": 1.0,
+   "above": 2.5,
+   "materials": [
+    "b21d938b",
+    "b7ce36d3",
+    "12b354da",
+    "77880b29"
+   ],
+   "gun_box": [
+    2.55,
+    6.5,
+    6.2,
+    7.4,
+    -0.35,
+    0.35
+   ],
+   "no_cradle": true,
+   "barrel_len": 1.2,
+   "radius_x": 5.4,
+   "radius_z": 1.7,
+   "min_part_tris": 1
+  },
+  {
+   "id": "g2",
+   "type": "main",
+   "cal": 120,
+   "group": "main",
+   "layout_match": {
+    "group": "main",
+    "name": "m2"
+   },
+   "radius": 4.0,
+   "below": 1.0,
+   "above": 2.5,
+   "materials": [
+    "b21d938b",
+    "b7ce36d3",
+    "12b354da",
+    "77880b29"
+   ],
+   "gun_box": [
+    -27.5,
+    -22.45,
+    6.2,
+    7.4,
+    -0.35,
+    0.35
+   ],
+   "no_cradle": true,
+   "barrel_len": 1.2,
+   "radius_x": 5.4,
+   "radius_z": 1.7,
+   "min_part_tris": 1
+  }
+ ]
+}

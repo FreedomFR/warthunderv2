@@ -1,0 +1,86 @@
+{
+ "ship": "Kagero",
+ "layout": "refs/kagero_gltf/layout.json",
+ "elements": [
+  {
+   "id": "tA",
+   "type": "main",
+   "cal": 127,
+   "group": "main",
+   "layout_match": {
+    "group": "main",
+    "name": [
+     "m0",
+     "m1"
+    ]
+   },
+   "radius": 5.0,
+   "below": 0.6,
+   "above": 5.5,
+   "materials": [
+    "e1bbcaf3",
+    "4ff91d0f",
+    "306b13b2",
+    "9febe4ac"
+   ],
+   "split": true,
+   "barrel_len": 2.0,
+   "gun_materials": [
+    "306b13b2"
+   ],
+   "min_part_tris": 1
+  },
+  {
+   "id": "tY",
+   "type": "main",
+   "cal": 127,
+   "group": "main",
+   "layout_match": {
+    "group": "main",
+    "name": "m2"
+   },
+   "radius": 5.0,
+   "below": 2.5,
+   "above": 5.5,
+   "materials": [
+    "e1bbcaf3",
+    "4ff91d0f",
+    "306b13b2"
+   ],
+   "split": true,
+   "barrel_len": 2.0,
+   "gun_materials": [
+    "306b13b2"
+   ],
+   "min_part_tris": 1
+  },
+  {
+   "id": "t25",
+   "type": "t25",
+   "cal": 25,
+   "group": "aa",
+   "layout_match": {
+    "aa": true,
+    "n": 3
+   },
+   "radius": 1.35,
+   "below": 0.4,
+   "above": 2.8,
+   "facing": "mass"
+  },
+  {
+   "id": "d25",
+   "type": "d25",
+   "cal": 25,
+   "group": "aa",
+   "layout_match": {
+    "aa": true,
+    "n": 2
+   },
+   "radius": 1.0,
+   "below": 0.4,
+   "above": 2.8,
+   "facing": "mass"
+  }
+ ]
+}

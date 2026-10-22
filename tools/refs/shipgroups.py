@@ -47,6 +47,8 @@ def pack(tris):
 
 
 skip_g = set(cfg.get('skip_groups', []))
+if cfg.get('use_claimed') and os.path.exists(os.path.join(src, 'claimed.json')):      # the pieces groupmounts.py took for the mounts (a model whose materials are merged has no group per mount)
+    skip_g |= set(json.load(open(os.path.join(src, 'claimed.json'))))
 skip_m = [re.compile(x) for x in cfg.get('skip_material', [])]
 rules = [(re.compile(r['match']) if 'match' in r else None, re.compile(r['group']) if 'group' in r else None, r) for r in cfg['rules']]
 cuts = {}
@@ -72,14 +74,18 @@ for k, p in enumerate(parts):
         for c in gcuts:
             x0, x1, y0, y1, z0, z1 = c['box']
             inb = (cen[:, 0] >= x0) & (cen[:, 0] <= x1) & (cen[:, 1] >= y0) & (cen[:, 1] <= y1) & (cen[:, 2] >= z0) & (cen[:, 2] <= z1) & ~taken
-            part_tris.setdefault(c['id'], {'rule': c, 'tris': []})['tris'].append(t[inb])
+            if not c.get('drop'):      # drop: the triangles in the box are left out (the screws and rudders: the game draws and turns its own)
+                part_tris.setdefault(c['id'], {'rule': c, 'tris': []})['tris'].append(t[inb])
             taken |= inb
         t = t[~taken]
         if len(t) == 0:
             continue
     dest = 'static'; rule = None
+    Vp = P[I[t]].reshape(-1, 3); plen = float(Vp[:, 0].max() - Vp[:, 0].min())
     for rm, rg, r in rules:
-        if (rm is not None and rm.search(mname)) or (rg is not None and rg.search(p['name'])):
+        if 'min_len' in r and plen < r['min_len']:      # a rule for the long pieces only (the hull plating of a model whose materials are merged)
+            continue
+        if (rm is not None and rm.search(mname)) or (rg is not None and rg.search(p['name'])) or (rm is None and rg is None and 'min_len' in r):
             dest = r['to']; rule = r; break
     if dest == 'part':
         pid = rule.get('id', p['name'])

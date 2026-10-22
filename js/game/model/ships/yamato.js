@@ -7,6 +7,7 @@ import { kit } from './kit.js';
 // (The thin tub plates and the two sponsons under the 25 mm shields of the first model are left out: the shields are copied from the reference model with their own feet.)
 // [y0, y1, [outline, hole, ...]]: a solid between two heights over the waterline, each ring a list of [x, z]
 import * as V4 from './yamato_v4.js';
+import { AA_AT } from './yamato_aa.js';
 
 const MASSES = [
   [8.25, 8.5, [[[29.51,-6.79],[29.38,6.58],[30.26,7.08],[30.67,6.98],[30.91,6.61],[31.44,6.77],[32.81,6.61],[33.22,7.06],[33.96,6.95],[34.32,6.64],[34.34,6.2],[34.89,6.07],[35.99,5.25],[36.5,5.44],[36.98,5.17],[37.31,4.64],[37.11,4.13],[37.94,3.03],[38.06,2.48],[38.77,2.21],[38.94,1.47],[38.47,0.95],[38.64,-0.41],[38.47,-0.95],[38.92,-1.36],[38.82,-2.1],[38.5,-2.46],[38.06,-2.48],[37.94,-3.03],[37.11,-4.13],[37.31,-4.64],[37.03,-5.12],[36.5,-5.44],[35.99,-5.25],[34.89,-6.07],[34.34,-6.2],[34.32,-6.64],[34.02,-6.93],[33.34,-7.08],[32.81,-6.61],[31.44,-6.77],[30.91,-6.61],[30.67,-6.98],[30.2,-7.08]]]],
@@ -230,6 +231,7 @@ function yamatoExtras({ b, hull, X, Y, pal, model, MAT, rgb, shade, part, PT, DT
 }
 
 export const YAMATO = {
+  aaAt: AA_AT,
   own: true, noCat: true, extra: yamatoExtras, v4: V4,
     mainVariant: 'type94', secVariant: ['type3_155', 'type89c'], dirKind: 'drum', houseH: 4.33, noFittings: true,
     // the upper deck runs aft to 87 % of the length, then steps down to the quarterdeck

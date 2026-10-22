@@ -5,6 +5,7 @@ import { SHIPS as UK } from './specs/uk.js';
 import { SHIPS as GERMANY } from './specs/germany.js';
 import { SHIPS as FRANCE } from './specs/france.js';
 import { SHIPS as ITALY } from './specs/italy.js';
+import { VARIANTS, deriveSpec } from './variants.js';
 
 export const NATIONS = [
   { id: 'USA', name: 'États-Unis', adj: 'US Navy', flag: '#3c5a9a' },
@@ -23,7 +24,8 @@ export const TYPES = [
   { id: 'CV', name: 'Porte-avions' },
 ];
 
-export const ALL_SHIPS = [...USA, ...JAPAN, ...UK, ...GERMANY, ...FRANCE, ...ITALY];
+const BASE_SHIPS = [...USA, ...JAPAN, ...UK, ...GERMANY, ...FRANCE, ...ITALY];
+export const ALL_SHIPS = [...BASE_SHIPS, ...VARIANTS.map((v) => deriveSpec(BASE_SHIPS.find((s) => s.id === v.base), v))];
 export const BY_ID = Object.fromEntries(ALL_SHIPS.map((s) => [s.id, s]));
 export const typeName = (t) => TYPES.find((x) => x.id === t)?.name || t;
 export const nationName = (n) => NATIONS.find((x) => x.id === n)?.name || n;

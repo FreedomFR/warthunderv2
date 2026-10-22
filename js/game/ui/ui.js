@@ -369,6 +369,22 @@ export function createUI(game) {
   if (game.audio.muted) setTimeout(() => { const b = document.getElementById('btn-sound'); if (b) b.textContent = 'Son coupé'; }, 0);
 
   root.append(labelsBox, setup, topbar, teamsHud, camBar, caption, tip, minimap.el, shipInfo, reloads.el, planeInfo, feed, banner, loadBox, results, score, hitlog, helpEl, settings);
+  // the right-hand column: the fleets, then the reload rings, then the ship's sheet, each in what the others leave (their sizes change with the number of ships, of mounts and of lines)
+  const BOTTOM = 66, GAP = 8;
+  const shown = (el) => el.getClientRects().length > 0;      // (offsetParent is null for a fixed element)
+  function layoutRight() {
+    if (document.body.classList.contains('mobile')) return;      // the phone's layout is in mobileStyle.js
+    if (!shown(teamsHud) && !shown(reloads.el) && !shown(shipInfo)) return;
+    const vh = window.innerHeight, top = (shown(teamsHud) ? teamsHud.getBoundingClientRect().bottom : 58) + GAP;
+    const set = (el, k, v) => { if (el.style[k] !== v) el.style[k] = v; };
+    const shipH = shown(shipInfo) ? Math.min(shipInfo.scrollHeight + 20, 300) : 0, avail = vh - top - BOTTOM;
+    set(reloads.el, 'top', `${Math.round(top)}px`);
+    set(reloads.el, 'maxHeight', `${Math.max(90, Math.round(avail - (shipH ? shipH + GAP : 0)))}px`);
+    const rb = shown(reloads.el) ? reloads.el.getBoundingClientRect().bottom + GAP : top;
+    set(shipInfo, 'maxHeight', `${Math.max(120, Math.round(vh - BOTTOM - rb))}px`);
+  }
+  if (window.ResizeObserver) { const ro = new ResizeObserver(layoutRight); for (const el of [teamsHud, reloads.el, shipInfo]) ro.observe(el); }
+  window.addEventListener('resize', layoutRight);
   refreshToggles();
   setHudVisible(false);
 
@@ -654,7 +670,9 @@ export function createUI(game) {
     // kill feed
     const now = performance.now();
     state.killFeed = state.killFeed.filter((k) => now - k.t < 9000);
-    feed.replaceChildren(...state.killFeed.map((k) => h('div', { class: 'kline' }, h('span', {}, (k.plane ? '✈ ' : '') + k.text), h('i', { style: `background:${k.c2}` }))));
+    // each line keeps its element: rebuilding them every frame replayed the fade-in animation (the lines flickered)
+    const lines = state.killFeed.map((k) => k.el || (k.el = h('div', { class: 'kline' }, h('span', {}, (k.plane ? '✈ ' : '') + k.text), h('i', { style: `background:${k.c2}` }))));
+    if (lines.length !== feed.children.length || lines.some((el, i) => feed.children[i] !== el)) feed.replaceChildren(...lines);
     // what the camera shows and who it follows
     updateCaption();
     // selected ship

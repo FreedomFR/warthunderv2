@@ -11,6 +11,9 @@ import { KAGERO } from './ships/kagero.js';
 import { GRAF_SPEE } from './ships/graf_spee.js';
 import { TADE } from './ships/tade.js';
 import * as SHOKAKU_V4 from './ships/shokaku_v4.js';
+import * as IOWA_V4 from './ships/iowa_v4.js';
+import { TADE_PB39_AA, KAGERO_1944_AA, SHOKAKU_1944_AA } from './ships/variants_aa.js';
+import { VARIANTS } from '../data/variants.js';
 import { GIOBERTI } from './ships/gioberti.js';
 import { ADAMS } from './ships/adams.js';
 import { YAMATO } from './ships/yamato.js';
@@ -141,9 +144,10 @@ export const TWEAKS = {
   // silhouette) and NH 44538. Heights are above the local deck: 01 level 2.3 m, 02 level 4.8 m, forward bridge 13.2 m, the block around
   // the forward funnel 19.4 m, Mk 38 director 29.3-32.5 m; funnel tops 23.8 / 22.9 m; after director tower 18 m.
   iowa: {
+    v4: IOWA_V4, aaCap: { 40: 20, 20: 49 },      // 80 x 40 mm in 20 quads and 49 x 20 mm (1943 fit)
     mainVariant: 'mk7', secVariant: ['mk28'], houseH: 2.3,
     // freeboards from the profile: 13.5 m at the stem, about 6.5 m amidships, 7.8 m at the stern; a bulwark only round the bow
-    fb: [[0, 13.5], [0.04, 11.6], [0.08, 10.9], [0.12, 10.2], [0.16, 8.8], [0.2, 8.2], [0.26, 7.2], [0.42, 6.4], [0.5, 6.5], [0.7, 6.6], [0.85, 6.8], [0.95, 7.0], [1, 7.3]],
+    fb: [[0, 10.4], [0.02, 9.75], [0.056, 8.72], [0.093, 8.0], [0.15, 6.9], [0.204, 5.97], [0.26, 5.5], [0.315, 5.19], [0.5, 5.09], [0.8, 5.1], [0.87, 5.18], [0.906, 5.38], [0.944, 5.63], [1, 6.4]],      // the deck edge measured on the reference model (the v4 model is drawn on it)
     bulwarkF: [0, 0.07],
     bow: { rake: 6.2, pr: 1.6 }, stern: { overhang: 2.5 },
     // four shafts: the outboard ones on exposed shafts with a bracket and four-bladed screws, the inboard ones in skegs with five
@@ -1031,3 +1035,12 @@ export const TWEAKS = {
     },
   },
 };
+
+// The other fits of a ship (data/variants.js): the tweaks of the base with the differences. dropPlacements: the mounts of the model (names of its layout records) that this fit does not have;
+// aaAt: the light mounts it has that the model lacks; noTubes / v4Drop: the tubes are landed and not drawn.
+const VARIANT_TWEAKS = {
+  tade_pb39: { noTubes: true, v4Drop: ['tubes0', 'tubes1'], aaAt: TADE_PB39_AA, dropPlacements: ['m2'] },
+  kagero_1944: { aaAt: KAGERO_1944_AA, dropPlacements: ['m1'], v4Clean: [{ x: -27.2, z: 0, r: 2.7, y0: 5.6, maxArea: 1.5 }, { x: -27.2, z: 0, r: 4.4, y0: 5.6, maxArea: 0.12 }] },      // the roller path of the X turret
+  shokaku_1944: { aaAt: SHOKAKU_1944_AA },
+};
+for (const v of VARIANTS) TWEAKS[v.id] = { ...TWEAKS[v.base], ...VARIANT_TWEAKS[v.id] };

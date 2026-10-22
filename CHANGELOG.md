@@ -1,5 +1,54 @@
 # Changelog
 
+## Unreleased — nothing is left of a gun a fit has landed
+
+- Kagero 1944: pieces of other materials of the X turret (small sights, hand wheels) were left floating on its barbette, and its roller path was still drawn: the element takes them too (`9febe4ac`, window from 0.6 m under the pivot), and the variant cleans the small triangles of the barbette (`v4Clean`, `cutBaked`). Tade PB-39: the tip of the aft gun's barrel was outside its window (the window is 5.4 m long now) and stayed in the air.
+- The triples of the Kagero are cut out of a smaller window (1.35 m).
+
+## Unreleased — the armament checked against the real ships; three more ships (other fits)
+
+- Two research passes (real armament of every ship rebuilt from a model, against the game): the Iowa, the Graf Spee, the Adams and the Yamato's heavy guns match; see the gaps below.
+- **Yamato**: 24 single 25 mm added on the free deck of the model (`aaAt`, found by `tools/refs/freespots.mjs`): 46 triples + 24 singles = 162 barrels, the figure of April 1945.
+- **Three variants** (`data/variants.js`: a spec derived from its base's, `baseId` for the lookups the two share; `model/tweaks.js` `VARIANT_TWEAKS`): **Tade, Patrol Boat No. 39 (1940)** (the aft gun and both twin tube mounts landed, two triple 25 mm), **Kagero, Yukikaze 1944-45** (X turret removed, two triples on its barbette, 28 x 25 mm: 4 triples, 1 twin, 14 singles), **Shokaku, June 1944** (20 triples and 10 singles). The existing Tade (1922), Kagero (the model's fit) and Shokaku (June-October 1942, 18 triples) stay. The 35 ships are now 38.
+- New tweaks: `aaAt` (light mounts at given places, drawn as the mount of a model with `look`), `dropPlacements` (the mounts of the model a fit lacks), `noTubes`, `v4Drop` (parts not drawn); `groupmounts.py`: `min_part_tris: 1` for the mounts that can be taken away (small pieces would float).
+- Not simulated: depth charges, the 13.2 mm machine guns, the floatplanes of the battleships and cruisers. Differences left (see the research): Graf Spee 12 x 20 mm instead of 10, Gioberti has the 1937 fit (4 twin 13.2 mm).
+
+## Unreleased — the Iowa keeps her real number of light guns
+
+- The first Iowa from the model carried only 18 quads and 5 single 20 mm (the copies found by shape), against 20 quads (80 x 40 mm) and 49 x 20 mm in 1943. More 20 mm variants are found in the model (42 in all, `o20`, `o20b`, `o20c`, `o20d`, `instance_box` keeps the copies of a template of a few pieces to one place); the tweak `aaCap: { 40: 20, 20: 49 }` makes up the rest of the real count from the tweaks' list (copies of the model count first, the list stops at the cap); `shipbuilder.js` skips a list entry that stands within 3.5 m of a copy.
+- Other ships whose model has fewer light mounts than the sheet (Graf Spee 12 x 20 mm instead of 14, Gioberti 4 twin 13 mm instead of 6) keep the model's: give them `aaCap` to make up the number.
+
+## Unreleased — the USS Iowa built from its model, and hit volumes made from what is drawn
+
+- **USS Iowa** (model by OUTPISTON, CC-BY-NC-SA-4.0, see docs/CREDITS.md): 3 x 16 inch (their barrels, found by their material, elevate), 10 twin 5 inch, 18 quad 40 mm and 5 single 20 mm copied at the places the model has them; funnels, tower, directors, masts, radars, catapults and crane as parts. The deck edge of the hand-made hull was lowered to the model's (`fb` of the tweak): it was 1.4 to 1.9 m too high.
+- **`groupmounts.py` finds the copies of a mount by their shape** (`template`: the window round one instance; the same pieces, same size and same layout, turned by a multiple of 90 degrees, are looked for in the whole model: 10 twin 5 inch, 18 quads; the pieces that most copies share are kept as the template), `x_range` / `z_range` for a window that is not symmetric, `gun_min_len`.
+- **Hit volumes made from what is drawn** (`model/v4hit.js`, `sim/damage.js` `probeDrawn`): the ships drawn from a reference model had the hit volumes of the hand-made build, so about a third of the scars lay off the drawn surface. A grid of 0.5 m cells now holds the surfaces of the hull, of the structure and of each part (without the rods, wires and rails); a shell stops on the first cell it meets, the scar lies on it and its normal is the one of the drawn surface (the angle of the armour is then the real one); the procedural hull only says hull or deck. Scars on the drawn surface: 83 % on the Yamato (63 % before), 74 % on the Iowa.
+- Tests: the scars of the ships drawn from a reference model are judged apart (above 70 %), a hit within 0.8 m of the drawn surface is not a ghost for them, `elements` accepts an instance that lacks a piece of the first copy (1.2 m).
+
+## Unreleased — the Tade and the USS Adams built from their models
+
+- **Tade**: 3 single 120 mm (the barrel is cut out of the piece it is welded to: `gun_box`, in the model's frame; `no_cradle`, `radius_x` / `radius_z` for a window that is not square), tower, funnels, galley vent, tubes and masts as parts. **USS Adams**: 2 Mk 42 (the exposed barrel of each is the gun, the gunhouse stays), tower, director, funnels, masts, radars and tubes as parts. The Adams model's waterline is 6.9 m above its lowest point (the sonar dome and the skegs lie under it), measured on the bow, the stern and the pivot of the guns.
+- `test/hitbox.mjs` judges the ghost hits of the ships drawn from a reference model apart as well (below 20 %: their hit volumes are the hand-made ones); `test/arcs.mjs`: the Tade's B gun, with its real barrel length, clears the funnels 4 m away; `test/elements.mjs` accepts 2 copies.
+- Not done: **the weight**: the seven `_v4.js` files are 2.4 to 6.8 MB each (naval.html is 35 MB); dropping the pieces under 15 cm would save 16 %, a compressed encoding more.
+
+## Unreleased — the Kagero built from its model (materials merged)
+
+- The model has no named groups (the materials of its atlas are merged), so `groupmounts.py` takes **whole objects round the mount records of the game** (`layout`, `layout_match`, `radius`, `below`, `above`, optional `materials`): the pieces that lie entirely in the window, never cut; `gun_materials` separates the guns' pieces from the rest (a barrel touching its cradle is not one object); the pieces taken are written to `claimed.json` and `shipgroups.py` leaves them out of the ship (`use_claimed`). `shipgroups.py` also takes `drop` cuts (the screws and rudders) and `min_len` rules (the long pieces are the hull).
+- **Kagero**: hull, structure, bridge, funnels, masts, tubes as parts (cut out by the boxes of the layout), 3 twin 127 mm (the guns and cradles elevate), 2 triple and 1 double 25 mm, the model's camouflage in the paint's luminance; checked side by side. 226k triangles, the file weighs 6.7 MB (naval.html is now 23.6 MB).
+- `test/hitbox.mjs` judges the misses of the ships drawn from a reference model apart, as it does for the baked ones.
+
+## Unreleased — the ships drawn from models take more of the model's colours
+
+- **The weather deck** of the models that keep it apart (`v4ship.js`): the horizontal faces of the hull plating above the water are now drawn with the deck material in the deck colour of the spec sheet (the Yamato's stained-black planking, the destroyers' linoleum), flat-lit. Their winding is not reliable in these models (the Yamato's deck faces are wound downwards), which is why the deck used to come out as the grey of the paint.
+- **Chroma**: the colour variations of the textures (rust, red lead, tarred plates, a painted marking) ride on the livery's paint (`CHROMA`, the chroma of the texture against the median chroma of the ship, bounded); the hull plating takes less of it than the structure.
+- `bake.py --split=<m> --splitarea=<m2> --rawout=<dir>` writes the mesh with its big triangles cut (a texture sampled at the vertices of a big triangle smears the paint) and the groups kept; tried on the Yamato, the cut triangles run across the texture islands and paint red slivers on the deck, so the Yamato file is unchanged.
+
+## Unreleased — the right-hand panels no longer overlap
+
+- The fleets, the reload rings and the ship's sheet are stacked in a column that follows their real heights (`layoutRight` in `ui/ui.js`): the rings sit under the fleets table (it grows with the number of ships: they used to be drawn over its last rows) and the sheet takes what is left, scrolling when short.
+- The kill feed at the top flickered: its lines were rebuilt every frame, which replayed their fade-in each time; each line now keeps its element.
+- Phone: the reload rings had no touch layout (a 340 px panel over the middle of the screen); they are now small, under the menu button, shown only held sideways and while the ship's sheet is closed.
+
 ## Unreleased — Shokaku, Graf Spee and Gioberti built from the groups of their new models
 
 - The three models given as `.glb` files have no named groups, so **`tools/refs/glb2gltf.py`** unpacks them and **`tools/refs/splitparts.py`** makes the parts: the connected objects of each material (`<material>#k`), with an optional merge of close objects of a family (`--merge`, `--gap`, `--family`). From there the Yamato pipeline is unchanged: `groupmounts.py` (mounts), `shipgroups.py` (hull, structure, fine detail, parts), `ships/<id>_v4.js`, `ships/<id>_elements.js`.

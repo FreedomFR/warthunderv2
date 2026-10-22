@@ -2,9 +2,11 @@
 // the fine detail and the destroyable parts are replaced by the model's own triangles, recoloured with the game's paint so that the ship keeps its livery: the texture colour only decides what
 // is wood (a warm colour on an upward face: the planking) and how light or dark a spot is against its kind (a window, a hatch, a plate).
 import { MeshBuilder, MAT, rgb } from './meshbuilder.js';
-import { decodeBaked } from './bakedmesh.js';
+import { decodeBaked, cutBaked } from './bakedmesh.js';
+import { buildHitModel } from './v4hit.js';
 
 const lum = (r, g, b) => (0.3 * r + 0.59 * g + 0.11 * b) / 255;
+const CHROMA = 0.6, CHROMA_HULL = 0.4;      // how much of the texture's colour variations the paint takes (1 = all of it)
 
 /** Split a decoded piece into triangles of the materials it is drawn with. cls: 'hull' (plating), anything else (paint of the structure). */
 function paint(piece, scale, pal, cls, ref, maxY = Infinity) {
@@ -31,25 +33,33 @@ function paint(piece, scale, pal, cls, ref, maxY = Infinity) {
     const l = lum(r, g, b), m = Math.max(0.55, Math.min(1.35, l / ref.lum));
     const warm = (r - b) / 255 > 0.1 && r >= g;
     if (ny > 0.8 && warm) { const c = base.deck, k = Math.max(0.6, Math.min(1.3, l / ref.deck)); put(MAT.DECK, i, [c[0] * k, c[1] * k, c[2] * k]); continue; }
+    // the weather deck: the horizontal faces of the hull plating above the water (their winding is not reliable in these models: the face may be wound downwards), planking in the deck colour, lit as a deck
+    let cy = 0; for (let k = 0; k < 3; k++) cy += d.pos[d.idx[i + k] * 3 + 1];
+    if ((cls === 'hull' || cls === 'deck') && Math.abs(ny) > 0.8 && cy / 3 > 3) { const c = base.deck, k = Math.max(0.85, Math.min(1.15, l / ref.lum)); put(MAT.DECK, i, [c[0] * k, c[1] * k, c[2] * k], true); continue; }
     if (cls === 'flightdeck' && ny > 0.8) { put(MAT.DECK, i, base.deck, true); continue; }       // the flight deck: its upper face flat, in the deck colour (a few huge triangles: the texture colours and the smoothed normals at their corners would stain it)
     const c = cls === 'hull' ? base.hull : base.sup;
-    put(cls === 'hull' ? MAT.SKIN : MAT.HULL, i, [Math.min(255, c[0] * m), Math.min(255, c[1] * m), Math.min(255, c[2] * m)]);
+    // the model's own colour variations (rust, red lead, a painted marking, a tarred plate) ride on the livery's paint: the chroma of the texture against the ship's median chroma, kept within bounds
+    const lr = Math.max(1, 0.3 * r + 0.59 * g + 0.11 * b), K = cls === 'hull' ? CHROMA_HULL : CHROMA;
+    const cm = (v, rf) => Math.pow(Math.max(0.5, Math.min(1.7, (v / lr) / rf)), K);
+    put(cls === 'hull' ? MAT.SKIN : MAT.HULL, i, [Math.min(255, c[0] * m * cm(r, ref.cr)), Math.min(255, c[1] * m * cm(g, ref.cg)), Math.min(255, c[2] * m * cm(b, ref.cb))]);
   }
   return out;
 }
 
 export function reference(pieces, scale) {
   // the median lightness of what is not wood, and of the wood, over the whole ship: what the game's paint colour stands for
-  const ls = [], ws = [];
+  const ls = [], ws = [], cr = [], cg = [], cb = [];
   for (const p of pieces) {
     const d = decodeBaked(p, scale);
     for (let t = 0; t < d.idx.length; t += 3 * 4) {
       const v = d.idx[t] * 3, r = d.col[v], g = d.col[v + 1], b = d.col[v + 2], l = lum(r, g, b);
-      ((r - b) / 255 > 0.1 && r >= g && d.nrm[v + 1] > 0.8 ? ws : ls).push(l);
+      const wood = (r - b) / 255 > 0.1 && r >= g && d.nrm[v + 1] > 0.8;
+      (wood ? ws : ls).push(l);
+      if (!wood) { const lr = Math.max(1, 0.3 * r + 0.59 * g + 0.11 * b); cr.push(r / lr); cg.push(g / lr); cb.push(b / lr); }
     }
   }
   const med = (a, dflt) => { if (!a.length) return dflt; a.sort((x, y) => x - y); return a[a.length >> 1] || dflt; };
-  return { lum: med(ls, 0.3), deck: med(ws, 0.35) };
+  return { lum: med(ls, 0.3), deck: med(ws, 0.35), cr: med(cr, 1), cg: med(cg, 1), cb: med(cb, 1) };
 }
 
 /** Draw a piece into a builder with the game's paint (see the head of the file); `ref` from reference(). */
@@ -57,7 +67,9 @@ export function paintInto(nb, piece, scale, pal, cls, ref, maxY = Infinity) {
   for (const [mat, o] of paint(piece, scale, pal, cls, ref, maxY)) nb.raw(o.pos, o.nrm, o.col, Uint32Array.from({ length: o.pos.length / 3 }, (_, i) => i), mat);
 }
 
-export function applyV4(model, data, pal) {
+export function applyV4(model, data, pal, drop = [], clean = []) {
+  // clean: [{ x, z, r, y0, maxArea }]: the small triangles (details of what stood there: a turret's roller path, its fittings) of the static pieces above y0 within r of (x, z) are left out: what a fit has landed leaves no trace
+  if (clean.length) data = { SCALE: data.SCALE, SHIP: { ...data.SHIP, static: Object.fromEntries(Object.entries(data.SHIP.static).map(([k, p]) => [k, cutBaked(p, data.SCALE, (x, y, z, a) => clean.some((c) => y >= c.y0 && Math.hypot(x - c.x, z - c.z) <= c.r && a <= c.maxArea))])) } };      // drop: ids of parts the fit of this ship does not have (not drawn, no hit volume)
   const sc = data.SCALE, S = data.SHIP;
   const nb = new MeshBuilder();
   const ref = reference([...Object.values(S.static), ...(S.fine ? [S.fine] : []), ...Object.values(S.parts).map((p) => p.mesh)], sc);
@@ -66,6 +78,7 @@ export function applyV4(model, data, pal) {
   if (S.fine) nb.group('fine', () => draw(S.fine, 'fine'));
   const parts = [];
   for (const [id, p] of Object.entries(S.parts)) {
+    if (drop.includes(id)) continue;
     nb.group(id, () => draw(p.mesh, 'part'));
     // the wreck: the lowest third of the piece, charred
     const lo = p.bb[1], hi = p.bb[4], cut = lo + (hi - lo) * 0.33;
@@ -81,5 +94,6 @@ export function applyV4(model, data, pal) {
   model.fine = built.groups.fine || null;
   for (const p of parts) { p.mesh = built.groups[p.id]; p.ruin = built.groups[p.id + '_ruin']; p.fineMesh = null; }
   model.parts = parts;
+  model.hit = buildHitModel(data, drop);      // the hit volumes made from what is drawn (v4hit.js)
   return model;
 }

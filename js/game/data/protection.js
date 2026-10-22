@@ -68,5 +68,5 @@ export const PROTECTION = {
   aquila: { torp: { kg: 200 }, avgas: 'closed' },               // estimated; deep bulges
 };
 
-export function protectionOf(spec) { return PROTECTION[spec.id] || {}; }
+export function protectionOf(spec) { return PROTECTION[spec.id] || PROTECTION[spec.baseId] || {}; }
 export function navyOf(nation) { return NAVY[nation] || NAVY.USA; }

@@ -1,6 +1,7 @@
 // kagero: the tweaks of the Kagero model (see ../shipbuilder.js for the options and ../tweaks.js for the others); measured on a reference model, see docs/CREDITS.md.
 // Everything above the hull is drawn here in metres (x along the ship, bow +; y over the waterline; z to starboard); the guns, screws and rudder stay the builder's.
 import { kit, cutter } from './kit.js';
+import * as V4 from './kagero_v4.js';
 
 /** A tilted funnel: a stack of oval sections whose centre leans aft by `lean` metres per metre of height. */
 function leaningOval(b, MAT, x, y0, y1, rx0, rz0, rx1, rz1, lean, col, n = 4) {
@@ -151,6 +152,7 @@ function kageroExtras({ b, hull, X, Y, pal, model, MAT, rgb, shade, part, PT, DT
 }
 
 export const KAGERO = {
+  v4: V4,
   mainVariant: 'type3c_127', dirKind: 'drum', houseH: 0.02, bulwarkF: [0, 0.02],
   fb: [[0, 6.9], [0.05, 6.6], [0.1, 6.0], [0.15, 5.7], [0.2, 5.6], [0.25, 5.8], [0.29, 5.7], [0.3, 4.2], [0.325, 3.5], [0.6, 3.5], [0.95, 3.6], [0.975, 2.9], [1, 2.8]],
   planDeck: [[0, 0.046], [0.025, 0.283], [0.05, 0.41], [0.075, 0.508], [0.1, 0.595], [0.125, 0.669], [0.15, 0.735], [0.175, 0.789], [0.2, 0.833], [0.225, 0.876], [0.25, 0.917], [0.275, 0.92], [0.3, 0.92], [0.325, 0.959], [0.35, 0.96], [0.375, 0.976], [0.4, 0.995], [0.425, 0.999], [0.45, 1.01], [0.475, 1.01], [0.5, 1.007], [0.525, 1.006], [0.55, 1.006], [0.575, 1.003], [0.6, 0.998], [0.625, 0.996], [0.65, 0.982], [0.675, 0.969], [0.7, 0.954], [0.725, 0.939], [0.75, 0.931], [0.775, 0.911], [0.8, 0.897], [0.825, 0.88], [0.85, 0.859], [0.875, 0.824], [0.9, 0.81], [0.925, 0.782], [0.95, 0.636], [0.975, 0.481], [1, 0.099]],

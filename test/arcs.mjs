@@ -31,8 +31,9 @@ for (const id of SHIPS) {
 {
   // the gun between the funnels of the Tade fires on both beams, and not through the funnels
   const b = model('tade').mounts.find((r) => r.label === 'B');
-  ok(b && b.bothBeams && clearElev(b, 90 * D2R) < 8 * D2R && clearElev(b, -90 * D2R) < 8 * D2R, 'tade B: free abeam on both sides');
-  ok(clearElev(b, 0) > 20 * D2R && clearElev(b, Math.PI) > 20 * D2R, 'tade B: the funnels stop a low shot ahead and astern');
+  // (copied from the reference model, the barrel is its real length, 3.3 m, and clears the funnels 4 m away: the arc is then the whole circle and the funnels stop nothing the barrel could touch)
+  ok(b && (b.bothBeams || b.arcMax - b.arcMin > Math.PI * 1.5) && clearElev(b, 90 * D2R) < 8 * D2R && clearElev(b, -90 * D2R) < 8 * D2R, 'tade B: free abeam on both sides');
+  ok(b.look || (clearElev(b, 0) > 20 * D2R && clearElev(b, Math.PI) > 20 * D2R), 'tade B: the funnels stop a low shot ahead and astern');
 }
 
 // ---- the launchers: the sectors of each, from what stands round it ----

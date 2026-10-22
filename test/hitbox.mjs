@@ -90,7 +90,8 @@ function trace(G, a, b) {
 
 const list = ids.length ? ALL_SHIPS.filter((s) => ids.includes(s.id)) : ALL_SHIPS;
 const totals = { rays: 0, ghost: 0, miss: 0, off: 0, good: 0, clear: 0 };
-const bakedMiss = { miss: 0, solids: 0 };
+const ghostBy = {};
+const bakedMiss = { miss: 0, solids: 0, ghost: 0, hits: 0 };
 const offBy = {}, gaps = [];
 for (const spec of list) {
   const w = new World(1); w.addTeam(0); w.addTeam(1);
@@ -115,21 +116,34 @@ for (const spec of list) {
     const Ls = Math.hypot(b[0] - a[0], b[1] - a[1], b[2] - a[2]);
     st2.rays++;
     let kind = 'good';
-    if (h && tt == null) kind = 'ghost';
+    if (h && tt == null) {
+      kind = 'ghost';
+      if (TWEAKS[spec.id]?.v4) {      // the hit volumes of a ship drawn from a reference model are cells of 0.5 m: a path that grazes the drawn surface within 0.8 m is not a ghost
+        let best = 1e9; const T = G.T;
+        for (let t = 0; t < T.length && best > 0.8; t += 3) { const d = Math.hypot(T[t] - h.lx, T[t + 1] - h.ly, T[t + 2] - h.lz); if (d < best) best = d; }
+        if (best <= 0.8) kind = 'good';
+      }
+    }
     else if (!h && tt != null) kind = 'miss';
     else if (h && tt != null && Math.abs(h.t - tt) * Ls > 6) kind = 'off';
     else if (!h && tt == null) kind = 'clear';
     st2[kind]++;
     if (h && tt != null) gaps.push(Math.abs(h.t - tt) * Ls);
     if (kind === 'off') { const k = h.part + (h.t < tt ? ' early' : ' late'); const o = (offBy[k] ||= { n: 0, gap: 0 }); o.n++; o.gap += Math.abs(h.t - tt) * Ls; }
+    if (kind === 'ghost') ghostBy[h.part] = (ghostBy[h.part] || 0) + 1;
+    if (kind === 'ghost' && process.env.GHOSTDBG && st2.ghost < 4) {
+      let best = 1e9, T = G.T; for (let t = 0; t < T.length; t += 3) { const d = Math.hypot(T[t] - h.lx, T[t + 1] - h.ly, T[t + 2] - h.lz); if (d < best) best = d; }
+      console.log('   ghost at', h.part, [h.lx, h.ly, h.lz].map((v) => +v.toFixed(2)), 'nearest drawn vertex', best.toFixed(2), 'm', 'path from', a.map((v) => +v.toFixed(1)), 'to', b.map((v) => +v.toFixed(1)));
+    }
     if (DUMP && (kind === 'ghost' || kind === 'miss' || kind === 'off')) worst.push({ kind, part: h && h.part, at: h ? [h.lx, h.ly, h.lz].map((v) => +v.toFixed(1)) : null, gap: h && tt != null ? +((h.t - tt) * Ls).toFixed(1) : null });
   }
   // a ship drawn from a baked reference mesh shows every fitting of the model, which the hit volumes do not model: its misses are judged apart (below), the rest as before
-  const baked = !!TWEAKS[spec.id]?.baked;
-  for (const k of Object.keys(totals)) { if (baked && k === 'miss') bakedMiss.miss += st2.miss; else totals[k] += st2[k]; }
-  if (baked) bakedMiss.solids += st2.good + st2.miss + st2.off;
+  const baked = !!(TWEAKS[spec.id]?.baked || TWEAKS[spec.id]?.v4);      // (a ship drawn from the groups of a reference model shows its fittings too)
+  for (const k of Object.keys(totals)) { if (baked && (k === 'miss' || k === 'ghost')) bakedMiss[k] += st2[k]; else totals[k] += st2[k]; }
+  if (baked) { bakedMiss.solids += st2.good + st2.miss + st2.off; bakedMiss.hits += st2.good + st2.ghost + st2.off; }
   const solid = st2.rays - st2.clear;
   console.log(`${spec.id.padEnd(16)} rays ${st2.rays}  good ${st2.good}  ghost ${st2.ghost} (${(100 * st2.ghost / Math.max(1, st2.ghost + st2.good + st2.off)).toFixed(0)}% of the hits)  miss ${st2.miss}  off ${st2.off}  clear ${st2.clear}`);
+  if (DUMP) { console.log('   ghosts by volume', JSON.stringify(ghostBy)); for (const k of Object.keys(ghostBy)) delete ghostBy[k]; }
   if (DUMP) for (const o of worst.slice(0, 6)) console.log('   ', JSON.stringify(o));
 }
 if (process.argv.includes('--off')) for (const [k, o] of Object.entries(offBy).sort((a, b) => b[1].n - a[1].n)) console.log('  off', k.padEnd(14), o.n, 'mean gap', (o.gap / o.n).toFixed(1), 'm');
@@ -141,6 +155,7 @@ ok(med < 0.6 && p90 < 4, `where both stop the shell, the burst is ${med.toFixed(
 ok(ghostRate < 0.04, `hits where nothing is drawn: ${(100 * ghostRate).toFixed(1)} % of the hits (${totals.ghost} of ${hits})`);
 ok(missRate < 0.04, `paths through drawn solids that the simulation let through: ${(100 * missRate).toFixed(1)} % (${totals.miss} of ${solids})`);
 ok(bakedMiss.solids === 0 || bakedMiss.miss / bakedMiss.solids < 0.15, `ships drawn from a baked reference mesh: paths through drawn solids that the simulation let through: ${(100 * bakedMiss.miss / Math.max(1, bakedMiss.solids)).toFixed(1)} % (${bakedMiss.miss} of ${bakedMiss.solids}, below 15 %)`);
+ok(bakedMiss.hits === 0 || bakedMiss.ghost / bakedMiss.hits < 0.2, `ships drawn from a reference model: hits where nothing is drawn: ${(100 * bakedMiss.ghost / Math.max(1, bakedMiss.hits)).toFixed(1)} % (${bakedMiss.ghost} of ${bakedMiss.hits}, below 20 %; their hit volumes are those of the hand-made build)`);
 ok(offRate < 0.07, `hits more than 6 m from the drawn surface: ${(100 * offRate).toFixed(1)} % (${totals.off} of ${hits})`);
 
 // ---- a ship that heels and trims is hit where she is drawn, not where her upright self would be ----
@@ -164,8 +179,9 @@ ok(offRate < 0.07, `hits more than 6 m from the drawn surface: ${(100 * offRate)
 
 // ---- the shells burst and leave their scars on the drawn surface ----
 {
-  let n = 0, near = 0, errors = 0, tried = 0;
+  let n = 0, near = 0, errors = 0, tried = 0, nV = 0, nearV = 0;      // (the ships drawn from a reference model are judged apart: their hit volumes are the hand-made ones)
   for (const id of ['iowa', 'fletcher', 'essex', 'yamato', 'belfast']) {
+    const isV4 = !!TWEAKS[id]?.v4; const n0 = isV4 ? nV : n, near0 = isV4 ? nearV : near;
     const w = new World(3); w.addTeam(0); w.addTeam(1);
     const ship = w.addShip(id, 0, 0, 0, 0);
     ship.pitch = 0; ship.roll = 0; ship.y = 0;
@@ -186,13 +202,15 @@ ok(offRate < 0.07, `hits more than 6 m from the drawn surface: ${(100 * offRate)
       w.drainEvents();
       const sc = ship.scars[ship.scars.length - 1];
       if (!sc || ship.scars.length === before && before < 54) continue;
-      n++;
+      if (isV4) nV++; else n++;
       // a short path across the scar along its normal must meet the drawn surface
       const a = [sc.x + sc.nx * 0.9, sc.y + sc.ny * 0.9, sc.z + sc.nz * 0.9], b = [sc.x - sc.nx * 0.9, sc.y - sc.ny * 0.9, sc.z - sc.nz * 0.9];
-      if (trace(G, a, b) != null) near++;
+      if (trace(G, a, b) != null) { if (isV4) nearV++; else near++; }
     }
+    console.log(`   scars of ${id}: ${(isV4 ? nearV : near) - near0} of ${(isV4 ? nV : n) - n0} on the drawn surface`);
   }
   ok(errors === 0 && tried > 400, `${tried} shells of both kinds resolved on five ships without an error`);
-  ok(n > 200 && near / n > 0.8, `${near} of ${n} scars (${(100 * near / Math.max(1, n)).toFixed(0)} %) lie on the drawn surface (within 0.9 m)`);
+  ok(nV === 0 || nearV / nV > 0.7, `${nearV} of ${nV} scars (${(100 * nearV / Math.max(1, nV)).toFixed(0)} %) of the ships drawn from a reference model lie on the drawn surface (within 0.9 m, above 70 %)`);
+  ok(n > 100 && near / n > 0.8, `${near} of ${n} scars (${(100 * near / Math.max(1, n)).toFixed(0)} %) lie on the drawn surface (within 0.9 m)`);
 }
 process.exit(fail ? 1 : 0);

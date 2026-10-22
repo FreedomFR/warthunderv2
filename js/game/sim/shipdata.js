@@ -54,7 +54,7 @@ export function makeStats(spec) {
       roof: arm.turretRoofMm ?? Math.max(6, (arm.turretFaceMm ?? 12) * 0.42),
       // plating of an unarmoured hull side and deck, and of the superstructure (the 3/8 in skin of a destroyer let 14 in shells through unburst)
       skin: SKIN[t], sup: SUP[t],
-      incl: prot.beltIncl ?? 0, weather: prot.weather ?? 0, flight: prot.flight ?? (t === 'CV' ? FLIGHT[spec.id] ?? 0 : 0),
+      incl: prot.beltIncl ?? 0, weather: prot.weather ?? 0, flight: prot.flight ?? (t === 'CV' ? FLIGHT[spec.baseId || spec.id] ?? 0 : 0),
       lower: prot.lower ?? (arm.beltMm ?? 0) * 0.4,
     },
     main, secs,
