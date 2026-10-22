@@ -164,6 +164,9 @@ for el in cfg['elements']:
             first['n_house_tris'] = int(len(house_t))
         elif len(t) != first['ntri']:
             rec['warning'] = f"{len(t)} triangles, the first copy has {first['ntri']}"
+        al = cfg.get('align', {})
+        src_box = [round(float(v), 3) for v in np.concatenate(bbox(t))]          # where the group stands in the model (checked by test/elements.mjs against the placed copy)
+        rec = {**rec, 'x': round(rec['x'] + al.get('dx', 0), 3), 'y': round(rec['y'] + al.get('dy', 0), 3), 'z': round(rec['z'] + al.get('dz', 0), 3), 'src_box': src_box, 'align': [al.get('dx', 0), al.get('dy', 0), al.get('dz', 0)]}
         placements.append({'kind': el['id'], 'type': el.get('type', 'main'), 'cal': el.get('cal', 0), **rec})
         report.append({'element': el['id'], **rec})
     kd = {'house': first['house'], 'guns': first.get('guns'), 'type': el.get('type', 'main'), 'from': first['name']}

@@ -51,5 +51,11 @@
    "min_tris": 300,
    "facing": "mass"
   }
- ]
+ ],
+ "align": {
+  "dx": 0.8,
+  "dy": 0.5,
+  "dz": 0.0,
+  "note": "v4 model -> the game hull (built from the first model): fitted on the 17 gun mounts, x = 0.9965 v4 + 0.79, z within 0.5 m, deck 0.5 m higher"
+ }
 }
