@@ -12,6 +12,7 @@ import { GRAF_SPEE } from './ships/graf_spee.js';
 import { TADE } from './ships/tade.js';
 import { GIOBERTI } from './ships/gioberti.js';
 import { ADAMS } from './ships/adams.js';
+import { YAMATO } from './ships/yamato.js';
 
 /**
  * Shokaku class: two funnels trunked out to the starboard side and turned downwards. Measured on the 1942 profile and plan (Commons,
@@ -744,81 +745,7 @@ export const TWEAKS = {
   // read at 12.74 px/m and from the waterline at the trial draft of 10.4 m: then its freeboards are the builders' 10.0 / 8.6 / 6.45 m.
   // A hull widest at the deck (38.9 m over 36.9 m at the waterline), a deck that dips towards the forward turrets; the 01 level 4.3 m,
   // the block round the funnel 12.8 m, the tower to 33.9 m with the 15 m rangefinder on top, funnel top 25.6 m above the deck.
-  yamato: {
-    mainVariant: 'type94', secVariant: ['type3_155', 'type89c'], dirKind: 'drum', houseH: 4.33, noFittings: true,
-    // the upper deck runs aft to 87 % of the length, then steps down to the quarterdeck
-    fb: [[0, 10.0], [0.03, 9.2], [0.09, 8.3], [0.18, 7.5], [0.27, 7.3], [0.4, 8.2], [0.5, 8.6], [0.7, 8.6], [0.87, 8.7], [0.903, 8.65], [0.907, 5.85], [1, 5.85]],
-    stern: { overhang: 1.5, rise: 7 },
-    bulwarkF: [0, 0],
-    // four three-bladed screws of 5 m (the inboard ones further aft), the main rudder and the forward auxiliary rudder on the centre
-    // line, as drawn on the 1945 profile (athwartship positions estimated)
-    // four three-bladed screws of 4.6 m and the single rudder, as measured on the reference model (the inboard screws at 3.5 m off the centre line, the outboard ones at 10.5 m)
-    props: [{ f: 0.9066, z: 3.5, depth: 7.8, d: 4.6, blades: 3, toF: 0.84, strutF: 0.895 }, { f: 0.862, z: 10.5, depth: 7.4, d: 4.6, blades: 3, toF: 0.79, strutF: 0.85 }],
-    rudders: [{ f: 0.9346, top: 4.1, bottom: 10.3, chord: 8.0 }],
-    keel: [[0, 0.55], [0.012, 0.93], [0.035, 1], [0.905, 1], [0.915, 0.59], [0.95, 0.39], [0.985, 0.28], [1, 0.17]],   // as drawn
-    // the stem meets the waterline at 2.3 % of the length; below it the bulb reaches forward to 1.05 %, 5.3 to 10.5 m down
-    bow: { rake: 6.6, pr: 1.5, forefoot: 1.0 },      // (no separate bulb: the model's bow is one rounded forefoot)
-    planDeck: [[0, 0.037], [0.025, 0.29], [0.05, 0.312], [0.075, 0.343], [0.1, 0.386], [0.125, 0.44], [0.15, 0.507], [0.175, 0.569], [0.2, 0.635], [0.225, 0.712], [0.25, 0.755], [0.275, 0.807], [0.3, 0.852], [0.325, 0.909], [0.35, 0.932], [0.375, 0.96], [0.4, 0.983], [0.425, 1], [0.45, 1.026], [0.475, 1.026], [0.5, 1.026], [0.525, 1.032], [0.55, 1.037], [0.575, 1.053], [0.6, 1.053], [0.625, 1.025], [0.65, 1.025], [0.675, 1.025], [0.7, 1.024], [0.725, 1.023], [0.75, 1.023], [0.775, 1.023], [0.8, 0.971], [0.825, 0.971], [0.85, 0.971], [0.875, 0.918], [0.9, 0.662], [0.925, 0.628], [0.95, 0.419], [0.975, 0.255], [1, 0.24]],     // from fine cuts of the reference model
-    planWL: [[0, 0], [0.025, 0.014], [0.05, 0.075], [0.075, 0.137], [0.1, 0.213], [0.125, 0.296], [0.15, 0.382], [0.175, 0.465], [0.2, 0.545], [0.225, 0.62], [0.25, 0.69], [0.275, 0.75], [0.3, 0.8], [0.325, 0.846], [0.35, 0.883], [0.375, 0.909], [0.4, 0.929], [0.425, 0.945], [0.45, 0.958], [0.475, 0.967], [0.5, 0.974], [0.525, 0.978], [0.55, 0.98], [0.575, 0.98], [0.6, 0.976], [0.625, 0.968], [0.65, 0.958], [0.675, 0.947], [0.7, 0.934], [0.725, 0.918], [0.75, 0.895], [0.775, 0.864], [0.8, 0.827], [0.825, 0.784], [0.85, 0.728], [0.875, 0.653], [0.9, 0.562], [0.925, 0.452], [0.95, 0.306], [0.975, 0.12], [1, 0.08]],
-    house: { plan: [[0.33, 0.05], [0.335, 0.05]] },
-    decks: [
-      { plan: [[0.4679, 0], [0.4707, 3.15], [0.4764, 5.31], [0.4853, 6.81], [0.5027, 7.15], [0.5087, 9.39], [0.5087, 12.64], [0.5162, 14.16], [0.5257, 13.84], [0.5316, 11.67], [0.549, 11.67], [0.5579, 14.16], [0.5673, 13.85], [0.5684, 14.71], [0.583, 14.71], [0.5875, 13.95], [0.5979, 15.45], [0.6078, 14.17], [0.61, 11.44], [0.6178, 11.44], [0.621, 12.69], [0.628, 12.87], [0.6307, 9.75], [0.6325, 11.44], [0.6401, 6.9], [0.6401, 8.99], [0.6485, 6.09], [0.6536, 4.5], [0.6603, 0]], y: [0, 2.7] },   // the base platform of the superstructure, with the cupolas of the twin 12.7 cm and the 25 mm tubs (outline at 1 m over the deck on the reference model)
-      { plan: [[0.4679, 0], [0.4708, 3.02], [0.4792, 5.49], [0.4908, 6.97], [0.4938, 8.74], [0.5015, 8.47], [0.5041, 6.34], [0.5275, 6.34], [0.5322, 9.26], [0.5438, 9.75], [0.5505, 8.31], [0.5517, 5.78], [0.5525, 5.78], [0.5783, 5.78], [0.5818, 7.6], [0.5853, 5.78], [0.6011, 5.78], [0.6023, 8.31], [0.609, 9.75], [0.6178, 9.68], [0.6237, 8.31], [0.6247, 5.63], [0.6278, 5.36], [0.6279, 3.21], [0.63, 0]], y: [2.7, 7.0] },   // the central house
-      { plan: [[0.4681, 0], [0.4746, 2.58], [0.4869, 2.54], [0.5042, 5.87]], y: [5.0, 8.0], windows: false },   // tower tier (bridge front)
-      { plan: [[0.4685, 0], [0.4693, 1.03], [0.4748, 2.48], [0.4869, 2.45], [0.5026, 4.81], [0.5144, 3.23], [0.5162, 3.86], [0.5262, 3.86], [0.533, 2.17]], y: [8.0, 12.0], windows: false },   // tower tier (l2)
-      { plan: [[0.4759, 0], [0.4761, 1.02], [0.5004, 3.54], [0.5135, 2.96], [0.519, 0]], y: [12.0, 16.0], windows: true },   // tower tier (l3)
-      { plan: [[0.476, 0], [0.4761, 1.74], [0.4898, 3.3], [0.5097, 3.15], [0.5146, 2.36], [0.5186, 0.55]], y: [16.0, 20.0], windows: false },   // tower tier (l4)
-      { plan: [[0.485, 0], [0.4852, 1.53], [0.4999, 3.3], [0.5129, 2.62], [0.5188, 0]], y: [20.0, 24.0], windows: true },   // tower tier (l5)
-      { plan: [[0.4821, 0], [0.4849, 1.67], [0.4957, 3.35], [0.5114, 3.3], [0.519, 0.5]], y: [24.0, 28.0], windows: false },   // tower tier (l6)
-      { plan: [[0.4928, 0], [0.4929, 1.18], [0.497, 2.3], [0.5118, 2.66], [0.5132, 0]], y: [28.0, 31.0], windows: false },   // tower tier (l7)
-    ],
-    towerF: 0.49, towerY0: 31,
-    tiers: [{ len: 1.5, w: 1.5, h: 0.1 }],
-    dir0: { dx: -0.8, w: 5.0, l: 3.6, h: 1.8 },
-    foremast: { dx: -1.0, y0: 32.0 },
-    // the funnel: a raked front and an upright back (the top is two thirds of the base), its top 1.7 m lower aft than forward
-    funnels: [{ lx: 10.0, lz: 5.9, y0: 7.0, h: 15.0, rake: 8.75, top: 0.8, capSlope: 1.2, pipes: false }],      // measured: base at 15 m abaft the middle of the tower, head 7 m further aft
-    mastY0: { 1: 7.0 }, mastRake: { 1: -10 },   // the mainmast leans well aft (foot 27 m, head 38 m abaft the middle)
-    directors: [{ f: 0.65, y: 18.3, kind: 'drum', w: 5.5, l: 3.5, h: 2.44, label: 'Télémètre arrière' }],
-    // catapults on pedestals at the quarterdeck edges, the big crane at the stern with its jib lying forward along the deck
-    // light AA as drawn on the 1945 plan view: 50 triple 25 mm (shielded mounts on the deck edge and round the superstructure, open
-    // ones in their crescent tubs on the decks, two on each of turrets 2 and 3, the quarterdeck and the stern)
-    // light AA at the positions measured on the reference model: 12 shielded triple 25 mm a side along the deck edges and on the sponsons, one higher by the tower, two singles aft (z: signed, one mount each)
-    aa: [
-      { k: 't25', f: 0.87, z: 15.5, y: 0.45, one: true, noTub: true },
-      { k: 't25', f: 0.87, z: -15.5, y: 0.45, one: true, noTub: true },
-      { k: 't25', f: 0.8498, z: 16.1, y: 0.45, one: true, noTub: true },
-      { k: 't25', f: 0.8498, z: -16.1, y: 0.45, one: true, noTub: true },
-      { k: 't25', f: 0.6327, z: 7.6, y: 3.0, one: true, noTub: true },
-      { k: 't25', f: 0.6327, z: -7.6, y: 3.0, one: true, noTub: true },
-      { k: 't25', f: 0.6251, z: 11.1, y: 2.2, one: true, noTub: true },
-      { k: 't25', f: 0.6251, z: -11.1, y: 2.2, one: true, noTub: true },
-      { k: 't25', f: 0.6163, z: 14.3, y: 1.4, one: true, noTub: true },
-      { k: 't25', f: 0.6163, z: -14.3, y: 1.4, one: true, noTub: true },
-      { k: 't25', f: 0.6027, z: 18.1, y: 0.45, one: true, noTub: true },
-      { k: 't25', f: 0.6027, z: -18.1, y: 0.45, one: true, noTub: true },
-      { k: 't25', f: 0.5802, z: 18.1, y: 0.45, one: true, noTub: true },
-      { k: 't25', f: 0.5802, z: -18.1, y: 0.45, one: true, noTub: true },
-      { k: 't25', f: 0.5582, z: 18.1, y: 0.45, one: true, noTub: true },
-      { k: 't25', f: 0.5582, z: -18.1, y: 0.45, one: true, noTub: true },
-      { k: 't25', f: 0.5361, z: 18.1, y: 0.45, one: true, noTub: true },
-      { k: 't25', f: 0.5361, z: -18.1, y: 0.45, one: true, noTub: true },
-      { k: 't25', f: 0.5137, z: 18.1, y: 0.45, one: true, noTub: true },
-      { k: 't25', f: 0.5137, z: -18.1, y: 0.45, one: true, noTub: true },
-      { k: 't25', f: 0.4996, z: 15.0, y: 1.4, one: true, noTub: true },
-      { k: 't25', f: 0.4996, z: -15.0, y: 1.4, one: true, noTub: true },
-      { k: 't25', f: 0.4928, z: 10.7, y: 1.9, one: true, noTub: true },
-      { k: 't25', f: 0.4928, z: -10.7, y: 1.9, one: true, noTub: true },
-      { k: 't25', f: 0.5106, z: 7.2, y: 7.3, one: true, noTub: true },
-      { k: 't25', f: 0.8768, z: 2.8, y: 0.1, one: true, noTub: true },
-      { k: 't25', f: 0.5106, z: -7.2, y: 7.3, one: true, noTub: true },
-      { k: 't25', f: 0.8768, z: -2.8, y: 0.1, one: true, noTub: true },
-    ],
-    // ship's boats stowed in the recesses of the hull sides aft
-    boats: [{ f0: 0.80, f1: 0.83, z: 15.5, y: -4.2, cabin: true }, { f0: 0.835, f1: 0.865, z: 15.5, y: -4.2 }],
-    // the catapults lie fore and aft at the quarterdeck edges, with their turntables
-    cat: { f: 0.931, z: 9.5, yaw: 0.23, len: 19.3, y: 4.4, craneF: 0.99, craneH: 6, craneLen: 20, craneDir: 1, craneAng: 0.05, craneSide: 0, craneW: 1.0 },
-  },
+  yamato: YAMATO,
   // Takao class (ONI 41-42 sheet "Atago class", October 1942, public domain; profile and plan at one scale, observer-height ruler in feet): a
   // forecastle at 5.0 m (7.4 m at the stem) running to a quarterdeck at 4.4 m; turrets A / B / C at 0.205 / 0.245 / 0.277 (B 3.3 m above A), X / Y
   // at 0.735 / 0.777; the bridge stepped up aft (19 m at 0.335-0.355, 25 m at 0.375, 27.9 m at 0.404), the foremast a lattice tripod at 0.43 (top

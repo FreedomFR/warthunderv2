@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased — the Yamato's superstructure read from the model as stacked footprints
+
+- **The tower, the central house, the base platforms, the funnel and the deck houses are redrawn from measured volumes** (`ships/yamato.js`, a bespoke ship like the Graf Spee): `tools/refs/footprints.mjs` reads the reference model a height band at a time on a plan grid (0.4 m cells), opens away the thin things (rails, wires, masts, barrels), cuts out the mounts the game draws itself (turrets, cupolas, 25 mm), and takes runs of bands with the same outline as one prism; about 120 prisms with the outlines simplified to 0.4 m. The tower is no longer seven symmetric tiers: its wings, platforms and the rangefinder housing sit where the model has them. The funnel is the ellipse of each slice.
+- **Masts and stays**: the after mast is the tripod measured on the model (apex 37.7 m at x -40, legs to the 01 level, the leaning aerial pole), the foremast pole on the tower top, the stays from the tower top to the after mast and from both masts to the bow and the stern.
+- The volumes are coarse (stepped where the model is smooth, no rails, ladders or small fittings): the next steps are the round gun tubs, the 12.7 cm cupola bases and the catapult area.
+
 ## Unreleased — gun mounts drawn per ship from the reference models
 
 - **Own mount shapes instead of shared ones**: the Graf Spee 15 cm single is a hexagonal shield (pointed at the rear, flat across the front, 3.2 x 3.0 m, roof 2.55 m over the deck; the same family serves the 15 cm single of the Königsberg-type cruiser); its 10.5 cm twin (`dop105`) is a low box 3.7 x 2.3 m with the front plate leaning back and the two barrels 0.5 m apart (it was the generic enclosed mount); the Yamato 15.5 cm triple has its measured length and width, the sloped front with the rounded roof edge and the raised roof box, barrels 1.5 m apart. The spec positions of the Graf Spee 15 cm and 10.5 cm mounts were moved to the measured offsets.

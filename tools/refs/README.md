@@ -97,6 +97,7 @@ Models given as glTF (`modelTmp/*.zip`, git-ignored) are measured, never copied 
 
 | File | Use |
 |---|---|
+| `footprints.mjs` | The solid masses of a model as stacked footprints (`<refdir> <loa> <waterline> --x0= --x1= --y0= --y1= --band= --iou= --eps= --vote=1 --floor=deck.json --mask=mounts.json`): prisms `{ y0, y1, poly }` to redraw in `ships/<id>.js`; thin things opened away, mounts cut out by `--mask`. |
 | `mountprofile.mjs` | The extent of one mount (turret, cupola, shield) at each height in its own frame: rear, front, half-width, from a reference model (`<refdir> <loa> <waterline> <cx> <cz> <R> --yaw=`); noisy near neighbours, read it with `gcrop.sh` grid views. |
 | `gltf.mjs` | `survey` (size, parts), `views` / `quarters` (orthographic pictures on white), `plan` (side / top silhouettes + the plans.json entry), `tables` (hull tables for tweaks.js from exact cuts), `cut` (half-beams at heights, sheer, sections), `heightmap`, `profile`; `--loa=` scales to the spec's length Reads a Wavefront OBJ the same way when `refs/<id>/src/` holds one instead of `scene.gltf` (one part per group and material, named after its object: `loadObj`). |
 | `addplan.py`, `addspec.py` | add a plans.json entry / a spec sheet from JSON (keeps the layout of the files) |
