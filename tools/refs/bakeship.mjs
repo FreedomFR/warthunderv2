@@ -21,7 +21,7 @@ const masked = (x, y, z) => {
   if (y > YMAX) return true;                                                          // --ymax: stray pieces over the mast tops
   for (const m of lay.mounts) {
     const c = Math.cos(m.yaw), s = Math.sin(m.yaw), dx = x - m.x, dz = z - m.z, u = dx * c + dz * s, w = -dx * s + dz * c, yy = y - m.y;
-    const mb = maskBoxes[`${m.variant}|${m.cal}|${m.n}|${m.aa ? 'aa' : 'gun'}`];
+    const mb = maskBoxes[m.name];
     if (mb) { if (u > mb[0] && u < mb[1] && w > mb[2] && w < mb[3] && yy > mb[4] && yy < mb[5]) return true; continue; }
     const [x0, x1, z0, z1, y0, y1] = m.house;
     if (yy > y0 - 0.3 && yy < y1 + 0.5 && u > x0 - MARGIN && u < x1 + MARGIN && w > z0 - MARGIN && w < z1 + MARGIN) return true;
