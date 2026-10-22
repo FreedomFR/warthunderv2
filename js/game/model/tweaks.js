@@ -13,6 +13,12 @@ import { TADE } from './ships/tade.js';
 import { GIOBERTI } from './ships/gioberti.js';
 import { ADAMS } from './ships/adams.js';
 import { YAMATO } from './ships/yamato.js';
+import * as KAGERO_BAKED from './ships/kagero_baked.js';
+import * as TADE_BAKED from './ships/tade_baked.js';
+import * as GIOBERTI_BAKED from './ships/gioberti_baked.js';
+import * as ADAMS_BAKED from './ships/adams_baked.js';
+import * as GRAF_SPEE_BAKED from './ships/graf_spee_baked.js';
+import * as SHOKAKU_BAKED from './ships/shokaku_baked.js';
 
 /**
  * Shokaku class: two funnels trunked out to the starboard side and turned downwards. Measured on the 1942 profile and plan (Commons,
@@ -119,8 +125,8 @@ function s30Extras({ b, hull, X, Y, pal, model, MAT, rgb, shade, part, PT, note,
 
 export const TWEAKS = {
   // the ships measured on reference models have a file each (ships/): they are refined one at a time
-  graf_spee: GRAF_SPEE,
-  tade: TADE, gioberti: GIOBERTI, adams: ADAMS,
+  graf_spee: { ...GRAF_SPEE, baked: GRAF_SPEE_BAKED },
+  tade: { ...TADE, baked: TADE_BAKED }, gioberti: { ...GIOBERTI, baked: GIOBERTI_BAKED }, adams: { ...ADAMS, baked: ADAMS_BAKED },
   // S-30 class Schnellboot, measured in metres on orthographic views (side, plan, front, stern, sections every metre) of a reference model of the boat ("S30 S61 (War Thunder) Ninth Wave", KojfDiscord,
   // CC BY 4.0; used to measure only, nothing of it is in the repository): the hull 32.77 m from the stem to the transom, 4.9 m at the waterline and 5.2 m at the deck, a keel 1.5 m below the waterline
   // that runs up to the stem and, abaft 0.86, to a stern 0.6 m shallower; the deck 2.0 m above the water amidships and aft, 1.5 m at the quarterdeck, up to 2.75-2.9 m on the turtleback forecastle
@@ -776,7 +782,7 @@ export const TWEAKS = {
   // (6.2 m at the stem) stepping down to the 2.9 m main deck at f 0.31-0.33; turrets A at 0.152 and X / Y at 0.730 / 0.800 (X on the deckhouse, 2.3 m higher); the bridge block 0.246-0.293
   // (compass bridge 10.7 m, director 12.5 m), a pole foremast at 0.325 (top 23.7 m), funnels at 0.373 and 0.517 (tops 12.3 / 10.9 m), the quadruple tubes at 0.45 and 0.60, a
   // long deckhouse to f 0.755 (5.2 m) and a signal mast at 0.68 (15 m).
-  kagero: KAGERO,
+  kagero: { ...KAGERO, baked: KAGERO_BAKED },
   // Agano (a detailed line drawing of the class with a 50 m scale bar and the waterline, profile and plan, shared by the project owner; measured only, 8.7 px per metre, about +-0.3 m on
   // the hull and +-0.6 m on the superstructure; the rigging of the sheet pollutes the silhouette check): a forecastle rising from 4.8 m amidships to 6.8 m at the stem (10 m at the
   // stem head) and a quarterdeck at 3.9 m abaft f 0.85; turrets A / B at 0.192 / 0.243 (B on a barbette 4.4 m higher) and C at 0.813; the bridge block 0.346-0.41 (tiers 10 / 15.5 / 19 m,
@@ -877,6 +883,7 @@ export const TWEAKS = {
   // 20.1 m, bridge 21.2 m, radar 26.6 m, mast 31.7 m); two funnels outboard; lifts at 0.341 / 0.581 / 0.831. The underwater body and the
   // hull widths below the deck edge are estimated.
   shokaku: {
+    baked: SHOKAKU_BAKED,
     noFunnels: true, flightDeckY: 14.65, noGallery: true, elevators: [0.3385, 0.5743, 0.8236], elevSize: [[6.55, 8.5], [6.55, 6.05], [6.55, 6.05]], elevZ: -0.37,      // the three lifts measured on the reference model: 13 x 17 m forward, 13 x 12 m the others extra: shokakuFunnels, sponsonOut: 2.6,
     fb: [[0, 10.7], [0.03, 10.3], [0.06, 10.2], [0.075, 12.9], [0.9, 12.9], [0.94, 9.8], [1, 9.3]],      // the quarter deck under the flight deck's after end at 9.3 m (measured)
     fdPlan: [[0.0445, 9.5], [0.075, 9.9], [0.1117, 10.4], [0.209, 12.0], [0.298, 13.3], [0.4, 15.0], [0.5, 15.0], [0.671, 15.0], [0.811, 14.1], [0.889, 13.0], [0.962, 13.2]],     // measured on the flight deck of the reference model (236 m, 31.8 m wide at the widest, the bow end 19 m wide)

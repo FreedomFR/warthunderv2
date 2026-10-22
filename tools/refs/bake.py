@@ -45,6 +45,8 @@ for mi, m in enumerate(info['mats']):
             arr = np.asarray(im, dtype=np.float32) / 255.0
             h, w = arr.shape[:2]
             u = np.mod(uv[sel, 0], 1.0); v = np.mod(uv[sel, 1], 1.0)
+            if info.get('flipV'):                                                   # an OBJ's v runs up, a glTF's down
+                v = 1.0 - v
             c = arr[np.clip((v * h).astype(int), 0, h - 1), np.clip((u * w).astype(int), 0, w - 1)]
             col[sel] = c * f
             continue
@@ -64,7 +66,7 @@ mesh.remove_duplicated_triangles()
 mesh.remove_unreferenced_vertices()
 print(f'welded: {len(mesh.vertices)} vertices, {len(mesh.triangles)} triangles ({time.time() - t0:.0f} s)', file=sys.stderr)
 if len(mesh.triangles) > TRIS:
-    mesh = mesh.simplify_quadric_decimation(target_number_of_triangles=TRIS)
+    mesh = mesh.simplify_quadric_decimation(target_number_of_triangles=TRIS, boundary_weight=float(fl.get('bw', 1.0)))
     mesh.remove_degenerate_triangles()
     mesh.remove_unreferenced_vertices()
 print(f'simplified: {len(mesh.vertices)} vertices, {len(mesh.triangles)} triangles ({time.time() - t0:.0f} s)', file=sys.stderr)

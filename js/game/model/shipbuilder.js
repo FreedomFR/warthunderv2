@@ -4,6 +4,7 @@
 // Per-ship hand-tuning goes through `tweaks` (see js/game/model/tweaks.js).
 import { MeshBuilder, MAT, rgb, shade, mix } from './meshbuilder.js';
 import { buildHull } from './hull.js';
+import { applyBaked } from './bakedship.js';
 import * as PT from './parts.js';
 import { makeRng } from '../math.js';
 import { computeClearance, computeTubeArcs, inFoot, barrelBlocked } from './clearance.js';
@@ -791,6 +792,7 @@ export function buildShipModel(spec, tw = {}) {
   for (const sp of model.spinners) sp.mesh = built.groups[sp.id];
   for (const p of model.parts) { p.mesh = built.groups[p.id]; p.ruin = p.hasRuin ? built.groups[p.id + '_ruin'] : null; p.fineMesh = p.hasFine ? built.groups[p.id + '_fine'] : null; }
   model.fine = built.groups.fine || null;
+  if (tw.baked) { applyBaked(model, tw.baked.BAKED, tw.baked.SCALE); for (const r of [...model.mounts, ...model.aaMounts]) r.look = spec.id; }   // `look`: the mount models read on this ship's reference model (mounts.js)         // tw.baked: the hull and structure from a baked reference mesh (bakedship.js)
   return model;
 }
 

@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased — every ship that has a reference model is baked from it
+
+- **Shokaku, Graf Spee, Kagero, Tade, Gioberti, Adams join the Yamato**: hull, structure, camouflage and the destroyable parts are the model's own triangles (the texture colours at the vertices), the gun houses and barrels of every kind of mount too (`mounts_baked`); the mounts still train, elevate, recoil and fire. One command per ship (`tools/refs/bakeall.sh`).
+- New tools: `bakeraw` reads OBJ materials and uv, `shiplayout.mjs`, `decimate.mjs` (meshoptimizer), `bakemounts2.py` (pieces joined to the house by shared vertices, cut at the front of the house box, barrels in a cone), `bakeship.mjs`; `MeshBuilder.raw` / `ghost`, `bakedship.js`, `bakedmounts.js`, `tw.baked` / `tw.noCat` / `tw.bakedHull`, `look` on the mount records.
+- `server.mjs` sends the text files over 50 kB gzipped (the baked modules are base64: 3 MB -> 1.2 MB). `test/baked.mjs`; the hit-volume test judges the baked ships' misses apart (they show every fitting of the model).
+
 ## Unreleased — the Yamato's hull, houses and mounts are the reference model too
 
 - **The whole ship above and below the waterline is baked** (`tw.bakedHull`): the hull with its plating, bulges and fittings, the catapults with their floatplanes, the crane, the masts' lattice (the procedural hull stays only as `ghost` geometry for the sim; `tw.noCat` drops the builder's catapults, masts and rails duplicates). The model's flat aerial sheets floating over the mast tops, its screws and its rudder are left out (the game spins its own).

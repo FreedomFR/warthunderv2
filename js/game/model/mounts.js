@@ -10,6 +10,7 @@ import { MeshBuilder, MAT, rgb, shade } from './meshbuilder.js';
 import { HOUSE_DATA } from './mountdata.js';
 import { MOUNTS_BAKED, MOUNT_SCALE } from './ships/yamato_mounts_baked.js';
 import { decodeBaked } from './bakedmesh.js';
+import { BAKED_MOUNTS } from './bakedmounts.js';
 
 const cache = new Map();
 
@@ -132,7 +133,7 @@ function aaLen(s) {
 }
 
 export function getMountModel(spec) {
-  const key = [spec.kind, spec.cal, spec.n, spec.bore, spec.col, spec.variant || '', JSON.stringify(spec.top || '')].join('|');
+  const key = [spec.kind, spec.cal, spec.n, spec.bore, spec.col, spec.variant || '', JSON.stringify(spec.top || ''), spec.look || ''].join('|');
   let m = cache.get(key);
   if (!m) { m = makeMount(spec); cache.set(key, m); }
   return m;
@@ -505,7 +506,21 @@ function makeFamily(s, f) {
   return { house: hb.build(), guns: gb.build(), trunnion: [f.trunX, f.trunY], muzzleX: f.fwd, barrelLen: f.fwd, height: f.h, recoil: f.recoil, lift: f.lift };
 }
 
+/** The mount as the game builds it, then (spec.look: the ship whose reference model has this kind of mount) its house and barrels replaced by the model's own triangles. */
 function makeMount(s) {
+  const mm = makeMountProcedural(s);
+  const bk = s.look && BAKED_MOUNTS[s.look]?.MOUNTS_BAKED[`${s.variant || ''}|${s.cal}|${s.n}|${s.kind === 'aa' ? 'aa' : 'gun'}`];
+  if (!bk || !bk.house) return mm;
+  const sc = BAKED_MOUNTS[s.look].MOUNT_SCALE;
+  const hb = new MeshBuilder(), gb = new MeshBuilder();
+  let d = decodeBaked(bk.house, sc); hb.raw(d.pos, d.nrm, d.col, d.idx, MAT.HULL);
+  const house = hb.build();
+  let guns = mm.guns;
+  if (bk.guns) { d = decodeBaked(bk.guns, sc); gb.raw(d.pos, d.nrm, d.col, d.idx, MAT.HULL); guns = gb.build(); }
+  return { ...mm, house, guns };
+}
+
+function makeMountProcedural(s) {
   const fam = s.variant && FAMILY[s.variant];
   if (fam && HOUSES[s.variant]) return makeFamily(s, fam);
   const col = rgb(s.col || '#6b7076');

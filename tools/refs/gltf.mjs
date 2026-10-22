@@ -33,28 +33,44 @@ function nodeMatrix(n) {
  */
 export function loadObj(file) {
   const text = fs.readFileSync(file, 'latin1');
-  const X = [], Yv = [], Zv = [];
+  const X = [], Yv = [], Zv = [], VT = [];
   const parts = [], mats = [];
+  let mtllib = null;
   let obj = '', grp = '', mat = -1, cur = null;
-  const open = () => { cur = { name: grp || obj, path: obj && grp && grp !== obj ? `${obj}/${grp}` : grp || obj, node: parts.length, mat, map: new Map(), P: [], idx: [] }; parts.push(cur); };
+  const open = () => { cur = { name: grp || obj, path: obj && grp && grp !== obj ? `${obj}/${grp}` : grp || obj, node: parts.length, mat, map: new Map(), P: [], UV: [], idx: [] }; parts.push(cur); };
   let pos = 0;
   while (pos < text.length) {
     let end = text.indexOf('\n', pos); if (end < 0) end = text.length;
     const c0 = text.charCodeAt(pos), c1 = text.charCodeAt(pos + 1);
     if (c0 === 118 && c1 === 32) {                                              // v x y z
       const t = text.slice(pos + 2, end).trim().split(/\s+/); X.push(+t[0]); Yv.push(+t[1]); Zv.push(+t[2]);
+    } else if (c0 === 118 && c1 === 116) {                                      // vt u v
+      const t = text.slice(pos + 3, end).trim().split(/\s+/); VT.push(+t[0], +t[1]);
     } else if (c0 === 102 && c1 === 32) {                                       // f a b c ... (v, v/vt, v/vt/vn, negative indices)
       if (!cur) open();
-      const t = text.slice(pos + 2, end).trim().split(/\s+/).map((q) => { let i = parseInt(q, 10); if (i < 0) i = X.length + i + 1; return i - 1; });
-      const loc = t.map((vi) => { let l = cur.map.get(vi); if (l === undefined) { l = cur.P.length / 3; cur.map.set(vi, l); cur.P.push(X[vi], Yv[vi], Zv[vi]); } return l; });
+      const t = text.slice(pos + 2, end).trim().split(/\s+/).map((q) => { const f = q.split('/'); let i = parseInt(f[0], 10), ti = f[1] ? parseInt(f[1], 10) : 0; if (i < 0) i = X.length + i + 1; if (ti < 0) ti = VT.length / 2 + ti + 1; return [i - 1, ti - 1]; });
+      const loc = t.map(([vi, ti]) => { const key = vi * 4194304 + (ti + 1); let l = cur.map.get(key); if (l === undefined) { l = cur.P.length / 3; cur.map.set(key, l); cur.P.push(X[vi], Yv[vi], Zv[vi]); cur.UV.push(ti >= 0 ? VT[ti * 2] : 0, ti >= 0 ? VT[ti * 2 + 1] : 0); } return l; });
       for (let k = 1; k + 1 < loc.length; k++) cur.idx.push(loc[0], loc[k], loc[k + 1]);
     } else if (c0 === 111 && c1 === 32) { obj = text.slice(pos + 2, end).trim(); grp = ''; cur = null; }
     else if (c0 === 103 && c1 === 32) { grp = text.slice(pos + 2, end).trim(); cur = null; }
+    else if (text.startsWith('mtllib ', pos)) mtllib = text.slice(pos + 7, end).trim();
     else if (text.startsWith('usemtl ', pos)) { const m = text.slice(pos + 7, end).trim(); let i = mats.indexOf(m); if (i < 0) { i = mats.length; mats.push(m); } mat = i; cur = null; }
     pos = end + 1;
   }
-  const out = parts.filter((p) => p.idx.length).map((p) => ({ name: p.name, path: p.path, node: p.node, mat: p.mat, V: Float32Array.from(p.P), idx: Uint32Array.from(p.idx) }));
-  return { g: { materials: mats.map((name) => ({ name })), nodes: [], meshes: [] }, parts: out };
+  const out = parts.filter((p) => p.idx.length).map((p) => ({ name: p.name, path: p.path, node: p.node, mat: p.mat, V: Float32Array.from(p.P), idx: Uint32Array.from(p.idx), UV: Float32Array.from(p.UV) }));
+  // the materials: the diffuse map and the factor of the .mtl next to the .obj
+  const info = new Map();
+  const mtlFile = mtllib && path.join(path.dirname(file), mtllib);
+  if (mtlFile && fs.existsSync(mtlFile)) {
+    let cm = null;
+    for (const ln of fs.readFileSync(mtlFile, 'latin1').split(/\r?\n/)) {
+      const t = ln.trim().split(/\s+/);
+      if (t[0] === 'newmtl') { cm = { diffuse: null, factor: [1, 1, 1, 1] }; info.set(t.slice(1).join(' '), cm); }
+      else if (cm && t[0] === 'Kd') cm.factor = [+t[1], +t[2], +t[3], 1];
+      else if (cm && t[0] === 'map_Kd') cm.diffuse = t.slice(1).join(' ');
+    }
+  }
+  return { g: { materials: mats.map((name) => ({ name, objDiffuse: info.get(name)?.diffuse || null, objFactor: info.get(name)?.factor || [1, 1, 1, 1] })), nodes: [], meshes: [] }, parts: out };
 }
 
 /** Loads the glTF in `dir` into world-space triangles: parts = [{ name, node, mat, V: Float32Array (x,y,z...), idx, bb }]. */
@@ -450,11 +466,12 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     const w = (f, a) => fs.writeFileSync(path.join(out, f), Buffer.from(a.buffer, a.byteOffset, a.byteLength));
     w('pos.f32', pos); w('uv.f32', uv); w('vmat.i16', vm); w('idx.u32', ix);
     const mats = (model.g.materials || []).map((mt) => {
+      if (mt.objFactor) return { name: mt.name, diffuse: mt.objDiffuse, factor: mt.objFactor };
       const sg = mt.extensions?.KHR_materials_pbrSpecularGlossiness, pbr = mt.pbrMetallicRoughness;
       const ti = sg?.diffuseTexture?.index ?? pbr?.baseColorTexture?.index;
       return { name: mt.name, diffuse: ti != null ? model.g.images[model.g.textures[ti].source].uri : null, factor: sg?.diffuseFactor || pbr?.baseColorFactor || [1, 1, 1, 1] };
     });
-    fs.writeFileSync(path.join(out, 'info.json'), JSON.stringify({ vertices: nv, triangles: nf, mats, L: m.L }));
+    fs.writeFileSync(path.join(out, 'info.json'), JSON.stringify({ vertices: nv, triangles: nf, mats, L: m.L, flipV: !(model.g.nodes && model.g.nodes.length) }));
     console.log(`${out}: ${nv} vertices, ${nf} triangles, ${mats.length} materials`);
   } else if (cmd === 'sections') {
     const step = +(arg || 2);

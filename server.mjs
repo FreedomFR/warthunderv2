@@ -4,6 +4,8 @@
 // into ./shots — used for automated visual checks.
 import http from 'node:http';
 import fs from 'node:fs';
+import zlib from 'node:zlib';
+const gz = new Map();
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -62,6 +64,15 @@ http.createServer((req, res) => {
       if (a > b || a >= data.length) { res.writeHead(416, { 'content-range': `bytes */${data.length}` }); res.end(); return; }
       res.writeHead(206, { ...head, 'content-range': `bytes ${a}-${b}/${data.length}`, 'content-length': b - a + 1 });
       res.end(data.subarray(a, b + 1));
+      return;
+    }
+    // the baked ship meshes are megabytes of base64: send the text types gzipped (cached per file and size)
+    if (/\bgzip\b/.test(req.headers['accept-encoding'] || '') && /^\.(js|mjs|html|json|css)$/.test(path.extname(file)) && data.length > 50000) {
+      const key = file + ':' + data.length + ':' + data[data.length >> 1];
+      let z = gz.get(key);
+      if (!z) { z = zlib.gzipSync(data, { level: 6 }); gz.set(key, z); }
+      res.writeHead(200, { ...head, 'content-encoding': 'gzip', 'content-length': z.length, vary: 'accept-encoding' });
+      res.end(z);
       return;
     }
     res.writeHead(200, head);

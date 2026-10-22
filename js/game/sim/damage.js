@@ -56,8 +56,8 @@ function houseBox(ship, rec, aa) {
   if (rec._hb) return rec._hb;
   const model = ship.model;
   const mm = aa
-    ? getMountModel({ kind: 'aa', cal: rec.cal, n: rec.n, bore: rec.bore, col: model.pal.sup, variant: rec.variant })
-    : getMountModel({ kind: rec.kind, cal: rec.cal, n: rec.n, bore: rec.bore, col: model.pal.sup, variant: rec.variant, top: model.pal.top });
+    ? getMountModel({ kind: 'aa', cal: rec.cal, n: rec.n, bore: rec.bore, col: model.pal.sup, variant: rec.variant, look: rec.look })
+    : getMountModel({ kind: rec.kind, cal: rec.cal, n: rec.n, bore: rec.bore, col: model.pal.sup, variant: rec.variant, top: model.pal.top, look: rec.look });
   const b = mm.house.aabb;
   return (rec._hb = { x0: b[0], x1: b[3], y0: b[1], y1: b[4], z0: b[2], z1: b[5] });
 }

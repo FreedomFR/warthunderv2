@@ -51,7 +51,7 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 - `balance.js` (87) Balance: multipliers of the damage done in the battle, so that it can be tuned without touching the code. [BALANCE_FIELDS, BALANCE_MIN, BALANCE, balanceNeutral, balanceOfFile, balanceNow, setBalance, setBalanceFile, balanceDiff, … +2] ← 7
 - `explosives.js` (40) Explosive fillers of torpedoes and their strength against a ship's hull, as kg of TNT per kg of filler. [EXPLOSIVE, tntEquivalent, AIR_TORPEDO, airTorpedoEq] ← 5
 - `protection.js` (72) Protection and survivability data that the spec sheets do not carry: how the armour is laid out (belt inclination, the thin weather deck above the armoured one), the… [NAVY, PROTECTION, protectionOf, navyOf] ← 1
-- `ships.js` (30) Ship roster: the six nations' spec sheets (real-ship data) indexed by id / nation / type. [NATIONS, TYPES, ALL_SHIPS, BY_ID, typeName, nationName, shipsOf] ← 35
+- `ships.js` (30) Ship roster: the six nations' spec sheets (real-ship data) indexed by id / nation / type. [NATIONS, TYPES, ALL_SHIPS, BY_ID, typeName, nationName, shipsOf] ← 37
 
 ## js/game/data/specs/
 
@@ -65,7 +65,9 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 ## js/game/model/
 
 - `ao.js` (110) Baked ambient occlusion for the procedural ship meshes. [bakeAO] ← 1
-- `bakedmesh.js` (19) Reading the baked reference meshes (ships/<id>_baked.js, ships/<id>_mounts_baked.js, made by tools/refs/bake*.py): base64 pieces -> positions in metres, smooth… [decodeBaked] ← 2
+- `bakedmesh.js` (19) Reading the baked reference meshes (ships/<id>_baked.js, ships/<id>_mounts_baked.js, made by tools/refs/bake*.py): base64 pieces -> positions in metres, smooth… [decodeBaked] ← 3
+- `bakedmounts.js` (9) The gun houses and barrels read on the reference models of the ships drawn from baked meshes (tools/refs/bakemounts2.py), by ship id: { MOUNTS_BAKED, MOUNT_SCALE }. [BAKED_MOUNTS] ← 1
+- `bakedship.js` (16) A ship drawn from a baked reference mesh (ships/<id>_baked.js, made by tools/refs/bake.py + bakeship.mjs): after the procedural build the hull and structure mesh and… [applyBaked] ← 1
 - `baseGuns.js` (94) The guns of the bases: the mount of each gun (the same meshes as on the ships, see mounts.js) and what it stands on - a concrete emplacement with a ring wall, an… [gunMountSpec, buildEmplacement] ← 1
 - `baseKit.js` (210) Shared bits of the base models: the palette of each nation, and small drawing helpers (smooth lofts, rings, ragged ground patches, vehicles, drums...). [BASE_PAL, palOf, EARTH, earthOf, DIRT, dirtOf, C, DARK, CHAR, … +19] ← 4
 - `baseMesh.js` (314) The look of a military base: buildBaseModel(layout, nation) turns the layout of sim/bases.js into the meshes that render/baseVisual.js draws. [orientPart, buildBaseModel, clearBaseCaches] ← 2
@@ -79,29 +81,41 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 - `heavy.js` (472) The multi-engine land-based bombers (B-17, G4M, Lancaster, He 111, SM.79, LeO 451): the generator for aircraft with `spec.engines`. [frameOf, bayPivot, propMounts, drawHeavy] ← 3
 - `hull.js` (246) Parametric hull lofting. The hull is a parametric surface P(t, k): t runs from the bow (0) to the stern (1) along each horizontal "level" k (k < 0 below the… [pchip, buildHull] ← 1
 - `islandMesh.js` (102) The mesh of an island: the height field of sim/terrain.js turned into triangles, coloured by height and slope (beach, grass or forest, bare rock, ash), with smooth… [groundColour, buildIslandMesh] ← 1
-- `layout.js` (105) How the gun houses sit among the structures round them. [houseBox, houseRect, obstacles, buriedIn, clearHouses] ← 2
+- `layout.js` (105) How the gun houses sit among the structures round them. [houseBox, houseRect, obstacles, buriedIn, clearHouses] ← 3
 - `livery.js` (67) Ship liveries: camouflage patterns, palettes and the hull number / ensign data used by the ship shader. [CAMO, NATION_ID, PALETTES, LIVERY, MARKS, hullNumber, hex, paintOf] ← 3
-- `meshbuilder.js` (565) Procedural mesh builder used to model the warships (no external assets). [MAT, VERTEX_STRIDE, DETAIL, rgb, shade, mix, MeshBuilder] ← 21
+- `meshbuilder.js` (565) Procedural mesh builder used to model the warships (no external assets). [MAT, VERTEX_STRIDE, DETAIL, rgb, shade, mix, MeshBuilder] ← 22
 - `mountdata.js` (8) The gun houses of the mounts that were read on a reference model (tools/refs/solids.py --local --skin: the cross-sections of the house in its own frame): for each… [HOUSE_DATA] ← 1
-- `mounts.js` (639) Articulated gun mounts. Every mount produces two meshes that are drawn as separate instances so they can move independently: house : the rotating gun house / shield /… [mountDims, getMountModel] ← 10
+- `mounts.js` (654) Articulated gun mounts. Every mount produces two meshes that are drawn as separate instances so they can move independently: house : the rotating gun house / shield /… [mountDims, getMountModel] ← 12
 - `parts.js` (519) Reusable ship parts. All functions draw into a MeshBuilder in model space (+x bow, +y up from the waterline, +z starboard). [OPT, barbette, funnel, funnelRuin, windowBand, tower, poleMast, tripod, cageMast, … +21] ← 2
 - `planeGuns.js` (167) The defensive guns of an aircraft, one entry per gun position: where it pivots, what it can bear on, its calibre and its barrels. [GUN_DIMS, gunDims, GUN_RATE, GUN_DMG, planeGuns, inArc, muzzleOf, drawGunHead] ← 4
 - `planes.js` (755) Procedural WWII carrier aircraft. One generator for monoplanes and biplanes driven by a spec sheet (dimensions of the real aircraft). [PAINT, PLANES, groundY, propsOf, floatplaneSpec, damageSites, planeTypeFor, upperWingY, cockpitHole, … +15] ← 25
 - `screws.js` (25) The screws and the rudder of the ships whose underwater body was not measured on a plan (tweaks.props / tweaks.rudders): drawn from the number of shafts the class… [defaultScrews] ← 1
-- `shipbuilder.js` (929) Spec-driven ship builder. Reads a real-ship spec sheet (dimensions, turret / funnel / mast positions as fractions of the overall length, class, paint) and builds the… [pagodaTiers, buildShipModel] ← 10
+- `shipbuilder.js` (931) Spec-driven ship builder. Reads a real-ship spec sheet (dimensions, turret / funnel / mast positions as fractions of the overall length, class, paint) and builds the… [pagodaTiers, buildShipModel] ← 12
 - `treeMeshes.js` (506) The plants as meshes: eight species (oak, fir, palm, tropical canopy tree, acacia, cypress, shrub, boulder), three variants each, at four levels of detail. [FAM, SHAPE, getTemplate, ROCK_TINT, stampPlants] ← 2
 - `triangulate.js` (53) Triangulation of a polygon with holes (ear clipping after the holes are bridged into the outline), for the flat caps of the solids read from a reference model… [triangulate] ← 1
-- `tweaks.js` (1031) Per-ship hand tuning of the generated models (see shipbuilder.js for the options). [TWEAKS] ← 10
+- `tweaks.js` (1038) Per-ship hand tuning of the generated models (see shipbuilder.js for the options). [TWEAKS] ← 13
 - `vegetation.js` (143) Where the plants grow. Pure functions of an island (no GPU): the climate of the island, how much of the ground is covered at a point (used both to scatter trees and… [SP, SPECIES, VARIANTS, STEP, climateOf, cover, scatter] ← 5
 
 ## js/game/model/ships/
 
 - `adams.js` (566) adams: the tweaks of the adams model (see ../shipbuilder.js for the options and ../tweaks.js for the others); [ADAMS] ← 1
+- `adams_baked.js` (4) The adams's hull and structure read on its reference model (see docs/CREDITS.md): its triangles simplified, the colour of its textures at every vertex, cut into the… [SCALE, BAKED] ← 1
+- `adams_mounts_baked.js` (4) The gun houses and barrels of the adams's kinds of mount read on its reference model (see docs/CREDITS.md): one mount of each kind in its own frame (house: origin at… [MOUNT_SCALE, MOUNTS_BAKED] ← 1
 - `gioberti.js` (506) gioberti: the tweaks of the gioberti model (see ../shipbuilder.js for the options and ../tweaks.js for the others); [GIOBERTI] ← 1
+- `gioberti_baked.js` (4) The gioberti's hull and structure read on its reference model (see docs/CREDITS.md): its triangles simplified, the colour of its textures at every vertex, cut into… [SCALE, BAKED] ← 1
+- `gioberti_mounts_baked.js` (4) The gun houses and barrels of the gioberti's kinds of mount read on its reference model (see docs/CREDITS.md): one mount of each kind in its own frame (house: origin… [MOUNT_SCALE, MOUNTS_BAKED] ← 1
 - `graf_spee.js` (159) graf_spee: the tweaks of the Admiral Graf Spee model (see ../shipbuilder.js for the options and ../tweaks.js for the others); [GRAF_SPEE] ← 1
+- `graf_spee_baked.js` (4) The graf_spee's hull and structure read on its reference model (see docs/CREDITS.md): its triangles simplified, the colour of its textures at every vertex, cut into… [SCALE, BAKED] ← 1
+- `graf_spee_mounts_baked.js` (4) The gun houses and barrels of the graf_spee's kinds of mount read on its reference model (see docs/CREDITS.md): one mount of each kind in its own frame (house: origin… [MOUNT_SCALE, MOUNTS_BAKED] ← 1
 - `kagero.js` (163) kagero: the tweaks of the Kagero model (see ../shipbuilder.js for the options and ../tweaks.js for the others); [KAGERO] ← 1
+- `kagero_baked.js` (4) The kagero's hull and structure read on its reference model (see docs/CREDITS.md): its triangles simplified, the colour of its textures at every vertex, cut into the… [SCALE, BAKED] ← 1
+- `kagero_mounts_baked.js` (4) The gun houses and barrels of the kagero's kinds of mount read on its reference model (see docs/CREDITS.md): one mount of each kind in its own frame (house: origin at… [MOUNT_SCALE, MOUNTS_BAKED] ← 1
 - `kit.js` (35) The drawing helpers shared by the ships that are drawn bespoke from a reference model (ships/<id>.js): plans from half-widths, thin walls, railings round a platform,… [cutter, kit] ← 3
+- `shokaku_baked.js` (4) The shokaku's hull and structure read on its reference model (see docs/CREDITS.md): its triangles simplified, the colour of its textures at every vertex, cut into the… [SCALE, BAKED] ← 1
+- `shokaku_mounts_baked.js` (4) The gun houses and barrels of the shokaku's kinds of mount read on its reference model (see docs/CREDITS.md): one mount of each kind in its own frame (house: origin… [MOUNT_SCALE, MOUNTS_BAKED] ← 1
 - `tade.js` (162) tade: the tweaks of the tade model (see ../shipbuilder.js for the options and ../tweaks.js for the others); [TADE] ← 1
+- `tade_baked.js` (4) The tade's hull and structure read on its reference model (see docs/CREDITS.md): its triangles simplified, the colour of its textures at every vertex, cut into the… [SCALE, BAKED] ← 1
+- `tade_mounts_baked.js` (4) The gun houses and barrels of the tade's kinds of mount read on its reference model (see docs/CREDITS.md): one mount of each kind in its own frame (house: origin at… [MOUNT_SCALE, MOUNTS_BAKED] ← 1
 - `yamato.js` (284) yamato: the tweaks of the Yamato model (see ../shipbuilder.js for the options and ../tweaks.js for the others); [YAMATO] ← 1
 - `yamato_baked.js` (4) The Yamato's solid masses read on the reference model (KojfDiscord, CC BY 4.0: see docs/CREDITS.md): its triangles simplified to 240k, the colour of its textures at… [SCALE, BAKED] ← 1
 - `yamato_mounts_baked.js` (4) The gun houses and barrels of the Yamato's mount families read on the reference model (KojfDiscord, CC BY 4.0: docs/CREDITS.md): one mount of each kind in its own… [MOUNT_SCALE, MOUNTS_BAKED] ← 1
@@ -231,12 +245,15 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 - `modelbench.mjs` The time it takes to build every ship model, and a fingerprint of the result (the same fingerprint = the same models): node tools/modelbench.mjs
 - `perf.mjs` Where the time of a frame goes in a running battle: node tools/perf.mjs "<url>" [seconds] [profileSeconds] GPU=hardware WSLENV=GPU "/mnt/c/Program…
 - `bakepack.mjs` The baked reference model (tools/refs/bake.py) cut into the pieces the game draws and packed into a JS module (js/game/model/ships/<id>_baked.js): node…
+- `bakeship.mjs` A baked reference model cut for the game (tools/refs/bake.py wrote the arrays, tools/refs/shiplayout.mjs the layout): node tools/refs/bakeship.mjs <bakeddir>…
 - `check.mjs` Render the matte views listed for a ship in tools/refs/plans.json (?matte=1: flat green background), for silhouette.py to compare with the plans.
+- `decimate.mjs` Simplifies a welded baked mesh with meshoptimizer (edge collapses onto existing vertices: no stray vertices, unlike a quadric optimum): node tools/refs/decimate.mjs…
 - `footprints.mjs` The solid masses of a reference model as stacked footprints, to be redrawn as prisms in js/game/model/ships/<id>.js: node tools/refs/footprints.mjs <refdir> <loa>…
 - `gltf.mjs` Reads a glTF given for MEASUREMENT ONLY (refs/<id>/src/scene.gltf, git-ignored;
 - `mountprofile.mjs` The shape of one mount (a turret, a cupola, a gun shield) measured on a reference model, in the mount's own frame, to be redrawn by hand in js/game/model/mounts.js:…
 - `pair.mjs` The game's picture of a window on a ship, to put beside the same window of the reference model (tools/refs/pair.sh): a narrow field of view from far away (nearly…
 - `planecheck.mjs` Render the matte top and side views of an aircraft model of the preview scene (nose to the right), for planecheck.py.
+- `shiplayout.mjs` What the game draws itself on a ship, as a JSON the baking reads (tools/refs/bakeship.mjs): node tools/refs/shiplayout.mjs <shipId> > refs/<id>/layout.json mounts:…
 - `shots.mjs` Take screenshots of the 3D models in the preview scene, from camera positions given in a JSON file.
 - `studio.mjs` A model seen from every side on a plain background, each view lit from behind the camera (the sun in the sky of the game is behind the ship from most angles, which…
 - `views.mjs` Standard camera set for comparing a procedural model with photographs: starboard profile, bow and stern three-quarter views and a close look at the forecastle, with…
@@ -264,6 +281,7 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 - `airops.mjs` Strike formations and the light anti-aircraft magazines: node test/airops.mjs
 - `arcs.mjs` Firing arcs of the ships drawn from a reference model (Kagero, Tade, Gioberti, Adams): what each gun and each torpedo launcher can bear on.
 - `audio.mjs` Audio engine smoke test with a stub Web Audio API: every sound is synthesised, every battle event is mapped, the continuous voices follow their sources.
+- `baked.mjs` The ships drawn from baked reference meshes (tweaks `baked` / `bakedHull`): every one builds, its mesh is the model's (a few ten thousand triangles, inside the ship's…
 - `balance.mjs` The damage multipliers: node test/balance.mjs — config/balance.json is complete and valid, the layers (neutral, file, browser) stack, and each multiplier changes the…
 - `basemesh.mjs` The look of the bases: node test/basemesh.mjs — the models of the layouts of several seeds and nations build, every building has an intact and a ruined mesh, the…
 - `bases.mjs` Military bases on the islands: node test/bases.mjs — where they are put, how the ground is levelled, who owns them, that a seed gives the same bases.
