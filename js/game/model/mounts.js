@@ -517,6 +517,7 @@ function makeMount(s) {
   let d = decodeBaked(k.house, el.MOUNT_SCALE); hb.raw(d.pos, d.nrm, d.col, d.idx, MAT.HULL);
   let guns = mm.guns;
   if (k.guns) { d = decodeBaked(k.guns, el.MOUNT_SCALE); gb.raw(d.pos, d.nrm, d.col, d.idx, MAT.HULL); guns = gb.build(); }
+  else if (k.noGuns) guns = gb.build();
   return { ...mm, house: hb.build(), guns };
 }
 

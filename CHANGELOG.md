@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased — elements found by shape and measured, not by boxes
+
+- **`tools/refs/instances.py`**: finds the repeated objects of a model (same triangle count and size), fits each copy onto the first by a turn about the vertical and a shift (residual in cm), and prints the table: 134 kinds on the Yamato, e.g. 23 identical shield objects (0.0 cm residual). **`tools/refs/assemble.py`** builds an element from a kind and the objects standing in its cylinder, written in the mount's own frame (the way its slot faces = forward), with the thin objects as guns (origin at the trunnion: they elevate and recoil), and the placements measured on the model. The previous element copier (boxes of the game's mounts) is dropped from use: its houses overlapped, faced the wrong way and caught pieces of neighbours.
+- **First element in the game: the Yamato's shielded 25 mm triple**, 23 mounts at the places and facings the model gives (the hand-written list of 28 is removed); checked side by side from three angles. The other ships and mounts will follow one element at a time, each checked before it goes in.
+- `homeward` test: radius limit 2500 m (the AA layout of the Yamato changed the battle).
+
 ## Unreleased — back to the hand-made ships, with the mounts copied element by element from the models
 
 - The baked meshes are removed from the game (a hull and structure from the model mixed with the hand-made parts looked bad); the ships are hand-made again (the Yamato as in `9e70369`).

@@ -664,6 +664,13 @@ export function buildShipModel(spec, tw = {}) {
       note(y + 3);
     }
   }
+  // the light mounts copied from the reference model (model/elements.js): where the model has each one, nothing slid aside, no procedural tub or pedestal under it (its house comes with its ring)
+  for (const pl of (ELEMENTS[spec.id] && tw.elements !== false ? ELEMENTS[spec.id].PLACEMENTS : []).filter((q) => AA_TYPES[q.type])) {
+    const ty = AA_TYPES[pl.type];
+    model.aaMounts.push({ variant: ty.v, cal: ty.cal, n: ty.n, bore: ty.bore, x: pl.x, y: pl.y, z: pl.z, rad: 1.8, yaw0: pl.yaw, label: ty.label, look: `${spec.id}/${pl.kind}` });
+    model.aa.push([pl.x, pl.y + 1.2, pl.z]);
+    note(pl.y + 3);
+  }
   // measured boats (tw.boats: [{ f0, f1, z (a boat off the centreline has its twin on the other side), y (above the deck), cabin, davits }])
   for (const bt of tw.boats || []) {
     for (const sg of bt.z && !bt.one ? [1, -1] : [1]) {
@@ -778,12 +785,6 @@ export function buildShipModel(spec, tw = {}) {
   model.topY = topY;
   model.radius = Math.hypot(L / 2, topY);
   if (model.bridge) bridgeEye(model, b.solids, L);
-  // the mounts that were copied from the reference model of this ship (tools/refs/elements.py): their record says which element to draw
-  const el = ELEMENTS[spec.id];
-  if (el && tw.elements !== false) {
-    model.mounts.forEach((r, i) => { const k = el.MOUNT_KIND[`m${i}`]; if (k) r.look = `${spec.id}/${k}`; });
-    model.aaMounts.forEach((r, i) => { const k = el.MOUNT_KIND[`a${i}`]; if (k) r.look = `${spec.id}/${k}`; });
-  }
   // a gun house that is sunk in a deckhouse slides a few tenths of a metre along its deck before the arcs are worked out
   clearHouses(model, b.solids, hull, supportBelow, { carrier });
   computeClearance(model, b.solids, hull, { bothBeams: !!tw.own });

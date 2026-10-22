@@ -1,0 +1,23 @@
+{
+ "ship": "Yamato",
+ "elements": [
+  {
+   "id": "e0",
+   "type": "t25",
+   "parts": [
+    0,
+    2
+   ],
+   "forward_deg": 90,
+   "cylinder": {
+    "radius": 1.95,
+    "y0": -0.3,
+    "y1": 3.6
+   },
+   "trunnion": [
+    0.6,
+    1.0
+   ]
+  }
+ ]
+}
