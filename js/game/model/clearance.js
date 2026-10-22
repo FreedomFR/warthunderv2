@@ -170,7 +170,7 @@ function both(rec, free, H, step) {
 
 /** Choose the arc: the stretch around `arcC` (inside the declared half-width `arcH`) where the barrel can be trained; if `arcC` itself is blocked, the widest free stretch of the declared arc. */
 function arcsFrom(rec, limit, bothBeams = false) {
-  const free = (rel) => clearElev(rec, rec.arcC + rel) <= limit && clearMax(rec, rec.arcC + rel) - clearElev(rec, rec.arcC + rel) >= 10 * D2R;
+  const free = (rel) => clearElev(rec, rec.arcC + rel) <= limit && clearMax(rec, rec.arcC + rel) - clearElev(rec, rec.arcC + rel) >= (rec.look ? 6 : 10) * D2R;      // a mount copied from a model stands where the model has it: a lower ceiling still counts as free
   const step = 1.5 * D2R, H = rec.arcH;
   if (free(0)) {
     let lo = 0, hi = 0;

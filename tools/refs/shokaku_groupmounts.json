@@ -1,0 +1,44 @@
+{
+ "ship": "Shokaku",
+ "elements": [
+  {
+   "id": "t89",
+   "type": "main",
+   "cal": 127,
+   "group": "main",
+   "material": "Type-89_Twin",
+   "min_tris": 2500,
+   "split": true,
+   "barrel_len": 2.0
+  },
+  {
+   "id": "t89s",
+   "type": "main",
+   "cal": 127,
+   "group": "main",
+   "material": "Type-89_TwinShield",
+   "min_tris": 400,
+   "split": true,
+   "barrel_len": 2.0
+  },
+  {
+   "id": "t96",
+   "type": "t25",
+   "cal": 25,
+   "group": "aa",
+   "material": "Type-96",
+   "min_tris": 900,
+   "facing": "mass",
+   "exclude": "Triple_Mod2"
+  },
+  {
+   "id": "t96b",
+   "type": "t25",
+   "cal": 25,
+   "group": "aa",
+   "material": "Type-96_Triple_Mod2",
+   "min_tris": 300,
+   "facing": "mass"
+  }
+ ]
+}

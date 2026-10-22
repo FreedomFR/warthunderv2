@@ -8,7 +8,8 @@
    "min_tris": 5000,
    "split": true,
    "barrel_len": 6,
-   "cal": 460
+   "cal": 460,
+   "group": "main"
   },
   {
    "id": "t155",
@@ -17,7 +18,8 @@
    "min_tris": 3000,
    "split": true,
    "barrel_len": 3,
-   "cal": 155
+   "cal": 155,
+   "group": "sec"
   },
   {
    "id": "c127a",
@@ -26,7 +28,8 @@
    "min_tris": 2000,
    "split": true,
    "barrel_len": 1.5,
-   "cal": 127
+   "cal": 127,
+   "group": "sec"
   },
   {
    "id": "m127",
@@ -35,21 +38,24 @@
    "min_tris": 2000,
    "split": true,
    "barrel_len": 1.5,
-   "cal": 127
+   "cal": 127,
+   "group": "sec"
   },
   {
    "id": "s25",
    "type": "t25",
    "material": "JGA004_25mm_Type96_Triple",
    "min_tris": 300,
-   "facing": "mass"
+   "facing": "mass",
+   "group": "aa"
   },
   {
    "id": "o25",
    "type": "t25",
    "material": "JGA010_25mm_Type96",
    "min_tris": 300,
-   "facing": "mass"
+   "facing": "mass",
+   "group": "aa"
   }
  ],
  "align": {

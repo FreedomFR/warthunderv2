@@ -31,6 +31,7 @@ function paint(piece, scale, pal, cls, ref, maxY = Infinity) {
     const l = lum(r, g, b), m = Math.max(0.55, Math.min(1.35, l / ref.lum));
     const warm = (r - b) / 255 > 0.1 && r >= g;
     if (ny > 0.8 && warm) { const c = base.deck, k = Math.max(0.6, Math.min(1.3, l / ref.deck)); put(MAT.DECK, i, [c[0] * k, c[1] * k, c[2] * k]); continue; }
+    if (cls === 'flightdeck' && ny > 0.8) { const c = base.deck, k = Math.max(0.8, Math.min(1.2, l / ref.lum)); put(MAT.DECK, i, [c[0] * k, c[1] * k, c[2] * k]); continue; }       // the flight deck: its upper face in the deck colour
     const c = cls === 'hull' ? base.hull : base.sup;
     put(cls === 'hull' ? MAT.SKIN : MAT.HULL, i, [Math.min(255, c[0] * m), Math.min(255, c[1] * m), Math.min(255, c[2] * m)]);
   }

@@ -139,7 +139,10 @@ function grafSpeeExtras({ b, hull, X, Y, pal, model, MAT, rgb, shade, part, PT, 
   PT.ensign(b, { x: X(0.99) - 0.1, y: 6.8, z: 0, len: 3.0 });
 }
 
+import * as V4 from './graf_spee_v4.js';
+
 export const GRAF_SPEE = {
+  v4: V4,
   mainVariant: 'drh28_283', secVariant: ['de150_1', 'dop105'], dirKind: 'drum', own: true, ownTubes: true, houseH: 0.1, bulwarkF: [0, 0.04],
   bow: { rake: 0.8, forefoot: 1.2, pr: 1.2 }, stern: { overhang: 6.0, tail: 2.8, rise: 13, oex: 1.0 },
   fb: [[0, 6.6], [0.025, 6.3], [0.05, 6.0], [0.1, 5.75], [0.15, 5.5], [0.2, 5.35], [0.25, 5.3], [0.81, 5.3], [0.822, 4.1], [0.9, 4.0], [1, 4.0]],

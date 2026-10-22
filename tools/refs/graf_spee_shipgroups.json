@@ -1,0 +1,135 @@
+{
+ "ship": "Admiral Graf Spee",
+ "skip_groups": [
+  "105mm_SK_C-33#0",
+  "105mm_SK_C-33#1",
+  "105mm_SK_C-33#2",
+  "15_cm_SK_C-28_Single#0",
+  "15_cm_SK_C-28_Single#1",
+  "15_cm_SK_C-28_Single#1a",
+  "15_cm_SK_C-28_Single#1b",
+  "15_cm_SK_C-28_Single#2",
+  "15_cm_SK_C-28_Single#3",
+  "15_cm_SK_C-28_Single#4",
+  "15_cm_SK_C-28_Single#4a",
+  "15_cm_SK_C-28_Single#4b",
+  "15_cm_SK_C-28_Single#5",
+  "20mm_Flak_38#0",
+  "20mm_Flak_38#1",
+  "20mm_Flak_38#10",
+  "20mm_Flak_38#11",
+  "20mm_Flak_38#2",
+  "20mm_Flak_38#3",
+  "20mm_Flak_38#4",
+  "20mm_Flak_38#5",
+  "20mm_Flak_38#6",
+  "20mm_Flak_38#7",
+  "20mm_Flak_38#8",
+  "20mm_Flak_38#9",
+  "280mm_SK_C-28#0",
+  "280mm_SK_C-28#1",
+  "37mm_SK_C-30#0",
+  "37mm_SK_C-30#1",
+  "37mm_SK_C-30#2",
+  "37mm_SK_C-30#3"
+ ],
+ "skip_material": [
+  "Propellor",
+  "Rudder"
+ ],
+ "cuts": [
+  {
+   "group": ".*",
+   "gre": true,
+   "id": "funnel0",
+   "kind": "funnel",
+   "label": "Chemin\u00e9e",
+   "box": [
+    -1,
+    10,
+    5.2,
+    22,
+    -6,
+    6
+   ]
+  },
+  {
+   "group": ".*",
+   "gre": true,
+   "id": "tower",
+   "kind": "bridge",
+   "label": "Tour de direction de tir",
+   "box": [
+    15,
+    32,
+    5.2,
+    40,
+    -7,
+    7
+   ]
+  },
+  {
+   "group": ".*",
+   "gre": true,
+   "id": "mast1",
+   "kind": "mast",
+   "label": "M\u00e2t arri\u00e8re",
+   "box": [
+    -23.5,
+    -20.5,
+    6,
+    30,
+    -2.5,
+    2.5
+   ]
+  }
+ ],
+ "rules": [
+  {
+   "match": "Radar_[13]$",
+   "to": "part",
+   "kind": "radar",
+   "label": "Radar",
+   "spin": true
+  },
+  {
+   "match": "Rangefinder$",
+   "to": "part",
+   "kind": "director",
+   "label": "T\u00e9l\u00e9m\u00e8tre",
+   "track": true
+  },
+  {
+   "match": "TorpedoTubes",
+   "to": "part",
+   "kind": "tubes",
+   "label": "Tubes lance-torpilles"
+  },
+  {
+   "match": "Catapult",
+   "to": "part",
+   "kind": "catapult",
+   "label": "Catapulte"
+  },
+  {
+   "match": "(MotorVessel|Vessel)",
+   "to": "part",
+   "kind": "structure",
+   "label": "Canot"
+  },
+  {
+   "match": "Hull_Part",
+   "to": "static",
+   "cls": "hull"
+  },
+  {
+   "match": "(MetalCable|^mesh_29)",
+   "to": "fine"
+  },
+  {
+   "match": ".*",
+   "to": "static",
+   "cls": "equip"
+  }
+ ]
+}

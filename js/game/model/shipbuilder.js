@@ -647,7 +647,8 @@ export function buildShipModel(spec, tw = {}) {
   // two light mounts never share a spot: a measured mount that would stand in another one slides fore or aft along its deck until it is clear (and is left out
   // when there is no room), and a mount that is not measured is only put where no other is
   const aaTaken = (x, y, z, rad) => model.aaMounts.some((m) => Math.abs(m.y - y) < 2.2 && Math.hypot(m.x - x, m.z - z) < (m.rad || 0.9) + rad) || model.tubes.some((q) => Math.abs(q.y - y) < 2.4 && Math.abs(q.x - x) < 2.8 && Math.abs(q.z - z) < 2.8);
-  for (const a of tw.aa || []) {
+  const copiedAA = !!(ELEMENTS[spec.id] && tw.elements !== false && ELEMENTS[spec.id].PLACEMENTS.some((q) => AA_TYPES[q.type]));
+  for (const a of copiedAA ? [] : tw.aa || []) {
     const ty = AA_TYPES[a.k], x0 = X(a.f), rad = ty.tub ? ty.tub * 0.55 : 0.55;
     for (const sg of a.z && !a.one ? [1, -1] : [a.z < 0 ? -1 : 1]) {
       let placed = null;
@@ -667,22 +668,29 @@ export function buildShipModel(spec, tw = {}) {
   }
   // the mounts copied from the reference model (model/elements.js): each stands where the model has it, facing the way the model has it, drawn as the model's own house and guns
   const elPl = ELEMENTS[spec.id] && tw.elements !== false ? ELEMENTS[spec.id].PLACEMENTS : [];
-  for (const pl of elPl.filter((q) => q.type === 't25' && AA_TYPES.t25)) {
-    const ty = AA_TYPES.t25;
+  for (const pl of elPl.filter((q) => AA_TYPES[q.type])) {
+    const ty = AA_TYPES[pl.type];
     model.aaMounts.push({ variant: ty.v, cal: ty.cal, n: ty.n, bore: ty.bore, x: pl.x, y: pl.y, z: pl.z, rad: 1.8, yaw0: pl.yaw * Math.PI / 180, label: ty.label, look: `${spec.id}/${pl.kind}` });
     model.aa.push([pl.x, pl.y + 1.2, pl.z]);
     note(pl.y + 3);
   }
   const claimed = new Set();
-  for (const pl of elPl.filter((q) => q.type !== 't25')) {
-    let best = null, bd = 9;
+  for (const pl of elPl.filter((q) => !AA_TYPES[q.type])) {
+    let best = null, bd = 80;
     for (const r of model.mounts) {
-      if (claimed.has(r) || Math.abs(r.cal - pl.cal) > 6) continue;
+      if (claimed.has(r) || Math.abs(r.cal - pl.cal) > 6 || (pl.mgroup && r.group !== pl.mgroup)) continue;
       const d = Math.hypot(r.x - pl.x, r.z - pl.z);
       if (d < bd) { best = r; bd = d; }
     }
     if (!best) continue;
     claimed.add(best);
+    // the hit volume of the barbette or house the record had (built before the mount was moved) goes with it: what is centred on the old pivot, a few metres across, just under or round it
+    const ox = best.x, oy = best.y, oz = best.z;
+    for (const q of b.solids) {
+      if (q.part || q.strut || Math.abs((q[0] + q[1]) / 2 - ox) > 0.5 || Math.abs((q[4] + q[5]) / 2 - oz) > 0.5 || q[1] - q[0] > 8 || q[5] - q[4] > 8 || q[2] < oy - 2.5 || q[3] > oy + 3.5 || q[3] < oy - 1.5) continue;
+      q[0] += pl.x - ox; q[1] += pl.x - ox; q[2] += pl.y - oy; q[3] += pl.y - oy; q[4] += pl.z - oz; q[5] += pl.z - oz;
+      if (q.poly) for (const v of q.poly) { v[0] += pl.x - ox; v[1] += pl.z - oz; }
+    }
     best.x = pl.x; best.y = pl.y; best.z = pl.z; best.look = `${spec.id}/${pl.kind}`;
     const ya = pl.yaw * Math.PI / 180;
     best.arcC = Math.atan2(Math.sin(ya), Math.cos(ya));                         // at rest it points the way the model has it (the arc is centred there)

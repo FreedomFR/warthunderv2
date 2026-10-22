@@ -1,0 +1,100 @@
+{
+ "ship": "Vincenzo Gioberti",
+ "skip_groups": [
+  "120mm-15_StarShell#0",
+  "120mm-15_StarShell#1",
+  "120mm-50_Ansaldo_OTO_1936#0",
+  "120mm-50_Ansaldo_OTO_1936#1",
+  "13mm_Breda_1931_Twin#0",
+  "13mm_Breda_1931_Twin#1",
+  "13mm_Breda_1931_Twin#2",
+  "13mm_Breda_1931_Twin#3"
+ ],
+ "skip_material": [
+  "Propellor",
+  "Rudder"
+ ],
+ "cuts": [
+  {
+   "group": ".*",
+   "gre": true,
+   "id": "funnel0",
+   "kind": "funnel",
+   "label": "Chemin\u00e9e",
+   "box": [
+    3,
+    10.5,
+    9.0,
+    22,
+    -5,
+    5
+   ]
+  },
+  {
+   "group": ".*",
+   "gre": true,
+   "id": "tower",
+   "kind": "bridge",
+   "label": "Passerelle",
+   "box": [
+    10.5,
+    27,
+    8.0,
+    30,
+    -6,
+    6
+   ]
+  },
+  {
+   "group": ".*",
+   "gre": true,
+   "id": "mast1",
+   "kind": "mast",
+   "label": "M\u00e2t arri\u00e8re",
+   "box": [
+    -34,
+    -26.5,
+    8.0,
+    30,
+    -3,
+    3
+   ]
+  }
+ ],
+ "rules": [
+  {
+   "match": "Radar$",
+   "to": "part",
+   "id": "radar0",
+   "kind": "radar",
+   "label": "Radar",
+   "spin": true
+  },
+  {
+   "match": "533mm_Torpedo",
+   "to": "part",
+   "kind": "tubes",
+   "label": "Tubes lance-torpilles"
+  },
+  {
+   "match": "(Raft|Vessel)$",
+   "to": "part",
+   "kind": "structure",
+   "label": "Canot"
+  },
+  {
+   "match": "Hull_Part",
+   "to": "static",
+   "cls": "hull"
+  },
+  {
+   "match": "(MetalCable|^mesh_20)",
+   "to": "fine"
+  },
+  {
+   "match": ".*",
+   "to": "static",
+   "cls": "equip"
+  }
+ ]
+}

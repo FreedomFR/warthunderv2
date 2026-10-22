@@ -1,0 +1,34 @@
+{
+ "ship": "Vincenzo Gioberti",
+ "elements": [
+  {
+   "id": "t120",
+   "type": "main",
+   "cal": 120,
+   "material": "120mm-50_Ansaldo",
+   "min_tris": 1500,
+   "split": true,
+   "barrel_len": 3,
+   "group": "main"
+  },
+  {
+   "id": "s120",
+   "type": "sec120",
+   "cal": 120,
+   "material": "120mm-15_StarShell",
+   "min_tris": 400,
+   "split": true,
+   "barrel_len": 1.2,
+   "group": "sec"
+  },
+  {
+   "id": "b13",
+   "type": "m13",
+   "cal": 13,
+   "material": "13mm_Breda",
+   "min_tris": 500,
+   "facing": "mass",
+   "group": "aa"
+  }
+ ]
+}

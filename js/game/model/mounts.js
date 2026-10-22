@@ -533,7 +533,7 @@ function makeMount(s) {
   paintInto(hb, k.house, el.MOUNT_SCALE, pal, 'part', ref);
   let guns = mm.guns;
   if (k.guns) { paintInto(gb, k.guns, el.MOUNT_SCALE, pal, 'part', ref); guns = gb.build(); }
-  else if (k.type === 't25') guns = gb.build();                 // a light mount whose guns are part of the copied object: no separate barrels
+  else if (s.kind === 'aa') guns = gb.build();                  // a light mount whose guns are part of the copied object: no separate barrels
   return { ...mm, house: hb.build(), guns, ...(k.trunnion ? { trunnion: k.trunnion.slice(), muzzleX: k.muzzle, barrelLen: k.muzzle } : {}) };
 }
 

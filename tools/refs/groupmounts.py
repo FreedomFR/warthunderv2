@@ -30,6 +30,8 @@ P = np.fromfile(os.path.join(src, 'pos.f32'), dtype=np.float32).reshape(nv, 3).a
 C = np.fromfile(os.path.join(src, 'colfull.u8'), dtype=np.uint8).reshape(nv, 3)
 I = np.fromfile(os.path.join(src, 'idx.u32'), dtype=np.uint32).reshape(nf, 3)
 VP = np.fromfile(os.path.join(src, 'vpart.i32'), dtype=np.int32)
+if np.einsum('ij,ij->i', P[I[:, 0]], np.cross(P[I[:, 1]], P[I[:, 2]])).sum() > 0:      # a model exported mirrored is wound the other way (see shipgroups.py)
+    I = I[:, [0, 2, 1]]
 cfg = json.load(open(cfgf))
 mats = [m['name'] for m in info['mats']]
 parts = info['parts']
@@ -115,12 +117,31 @@ kinds, placements, report = {}, [], []
 for el in cfg['elements']:
     sel = []
     for k, p in enumerate(parts):
-        if p['mat'] >= 0 and el['material'] in mats[p['mat']]:
+        if p['mat'] >= 0 and el['material'] in mats[p['mat']] and not (el.get('exclude') and el['exclude'] in mats[p['mat']]):
             t = np.where(tp == k)[0]
             if len(t) >= int(el.get('min_tris', 0)):
                 sel.append((k, p['name'], t))
     if not sel:
         print(f"element {el['id']}: no group with material {el['material']}", file=sys.stderr); continue
+    # a group that is twice the size of the usual one holds two mounts whose parts touch: split it in two by the middle of its objects along the ship (1-D two-means on the centres of its objects)
+    med = float(np.median([len(t) for _, _, t in sel]))
+    fixed = []
+    for k, name, t in sel:
+        if len(t) > 1.5 * med and len(sel) > 1:
+            lab = components(t)
+            ax = 2 if el.get('split_axis') == 'z' else 0      # split_axis 'z': the two mounts stand side by side across the ship (their barrels would mix along x)
+            cs = np.array([P[I[t[lab == q]]].reshape(-1, 3)[:, ax].mean() for q in np.unique(lab)])
+            c0, c1 = cs.min(), cs.max()
+            for _ in range(20):
+                a = np.abs(cs - c0) <= np.abs(cs - c1)
+                c0, c1 = cs[a].mean(), cs[~a].mean()
+            oa = np.abs(cs - c0) <= np.abs(cs - c1)
+            side = oa[np.searchsorted(np.unique(lab), lab)]      # an object goes whole to one of the two mounts
+            fixed.append((k, name + 'a', t[side])); fixed.append((k, name + 'b', t[~side]))
+            print(f"   group {name} ({len(t)} triangles) holds two mounts: split at {'xz'[ax // 2]} {0.5 * (c0 + c1):.1f}", file=sys.stderr)
+        else:
+            fixed.append((k, name, t))
+    sel = fixed
     first = None
     for gi, (k, name, t) in enumerate(sel):
         comps, info_c, house_k, barrels, yaw = analyse(t, el)
@@ -167,7 +188,7 @@ for el in cfg['elements']:
         al = cfg.get('align', {})
         src_box = [round(float(v), 3) for v in np.concatenate(bbox(t))]          # where the group stands in the model (checked by test/elements.mjs against the placed copy)
         rec = {**rec, 'x': round(rec['x'] + al.get('dx', 0), 3), 'y': round(rec['y'] + al.get('dy', 0), 3), 'z': round(rec['z'] + al.get('dz', 0), 3), 'src_box': src_box, 'align': [al.get('dx', 0), al.get('dy', 0), al.get('dz', 0)]}
-        placements.append({'kind': el['id'], 'type': el.get('type', 'main'), 'cal': el.get('cal', 0), **rec})
+        placements.append({'kind': el['id'], 'type': el.get('type', 'main'), 'cal': el.get('cal', 0), 'mgroup': el.get('group', ''), **rec})
         report.append({'element': el['id'], **rec})
     kd = {'house': first['house'], 'guns': first.get('guns'), 'type': el.get('type', 'main'), 'from': first['name']}
     if first['trun']:

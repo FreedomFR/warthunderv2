@@ -27,6 +27,11 @@ VP = np.fromfile(os.path.join(src, 'vpart.i32'), dtype=np.int32)
 cfg = json.load(open(cfgf))
 mats = [{'name': m['name']} for m in info['mats']]
 parts = info['parts']
+# a model exported mirrored (`--mirror=1`) comes out with the triangles wound the other way: the signed volume of the whole mesh says which way is out (the game's frame is left-handed: negative when the winding is the game's), and the winding is flipped otherwise
+vol = np.einsum('ij,ij->i', P[I[:, 0]], np.cross(P[I[:, 1]], P[I[:, 2]])).sum() / 6
+if vol > 0:
+    I = I[:, [0, 2, 1]]
+    print('triangles flipped (signed volume %.0f m3)' % vol, file=sys.stderr)
 tp = VP[I[:, 0]]
 b64 = lambda a: base64.b64encode(a.tobytes()).decode()
 
@@ -59,10 +64,12 @@ for k, p in enumerate(parts):
     mname = mats[p['mat']]['name'] if p['mat'] >= 0 else ''
     if any(r.search(mname) for r in skip_m):
         continue
-    if p['name'] in cuts:
+    gcuts = list(cuts.get(p['name'], [])) + [c for c in cfg.get('cuts', []) if c.get('gre') and re.search(c['group'], p['name'])]
+    # a rule that makes this group a part of its own is not cut again
+    if gcuts and not any((rm is not None and rm.search(mname) and r['to'] == 'part') for rm, rg, r in rules):
         cen = P[I[t]].mean(axis=1)
         taken = np.zeros(len(t), bool)
-        for c in cuts[p['name']]:
+        for c in gcuts:
             x0, x1, y0, y1, z0, z1 = c['box']
             inb = (cen[:, 0] >= x0) & (cen[:, 0] <= x1) & (cen[:, 1] >= y0) & (cen[:, 1] <= y1) & (cen[:, 2] >= z0) & (cen[:, 2] <= z1) & ~taken
             part_tris.setdefault(c['id'], {'rule': c, 'tris': []})['tris'].append(t[inb])

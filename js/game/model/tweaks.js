@@ -10,6 +10,7 @@
 import { KAGERO } from './ships/kagero.js';
 import { GRAF_SPEE } from './ships/graf_spee.js';
 import { TADE } from './ships/tade.js';
+import * as SHOKAKU_V4 from './ships/shokaku_v4.js';
 import { GIOBERTI } from './ships/gioberti.js';
 import { ADAMS } from './ships/adams.js';
 import { YAMATO } from './ships/yamato.js';
@@ -877,6 +878,7 @@ export const TWEAKS = {
   // 20.1 m, bridge 21.2 m, radar 26.6 m, mast 31.7 m); two funnels outboard; lifts at 0.341 / 0.581 / 0.831. The underwater body and the
   // hull widths below the deck edge are estimated.
   shokaku: {
+    v4: SHOKAKU_V4,
     noFunnels: true, flightDeckY: 14.65, noGallery: true, elevators: [0.3385, 0.5743, 0.8236], elevSize: [[6.55, 8.5], [6.55, 6.05], [6.55, 6.05]], elevZ: -0.37,      // the three lifts measured on the reference model: 13 x 17 m forward, 13 x 12 m the others extra: shokakuFunnels, sponsonOut: 2.6,
     fb: [[0, 10.7], [0.03, 10.3], [0.06, 10.2], [0.075, 12.9], [0.9, 12.9], [0.94, 9.8], [1, 9.3]],      // the quarter deck under the flight deck's after end at 9.3 m (measured)
     fdPlan: [[0.0445, 9.5], [0.075, 9.9], [0.1117, 10.4], [0.209, 12.0], [0.298, 13.3], [0.4, 15.0], [0.5, 15.0], [0.671, 15.0], [0.811, 14.1], [0.889, 13.0], [0.962, 13.2]],     // measured on the flight deck of the reference model (236 m, 31.8 m wide at the widest, the bow end 19 m wide)

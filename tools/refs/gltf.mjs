@@ -108,6 +108,10 @@ export function load(dir) {
   };
   const scene = g.scenes[g.scene || 0];
   for (const r of scene.nodes) walk(r, ident(), '');
+  if (process.env.GLTF_MATNAME === 'tex') for (const mt of g.materials || []) {            // GLTF_MATNAME=tex: a material is named after its diffuse texture (a model whose materials are called mesh_N but whose textures say what each part is)
+    const bt = mt.pbrMetallicRoughness?.baseColorTexture, im = bt && g.images[g.textures[bt.index].source];
+    if (im && im.uri) mt.name = im.uri.split('/').pop().replace(/^Tex_/, '').replace(/_diffuse\.\w+$/, '').replace(/\.\w+$/, '');
+  }
   if (process.env.GLTF_DROP) { const re = new RegExp(process.env.GLTF_DROP); return { g, parts: parts.filter((p) => !re.test(p.path) && !(g.materials[p.mat]?.name && re.test(g.materials[p.mat].name))) }; }       // GLTF_DROP=regex: leave out the nodes / materials that match (a turntable, an ocean plane)
   return { g, parts };
 }
