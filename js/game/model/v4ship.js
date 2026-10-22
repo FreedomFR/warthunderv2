@@ -10,10 +10,10 @@ const lum = (r, g, b) => (0.3 * r + 0.59 * g + 0.11 * b) / 255;
 function paint(piece, scale, pal, cls, ref, maxY = Infinity) {
   const d = decodeBaked(piece, scale), out = new Map();
   const base = { hull: rgb(pal.hull), deck: rgb(pal.deck), sup: rgb(pal.sup) };
-  const put = (mat, i, col) => {
+  const put = (mat, i, col, up = false) => {
     let o = out.get(mat);
     if (!o) { o = { pos: [], nrm: [], col: [] }; out.set(mat, o); }
-    for (let k = 0; k < 3; k++) { const v = d.idx[i + k] * 3; o.pos.push(d.pos[v], d.pos[v + 1], d.pos[v + 2]); o.nrm.push(d.nrm[v], d.nrm[v + 1], d.nrm[v + 2]); o.col.push(col[0], col[1], col[2]); }
+    for (let k = 0; k < 3; k++) { const v = d.idx[i + k] * 3; o.pos.push(d.pos[v], d.pos[v + 1], d.pos[v + 2]); if (up) o.nrm.push(0, 1, 0); else o.nrm.push(d.nrm[v], d.nrm[v + 1], d.nrm[v + 2]); o.col.push(col[0], col[1], col[2]); }
   };
   const tri = d.idx.length / 3;
   for (let t = 0; t < tri; t++) {
@@ -31,7 +31,7 @@ function paint(piece, scale, pal, cls, ref, maxY = Infinity) {
     const l = lum(r, g, b), m = Math.max(0.55, Math.min(1.35, l / ref.lum));
     const warm = (r - b) / 255 > 0.1 && r >= g;
     if (ny > 0.8 && warm) { const c = base.deck, k = Math.max(0.6, Math.min(1.3, l / ref.deck)); put(MAT.DECK, i, [c[0] * k, c[1] * k, c[2] * k]); continue; }
-    if (cls === 'flightdeck' && ny > 0.8) { const c = base.deck, k = Math.max(0.8, Math.min(1.2, l / ref.lum)); put(MAT.DECK, i, [c[0] * k, c[1] * k, c[2] * k]); continue; }       // the flight deck: its upper face in the deck colour
+    if (cls === 'flightdeck' && ny > 0.8) { put(MAT.DECK, i, base.deck, true); continue; }       // the flight deck: its upper face flat, in the deck colour (a few huge triangles: the texture colours and the smoothed normals at their corners would stain it)
     const c = cls === 'hull' ? base.hull : base.sup;
     put(cls === 'hull' ? MAT.SKIN : MAT.HULL, i, [Math.min(255, c[0] * m), Math.min(255, c[1] * m), Math.min(255, c[2] * m)]);
   }
