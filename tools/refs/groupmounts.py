@@ -55,6 +55,10 @@ def bbox(tris):
     return V.min(0), V.max(0)
 
 
+def has(m, name):
+    return name == m[:-1] if m.endswith('$') else m in name      # a material written with a final $ must match the whole name (mesh_1$ is not mesh_10)
+
+
 def analyse(gtris, el):
     gm = el.get('gun_materials'); gbox = el.get('gun_box')
     if gm or gbox:     # the pieces of the guns' materials (or the triangles whose centre lies in the box `gun_box` of the model: the barrel of a gun whose house and barrel are one piece) are separated from the rest first (a barrel touching its cradle is not one object)
@@ -82,7 +86,7 @@ def analyse(gtris, el):
         for k, (lo, hi) in info_c.items():
             ext = hi - lo
             length, width = max(ext[0], ext[2]), min(ext[0], ext[2])
-            if k != house_k and length >= blen and length >= 3.0 * max(width, 0.05) and ext[1] <= length / 3 and ext[1] >= 0.1 and comps[k].size >= 20:
+            if k != house_k and length >= blen and length >= float(el.get('barrel_ratio', 3.0)) * max(width, 0.05) and ext[1] <= length / 3 and ext[1] >= 0.1 and comps[k].size >= 20:
                 barrels.append(k)
         if barrels:                                          # the guns are the longest of them (the others are rails, sights, ladders)
             Lmax = max(max(info_c[k][1][0] - info_c[k][0][0], info_c[k][1][2] - info_c[k][0][2]) for k in barrels)
@@ -100,6 +104,13 @@ def analyse(gtris, el):
         axis = np.array([1.0, 0, 0]) if exts[0] >= exts[2] else np.array([0, 0, 1.0])
         sign = 1.0 if np.dot(bc - hc, axis) >= 0 else -1.0
         v = axis * sign
+        if el.get('barrel_axis') == 'exact':      # a gun trained off the ship's axes at rest: the way its barrels really point (principal axis of their points in plan), so that its elevation turns about the right line
+            Vb = np.concatenate([P[I[comps[k]]].reshape(-1, 3) for k in barrels])[:, [0, 2]]
+            Vb = Vb - Vb.mean(0)
+            w_, U_ = np.linalg.eigh(Vb.T @ Vb)
+            d_ = U_[:, 1]
+            if np.dot(d_, [v[0], v[2]]) < 0: d_ = -d_
+            v = np.array([d_[0], 0, d_[1]])
         yaw = float(np.degrees(np.arctan2(v[2], v[0])))
     elif el.get('facing') == 'thin':                      # no separate guns, but long thin pieces (the barrels) that stick out of the mount: it faces from the middle of the rest to them, snapped to a right angle when it is within 25 degrees
         thin = [k for k, (lo, hi) in info_c.items() if max(hi[0] - lo[0], hi[2] - lo[2]) >= float(el.get('thin_len', 0.9)) and max(hi[0] - lo[0], hi[2] - lo[2]) >= 3.5 * max(min(hi[0] - lo[0], hi[2] - lo[2]), 0.02) and hi[1] - lo[1] < 0.6 * max(hi[0] - lo[0], hi[2] - lo[2])]
@@ -205,7 +216,7 @@ for el in cfg['elements']:
         T = el['template']; mt = int(T.get('min_part_tris', 4))
         xr, zr = T['x_range'], T['z_range']
         ok = np.where((PN >= mt) & (PBMIN[:, 0] >= T['x'] + xr[0]) & (PBMAX[:, 0] <= T['x'] + xr[1]) & (PBMIN[:, 2] >= T['z'] + zr[0]) & (PBMAX[:, 2] <= T['z'] + zr[1]) & (PBMIN[:, 1] >= T['y'] - T.get('below', 1.5)) & (PBMAX[:, 1] <= T['y'] + T.get('above', 6.0)))[0]
-        ok = [int(k) for k in ok if k not in claimed and (not T.get('materials') or (parts[k]['mat'] >= 0 and any(m in mats[parts[k]['mat']] for m in T['materials'])))]
+        ok = [int(k) for k in ok if k not in claimed and (not T.get('materials') or (parts[k]['mat'] >= 0 and any(has(m, mats[parts[k]['mat']]) for m in T['materials'])))]
         if not ok:
             print(f"element {el['id']}: nothing in the template window", file=sys.stderr); continue
         inst = find_copies(ok, 0.5)
@@ -238,14 +249,14 @@ for el in cfg['elements']:
             xr = el.get('x_range', [-RX, RX]); zr = el.get('z_range', [-RZ, RZ])      # x_range / z_range: the window relative to the record, when it is not symmetric (a turret's barrels reach far on one side)
             ok = np.where((PN >= mt) & (PBMIN[:, 0] >= r['x'] + xr[0]) & (PBMAX[:, 0] <= r['x'] + xr[1]) & (PBMIN[:, 2] >= r['z'] + zr[0]) & (PBMAX[:, 2] <= r['z'] + zr[1]) & (PBMIN[:, 1] >= r['y'] - below) & (PBMAX[:, 1] <= r['y'] + above))[0]
             ok = [int(k) for k in ok if k not in claimed and not (el.get('exclude') and parts[k]['mat'] >= 0 and el['exclude'] in mats[parts[k]['mat']])
-                  and (not el.get('materials') or (parts[k]['mat'] >= 0 and any(m in mats[parts[k]['mat']] for m in el['materials'])))]
+                  and (not el.get('materials') or (parts[k]['mat'] >= 0 and any(has(m, mats[parts[k]['mat']]) for m in el['materials'])))]
             if len(ok) < int(el.get('min_parts', 1)):
                 print(f"element {el['id']}: nothing near {r['name']} ({r['x']}, {r['z']})", file=sys.stderr); continue
             claimed.update(ok)
             sel.append((ok[0], r['name'], np.concatenate([order[st[k]:en[k]] for k in ok])))
     for k, p in enumerate(parts if ('layout_match' not in el and 'template' not in el) else []):
         wm = el.get('materials') or [el['material']]
-        if p['mat'] >= 0 and any(w in mats[p['mat']] for w in wm) and not (el.get('exclude') and el['exclude'] in mats[p['mat']]):
+        if p['mat'] >= 0 and any(has(w, mats[p['mat']]) for w in wm) and not (el.get('exclude') and el['exclude'] in mats[p['mat']]):
             t = np.where(tp == k)[0]
             if len(t) >= int(el.get('min_tris', 0)):
                 sel.append((k, p['name'], t))

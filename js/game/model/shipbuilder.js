@@ -115,6 +115,7 @@ const AA_TYPES = {
   d25: { v: 'iijn25', n: 2, cal: 25, bore: 60, label: 'Type 96 de 25 mm double' },
   s25: { v: 'oerlikon', n: 1, cal: 25, bore: 60, label: 'Type 96 de 25 mm simple' },
   m13: { v: 'iijn25', n: 2, cal: 13, bore: 76, label: 'Type 93 de 13,2 mm double' },
+  s37: { v: 'bofors', n: 1, cal: 37, bore: 50, label: '37 mm Mle 1925 simple' },
   t37: { v: 'bofors', n: 2, cal: 37, bore: 83, tub: 1.7, label: 'Flak 37 mm double' },
   q20: { v: 'iijn25', n: 4, cal: 20, bore: 65, tub: 1.6, label: 'Flakvierling 20 mm' },
   p40: { v: 'bofors', n: 4, cal: 40, bore: 39, tub: 2.3, label: 'Pom-pom 40 mm octuple' },

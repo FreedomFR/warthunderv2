@@ -1,0 +1,61 @@
+{
+ "ship": "Bearn",
+ "elements": [
+  {
+   "id": "t155",
+   "type": "main",
+   "cal": 155,
+   "group": "main",
+   "material": "mesh_19$",
+   "cluster": {
+    "gap": 0.05,
+    "min_tris": 100
+   },
+   "unit_tris": 294,
+   "split": true,
+   "barrel_len": 2.5,
+   "barrel_ratio": 2.0,
+   "barrel_axis": "exact"
+  },
+  {
+   "id": "s75",
+   "type": "sec",
+   "cal": 75,
+   "group": "sec",
+   "material": "mesh_2$",
+   "cluster": {
+    "gap": 0.05,
+    "min_tris": 1000
+   },
+   "split": true,
+   "barrel_len": 1.8
+  },
+  {
+   "id": "s37",
+   "type": "s37",
+   "cal": 37,
+   "group": "aa",
+   "material": "mesh_1$",
+   "cluster": {
+    "gap": 0.05,
+    "min_tris": 400
+   },
+   "unit_tris": 773,
+   "facing": "thin",
+   "thin_len": 0.8
+  },
+  {
+   "id": "m13",
+   "type": "m13",
+   "cal": 13,
+   "group": "aa",
+   "material": "mesh_0$",
+   "cluster": {
+    "gap": 0.05,
+    "min_tris": 300
+   },
+   "facing": "thin",
+   "thin_len": 0.6
+  }
+ ]
+}

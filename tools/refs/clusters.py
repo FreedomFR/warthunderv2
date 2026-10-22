@@ -16,7 +16,7 @@ P = np.fromfile(os.path.join(src, 'pos.f32'), dtype=np.float32).reshape(nv, 3)
 I = np.fromfile(os.path.join(src, 'idx.u32'), dtype=np.uint32).reshape(nf, 3)
 VP = np.fromfile(os.path.join(src, 'vpart.i32'), dtype=np.int32); tp = VP[I[:, 0]]
 want = mats_arg.split(',')
-sel = [k for k, p in enumerate(info['parts']) if p['mat'] >= 0 and any(w in info['mats'][p['mat']]['name'] for w in want)]
+sel = [k for k, p in enumerate(info['parts']) if p['mat'] >= 0 and any((info['mats'][p['mat']]['name'] == w[:-1]) if w.endswith('$') else (w in info['mats'][p['mat']]['name']) for w in want)]
 order = np.argsort(tp, kind='stable'); st = np.searchsorted(tp[order], np.arange(len(info['parts']))); en = np.searchsorted(tp[order], np.arange(len(info['parts'])), side='right')
 lo = np.zeros((len(sel), 3)); hi = np.zeros((len(sel), 3)); nt = np.zeros(len(sel), int)
 for i, k in enumerate(sel):
