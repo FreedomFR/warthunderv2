@@ -112,6 +112,7 @@ export const eventMethods = {
           break;
         }
         case 'torpedoLaunch': this.play('torpedo_launch', e.x, 1, e.z, { gain: 0.8, ref: 800, pri: 2 }); break;
+        case 'missileLaunch': this.play('missile_launch', e.x, e.y, e.z, { gain: 0.9, ref: 1800, pri: 3, wet: 0.3, rate: R(0.92, 1.08) }); break;
         case 'torpedoDrop': this.play('splash_small', e.x, e.y, e.z, { gain: 0.5, ref: 300, pri: 1, rate: 0.8 }); break;
         case 'collision':
           this.play('collision', e.x, 4, e.z, { gain: 1.1, ref: 1300, pri: 3, wet: 0.3 });

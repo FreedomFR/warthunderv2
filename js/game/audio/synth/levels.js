@@ -13,7 +13,7 @@ export const TARGET_DBA = {
   splash_small: -37, splash_big: -29, impact_he: -29, impact_pen: -26, ricochet: -36, impact_through: -35, crash_metal: -30, zap: -37,
   bulkhead: -30, collision: -27, hull_groan: -29,
   // blasts
-  torpedo_hit: -22, torpedo_launch: -34, explosion_big: -22, explosion_med: -27, explosion_small: -33, boiler_burst: -31,
+  torpedo_hit: -22, torpedo_launch: -34, missile_launch: -27, explosion_big: -22, explosion_med: -27, explosion_small: -33, boiler_burst: -31,
   // machinery and aircraft
   ship_engine: -26, turbine: -30, cavitation: -33, turret_motor: -31, breech: -29, lift_motor: -33,
   engine_radial: -27, engine_inline: -27, siren: -28, engine_start: -32, plane_fall: -30, touchdown: -33, arrest: -33,

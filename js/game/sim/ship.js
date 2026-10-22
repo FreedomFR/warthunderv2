@@ -1,6 +1,7 @@
 // A ship in the simulation: kinematics, wave response, damage state and weapon mounts.
 // A ship never decides anything itself: it executes its `cmd` (ShipCommand), which is written by a
 // controller (AI today, a human tomorrow — see controllers/).
+import { initMissiles } from './missiles.js';
 import { clamp, wrapPi, approach, D2R, sat, smoothstep } from '../math.js';
 import { createModules, createCompartments, AA_HP, AA_ROUNDS, blast } from './modules.js';
 import { shipDmg } from '../data/balance.js';
@@ -103,6 +104,7 @@ export class Ship {
     this.tubes = model.tubes.map((t) => ({ ...t, ready: 0, left: t.n }));
     this.torpReload = 0; this.torpLeft = stats.torpedo ? stats.torpedo.tubes : 0;
     this.torpSpare = stats.torpedo ? stats.torpedo.spare : null;
+    this.msl = initMissiles(stats);                  // the stock of each missile system (sim/missiles.js)
     // carrier air group
     // the share of fighters in the air group (escort and patrol) depends on the navy (USN 1944: 36 of 91), the rest are bombers
     const nFight = stats.air ? Math.round(stats.air.capacity * ({ USA: 0.38, UK: 0.34, Germany: 0.4, Italy: 0.35 }[stats.nation] ?? 0.26)) : 0;

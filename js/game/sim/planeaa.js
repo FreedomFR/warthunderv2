@@ -153,7 +153,7 @@ export function updateAA(world, dt) {
       // flak is high-explosive from the mount's own magazine
       if (m.ammo.HE < m.n) { if (m.ammo.HE + m.ammo.AP <= 0) m.noAmmo = true; continue; }
       m.ammo.HE -= m.n; m.loaded = 'HE';
-      m.reload = m.gun.reload * (0.9 + rng() * 0.2) * 1.15;
+      m.reload = m.reloadMax = m.gun.reload * (0.9 + rng() * 0.2) * 1.15;
       m.recoil = 0; m.fireT = 0; m.flash = 1;
       // fuze setting error grows with distance; the burst is lethal within ~20 m
       const sig = 12 + dist * 0.016 + 14 * p.harass;

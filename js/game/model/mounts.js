@@ -73,6 +73,7 @@ const FAMILY = {
   // Kagero class 12.7 cm/50 Type 3 Model C twin (Commons outline drawing, MacMoreno, scaled to the 118.5 m length): a house 6.2 m long, 4.6 m wide and 3.0 m high, barrels 5.8 m clear
   // of the pivot, the superfiring turret on the deckhouse 2.3 m above the lower one
   type3_127: { kind: 'turret', cal: 127, n: 2, spacing: 1.0, trunX: 0.4, trunY: 1.5, face: 2.8, port: 2.6, fwd: 5.8, back: 0.9, rB: 0.15, rP: 0.12, rM: 0.07, bagR: 0.22, bagLen: 0.3, recoil: 0.4, lift: 2.3, h: 2.8, barbR: 2.6 },
+  drh28_283: { kind: 'turret', cal: 283, n: 3, spacing: 2.75, trunX: 0.4, trunY: 1.15, face: 4.3, port: 4.0, fwd: 12.9, back: 2.2, rB: 0.45, rP: 0.36, rM: 0.27, bagR: 0.5, bagLen: 0.4, recoil: 0.9, lift: 3.6, h: 3.5, barbR: 4.6, barb: 0.5 },
   type3c_127: { kind: 'turret', cal: 127, n: 2, spacing: 1.0, trunX: 0.4, trunY: 1.05, face: 2.8, port: 2.85, fwd: 5.8, back: 0.9, rB: 0.15, rP: 0.12, rM: 0.07, bagR: 0.22, bagLen: 0.3, recoil: 0.4, lift: 2.3, h: 2.8, barbR: 2.6 },
   // Tribal class 4.7 in/45 QF Mk XII twin (TZoli profile / plan scaled to the 114.9 m length): a house 3.5 m long, 3.4 m wide and 2.6 m high, barrels 4.4 m clear of the pivot, the
   // superfiring turret on a bridge deck 2.2 m above the lower one
@@ -372,7 +373,23 @@ function houseIt120o(hb, col, dark, f) {
   hb.block({ x0: f.face - 0.25, x1: f.face + 0.05, hw: (f.n - 1) * f.spacing / 2 + 0.3, y0: f.trunY - 0.35, y1: f.trunY + 0.35 }, dark, MAT.DARK);   // the opening the barrels go through
 }
 
-const HOUSES = { it120o: houseIt120o, type3c_127: houseType3C, mk42: houseMk42, type3_120: houseType3_120, de37: houseFlak37, mk7: houseMk7, type94: houseType94, type3_155: houseType3, drh28_150: houseDrh28, lit381: houseLit381, lit152: houseLit152, rich380: houseRich380, fr152: houseFr152, it152: houseIt152, us152: houseUs152, brit152: houseBrit152, it120: houseIt120, de150_2: houseDe150_2, de150_1: houseMk30, fr138: houseMk30, brit120: houseBrit120, type3_127: houseType3_127, brit203: houseBrit203, type41_152: houseType41_152, us203: houseUs203, fr203: houseFr203, fr152_30: houseFr152_30, zara203: houseZara203, type3_203: houseType3_203, drh203: houseDrh203, drh34: houseDrh34, mk28: houseMk28, mk30: houseMk30 };
+/** German 28 cm Drh LC/28 triple turret (the Deutschland class), measured on a reference model: a long faceted house, 12.2 m from the pointed rear to the face, 9.4 m wide, the face 7.5 m wide
+ *  with the three gun ports 2.75 m apart, the roof stepping down in two stages towards the front. */
+function houseDrhLC28(hb, col, dark, f) {
+  const light = shade(col, 1.08), shadow = shade(col, 0.82);
+  const half = (pts) => [...pts, ...pts.slice(1).reverse().map(([x, w]) => [x, -w])];         // from the rear tip (width 0) along one side to the front, then back along the other
+  hb.cylinder(0, -0.6, 0, 4.6, 4.65, 0.12, shadow, MAT.HULL, { seg: 28 });
+  hb.prism(half([[-7.9, 0], [-7.6, 2.71], [-7.0, 4.68], [-0.5, 4.68], [4.3, 3.75]]), 0, 2.7, col, MAT.HULL);
+  hb.prism(half([[-7.2, 0], [-6.9, 2.9], [-6.2, 3.7], [-0.5, 3.7], [1.7, 3.3]]), 2.7, 3.2, light, MAT.HULL);
+  hb.prism(half([[-5.5, 0], [-5.2, 3.07], [-0.6, 3.03]]), 3.2, f.h, light, MAT.HULL);
+  for (const sg of [-1, 1]) hb.block({ x0: -4.4, x1: -2.2, hw: 0.55, zc: sg * 5.3, y0: 0.9, y1: 2.4, tx0: -4.2, tx1: -2.4, thw: 0.45 }, shadow, MAT.HULL);      // the rangefinder hoods
+  for (let i = 0; i < f.n; i++) {
+    const z = (i - (f.n - 1) / 2) * f.spacing;
+    hb.block({ x0: f.port - 0.3, x1: f.port + 0.45, hw: 0.7, zc: z, y0: f.trunY - 0.7, y1: f.trunY + 0.7 }, dark, MAT.DARK);
+  }
+}
+
+const HOUSES = { drh28_283: houseDrhLC28, it120o: houseIt120o, type3c_127: houseType3C, mk42: houseMk42, type3_120: houseType3_120, de37: houseFlak37, mk7: houseMk7, type94: houseType94, type3_155: houseType3, drh28_150: houseDrh28, lit381: houseLit381, lit152: houseLit152, rich380: houseRich380, fr152: houseFr152, it152: houseIt152, us152: houseUs152, brit152: houseBrit152, it120: houseIt120, de150_2: houseDe150_2, de150_1: houseMk30, fr138: houseMk30, brit120: houseBrit120, type3_127: houseType3_127, brit203: houseBrit203, type41_152: houseType41_152, us203: houseUs203, fr203: houseFr203, fr152_30: houseFr152_30, zara203: houseZara203, type3_203: houseType3_203, drh203: houseDrh203, drh34: houseDrh34, mk28: houseMk28, mk30: houseMk30 };
 
 /**
  * Paint the flat roof of a gun house: `top.col` recolours it (Kriegsmarine turret tops were dark grey); `top.bands` = [stripe, ground]

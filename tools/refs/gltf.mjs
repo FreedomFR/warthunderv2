@@ -27,8 +27,40 @@ function nodeMatrix(n) {
   return [(1 - 2 * (yy + zz)) * sx, 2 * (xy + wz) * sx, 2 * (xz - wy) * sx, 0, 2 * (xy - wz) * sy, (1 - 2 * (xx + zz)) * sy, 2 * (yz + wx) * sy, 0, 2 * (xz + wy) * sz, 2 * (yz - wx) * sz, (1 - 2 * (xx + yy)) * sz, 0, tx, ty, tz, 1];
 }
 
+/**
+ * A Wavefront OBJ (some of the models given for measurement come that way: refs/<id>/src/<name>.obj, y up like the glTF ones) read into the same parts: one part per group (`g`) and
+ * material, named after its object (`o`) and group, with its own vertex list. `g` carries the names of the materials so that `survey` works.
+ */
+export function loadObj(file) {
+  const text = fs.readFileSync(file, 'latin1');
+  const X = [], Yv = [], Zv = [];
+  const parts = [], mats = [];
+  let obj = '', grp = '', mat = -1, cur = null;
+  const open = () => { cur = { name: grp || obj, path: obj && grp && grp !== obj ? `${obj}/${grp}` : grp || obj, node: parts.length, mat, map: new Map(), P: [], idx: [] }; parts.push(cur); };
+  let pos = 0;
+  while (pos < text.length) {
+    let end = text.indexOf('\n', pos); if (end < 0) end = text.length;
+    const c0 = text.charCodeAt(pos), c1 = text.charCodeAt(pos + 1);
+    if (c0 === 118 && c1 === 32) {                                              // v x y z
+      const t = text.slice(pos + 2, end).trim().split(/\s+/); X.push(+t[0]); Yv.push(+t[1]); Zv.push(+t[2]);
+    } else if (c0 === 102 && c1 === 32) {                                       // f a b c ... (v, v/vt, v/vt/vn, negative indices)
+      if (!cur) open();
+      const t = text.slice(pos + 2, end).trim().split(/\s+/).map((q) => { let i = parseInt(q, 10); if (i < 0) i = X.length + i + 1; return i - 1; });
+      const loc = t.map((vi) => { let l = cur.map.get(vi); if (l === undefined) { l = cur.P.length / 3; cur.map.set(vi, l); cur.P.push(X[vi], Yv[vi], Zv[vi]); } return l; });
+      for (let k = 1; k + 1 < loc.length; k++) cur.idx.push(loc[0], loc[k], loc[k + 1]);
+    } else if (c0 === 111 && c1 === 32) { obj = text.slice(pos + 2, end).trim(); grp = ''; cur = null; }
+    else if (c0 === 103 && c1 === 32) { grp = text.slice(pos + 2, end).trim(); cur = null; }
+    else if (text.startsWith('usemtl ', pos)) { const m = text.slice(pos + 7, end).trim(); let i = mats.indexOf(m); if (i < 0) { i = mats.length; mats.push(m); } mat = i; cur = null; }
+    pos = end + 1;
+  }
+  const out = parts.filter((p) => p.idx.length).map((p) => ({ name: p.name, path: p.path, node: p.node, mat: p.mat, V: Float32Array.from(p.P), idx: Uint32Array.from(p.idx) }));
+  return { g: { materials: mats.map((name) => ({ name })), nodes: [], meshes: [] }, parts: out };
+}
+
 /** Loads the glTF in `dir` into world-space triangles: parts = [{ name, node, mat, V: Float32Array (x,y,z...), idx, bb }]. */
 export function load(dir) {
+  const obj = fs.existsSync(path.join(dir, 'scene.gltf')) ? null : fs.readdirSync(dir).find((f) => /\.obj$/i.test(f));
+  if (obj) return loadObj(path.join(dir, obj));
   const g = JSON.parse(fs.readFileSync(path.join(dir, 'scene.gltf'), 'utf8'));
   const bin = fs.readFileSync(path.join(dir, g.buffers[0].uri || 'scene.bin'));
   const dv = new DataView(bin.buffer, bin.byteOffset, bin.byteLength);
@@ -80,7 +112,7 @@ export function upright(model, opts = {}) {
   // which sign of the beam axis is starboard: the game has +z starboard with x forward and y up, i.e. a left-handed frame; keep the orientation of the source (x fwd, y up) and take z so that (x, y, z) is left-handed
   const src = [0, 0, 0]; src[lenAx] = sgn; const up = [0, 0, 0]; up[upAx] = 1;
   const cr = [src[1] * up[2] - src[2] * up[1], src[2] * up[0] - src[0] * up[2], src[0] * up[1] - src[1] * up[0]];     // forward x up (right-handed: points to port)
-  const sz = -cr[beamAx];                                                                                          // starboard = -port
+  const sz = -cr[beamAx] * (opts.mirror ? -1 : 1);                                                                 // starboard = -port (`--mirror=1`: a model exported mirrored, the island on the wrong side)
   for (const p of parts) {
     const V = new Float32Array(p.V.length);
     for (let i = 0; i < V.length; i += 3) { V[i] = (p.V[i + lenAx] - cx) * sgn; V[i + 1] = p.V[i + upAx] - bb[0][upAx]; V[i + 2] = (p.V[i + beamAx] - cz) * (sz || 1); }
@@ -175,7 +207,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const args = process.argv.slice(2).filter((a) => !a.startsWith('--')), flags = Object.fromEntries(process.argv.slice(2).filter((a) => a.startsWith('--')).map((a) => a.slice(2).split('=')));
   const [cmd, dir, arg] = args;
   const model = load(dir);
-  const m = upright(model, { bow: flags.bow ? +flags.bow : undefined, up: flags.up });
+  const m = upright(model, { bow: flags.bow ? +flags.bow : undefined, up: flags.up, mirror: !!+(flags.mirror || 0) });
   if (flags.loa) {                                   // the reference scaled to the spec's length (the models are game assets, a few percent off the published figures)
     const k = +flags.loa / m.L;
     for (const p of m.parts) { for (let i = 0; i < p.V.length; i++) p.V[i] *= k; for (const b of p.bb) for (let i = 0; i < 3; i++) b[i] *= k; }

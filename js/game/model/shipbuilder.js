@@ -192,7 +192,7 @@ export function buildShipModel(spec, tw = {}) {
   const X = (f) => hull.fracToX(f), Y = (x) => hull.deckY(x);
   const sil = spec.silhouette || {};
   const model = {
-    id: spec.id, spec, L, B, D: hp.D, mounts: [], smoke: [], aa: [], aaMounts: [], tubes: [], floatPts: [], hull, pal,
+    id: spec.id, spec, L, B, D: hp.D, mounts: [], smoke: [], aa: [], aaMounts: [], tubes: [], missileMounts: [], floatPts: [], hull, pal,
     topY: 0, catapults: [], hangar: null, island: null, deckPoints: [], parts: [], deckSlots: [], paint: paintOf(spec),
   };
   // A destroyable piece: built into its own mesh (+ an optional wrecked version drawn once it is destroyed).
@@ -510,7 +510,7 @@ export function buildShipModel(spec, tw = {}) {
       let sideZ2 = sideZ; [sideZ2, pivot] = landOn(x, sideZ, pivot, Math.max(1.2, calM * 9), dm.height + 0.8, false);
       const r = dm.barbR || Math.max(calM * 6, 1.1);
       PT.barbette(b, x, sideZ2, mainKind === 'turret' ? r : 0.9, deckY - 0.2, pivot, pal.hull);
-      const [ac, ah] = arcFor(x, sideZ2);
+      const [ac, ah0] = arcFor(x, sideZ2), ah = m.arcHalfDeg != null ? m.arcHalfDeg * D2R : ah0;      // m.arcHalfDeg: the traverse limit of this mount (degrees either side of its rest bearing), when it is known
       mountRec('main', mainKind, mainCal, m.guns, spec.main.boreCalibers, x, sideZ2, pivot, ac, ah, { label: m.label, bore: spec.main.boreCalibers, variant });
       note(pivot + dm.height + 0.8);
     }
@@ -820,7 +820,7 @@ function buildCarrier(b, model, spec, hull, pal, tw, X, Y, fdY, rnd, note, part)
   for (const [i, f] of els.entries()) {
     const x = X(f);
     if (i === els.length - 1 && tw.deckEdge) { b.decal(x, fdY + 0.015, -hw + 5, 8, 7.5, rgb('#524f49'), MAT.HULL); model.elevators.push({ x, z: -hw + 5, hl: 8, hw: 7.5, edge: true }); continue; }
-    const es = tw.elevSize || [8.5, hw * 0.34];      // measured half-length and half-width of the lifts
+    const es = Array.isArray(tw.elevSize?.[0]) ? tw.elevSize[i] : tw.elevSize || [8.5, hw * 0.34];      // measured half-length and half-width of the lifts (one pair for all, or one pair each)
     b.decal(x, fdY + 0.015, tw.elevZ ?? 0, es[0], es[1], rgb('#55524c'), MAT.HULL);
     model.elevators.push({ x, z: tw.elevZ ?? 0, hl: es[0], hw: es[1], edge: false });
   }
@@ -888,7 +888,7 @@ function buildCarrier(b, model, spec, hull, pal, tw, X, Y, fdY, rnd, note, part)
     const sgm = (m.side === 'port' ? -1 : m.side === 'starboard' ? 1 : /^P/.test(m.label || '') ? -1 : /^S/.test(m.label || '') ? 1 : (i % 2 ? -1 : 1));   // the label (S-fwd-1, P-aft-2) says the side when the sheet does not
     // m.offsetM / m.fdHeightM: a measured mount on the flight deck (Essex: the twin 5in pairs fore and aft of the island)
     const onFD = m.fdHeightM != null;
-    const z = onFD ? sgm * m.offsetM : sgm * (hull.halfBeamDeck(x) + (tw.sponsonOut ?? 1.5));
+    const z = onFD ? sgm * m.offsetM : sgm * (m.sponsonZ ?? hull.halfBeamDeck(x) + (tw.sponsonOut ?? 1.5));      // m.sponsonZ: the measured offset of the sponson from the centre line
     const y = onFD ? fdY + m.fdHeightM : fdY - 3.2;
     if (!onFD) b.block({ x0: x - 2.6, x1: x + 2.6, hw: 2.2, zc: z, y0: y - 1.2, y1: y, tx0: x - 2.0, tx1: x + 2.0, thw: 1.8 }, shade(rgb(pal.hull), 1.1), MAT.HULL);
     else if (m.fdHeightM > 0.2) b.cylinder(x, fdY, z, 2.0, 2.0, y, shade(rgb(pal.sup), 0.95), MAT.HULL, { seg: 16 });

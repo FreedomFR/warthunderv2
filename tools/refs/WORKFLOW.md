@@ -61,3 +61,11 @@ The game must be served: `node server.mjs 8080` (it is already running in the ow
 * Other people work on other ships at the same time: edit only your files (`js/game/model/ships/<id>.js`, your ship's entry in `js/game/data/specs/<nation>.js` through `addspec.py`) and, when a
   new mount family or a builder option is needed, make a **small additive edit** to `mounts.js` / `shipbuilder.js` / `parts.js` (re-read the file just before, never reformat, never rename). Run
   `node --check` on a file after you edit it: a syntax error breaks everybody's previews. Do not run `git commit`, `git add`, `npm run build` or the whole `npm test`: the owner's main session does.
+
+## Acceptance checklist (rules of the owner, for every new ship)
+
+1. As faithful as possible to the reference (measured, +-0.2 m on a destroyer).
+2. **Every weapon works in the game, whatever the era**: guns, AA, tubes, aircraft and also missiles / rockets / mortars. A launcher that is only drawn is a bug: simulate it (damage, range, arcs, stock, reload) and add a test.
+3. The skin (livery, camouflage, boot topping, roof marks) checked on the render.
+4. The firing arcs of every turret, mount and launcher checked (`node tools/audit/arcs.mjs <id> > a.json; python3 tools/audit/arcs.py a.json out/audit`, `test/arcs.mjs`) against the real traverse limits.
+5. No visual bug: nine views on a plain background, pairs with the reference, the wiki picture.

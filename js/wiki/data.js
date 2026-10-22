@@ -157,6 +157,18 @@ export function shipSections(rec) {
     ]);
   }
 
+  if (s.missiles && s.missiles.length) {
+    add('msl', 'Missiles', s.missiles.flatMap((m) => {
+      const sam = m.kind === 'sam';
+      return [
+        row(s, `${m.name}`, `${fr(m.count, 0)}${NB}missiles · ${sam ? 'contre les avions' : 'contre les navires (torpille Mk 46 larguée)'}`),
+        row(s, `Portée (${m.name})`, `${fr(m.minRangeM / 1000, 1)} à ${fr(m.maxRangeM / 1000, 1)}${NB}km`),
+        row(s, `Cadence (${m.name})`, `${fr(m.salvo, 0)}${NB}${plural(m.salvo, 'missile', 'missiles')} toutes les ${fr(m.cycleS, 0)}${NB}s`),
+        sam ? row(s, `Guidage (${m.name})`, `radar semi-actif, ${fr(m.channels, 0)}${NB}cibles à la fois`) : null,
+      ];
+    }));
+  }
+
   if (s.aircraft) {
     add('air', s.type === 'CV' ? 'Groupe aérien' : 'Hydravions', [
       row(s, s.type === 'CV' ? 'Capacité' : 'Hydravions embarqués', `${fr(s.aircraft.capacity, 0)}${NB}${plural(s.aircraft.capacity, 'appareil', 'appareils')}`, 'aircraft.capacity'),

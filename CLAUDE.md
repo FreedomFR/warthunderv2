@@ -1,6 +1,6 @@
 # Naval combat simulation (WWII) — guide for Claude Code
 
-Autonomous WWII naval battle on the Noniv/web-ocean WebGPU engine: 34 real ships (6 nations × 5 types, plus the S-30 Schnellboot, the Tade, the Gioberti and the post-war USS Adams) built procedurally from
+Autonomous WWII naval battle on the Noniv/web-ocean WebGPU engine: 35 real ships (6 nations × 5 types, plus the S-30 Schnellboot, the Admiral Graf Spee, the Tade, the Gioberti and the post-war USS Adams) built procedurally from
 spec sheets, AI-only combat, many cameras, modular damage, procedural sound. No build step is needed to play.
 
 **The owner speaks French: answer in French** (code, comments, commit messages and CHANGELOG are in English; README and TODO in French).
@@ -26,6 +26,8 @@ npm run check:shaders       # compiles the WGSL with a real WebGPU device (serve
 npm run smoke               # browser smoke test, offscreen mode (server must be running)
 npm run build               # js/ + index.html -> naval.html (single file); rebuild before committing changes under js/
 ```
+
+A test that rests on a whole simulated battle is chaotic (any change of a model, of the AA of a ship or of the balance moves the outcome): judge the property over a few seeds and accept one that holds (see `test/homeward.mjs`, `test/airops.mjs`), never pin one seed.
 
 A new test is a file `test/<name>.mjs` (a script that prints `PASS` / `FAIL` lines and exits non-zero on failure) **listed in `test/tests.json`** (the runner refuses a test that is not listed; `slow: true` keeps it out of `test:fast`).
 
@@ -95,7 +97,11 @@ Useful URLs: `?scenario=duel&start=1&seed=3`, `?preview=iowa,yamato&offscreen=1&
 
 ## 3D reference models given by the owner (`modelTmp/`)
 
-The owner drops glTF models (Sketchfab, War Thunder "Ninth Wave", CC BY 4.0) in `modelTmp/` (git-ignored). They are **for measuring only**: extract them to `refs/<id>/src` (git-ignored; `python3 -c "import zipfile..."`, there is no `unzip`), measure with `node tools/refs/gltf.mjs` (`survey`, `views`, `quarters`, `plan`, `tables`, `cut`, `heightmap`, `profile`; `--loa=` scales the model to the spec's length), build the ship procedurally (spec sheet + `tweaks.js`, never a copy of the mesh), credit the author in `docs/CREDITS.md`. Research guns, shells and torpedoes on the internet (NavWeaps...) for the spec sheet. Then check the model: `tools/refs/chk.sh <ship>` (silhouettes in metres, from the plans.json entry that `gltf.mjs plan ... | python3 tools/refs/addplan.py` writes), and **look at it from every side on a plain background**: `GPU=hardware WSLENV=GPU "/mnt/c/Program Files/nodejs/node.exe" tools/refs/studio.mjs <ids> out/studio` (9 views, lit from behind the camera) then `python3 tools/refs/sheet.py out/studio/<id>.jpg out/studio/<id> 3`. `tools/refs/addspec.py <nation> spec.json` adds a spec sheet. Positions read on a grid: `gridview.py` (the label is the fraction at the LEFT edge, it decreases to the right: bow on the right).
+The owner drops glTF models (Sketchfab, War Thunder "Ninth Wave", CC BY 4.0) in `modelTmp/` (git-ignored). They are **for measuring only**: extract them to `refs/<id>/src` (git-ignored; `python3 -c "import zipfile..."`, there is no `unzip`), measure with `node tools/refs/gltf.mjs` (it also reads a Wavefront `.obj` placed in `refs/<id>/src/` instead of `scene.gltf`; a zip may hold another zip: extract both) (`survey`, `views`, `quarters`, `plan`, `tables`, `cut`, `heightmap`, `profile`; `--loa=` scales the model to the spec's length), build the ship procedurally (spec sheet + `tweaks.js`, never a copy of the mesh), credit the author in `docs/CREDITS.md`. Research guns, shells and torpedoes on the internet (NavWeaps...) for the spec sheet. Then check the model: `tools/refs/chk.sh <ship>` (silhouettes in metres, from the plans.json entry that `gltf.mjs plan ... | python3 tools/refs/addplan.py` writes), and **look at it from every side on a plain background**: `GPU=hardware WSLENV=GPU "/mnt/c/Program Files/nodejs/node.exe" tools/refs/studio.mjs <ids> out/studio` (9 views, lit from behind the camera) then `python3 tools/refs/sheet.py out/studio/<id>.jpg out/studio/<id> 3`. `tools/refs/addspec.py <nation> spec.json` adds a spec sheet. Positions read on a grid: `gridview.py` (the label is the fraction at the LEFT edge, it decreases to the right: bow on the right).
+
+## Acceptance rules for every new ship (set by the owner)
+
+Faithful to the reference as far as it can be measured; **every weapon must work in the game whatever the ship's era** (guns, AA, tubes, aircraft, and missiles / rockets too: a launcher that is only drawn is a bug); the skin, the firing arcs (`tools/audit/arcs.mjs`, `test/arcs.mjs`) and the visuals (nine views, pairs with the reference, wiki picture) checked. Full list: `tools/refs/WORKFLOW.md`.
 
 ## Conventions
 

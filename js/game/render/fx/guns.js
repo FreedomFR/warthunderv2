@@ -273,6 +273,16 @@ export class GunFx {
     for (let i = 0; i < 6; i++) p.add({ kind: K.TRACER, x: e.x, y: e.y, z: e.z, vx: rr(-80, 80), vy: rr(-60, 70), vz: rr(-80, 80), s0: 0.2, life: rr(0.12, 0.35), r: 1, g: 0.7, b: 0.3, a0: 3, a1: 0, stretch: 4 });
   }
 
+  /** A missile leaves its launcher: the flash of the motor, a cloud of white smoke and fire at the rail, the blast on the deck. */
+  missileLaunch(e) {
+    const d = this.distToCam(e.x, e.z);
+    if (d > 9000) return;
+    const p = this.p;
+    p.add({ kind: K.FLASH, x: e.x, y: e.y, z: e.z, s0: 7, s1: 15, life: 0.18, r: 1, g: 0.72, b: 0.34, a0: 9, a1: 0 });
+    for (let i = 0; i < 9; i++) p.add({ kind: K.SMOKE, x: e.x + rr(-1, 1), y: e.y + rr(-0.6, 0.8), z: e.z + rr(-1, 1), vx: -e.dx * rr(3, 14) + rr(-3, 3), vy: rr(0, 4), vz: -e.dz * rr(3, 14) + rr(-3, 3), s0: 2.5, s1: rr(11, 20), life: rr(3.5, 6), r: 0.94, g: 0.93, b: 0.92, a0: 0.75, a1: 0, wind: 1, drag: 0.5, grav: 0.01 });
+    this.flashLight(e.x, e.y, e.z, 8, 22, 0.25);
+  }
+
   torpedoLaunch(e) {
     if (this.distToCam(e.x, e.z) > 6000) return;
     for (let i = 0; i < 6; i++) this.p.add({ kind: K.SPRAY, x: e.x, y: 0.5, z: e.z, vx: rr(-3, 3), vy: rr(4, 9), vz: rr(-3, 3), s0: 1.2, s1: 4, life: rr(0.8, 1.6), r: 0.95, g: 0.97, b: 1, a0: 0.8, a1: 0, grav: 12 });
