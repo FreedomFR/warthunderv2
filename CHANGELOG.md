@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased — gun mounts drawn per ship from the reference models
+
+- **Own mount shapes instead of shared ones**: the Graf Spee 15 cm single is a hexagonal shield (pointed at the rear, flat across the front, 3.2 x 3.0 m, roof 2.55 m over the deck; the same family serves the 15 cm single of the Königsberg-type cruiser); its 10.5 cm twin (`dop105`) is a low box 3.7 x 2.3 m with the front plate leaning back and the two barrels 0.5 m apart (it was the generic enclosed mount); the Yamato 15.5 cm triple has its measured length and width, the sloped front with the rounded roof edge and the raised roof box, barrels 1.5 m apart. The spec positions of the Graf Spee 15 cm and 10.5 cm mounts were moved to the measured offsets.
+- `tools/refs/mountprofile.mjs`: the extent of one mount at each height, in its own frame, on a reference model. The shields were read from `gcrop.sh` grid views (top and side) and checked with `pair.sh`.
+- Still to do mount by mount: Shokaku 127 mm twin and 25 mm triple, Graf Spee 10.5 cm detail and 3.7 / 2 cm AA, Yamato 46 cm detail, the 12.7 cm cupola.
+
 ## Unreleased — the light AA of the Yamato from the model, and visual bugs of the ship
 
 - **The anti-aircraft at its measured places**: the model has 24 shielded triple 25 mm (12 a side: along both deck edges from x -27 to -3.6 at 18.1 m off the centre line, on the sponsons forward and aft of them, on the quarterdeck, two singles aft, one higher by the tower) where the 1945 plan quoted about 50 estimated ones; the 12 twin 12.7 cm are three on the platform edge (2.7 m over the deck) and three higher on the central house, per side. Components of the model (connected pieces of mesh) gave the positions to +-0.1 m (`comp.mjs` method: weld the vertices, take the bounding box of each piece).
