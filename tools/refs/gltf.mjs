@@ -419,6 +419,20 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       console.log('     ' + Array.from({ length: Math.min(chunk, to - a) }, (_, i) => ((x0 + (a + i) * cell) % 10 === 0 ? '|' : ' ')).join(''));
       for (let j = 0; j < nz; j++) console.log(`${String((j - zr) * cell).padStart(4)} ` + Array.from(hm[j].slice(a, a + chunk), ch).join(''));
     }
+  } else if (cmd === 'export') {                     // the model in the game frame (x bow +, y over the waterline with --draft, z starboard, metres) as one binary PLY: for tools/refs/solids.py (trimesh, shapely)
+    const wl = +(flags.draft || 0), out = arg || 'refs/upright.ply';
+    let nv = 0, nf = 0;
+    for (const p of m.parts) { nv += p.V.length / 3; nf += p.idx.length / 3; }
+    const head = Buffer.from(`ply\nformat binary_little_endian 1.0\nelement vertex ${nv}\nproperty float x\nproperty float y\nproperty float z\nelement face ${nf}\nproperty list uchar int vertex_indices\nend_header\n`);
+    const vb = Buffer.alloc(nv * 12), fb = Buffer.alloc(nf * 13);
+    let vo = 0, fo = 0, base = 0;
+    for (const p of m.parts) {
+      for (let i = 0; i < p.V.length; i += 3) { vb.writeFloatLE(p.V[i], vo); vb.writeFloatLE(p.V[i + 1] - wl, vo + 4); vb.writeFloatLE(p.V[i + 2], vo + 8); vo += 12; }
+      for (let t = 0; t < p.idx.length; t += 3) { fb.writeUInt8(3, fo); fb.writeInt32LE(base + p.idx[t], fo + 1); fb.writeInt32LE(base + p.idx[t + 1], fo + 5); fb.writeInt32LE(base + p.idx[t + 2], fo + 9); fo += 13; }
+      base += p.V.length / 3;
+    }
+    fs.writeFileSync(out, Buffer.concat([head, vb, fb]));
+    console.log(`${out}: ${nv} vertices, ${nf} triangles`);
   } else if (cmd === 'sections') {
     const step = +(arg || 2);
     console.log('x (m from the middle), half-beam at deck edge (max |z|), top of the hull (max y of the widest part), keel (min y)');

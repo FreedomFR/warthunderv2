@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased — modelling from a reference model with exact cross-sections
+
+- **`tools/refs/solids.py`** (Python: `numpy`, `scipy`, `trimesh`, `shapely`, installed with `pip install --user`; the repository itself stays dependency free): cuts the reference model by a plane every 0.25 m, closes the cut lines (gaps up to 0.24 m), fills what they enclose, drops what is thinner than 1.2 m (rails, wires, masts, barrels), keeps what is above the deck and outside the mounts the game draws itself, and follows each blob from one slice to the next: a run with the same outline is one extrusion, a slow drift (a taper, a lean) is one loft between its first and last outline resampled to 40 points. It replaces the grid reading of `footprints.mjs`: round gun tubs, the oval raked funnel, the rounded tower with its wings come out as they are instead of in 0.4 m steps. `gltf.mjs export` writes the model in the game frame as a PLY for it.
+- **`MeshBuilder.slab` and `loft`** (with `model/triangulate.js`): an extruded outline with holes, concave or not, and a loft between two outlines of the same number of points; both keep the clearance outline of the solid.
+- The Yamato's masses are redone with them (about 175 solids).
+
 ## Unreleased — the Yamato's superstructure read from the model as stacked footprints
 
 - **The tower, the central house, the base platforms, the funnel and the deck houses are redrawn from measured volumes** (`ships/yamato.js`, a bespoke ship like the Graf Spee): `tools/refs/footprints.mjs` reads the reference model a height band at a time on a plan grid (0.4 m cells), opens away the thin things (rails, wires, masts, barrels), cuts out the mounts the game draws itself (turrets, cupolas, 25 mm), and takes runs of bands with the same outline as one prism; about 120 prisms with the outlines simplified to 0.4 m. The tower is no longer seven symmetric tiers: its wings, platforms and the rangefinder housing sit where the model has them. The funnel is the ellipse of each slice.
