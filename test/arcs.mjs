@@ -9,7 +9,7 @@ import { clearElev, tubeBears } from '../js/game/model/clearance.js';
 let fail = 0;
 const ok = (c, m) => { console.log(c ? 'PASS' : 'FAIL', m); if (!c) { fail++; process.exitCode = 1; } };
 const D2R = Math.PI / 180, dg = (r) => Math.round(r / D2R);
-const SHIPS = ['kagero', 'tade', 'gioberti', 'adams', 'graf_spee'];
+const SHIPS = ['kagero', 'tade', 'gioberti', 'adams', 'graf_spee', 'yamato'];
 const model = (id) => getModel(ALL_SHIPS.find((s) => s.id === id));
 
 // ---- the guns: every main mount fires over the sector it faces, and none is shut in ----
@@ -38,6 +38,7 @@ for (const id of SHIPS) {
 // ---- the launchers: the sectors of each, from what stands round it ----
 for (const id of SHIPS) {
   const m = model(id);
+  if (!ALL_SHIPS.find((x) => x.id === id).torpedoes) continue;
   ok(m.tubes.length >= 2, `${id}: ${m.tubes.length} launchers`);
   for (const t of m.tubes) {
     const name = `${id} launcher at x ${t.x.toFixed(1)} (z ${t.z.toFixed(1)}, ${t.n} tubes)`;

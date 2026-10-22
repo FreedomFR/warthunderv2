@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased — the Yamato corrected on a reference model
+
+- The Yamato was in the game (from the 1945 plan); a measured model (KojfDiscord, CC BY 4.0) corrects it. **Tower**: seven stages 11 m long and 7 m wide narrowing to 5 m, top 39.6 m over the waterline (it was 12 m wide). **Funnel**: a 10 x 6 m oval raked 7 m aft (it was 12.6 x 7.5 m nearly upright), the mainmast leaning aft from 27 m abaft the middle. **Hull**: lines recut from the model (the waterline narrower at the stern, a blunt stern 9 m wide, the quarterdeck at 5.85 m from f 0.907, the catapults on pedestals 4.4 m high, 13 degrees out of line). The base platform with the cupolas and the central house follow the outlines measured at 1 and 3 m over the deck. **The 46 cm turrets**: the house is 16 m long, 13 m wide at the base and 8.8 m on the roof (it was 18 x 14.4 m), the gun ports on the sloped face, no white muzzle rings. **Arcs**: the three 46 cm turrets train 150 degrees either side (`arcHalfDeg`; turret 3 had been cut to 105 by the pedestals of two 25 mm triples that stood on turret roofs: they are left out, they would turn with the turret). `test/arcs.mjs` covers the ship.
+- Not redone from the model: the 127 mm cupolas and the 25 mm positions (kept from the 1945 plan, which the model confirms on the whole), the rigging, the crane.
+
 ## Unreleased — tests that no longer break with each change
 
 - `test/homeward.mjs` and `test/airops.mjs` rested on one seed of a whole simulated battle: every change of a ship moved the outcome and broke them (1 seed of 12 passed after the Shokaku). They now try a few seeds and pass when the property holds for one (the seed used is printed); the rule is noted in `CLAUDE.md`.

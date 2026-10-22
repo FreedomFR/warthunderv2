@@ -23,7 +23,7 @@ const FAMILY = {
   // Yamato 1945 profile and plan (Commons, Alexpl, after the Kure museum photographs; heights scaled to the builders' freeboards):
   // 18.5 m long, 14.4 m wide without the rangefinder arms, 3.9 m high (the profile is drawn 10 % flat: heights read at its own vertical
   // scale; roofs 11.7 and 15.1 m above the waterline), barrels 13.3 m clear of the ports, turret 2 2.7 m above turret 1
-  type94: { kind: 'turret', cal: 460, n: 3, spacing: 3.52, trunX: 3.6, trunY: 2.4, face: 7.6, port: 6.4, fwd: 16.1, back: 2.9, rB: 0.70, rP: 0.60, rM: 0.35, bagR: 1.05, bagLen: 1.3, recoil: 1.3, lift: 2.7, h: 3.9, barbR: 6.6, barb: 0.1, whiteMuzzle: true },
+  type94: { kind: 'turret', cal: 460, n: 3, spacing: 3.52, trunX: 3.6, trunY: 2.4, face: 5.4, port: 4.5, fwd: 16.1, back: 2.9, rB: 0.70, rP: 0.60, rM: 0.35, bagR: 1.05, bagLen: 1.3, recoil: 1.3, lift: 2.7, h: 3.9, barbR: 6.6, barb: 0.1 },
   // Yamato's 15.5 cm/60 triple (ex-Mogami): 8.6 m long, 3.4 m high, barrels 5.9 m clear of the face, on a 7.3-7.9 m barbette
   type3_155: { kind: 'turret', cal: 155, n: 3, spacing: 1.7, trunX: 1.2, trunY: 1.44, face: 3.6, port: 3.2, fwd: 8.3, back: 1.2, rB: 0.26, rP: 0.2, rM: 0.11, bagR: 0.33, bagLen: 0.5, recoil: 0.6, lift: 2.6, h: 3.44, barbR: 3.0 },
   // Bismarck profile (Commons, CC0) and Bundesarchiv photographs: 13.3 m long, 3.5 m high, barrels 13.5 m clear of the face, on a
@@ -172,10 +172,10 @@ function houseMk7(hb, col, dark, f) {
 function houseType94(hb, col, dark, f) {
   const light = shade(col, 1.1), shadow = shade(col, 0.8);
   hb.cylinder(0, -0.1, 0, 6.6, 6.7, 0.2, shadow, MAT.HULL, { seg: 28 });
-  hb.block({ x0: -10.6, x1: f.face, hw: 7.2, y0: 0.15, y1: f.h, tx0: -10.4, tx1: 5.0, thw: 7.0 }, col, MAT.HULL);   // walls, sloped face, roof
+  hb.block({ x0: -10.9, x1: f.face, hw: 6.6, y0: 0.15, y1: f.h, tx0: -9.0, tx1: 1.9, thw: 4.4 }, col, MAT.HULL);   // walls, sloped face and sides, roof (measured: 16 m long, 13 m wide at the base, 8.8 m at the roof)
   hb.block({ x0: -11.6, x1: -10.4, hw: 5.0, y0: 0.8, y1: 3.4, tx0: -11.3, thw: 4.8 }, shade(col, 0.9), MAT.HULL);   // rear overhang
-  hb.rodZ(-8.4, f.h - 0.9, -8.6, 8.6, 0.5, 0.5, shade(col, 0.88), MAT.HULL, { seg: 10 });                          // rangefinder arms
-  for (const sg of [-1, 1]) hb.cyl(-8.4, f.h - 1.6, sg * 8.2, 0.8, 0.8, 0.7, 0.7, f.h - 0.2, light, MAT.HULL, { seg: 10 });
+  hb.rodZ(-6.2, f.h - 0.9, -6.2, 6.2, 0.5, 0.5, shade(col, 0.88), MAT.HULL, { seg: 10 });                          // rangefinder arms
+  for (const sg of [-1, 1]) hb.cyl(-6.2, f.h - 1.6, sg * 6.0, 0.8, 0.8, 0.7, 0.7, f.h - 0.2, light, MAT.HULL, { seg: 10 });
   for (const sg of [-1, 1]) hb.cylinder(-4.0, f.h - 0.1, sg * 3.8, 0.55, 0.5, f.h + 0.6, shadow, MAT.HULL, { seg: 8 });
   hb.box(-1.5, f.h + 0.04, 0, 3.4, 0.1, 2.6, light, MAT.HULL);
   for (let i = 0; i < f.n; i++) {

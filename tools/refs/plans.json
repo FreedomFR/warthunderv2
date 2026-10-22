@@ -2703,5 +2703,52 @@
         "el": 89.5
       }
     }
+  },
+  "yamato@ref": {
+    "side": {
+      "file": "refs/yamato_new/side.png",
+      "source": "matte side view of the reference model (see docs/CREDITS.md), rendered by tools/refs/gltf.mjs, kept out of the repository",
+      "crop": [
+        0,
+        0,
+        3204,
+        855
+      ],
+      "stern": 24,
+      "bow": 3180,
+      "close": 3,
+      "tol": 0.3,
+      "wl": 706
+    },
+    "top": {
+      "file": "refs/yamato_new/top.png",
+      "source": "matte top view of the reference model (see docs/CREDITS.md), rendered by tools/refs/gltf.mjs, kept out of the repository",
+      "crop": [
+        0,
+        0,
+        3204,
+        539
+      ],
+      "stern": 24,
+      "bow": 3180,
+      "close": 3,
+      "tol": 0.2,
+      "cl": 269
+    },
+    "loa": 263,
+    "camera": {
+      "side": {
+        "dist": 1744,
+        "fov": 4,
+        "lookY": 14.0,
+        "el": 0
+      },
+      "top": {
+        "dist": 1744,
+        "fov": 4,
+        "lookY": 0,
+        "el": 89.5
+      }
+    }
   }
 }
