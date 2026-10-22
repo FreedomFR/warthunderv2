@@ -4,7 +4,7 @@
 import { ALL_SHIPS } from '../js/game/data/ships.js';
 import { buildShipModel } from '../js/game/model/shipbuilder.js';
 import { TWEAKS } from '../js/game/model/tweaks.js';
-import { inFoot, clearElev, clearMax } from '../js/game/model/clearance.js';
+import { inFoot } from '../js/game/model/clearance.js';
 import { World } from '../js/game/sim/world.js';
 
 let fail = 0;

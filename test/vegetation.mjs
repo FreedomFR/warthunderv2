@@ -1,6 +1,6 @@
 // The plants of the islands: node test/vegetation.mjs — where they grow, the meshes of each species at each level of detail, the stamping of a square of ground.
 import { Island, Terrain } from '../js/game/sim/terrain.js';
-import { scatter, cover, climateOf, SPECIES, SP, STEP } from '../js/game/model/vegetation.js';
+import { scatter, cover, climateOf, SPECIES, SP } from '../js/game/model/vegetation.js';
 import { getTemplate, stampPlants } from '../js/game/model/treeMeshes.js';
 
 const ok = (c, m) => { console.log(c ? 'PASS' : 'FAIL', m); if (!c) process.exitCode = 1; };

@@ -2,13 +2,15 @@
 // with the plans.
 //   node tools/refs/check.mjs <ship> [outDir]          (the game must be served on :8080)
 //   python3 tools/refs/silhouette.py <ship> side <outDir>/<ship>_side_render.png
+/* global __engine */
 import { chromium } from 'playwright-core';
 import fs from 'node:fs';
 import { launchOptions } from '../browser.mjs';
 
-const [ship, outDir = 'out/check', mode = 'matte'] = process.argv.slice(2);   // mode 'colour': the normal sky, for overlay_top.py
-const cfg = JSON.parse(fs.readFileSync(new URL('./plans.json', import.meta.url), 'utf8'))[ship];
-if (!cfg) { console.error('no plans for ' + ship + ' in tools/refs/plans.json'); process.exit(1); }
+const [planKey, outDir = 'out/check', mode = 'matte'] = process.argv.slice(2);
+const ship = planKey.split('@')[0];         // 'kagero@ref': the plans.json entry kagero@ref (another set of plans) of the ship kagero
+const cfg = JSON.parse(fs.readFileSync(new URL('./plans.json', import.meta.url), 'utf8'))[planKey];
+if (!cfg) { console.error('no plans for ' + planKey + ' in tools/refs/plans.json'); process.exit(1); }
 fs.mkdirSync(outDir, { recursive: true });
 const W = 2400, H = 1000;
 // default cameras (the ship fills 92 % of the width at fov 4): side and plan view
@@ -25,7 +27,7 @@ for (const [view, c] of Object.entries(cfg.camera)) {
   await p.evaluate((o) => window.__preview.set(o), { target: 0, heading: 90, dist: c.dist, az: 180, el: c.el, lookY: c.lookY, lookX: 0 });
   await p.waitForTimeout(800);
   const b64 = await p.evaluate(() => window.__engine.capture());
-  fs.writeFileSync(`${outDir}/${ship}_${view}_${mode === 'matte' ? 'render' : 'colour'}.png`, Buffer.from(b64, 'base64'));
+  fs.writeFileSync(`${outDir}/${planKey}_${view}_${mode === 'matte' ? 'render' : 'colour'}.png`, Buffer.from(b64, 'base64'));
   console.log('rendered', view);
 }
 await b.close();

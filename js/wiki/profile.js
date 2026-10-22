@@ -8,6 +8,43 @@ const f1 = (n) => Math.round(n * 10) / 10;
 /** Width of a ship's icon as a fraction of the picture (common scale, softened so that destroyers stay readable). */
 export const iconScale = (spec) => 0.42 + 0.58 * Math.min(1, spec.loa / 272);
 
+/**
+ * The picture of a ship for the wiki: the side view of its 3D model (wiki/ships/<id>.webp, made by tools/wikishots.mjs, one scale for all ships), or, when the file is
+ * missing, the silhouette drawn from the spec sheet. A DOM element (the wiki runs in a browser).
+ */
+export function shipPicture(spec, opts = {}) {
+  const wrap = document.createElement('span');
+  wrap.className = 'ship-pic';
+  const img = new Image();
+  img.alt = `${spec.className || spec.id}, vue de côté`;
+  img.decoding = 'async';
+  img.loading = 'lazy';
+  img.draggable = false;
+  img.style.width = opts.full ? '100%' : `${f1(iconScale(spec) * 100)}%`;
+  img.onerror = () => { wrap.innerHTML = shipProfile(spec, opts); };
+  img.src = `wiki/ships/${spec.id}.webp`;
+  wrap.append(img);
+  return wrap;
+}
+
+/**
+ * The picture of an aircraft for the wiki: its 3D model seen from the front, to the right and a little above (wiki/aircraft/<key>.webp, made by tools/wikiplanes.mjs), or, when
+ * the file is missing, the top view drawn from the spec sheet. A DOM element.
+ */
+export function aircraftPicture(a) {
+  const wrap = document.createElement('span');
+  wrap.className = 'plane-pic';
+  const img = new Image();
+  img.alt = `${a.name}, vue 3D`;
+  img.decoding = 'async';
+  img.loading = 'lazy';
+  img.draggable = false;
+  img.onerror = () => { wrap.innerHTML = aircraftTop(a.spec); };
+  img.src = `wiki/aircraft/${a.key.replace(':', '_')}.webp`;
+  wrap.append(img);
+  return wrap;
+}
+
 /** SVG markup of the side profile (bow to the right). `opts.full`: fill the width of the picture (the big profile of a card). */
 export function shipProfile(spec, opts = {}) {
   const L = spec.loa, cv = spec.type === 'CV';

@@ -1,7 +1,7 @@
 # Combat naval — simulation de la Seconde Guerre mondiale
 
 Une bataille navale **autonome** sur un océan temps réel en **WebGPU** : vous composez les flottes (6 nations × 5 types de navires réels),
-l'IA les pilote, et vous regardez le combat sous tous les angles. Les 30 navires et leurs avions sont **construits par le programme** d'après leur
+l'IA les pilote, et vous regardez le combat sous tous les angles. Les 34 navires et leurs avions sont **construits par le programme** d'après leur
 fiche technique : aucun fichier de modèle 3D, aucun fichier audio.
 
 ![Bataille : l'Iowa tire sous un ciel de coucher de soleil](docs/battle.jpg)
@@ -66,7 +66,7 @@ Les dégâts reçus se règlent sans toucher au code, par des multiplicateurs (1
 
 ## Ce que contient le jeu
 
-- **30 navires réels** (6 nations × destroyer, croiseur léger, croiseur lourd, cuirassé, porte-avions), relevés sur plans d'époque : tourelles aux dimensions réelles,
+- **34 navires réels** (6 nations × destroyer, croiseur léger, croiseur lourd, cuirassé, porte-avions, plus la vedette lance-torpilles S-30, deux destroyers (*Tade*, *Vincenzo Gioberti*) et le destroyer lance-missiles *USS Adams* de 1960), relevés sur plans d'époque : tourelles aux dimensions réelles,
   superstructures, camouflages, pavillons, embarcations, hélices.
 - **Aviation embarquée** : bombardiers en piqué, torpilleurs, chasseurs et hydravions de chaque nation ; ascenseurs, ailes repliées, décollage, circuit d'appontage et brins d'arrêt.
 - **Dégâts modulaires** : chaufferies, soutes, tourelles, gouvernail, directeurs de tir, DCA, compartiments étanches, inondation, incendies ; les pièces détruites volent et retombent à la mer.
@@ -86,7 +86,7 @@ Deux pages en plus du jeu (elles demandent le petit serveur : `npm start`, car e
 
 | Page | Adresse (serveur local) | À quoi elle sert |
 |---|---|---|
-| **Wiki** | <http://localhost:8080/wiki.html> | **Arbres technologiques** par nation (ères, types, silhouettes dessinées d'après les fiches), **comparatif** triable des 30 navires, **aviation**. Un clic sur un navire ouvre sa fiche : chiffres de la fiche technique, valeurs estimées signalées, sources et modèle 3D intégré. |
+| **Wiki** | <http://localhost:8080/wiki.html> | **Arbres technologiques** par nation (ères, types, silhouettes dessinées d'après les fiches), **comparatif** triable des 34 navires, **aviation**. Un clic sur un navire ouvre sa fiche : chiffres de la fiche technique, valeurs estimées signalées, sources et modèle 3D intégré. |
 | **Visualiseur 3D** | <http://localhost:8080/viewer.html> | Tourner autour de n'importe quel navire ou avion : glisser pour orbiter, clic droit ou `Maj` + glisser pour déplacer, molette ou pincement pour zoomer. Lumière (plein jour, matin, coucher de soleil, ciel couvert, crépuscule), océan et ombres à volonté, tourelles pivotées, avions sur le pont, état intact / cicatrices / épaves / coque brisée. |
 
 Le bouton **« Lien de débogage »** du visualiseur copie une adresse qui rouvre exactement la même vue (modèle, angle, distance, lumière, options) :
@@ -147,7 +147,10 @@ modélisés d'après leur conception réelle.
 git clone https://github.com/FreedomFR/warthunderv2 && cd warthunderv2
 npm install                # seulement pour les outils (playwright-core, esbuild)
 npm start                  # serveur local : http://localhost:8080/ (jeu), wiki.html, viewer.html
-npm test                   # modèles, dégâts, son, aviation, batailles complètes : sans carte graphique, environ une minute
+npm test                   # modèles, dégâts, son, aviation, batailles complètes : sans carte graphique, tests en parallèle (moins de 2 minutes)
+npm run test:fast          # les tests rapides seulement (environ 25 s) : à lancer après chaque modification
+npm run lint               # ESLint : les noms qui n'existent pas dans des chemins que les tests n'exécutent pas
+npm run map                # régénère docs/CODEMAP.md, le plan du code (un fichier par ligne)
 npm run build              # régénère naval.html, la version en un seul fichier (esbuild)
 npm run check:shaders      # compile les shaders avec un vrai WebGPU (le serveur doit tourner)
 npm run smoke              # test de fumée dans le navigateur (le serveur doit tourner)

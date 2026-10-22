@@ -6,8 +6,6 @@
 // captures exactly 1/FPS s (24 by default). All randomness comes from the seeded world, so a scene can be recorded again identically.
 import { clamp, lerp, smoothstep, D2R, KN, makeRng } from './game/math.js';
 import { spawnFleet } from './game/sim/formation.js';
-import { magazineExplosion } from './game/sim/explosions.js';
-import { PRESETS } from './game/scenarios.js';
 import { renderMusic, wavBase64 } from './trailerMusic.js';
 import { TEAM_COLORS } from './game/sim/world.js';
 

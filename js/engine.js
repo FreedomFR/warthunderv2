@@ -8,6 +8,7 @@
 //   * water.* : multi-point water height query (async GPU read-back) for buoyancy
 //   * foam.*  : world-space foam "stamps" (ship wakes, shell splashes, torpedo tracks)
 //   * offscreen mode + capture() for headless testing, render scale for slower GPUs
+import { isMobile } from './game/device.js';
 import { N, CASCADES, SKY_W, SKY_H, ENV_SIZE, ENV_MIPS } from './wgsl/common.js';
 import { SIM_INIT, SIM_EVOLVE, FFT_ROWS, FFT_COLS, SIM_MIPS, FOAM_TEX, RGBA8_MIPS, FOAM_UPDATE, ARRAY16_MIPS, FOAM_RES } from './wgsl/sim.js';
 import { TRANS_LUT, MS_LUT, SKYVIEW_LUT, ENV_CUBE, CUBE_MIPS, SUN_VIS } from './wgsl/sky.js';
@@ -285,11 +286,11 @@ export async function createEngine(canvas, options = {}) {
     device.queue.writeBuffer(shadowUBO, 0, shadowU);
   }
   const shadow = {
-    size: SHADOW_SIZE, view: shadowView, sampler: shadowSamp, ubo: shadowUBO, enabled: false,
+    size: SHADOW_SIZE, view: shadowView, sampler: shadowSamp, ubo: shadowUBO, enabled: false, cheap: false,       // cheap: four taps instead of nine (a phone)
     /** vp: camera-relative light view-projection (column-major), texelUv = 1 / size, bias in clip depth */
     setLight(vp, bias, enabled) {
       shadowU.set(vp, 0);
-      shadowU[16] = 1 / SHADOW_SIZE; shadowU[17] = bias; shadowU[18] = enabled ? 1 : 0; shadowU[19] = 0;
+      shadowU[16] = 1 / SHADOW_SIZE; shadowU[17] = bias; shadowU[18] = enabled ? 1 : 0; shadowU[19] = shadow.cheap ? 1 : 0;
       device.queue.writeBuffer(shadowUBO, 0, shadowU);
       shadow.enabled = !!enabled;
     },
@@ -449,7 +450,7 @@ export async function createEngine(canvas, options = {}) {
 
   // CDLOD grid mesh
   // quads per node edge (?grid=16 / 8 thins the surface mesh for slow GPUs and software rasterisers)
-  const GRID = [8, 16, 24, 32, 48, 64].includes(Number(qs.get('grid'))) ? Number(qs.get('grid')) : 32;
+  const GRID = [8, 16, 24, 32, 48, 64].includes(Number(qs.get('grid'))) ? Number(qs.get('grid')) : isMobile() ? 16 : 32;       // (the finest vertex spacing is 6 cm at 32: a phone gets 12 cm, which no pixel of it can tell)
   const LEAF = 2.0;           // finest node size (m) -> 6.25 cm vertex spacing
   const R0 = 8 * LEAF;        // LOD 0 range
   const LODS = 17;
@@ -492,9 +493,10 @@ export async function createEngine(canvas, options = {}) {
   // --------------------------------------------------------------------------------------
   // GPU timing: a timestamp at the start and at the end of every pass that can be told apart, read back every eighth frame (the performance test
   // reports them). The main pass holds the sea, the ships, the sky and, without volumetric clouds, the particles: the test tells those apart by switching
-  // them off in turn. A pass that did not run this frame leaves its two slots empty (0).
+  // them off in turn. A pass that did not run this frame leaves its two slots as they were (an older frame's timestamps): they are older than the start of this frame's first
+  // pass and are ignored.
   // --------------------------------------------------------------------------------------
-  const TS_PASSES = ['sim', 'shadow', 'cloudWeather', 'main', 'cloudMarch', 'cloudApply', 'cloudOverlay', 'bloom', 'composite'];
+  const TS_PASSES = ['sim', 'sky', 'shadow', 'cloudWeather', 'main', 'cloudMarch', 'cloudApply', 'cloudOverlay', 'bloom', 'composite'];
   const TS_N = TS_PASSES.length;
   let tsQuery = null, tsResolve = null, tsRead = null, tsPending = false, gpuMs = 0;
   let passMs = {};
@@ -513,7 +515,7 @@ export async function createEngine(canvas, options = {}) {
   };
   const onTsMapped = () => {
     const t = new BigUint64Array(tsRead.getMappedRange(0, TS_N * 16));
-    const span = (a, b) => (a && b && b >= a ? Number(b - a) / 1e6 : 0);
+    const t0 = t[0], span = (a, b) => (a && b && a >= t0 && b >= a ? Number(b - a) / 1e6 : 0);
     const total = span(t[0], t[TS_N * 2 - 1]);
     if (total > 0 && total < 1000) gpuMs = gpuMs ? gpuMs * 0.8 + total * 0.2 : total;
     const next = {};
@@ -529,14 +531,16 @@ export async function createEngine(canvas, options = {}) {
   const computeDesc = { timestampWrites: tsw('sim') };
 
   const matte = qs.get('matte') === '1';
+  // ?matte=1&bg=r,g,b (HDR values): the colour of the flat background, green by default; a light grey one (bg=1.4,1.4,1.4) shows a model without the sky behind it (tools/refs/studio.mjs)
+  const matteBg = (qs.get('bg') || '0,0.5,0').split(',').map(Number), matteClear = { r: matteBg[0], g: matteBg[1], b: matteBg[2], a: 1 };
   const mainPass = {
-    colorAttachments: [{ view: null, resolveTarget: null, clearValue: matte ? { r: 0, g: 0.5, b: 0, a: 1 } : { r: 0, g: 0, b: 0, a: 1 }, loadOp: 'clear', storeOp: 'discard' }],
+    colorAttachments: [{ view: null, resolveTarget: null, clearValue: matte ? matteClear : { r: 0, g: 0, b: 0, a: 1 }, loadOp: 'clear', storeOp: 'discard' }],
     depthStencilAttachment: { view: null, depthClearValue: 0, depthLoadOp: 'clear', depthStoreOp: 'discard' },
     timestampWrites: tsw('main'),
   };
   // with the clouds the main pass is split: the scene (colour and depth kept), the clouds over it, then the particles (resolved into the HDR target)
   const cloudPassA = {
-    colorAttachments: [{ view: null, clearValue: matte ? { r: 0, g: 0.5, b: 0, a: 1 } : { r: 0, g: 0, b: 0, a: 1 }, loadOp: 'clear', storeOp: 'store' }],
+    colorAttachments: [{ view: null, clearValue: matte ? matteClear : { r: 0, g: 0, b: 0, a: 1 }, loadOp: 'clear', storeOp: 'store' }],
     depthStencilAttachment: { view: null, depthClearValue: 0, depthLoadOp: 'clear', depthStoreOp: 'store' },
     timestampWrites: tsw('main'),
   };
@@ -933,7 +937,7 @@ export async function createEngine(canvas, options = {}) {
     for (const s of probeSlots) if (!s.busy) { slot = s; break; }
 
     const enc = device.createCommandEncoder();
-    const cp = enc.beginComputePass(computeDesc);
+    let cp = enc.beginComputePass(computeDesc);
     if (needSpectrum) {
       cp.setPipeline(initPipe);
       cp.setBindGroup(0, bgInit);
@@ -957,6 +961,8 @@ export async function createEngine(canvas, options = {}) {
     cp.setBindGroup(0, bgProbe);
     cp.dispatchWorkgroups(Math.ceil(nProbe / 64));
     if (heavy) {
+      cp.end();                                       // (the sky and the environment are a pass of their own, to be timed apart from the sea)
+      cp = enc.beginComputePass({ timestampWrites: tsw('sky') });
       cp.setPipeline(skyViewPipe);
       cp.setBindGroup(0, bgSkyView);
       cp.dispatchWorkgroups(Math.ceil(SKY_W / 8), Math.ceil(SKY_H / 8));
@@ -1153,6 +1159,8 @@ export async function createEngine(canvas, options = {}) {
 
   const engine = {
     device, canvas, P, qs, cam, hooks, water, foam, shadow, stats, hasTS, offscreen,
+    /** the flat background of `?matte=1` (r, g, b in HDR values), changeable between two captures (tools/wikishots.mjs renders on black and on white to cut a ship out exactly) */
+    matteClear,
     /** what the browser says about the GPU (the performance test's report): vendor, architecture, device, description, and a few limits */
     adapterInfo: (() => {
       const i = adapter.info || {}, L = adapter.limits || {};

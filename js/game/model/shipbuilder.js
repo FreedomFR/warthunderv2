@@ -6,7 +6,7 @@ import { MeshBuilder, MAT, rgb, shade, mix } from './meshbuilder.js';
 import { buildHull } from './hull.js';
 import * as PT from './parts.js';
 import { makeRng } from '../math.js';
-import { computeClearance, inFoot, barrelBlocked } from './clearance.js';
+import { computeClearance, computeTubeArcs, inFoot, barrelBlocked } from './clearance.js';
 import { clearHouses, houseRect } from './layout.js';
 import { defaultScrews } from './screws.js';
 import { paintOf, hullNumber, LIVERY, MARKS, PALETTES } from './livery.js';
@@ -54,7 +54,7 @@ function hullParams(spec, tw) {
     L, B, D, fb, stations: 110,
     bow: { ...preset.bow, ...(tw.bow || {}) }, stern: { ...preset.stern, ...(tw.stern || {}) },
     mid: { ...preset.mid, flare: t === 'CV' ? preset.mid.flare : Math.max(preset.mid.flare, flareMid), ...(tw.mid || {}) },
-    camber: dd ? 0.18 : 0.3, bulwark: dd ? 0.85 : 0.95,
+    camber: tw.camber ?? (dd ? 0.18 : 0.3), bulwark: tw.bulwark ?? (dd ? 0.85 : 0.95),
     planWL: tw.planWL, planDeck: tw.planDeck, bulwarkF: tw.bulwarkF, draftProfile: tw.keel,
   };
 }
@@ -117,6 +117,7 @@ const AA_TYPES = {
   q20: { v: 'iijn25', n: 4, cal: 20, bore: 65, tub: 1.6, label: 'Flakvierling 20 mm' },
   p40: { v: 'bofors', n: 4, cal: 40, bore: 39, tub: 2.3, label: 'Pom-pom 40 mm octuple' },
   f20: { v: 'oerlikon', n: 1, cal: 20, bore: 65, label: 'Flak 20 mm' },
+  i37: { v: 'breda37', n: 2, cal: 37, bore: 54, label: 'Breda 37/54 double' },
 };
 
 /** What turns on a ship (the screws and the rudders are in `model.spinners`): a search radar sweeps round (rad/s, by kind) and a fire-control director follows the guns. */
@@ -175,6 +176,11 @@ export function buildShipModel(spec, tw = {}) {
   const hp = hullParams(spec, tw);
   const L = hp.L, B = hp.B;
   const carrier = t === 'CV';
+  // tw.boat: a small craft (a motor torpedo boat): none of the equipment of a ship is put on it by itself (no deckhouse, funnel, tower, mast, boats, rafts, ventilators, random light guns),
+  // everything is in the tweaks: decks, aa, props, rudders and tw.extra, which also sets model.bridge and model.superBox
+  const boat = !!tw.boat;
+  // tw.own: a ship drawn bespoke from a reference (ships/<id>.js): like a boat the generic equipment (deckhouse, funnel, tower, masts, radars, boats, rafts, vents, clutter) is left out, its extra() draws all of it
+  const bare = boat || !!tw.own;
   hp.hullCol = pal.hull; hp.deckCol = carrier ? '#3a3835' : pal.deck; hp.bulwarkCol = pal.hull;
   if (carrier) { hp.bulwark = 0; }
   const fdY = carrier ? (tw.flightDeckY ?? 17.2) : 0;
@@ -227,7 +233,7 @@ export function buildShipModel(spec, tw = {}) {
   }
   for (const r of tw.rudders || (tw.props ? null : dflt?.rudders) || []) {
     for (const sg of r.z ? [1, -1] : [0]) {
-      { const o = { x: X(r.f), z: sg * Math.abs(r.z || 0), y0: -r.bottom, y1: -r.top, chord: r.chord }, id = 'spin' + model.spinners.length; b.group(id, () => PT.rudder(b, o, pal)); model.spinners.push({ id, kind: 'rudder', x: o.x + o.chord * 0.25, y: o.y1, z: o.z }); }
+      { const o = { x: X(r.f), z: sg * Math.abs(r.z || 0), y0: -r.bottom, y1: -r.top, chord: r.chord, t: r.t, stock: r.stock, round: r.round }, id = 'spin' + model.spinners.length; b.group(id, () => PT.rudder(b, o, pal)); model.spinners.push({ id, kind: 'rudder', x: o.x + o.chord * 0.25, y: o.y1, z: o.z }); }
       if (!dflt) model.rudders.push({ x: X(r.f), z: sg * Math.abs(r.z || 0) });
     }
   }
@@ -246,7 +252,7 @@ export function buildShipModel(spec, tw = {}) {
   // -------- central deckhouse --------
   // the tower stands where tw.towerF says (the foremast can be abaft it): the deckhouse has to reach the front of the bridge
   const towerF = tw.towerF ?? ((sil.masts && sil.masts[0] && sil.masts[0].fractionFromBow) || 0.33);
-  if (!carrier && tw.house?.plan) {
+  if (!carrier && !bare && tw.house?.plan) {
     // measured outline of the deckhouse: [[fraction from bow, half-width (m)], ...] from forward to aft, mirrored to port
     const pl = tw.house.plan, fs = pl.map((q) => q[0]);
     const hx0 = X(Math.min(...fs)), hx1 = X(Math.max(...fs));
@@ -254,7 +260,7 @@ export function buildShipModel(spec, tw = {}) {
     const hy = Y((hx0 + hx1) / 2);
     b.prism(planPoly(pl, X), hy - 0.6, hy + houseH, rgb(pal.sup), MAT.HULL);
     model.house = { x0: hx1, x1: hx0, hw, y: hy + houseH };
-  } else if (!carrier) {
+  } else if (!carrier && !bare) {
     const fLast = fF.length ? Math.max(...fF) : 0.55;
     const hx0 = X(towerF - 0.035), hx1 = X(Math.max(fLast + 0.035, towerF + 0.05));
     const hw = (tw.houseW ?? (t === 'BB' ? 0.36 : t === 'DD' ? 0.34 : 0.32)) * B;
@@ -298,7 +304,7 @@ export function buildShipModel(spec, tw = {}) {
   // -------- funnels --------
   for (let i = 0; i < Math.min(fCount, fF.length); i++) {
     const x = X(fF[i]);
-    if (carrier) continue;
+    if (carrier || bare) continue;
     // tw.funnels[i]: measured { lx, lz (m), y0 (base above the deck), h, rake, top (top / base size) }
     const fw = tw.funnels?.[i] || {};
     let y0 = Y(x) + (fw.y0 ?? houseH);
@@ -317,7 +323,7 @@ export function buildShipModel(spec, tw = {}) {
 
   // what a mount stands on: the highest roof or deck under it (within 1 m of its footprint centre)
   // -------- bridge tower / island --------
-  if (!carrier) {
+  if (!carrier && !bare) {
     const x = X(towerF);
     const y0 = Y(x) + (tw.towerY0 ?? 0);
     const tiers = tw.tiers || (tw.pagoda ? pagodaTiers(...tw.pagoda) : towerTiers(spec));
@@ -364,7 +370,7 @@ export function buildShipModel(spec, tw = {}) {
     } else if (kindOf(mastDesc, 'cage|lattice')) {
       mastBase = Math.min(...[[-2.4, -2.4], [2.4, -2.4], [2.4, 2.4], [-2.4, 2.4]].map(([a, c]) => lowerBase(mx - 0.2 + a, c, mastBase)));
       part('mast0', 'mast', 'Mât avant', () => {
-        PT.cageMast(b, { x: mx - 0.2, y0: mastBase, h: mastTopY - mastBase - 4, r0: 2.4, r1: 1.0 }, pal);
+        PT.cageMast(b, { x: mx - 0.2, y0: mastBase, h: mastTopY - mastBase - (tw.foremast?.cap ?? 4), r0: tw.foremast?.r0 ?? 2.4, r1: tw.foremast?.r1 ?? 1.0 }, pal);
         PT.pennant(b, x - 0.8, mastTopY + 0.2, 0.3, 4.5, 0, '#ffffff');
         if (ensOnFore) PT.ensign(b, { x: x - 1.1, y: mastTopY - 7, z: 0, len: ensLen });
       }, mastRuin(x - 1, mastBase, mastTopY - mastBase), { fine: foreFine });
@@ -379,8 +385,10 @@ export function buildShipModel(spec, tw = {}) {
     // radar
     const rkind = ['USA', 'UK'].includes(spec.nation) ? 'bedspring' : 'box';
     const ro0 = { x: mx, y: Math.max(mastTopY - 3.5, y), z: 0, kind: rkind, w: Math.min(7, 0.2 * B + 2) }, ro1 = { x: x + 2, y: r.tops[Math.max(0, tiers.length - 2)], z: topW * 0.2, kind: 'dish' };
-    part('radar0', 'radar', 'Radar de veille', () => PT.radar(b, ro0, pal), undefined, { spin: radarSpin(ro0) });
-    part('radar1', 'radar', 'Radar de surface', () => PT.radar(b, ro1, pal), undefined, { spin: radarSpin(ro1) });
+    if (!tw.noRadar) {      // tw.noRadar: the ship's own extra draws its radars
+      part('radar0', 'radar', 'Radar de veille', () => PT.radar(b, ro0, pal), undefined, { spin: radarSpin(ro0) });
+      part('radar1', 'radar', 'Radar de surface', () => PT.radar(b, ro1, pal), undefined, { spin: radarSpin(ro1) });
+    }
     note(mastTopY + 2);
     // candidate eyes for the bridge camera: outside the front face of every tier, at window height, on the wings and a little ahead (picked in bridgeEye())
     {
@@ -399,7 +407,7 @@ export function buildShipModel(spec, tw = {}) {
   }
 
   // -------- secondary mast(s) --------
-  if (!carrier) {
+  if (!carrier && !bare) {
     const masts = sil.masts || [];
     for (let i = 1; i < masts.length; i++) {
       const m = masts[i];
@@ -497,8 +505,8 @@ export function buildShipModel(spec, tw = {}) {
       const dm = mountDims({ kind: mainKind, cal: mainCal, n: m.guns, bore: spec.main.boreCalibers, variant });
       const bh = m.barbM ?? dm.barb ?? barbH;   // m.barbM: this mount's barbette height above the deck, measured on the plan
       let pivot = deckY + bh;
-      if (lvl >= 1) pivot = deckY + bh + dm.lift * lvl;
-      if (mainKind === 'dp' && lvl >= 1) pivot = deckY + 1.0 + 2.6 * lvl;
+      if (lvl >= 1 && m.barbM == null) pivot = deckY + bh + dm.lift * lvl;
+      if (mainKind === 'dp' && lvl >= 1 && m.barbM == null) pivot = deckY + 1.0 + 2.6 * lvl;
       let sideZ2 = sideZ; [sideZ2, pivot] = landOn(x, sideZ, pivot, Math.max(1.2, calM * 9), dm.height + 0.8, false);
       const r = dm.barbR || Math.max(calM * 6, 1.1);
       PT.barbette(b, x, sideZ2, mainKind === 'turret' ? r : 0.9, deckY - 0.2, pivot, pal.hull);
@@ -550,10 +558,11 @@ export function buildShipModel(spec, tw = {}) {
   });
 
   // -------- torpedo tubes --------
-  if (spec.torpedoes && spec.torpedoes.tubes) {
+  if (spec.torpedoes && spec.torpedoes.tubes && !tw.ownTubes) {      // tw.ownTubes: the ship's own extra draws its tubes and fills model.tubes
     const tq = spec.torpedoes;
     const fr = Array.isArray(tq.fractionFromBow) && tq.fractionFromBow.length ? tq.fractionFromBow : [0.58];
     const per = Math.max(1, Math.round(tq.tubes / fr.length));
+    if (tq.bow) fr.length = 0;            // fixed tubes in the bow: their doors and the tubes are drawn by the ship's own extra (tweaks.js), which also fills model.tubes
     fr.forEach((f, fi) => {
       const x = X(f);
       // two mounts at one station (the sheet lists the station once for each) stand either side of the centre line
@@ -617,7 +626,7 @@ export function buildShipModel(spec, tw = {}) {
   }
 
   // -------- ship-specific extras (see tweaks.js) --------
-  if (tw.extra) tw.extra({ b, hull, X, Y, pal, model, spec, rnd, PT, houseH, note, MAT, rgb, shade, part });
+  if (tw.extra) tw.extra({ b, hull, X, Y, pal, model, spec, rnd, PT, DT, houseH, note, MAT, rgb, shade, part });
 
   // -------- recognition stripes on the forecastle and the quarterdeck --------
   const mk = MARKS[spec.id];
@@ -662,7 +671,7 @@ export function buildShipModel(spec, tw = {}) {
       note(Y(xm) + bt.y + 2);
     }
   }
-  if (!carrier) {
+  if (!carrier && !bare) {
     PT.forecastle(b, hull, X(0.04), pal);
     PT.deckClutter(b, hull, X(0.05), X(0.30), Math.round(L / 20), rnd, pal);
     PT.deckClutter(b, hull, X(0.64), X(0.96), Math.round(L / 18), rnd, pal);
@@ -768,10 +777,11 @@ export function buildShipModel(spec, tw = {}) {
   if (model.bridge) bridgeEye(model, b.solids, L);
   // a gun house that is sunk in a deckhouse slides a few tenths of a metre along its deck before the arcs are worked out
   clearHouses(model, b.solids, hull, supportBelow, { carrier });
-  computeClearance(model, b.solids, hull);
+  computeClearance(model, b.solids, hull, { bothBeams: !!tw.own });
+  if (tw.ownTubes) computeTubeArcs(model, b.solids, !!(spec.torpedoes && spec.torpedoes.bow));      // the ships drawn from a reference model: the launchers' sectors from what stands round them (the others fire 20-160 degrees off the bow on either beam)
   model.solids = b.solids;                 // kept for the audit (tools/audit.mjs)
   b.solids = null;
-  const built = b.build();
+  const built = b.build(boat ? { aoOpts: { cell: tw.aoCell ?? 0.25, reach: 2.5 } } : undefined);       // (a boat: the occlusion on a grid of 25 cm, the usual 90 cm is the size of its wheelhouse)
   model.mesh = built;
   for (const sp of model.spinners) sp.mesh = built.groups[sp.id];
   for (const p of model.parts) { p.mesh = built.groups[p.id]; p.ruin = p.hasRuin ? built.groups[p.id + '_ruin'] : null; p.fineMesh = p.hasFine ? built.groups[p.id + '_fine'] : null; }

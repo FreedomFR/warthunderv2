@@ -40,7 +40,7 @@ export function pchip(points) {
  *   L, B, D,                      overall length, waterline beam, draft
  *   fb: [[frac, freeboard], ...]  deck height above the waterline along the length (frac 0 = bow)
  *   bow: { rake, pr, forefoot, entrance, m, q, flare, flareLen }
- *   stern: { run, transom, overhang, rise, m }
+ *   stern: { run, transom, overhang, rise, m, tail, oex }
  *   mid: { pb, flare, tumble }    section fullness exponent, deck flare, tumblehome
  *   planWL, planDeck: [[t, ratio], ...]  measured half-breadths (fraction of B/2) at the waterline and at the deck edge along the
  *                                 length (t = 0 at the stem); they replace the bow / stern formulas and the flare above water
@@ -61,7 +61,7 @@ export function buildHull(b, h) {
 
   const xs_wl = L / 2 - bow.rake, xa_wl = -L / 2 + st.overhang;
   const xStem = (k) => (k >= 0 ? xs_wl + bow.rake * Math.pow(k, bow.pr) : xs_wl - bow.forefoot * Math.pow(-k, 2.2));
-  const xAft = (k) => (k >= 0 ? xa_wl - st.overhang * Math.pow(k, 1.4) : xa_wl + st.rise * Math.pow(-k, 2.0));
+  const xAft = (k) => (k >= 0 ? xa_wl - (st.tail ?? st.overhang) * Math.pow(k, st.oex ?? 1.4) : xa_wl + st.rise * Math.pow(-k, 2.0));   // st.tail / st.oex: how far the deck runs aft of the waterline end and how fast (a transom stern: a small exponent)
 
   // plan shape: 0 at the tips, 1 amidships
   const shape = (t) => {

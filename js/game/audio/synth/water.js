@@ -3,7 +3,7 @@
 // far more numerous than the big ones (van den Doel, "Physically based models for liquid sounds": the stochastic model of streams,
 // pouring and breaking waves is bubbles with random radii at a rate that follows the flow). The earlier flooding loop was one
 // sliding sine under a filtered noise, which is a cartoon bubbling pipe, not water.
-import { TAU, prng, SVF, env, mk, normalize, jit, seamless, bubble, ring } from './core.js';
+import { TAU, prng, SVF, mk, normalize, jit, seamless, bubble, ring } from './core.js';
 
 /** A bubble frequency (Hz) between lo and hi, the small ones (high) more often than the big ones. */
 const bubF = (r, lo, hi) => lo * Math.pow(hi / lo, 1 - Math.pow(r(), 1.7));

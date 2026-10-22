@@ -985,7 +985,12 @@
       "top": {
         "file": "refs/planes/b17g.png",
         "source": "https://commons.wikimedia.org/wiki/File:Boeing_B-17G_Flying_Fortress_3-view_line_drawing.svg (the planform is a few percent off in one direction: stretched to the real length and span)",
-        "crop": [55, 1020, 2860, 4640],
+        "crop": [
+          55,
+          1020,
+          2860,
+          4640
+        ],
         "threshold": 140,
         "dilate": 5,
         "flip": true,
@@ -994,7 +999,12 @@
       "side": {
         "file": "refs/planes/b17g.png",
         "source": "same drawing, side view (the wheels and the ground lines are in the silhouette: trust the planform)",
-        "crop": [55, 90, 2860, 905],
+        "crop": [
+          55,
+          90,
+          2860,
+          905
+        ],
         "threshold": 140,
         "dilate": 5,
         "flip": true
@@ -1006,7 +1016,12 @@
       "top": {
         "file": "refs/planes/g4m.png",
         "source": "https://commons.wikimedia.org/wiki/File:Mitsubishi_G4M.svg (stretched to the real length and span)",
-        "crop": [30, 900, 2950, 4610],
+        "crop": [
+          30,
+          900,
+          2950,
+          4610
+        ],
         "threshold": 140,
         "dilate": 5,
         "flip": true,
@@ -1015,7 +1030,12 @@
       "side": {
         "file": "refs/planes/g4m.png",
         "source": "same drawing, side view",
-        "crop": [30, 35, 2950, 825],
+        "crop": [
+          30,
+          35,
+          2950,
+          825
+        ],
         "threshold": 140,
         "dilate": 5,
         "flip": true
@@ -1027,7 +1047,12 @@
       "top": {
         "file": "refs/planes/he111.png",
         "source": "https://commons.wikimedia.org/wiki/File:Heinkel_He_111_H-1_3-view_line_drawing.svg (stretched to the real length and span)",
-        "crop": [70, 1030, 2810, 4880],
+        "crop": [
+          70,
+          1030,
+          2810,
+          4880
+        ],
         "threshold": 140,
         "dilate": 5,
         "flip": true,
@@ -1036,7 +1061,12 @@
       "side": {
         "file": "refs/planes/he111.png",
         "source": "same drawing, side view",
-        "crop": [60, 125, 2810, 850],
+        "crop": [
+          60,
+          125,
+          2810,
+          850
+        ],
         "threshold": 140,
         "dilate": 5,
         "flip": true
@@ -1048,8 +1078,26 @@
       "top": {
         "file": "refs/planes/lanc.png",
         "source": "https://commons.wikimedia.org/wiki/File:Avro_Lancaster_3-view_line_drawings.png (the planform is drawn at an angle: rotated, then stretched to the real length and span)",
-        "crop": [0, 130, 640, 960],
-        "preErase": [[300, 0, 640, 80], [0, 745, 240, 830]],
+        "crop": [
+          0,
+          130,
+          640,
+          960
+        ],
+        "preErase": [
+          [
+            300,
+            0,
+            640,
+            80
+          ],
+          [
+            0,
+            745,
+            240,
+            830
+          ]
+        ],
         "rotate": 157.3,
         "threshold": 140,
         "dilate": 3,
@@ -1059,7 +1107,12 @@
       "side": {
         "file": "refs/planes/lanc.png",
         "source": "same sheet, the side view of the B Mk.I (the wheel is cut off)",
-        "crop": [640, 205, 1265, 332],
+        "crop": [
+          640,
+          205,
+          1265,
+          332
+        ],
         "threshold": 140,
         "dilate": 3,
         "flip": true
@@ -2273,6 +2326,241 @@
         ]
       ],
       "dilate": 3
+    }
+  },
+  "s30": {
+    "loa": 32.77,
+    "side": {
+      "file": "refs/s30/side.png",
+      "source": "matte side view of the reference model (S30 S61 (War Thunder) Ninth Wave, KojfDiscord, CC BY 4.0), rendered by the project's own script, kept out of the repository",
+      "crop": [
+        0,
+        0,
+        1360,
+        288
+      ],
+      "stern": 48,
+      "bow": 1359,
+      "wl": 212,
+      "close": 3,
+      "tol": 0.3
+    },
+    "top": {
+      "file": "refs/s30/top.png",
+      "source": "same model, plan view",
+      "crop": [
+        0,
+        0,
+        1360,
+        240
+      ],
+      "stern": 48,
+      "bow": 1359,
+      "cl": 120,
+      "close": 3,
+      "tol": 0.2
+    },
+    "camera": {
+      "side": {
+        "dist": 217,
+        "fov": 4,
+        "lookY": 2,
+        "el": 0
+      },
+      "top": {
+        "dist": 217,
+        "fov": 4,
+        "lookY": 0,
+        "el": 89.5
+      }
+    }
+  },
+  "adams": {
+    "side": {
+      "file": "refs/adams/side.png",
+      "source": "matte side view of the reference model (USS Adams (War Thunder) Ninth Wave, KojfDiscord, CC BY 4.0), rendered by tools/refs/gltf.mjs, kept out of the repository",
+      "crop": [
+        0,
+        0,
+        1647,
+        532
+      ],
+      "stern": 24,
+      "bow": 1622,
+      "close": 3,
+      "tol": 0.3,
+      "wl": 426
+    },
+    "top": {
+      "file": "refs/adams/top.png",
+      "source": "matte top view of the reference model (USS Adams (War Thunder) Ninth Wave, KojfDiscord, CC BY 4.0), rendered by tools/refs/gltf.mjs, kept out of the repository",
+      "crop": [
+        0,
+        0,
+        1647,
+        219
+      ],
+      "stern": 24,
+      "bow": 1622,
+      "close": 3,
+      "tol": 0.2,
+      "cl": 109
+    },
+    "loa": 133.2,
+    "camera": {
+      "side": {
+        "dist": 883,
+        "fov": 4,
+        "lookY": 10.0,
+        "el": 0
+      },
+      "top": {
+        "dist": 883,
+        "fov": 4,
+        "lookY": 0,
+        "el": 89.5
+      }
+    }
+  },
+  "tade": {
+    "side": {
+      "file": "refs/tade/side.png",
+      "source": "matte side view of the reference model (IJN Tade (War Thunder) Ninth Wave, KojfDiscord, CC BY 4.0), rendered by tools/refs/gltf.mjs, kept out of the repository",
+      "crop": [
+        0,
+        0,
+        1109,
+        325
+      ],
+      "stern": 24,
+      "bow": 1085,
+      "close": 3,
+      "tol": 0.3,
+      "wl": 269
+    },
+    "top": {
+      "file": "refs/tade/top.png",
+      "source": "matte top view of the reference model (IJN Tade (War Thunder) Ninth Wave, KojfDiscord, CC BY 4.0), rendered by tools/refs/gltf.mjs, kept out of the repository",
+      "crop": [
+        0,
+        0,
+        1109,
+        168
+      ],
+      "stern": 24,
+      "bow": 1085,
+      "close": 3,
+      "tol": 0.2,
+      "cl": 84
+    },
+    "loa": 88.4,
+    "camera": {
+      "side": {
+        "dist": 586,
+        "fov": 4,
+        "lookY": 6.0,
+        "el": 0
+      },
+      "top": {
+        "dist": 586,
+        "fov": 4,
+        "lookY": 0,
+        "el": 89.5
+      }
+    }
+  },
+  "gioberti": {
+    "side": {
+      "file": "refs/gioberti/side.png",
+      "source": "matte side view of the reference model (RN Vincenzo Gioberti (War Thunder) Ninth Wave, KojfDiscord, CC BY 4.0), rendered by tools/refs/gltf.mjs, kept out of the repository",
+      "crop": [
+        0,
+        0,
+        1329,
+        388
+      ],
+      "stern": 24,
+      "bow": 1304,
+      "close": 3,
+      "tol": 0.3,
+      "wl": 318
+    },
+    "top": {
+      "file": "refs/gioberti/top.png",
+      "source": "matte top view of the reference model (RN Vincenzo Gioberti (War Thunder) Ninth Wave, KojfDiscord, CC BY 4.0), rendered by tools/refs/gltf.mjs, kept out of the repository",
+      "crop": [
+        0,
+        0,
+        1329,
+        191
+      ],
+      "stern": 24,
+      "bow": 1304,
+      "close": 3,
+      "tol": 0.2,
+      "cl": 95
+    },
+    "loa": 106.7,
+    "camera": {
+      "side": {
+        "dist": 707,
+        "fov": 4,
+        "lookY": 8.0,
+        "el": 0
+      },
+      "top": {
+        "dist": 707,
+        "fov": 4,
+        "lookY": 0,
+        "el": 89.5
+      }
+    }
+  },
+  "kagero@ref": {
+    "side": {
+      "file": "refs/kagero_gltf/side.png",
+      "source": "matte side view of the reference model (IJN Kagero (War Thunder) Ninth Wave, KojfDiscord, CC BY 4.0), rendered by tools/refs/gltf.mjs, kept out of the repository",
+      "crop": [
+        0,
+        0,
+        1470,
+        374
+      ],
+      "stern": 24,
+      "bow": 1446,
+      "close": 3,
+      "tol": 0.3,
+      "wl": 296
+    },
+    "top": {
+      "file": "refs/kagero_gltf/top.png",
+      "source": "matte top view of the reference model (IJN Kagero (War Thunder) Ninth Wave, KojfDiscord, CC BY 4.0), rendered by tools/refs/gltf.mjs, kept out of the repository",
+      "crop": [
+        0,
+        0,
+        1470,
+        184
+      ],
+      "stern": 24,
+      "bow": 1446,
+      "close": 3,
+      "tol": 0.2,
+      "cl": 92
+    },
+    "loa": 118.5,
+    "camera": {
+      "side": {
+        "dist": 786,
+        "fov": 4,
+        "lookY": 8.0,
+        "el": 0
+      },
+      "top": {
+        "dist": 786,
+        "fov": 4,
+        "lookY": 0,
+        "el": 89.5
+      }
     }
   }
 }

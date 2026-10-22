@@ -8,7 +8,7 @@
 //                 and below; out: the radiance and the transmittance, and the distance used (for the upsampling)
 //   CLOUD_APPLY   full resolution: the half-resolution result over the image (scene * T + radiance), upsampled with the depth so that the edges of the
 //                 aircraft and the ships stay sharp
-import { FRAME_WGSL, ATMO_CORE_WGSL, NOISE_WGSL } from './common.js';
+import { FRAME_WGSL, ATMO_CORE_WGSL } from './common.js';
 import { SKY_RENDER_FUNCS, SKY_CLOUD_FUNCS } from './sky.js';
 
 export const CLOUD_NOISE = 128;        // size of the 3D noise (texels per side)

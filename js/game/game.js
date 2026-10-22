@@ -1,8 +1,7 @@
 // Game orchestrator: ties the simulation world to the ocean engine (hooks), the ship / particle
 // renderers, the camera rig and the UI.
-import { World, TEAM_COLORS } from './sim/world.js';
+import { World } from './sim/world.js';
 import { spawnFleet, teamStart } from './sim/formation.js';
-import { getModel } from './model/cache.js';
 import { ShipRenderer } from './render/shipRenderer.js';
 import { ShipVisuals } from './render/shipVisual.js';
 import { IslandVisuals } from './render/islandVisual.js';
@@ -92,8 +91,10 @@ export class Game {
     this.shadowsOn = this.userShadows && q.shadows;
     this.ui?.onRenderScale?.(this.engine.getRenderScale());
     this.vegetation?.setQuality(this.qLevel);
-    // the smoke: lit as a volume on a PC, the cheap lighting at the middle of the ladder, two octaves and no haze at the bottom (a phone fills a lot of smoke)
-    this.particles?.setDetail(this.pdetail ?? (this.qLevel <= 1 ? 2 : this.qLevel === 2 ? 1 : 0));
+    // the smoke: lit as a volume at the top of the ladder, the cheap lighting at level 1, two octaves and no haze from level 2 on (the phone's report: per screen of smoke, level 0 costs
+    // half of level 1, and level 1 three fifths of level 2)
+    this.particles?.setDetail(this.pdetail ?? (this.qLevel <= 0 ? 2 : this.qLevel === 1 ? 1 : 0));
+    this.engine.shadow.cheap = this.qLevel >= 2;         // the shadow filter: four taps instead of nine from the middle of the ladder
     // the volumetric clouds: fewer steps lower down the ladder, the flat layer of the sky at the two lowest levels
     this.engine.setClouds?.({ on: this.qLevel < 3, steps: [220, 180, 150, 120, 120][this.qLevel], stepScale: [1, 1.2, 1.45, 1.7, 1.7][this.qLevel], light: this.qLevel < 2 ? 5 : 4 });
   }
@@ -104,7 +105,7 @@ export class Game {
     this.particles = new Particles(e);
     this.particles.setMax(this.particleMax);
     { const pd = new URLSearchParams(location.search).get('pdetail'); if (pd != null) this.pdetail = Number(pd); }       // (tools: ?pdetail=0..2 forces the smoke's level of detail)
-    this.particles.setDetail(this.pdetail ?? (this.qLevel <= 1 ? 2 : this.qLevel === 2 ? 1 : 0));
+    this.particles.setDetail(this.pdetail ?? (this.qLevel <= 0 ? 2 : this.qLevel === 1 ? 1 : 0));
     await Promise.all([this.shipRenderer.ready, this.particles.ready]);
     this.effects = new Effects(e, this.particles, this);
     this.camera = new CameraRig(e, this.canvas, this);

@@ -12,7 +12,8 @@ import { planeTypeFor, PLANES, groundY, GROUND_PITCH } from '../model/planes.js'
 import { perfOf } from './airperf.js';
 import { fighterFields, fighterSteer } from './fighters.js';
 import { safeHeading, homeCourse } from './homeward.js';
-import { guide, setVel, planeId, bombId, FIGHT_CTX } from './aircraft.js';
+import { planeId, bombId, FIGHT_CTX } from './aircraft.js';
+import { guide, setVel } from './flight.js';
 
 const GROUND_STATES = new Set(['parked', 'taxiOut', 'holdshort', 'lineup', 'groundRun', 'lroll', 'taxiBack', 'park']);
 const AIR_BOMBER = new Set(['assemble', 'cruise', 'run', 'egress']);
@@ -219,12 +220,6 @@ function leaderOf(wave) {
   return null;
 }
 const fmtOffset = (k, row) => [-(row * 62), (k % 2 ? 1 : -1) * row * 52, -row * 5];
-
-/** The point on the extended centre line, `d` metres before the threshold, `h` metres above the field. */
-function approachPoint(base, d, h) {
-  const F = fieldOf(base), w = F.toW(F.sThr - F.D * d, 0);
-  return [w[0], F.y + h, w[1]];
-}
 
 /** Metres before the threshold (negative past it) of an aircraft, along the extended centre line. */
 function alongFinal(F, q) { const T0 = F.toW(F.sThr, 0); return -((q.x - T0[0]) * F.u[0] + (q.z - T0[1]) * F.u[1]); }

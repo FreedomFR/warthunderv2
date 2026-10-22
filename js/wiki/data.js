@@ -1,10 +1,13 @@
 // Data adapter of the wiki: reads the same spec sheets as the game (js/game/data, js/game/model/planes.js) and turns them into
 // display records (French labels, number formatting, tiers, statistic sections). Nothing is copied: the wiki never goes out of date.
-import { ALL_SHIPS, BY_ID, NATIONS, TYPES, typeName } from '../game/data/ships.js';
+import { ALL_SHIPS, NATIONS, TYPES, typeName } from '../game/data/ships.js';
 import { PLANES, floatplaneSpec, planeTypeFor } from '../game/model/planes.js';
 import { PERF } from '../game/sim/airperf.js';
 import { shipName, ROLE_NAMES } from '../viewer/subjects.js';
 import { tierOf } from './tiers.js';
+import { tntEquivalent } from '../game/data/explosives.js';
+
+const EXPLOSIVE_NAMES = { tnt: 'TNT', hexanite: 'hexanite', hbx: 'HBX', torpex: 'Torpex' };
 
 export { NATIONS, TYPES, typeName, shipName, ROLE_NAMES };
 
@@ -149,7 +152,8 @@ export function shipSections(rec) {
       row(s, 'Tubes', `${fr(t.tubes, 0)}${NB}× ${fr(t.caliberMm, 0)}${NB}mm`),
       row(s, 'Vitesse', unit(t.speedKn, 'nœuds', 0)),
       row(s, 'Portée', `${fr(t.rangeM / 1000, 1)}${NB}km`),
-      row(s, 'Charge explosive', unit(t.warheadKg, 'kg', 0)),
+      row(s, 'Charge explosive', `${fr(t.warheadKg, 0)}${NB}kg de ${EXPLOSIVE_NAMES[t.explosive || 'tnt']}`),
+      row(s, 'Équivalent TNT', unit(tntEquivalent(t.warheadKg, t.explosive), 'kg', 0)),
     ]);
   }
 

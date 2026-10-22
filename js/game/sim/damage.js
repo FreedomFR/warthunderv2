@@ -525,7 +525,8 @@ export function torpedoReach(ship, warhead, lx) {
   return 0.6 + 0.4 * clamp((warhead / R - 0.5) / 1.0, 0, 1);
 }
 
-// Share of the ship's hit points that one 300 kg warhead takes: a destroyer is lost to one, a battleship needs half a dozen to a dozen.
+// Share of the ship's hit points that one warhead of 300 kg of TNT takes: a destroyer is lost to one, a battleship needs half a dozen to a dozen.
+// `torp.warhead` is the TNT equivalent (kg), see data/explosives.js; the damage grows as W^0.7 (the area of hull the bubble breaks goes as W^2/3).
 const TORP_SHARE = { DD: 1.2, CL: 0.26, CA: 0.2, BB: 0.11, CV: 0.24 };
 
 /** Torpedo hit on the hull side at local lx. */

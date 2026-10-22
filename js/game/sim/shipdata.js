@@ -2,6 +2,7 @@
 import { KN } from '../math.js';
 import { muzzlePenetration } from './penetration.js';
 import { navyOf, protectionOf } from '../data/protection.js';
+import { tntEquivalent } from '../data/explosives.js';
 
 const TURN_FACTOR = { DD: 2.3, CL: 2.5, CA: 2.6, BB: 2.7, CV: 2.7 };     // turning radius (full rudder) / length
 const ACCEL_SECONDS = { DD: 38, CL: 52, CA: 62, BB: 95, CV: 80 };      // time to reach full speed
@@ -59,7 +60,11 @@ export function makeStats(spec) {
     navy, torpProt: prot.torp || { kg: 0 }, avgas: prot.avgas || null,
     torpedo: spec.torpedoes && spec.torpedoes.tubes ? {
       tubes: spec.torpedoes.tubes, speed: (spec.torpedoes.speedKn || 40) * KN, range: spec.torpedoes.rangeM || 7000,
-      warhead: spec.torpedoes.warheadKg || 300, cal: spec.torpedoes.caliberMm || 533,
+      // `warhead` is the TNT equivalent in kg (what the damage and the protection tables work on), `filler` the weight of the explosive itself
+      warhead: tntEquivalent(spec.torpedoes.warheadKg || 300, spec.torpedoes.explosive), filler: spec.torpedoes.warheadKg || 300, cal: spec.torpedoes.caliberMm || 533,
+      bow: !!spec.torpedoes.bow,                   // fixed tubes in the bow: the ship is aimed at the target
+      spare: spec.torpedoes.reloads ?? null,       // torpedoes in store for the tubes (null: reloaded without limit, as before)
+      reloadS: spec.torpedoes.reloadS || 300,
     } : null,
     air: spec.aircraft && t === 'CV' ? { capacity: spec.aircraft.capacity || 30 } : null,
     // anti-aircraft strength (barrels), rough: all secondary + light AA estimated from displacement

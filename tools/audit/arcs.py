@@ -34,9 +34,12 @@ for sh in data:
         if m['no']: d.line([X(m['x']) - 6, Z(m['z']) - 6, X(m['x']) + 6, Z(m['z']) + 6], fill=(0, 0, 0), width=3); d.line([X(m['x']) - 6, Z(m['z']) + 6, X(m['x']) + 6, Z(m['z']) - 6], fill=(0, 0, 0), width=3)
         else: wedge(m['x'], m['z'], m['c'], m['a'], m['b'], r, col)
         d.ellipse([X(m['x']) - 4, Z(m['z']) - 4, X(m['x']) + 4, Z(m['z']) + 4], fill=(180, 0, 0) if m['g'] == 'main' else (200, 110, 0))
+    for t in sh.get('tubes', []):
+        for q in t['s']: wedge(t['x'], t['z'], 0, q[0], q[1], 9, (30, 150, 60, 80))
+        d.rectangle([X(t['x']) - 3, Z(t['z']) - 3, X(t['x']) + 3, Z(t['z']) + 3], fill=(20, 110, 40))
     for a in sh['aa']:
         if a['no']: d.line([X(a['x']) - 4, Z(a['z']) - 4, X(a['x']) + 4, Z(a['z']) + 4], fill=(0, 0, 0), width=2); d.line([X(a['x']) - 4, Z(a['z']) + 4, X(a['x']) + 4, Z(a['z']) - 4], fill=(0, 0, 0), width=2); continue
         if a['b'] - a['a'] < 6.2: wedge(a['x'], a['z'], a['c'], a['a'], a['b'], 5, (20, 80, 230, 120))
         d.ellipse([X(a['x']) - 2.5, Z(a['z']) - 2.5, X(a['x']) + 2.5, Z(a['z']) + 2.5], fill=(10, 60, 200))
-    d.text((8, 6), f"{sh['id']}   L={L} m   red = main, orange = secondary, blue = light AA with a blind sector, X = no arc", fill=(0, 0, 0))
+    d.text((8, 6), f"{sh['id']}   L={L} m   red = main, orange = secondary, blue = light AA with a blind sector, green = torpedo launchers, X = no arc", fill=(0, 0, 0))
     im.save(f"{out}/{sh['id']}.png")

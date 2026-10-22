@@ -1,9 +1,9 @@
 // Gunnery (fire control, turret slewing, salvos) and torpedo launching.
-import { clamp, wrapPi, approach, D2R, KN } from '../math.js';
+import { clamp, wrapPi, approach, D2R } from '../math.js';
 import { gunBallistics, solve } from './ballistics.js';
 import { V_EXP, effectiveThickness, spacedPlates, fuzeThickness } from './penetration.js';
 import { mountDims } from '../model/mounts.js';
-import { clearElev, clearMax, pathClear, inArcRel } from '../model/clearance.js';
+import { clearElev, clearMax, pathClear, inArcRel, tubeBears } from '../model/clearance.js';
 
 /** how far a turret can depress below the horizontal (rad): a battleship has to shoot down at a destroyer that is close */
 const DEPRESS = 4 * D2R;
@@ -287,29 +287,54 @@ export function interceptTime(px, pz, tx, tz, tvx, tvz, vt) {
   return isFinite(t) ? t : -1;
 }
 
+/**
+ * Where a straight-running torpedo of the ship must be sent to hit `t`: { bearing, tt } (the bearing of the intercept point and the
+ * running time), or null when the target cannot be caught or is out of range.
+ */
+export function torpedoSolution(ship, t, tp) {
+  const tt = interceptTime(ship.x, ship.z, t.x, t.z, t.vx, t.vz, tp.speed);
+  if (tt < 0 || tt * tp.speed > tp.range * 0.95) return null;
+  const ix = t.x + t.vx * tt, iz = t.z + t.vz * tt;
+  return { bearing: Math.atan2(ix - ship.x, -(iz - ship.z)), tt };
+}
+
+// Fixed tubes in the bow (a motor torpedo boat): fired when the bow points at the intercept point, to within this angle.
+const BOW_ARC = 4 * D2R;
+
 export function updateTorpedoes(ship, world, dt) {
   const tp = ship.stats.torpedo;
   if (!tp || !ship.alive) return;
-  if (ship.torpLeft <= 0 && ship.torpReload > 0) {
+  if (ship.torpLeft <= 0 && ship.torpReload > 0 && (ship.torpSpare === null || ship.torpSpare > 0)) {
     ship.torpReload -= dt;
-    if (ship.torpReload <= 0) { ship.torpLeft = Math.ceil(tp.tubes / 2); }
+    if (ship.torpReload <= 0) {
+      const n = Math.ceil(tp.tubes / 2);
+      ship.torpLeft = ship.torpSpare === null ? n : Math.min(ship.torpSpare, tp.tubes);
+      if (ship.torpSpare !== null) ship.torpSpare -= ship.torpLeft;
+    }
   }
   const cmd = ship.cmd.torpedo;
   if (!cmd.fire || !cmd.target || !cmd.target.alive || ship.torpLeft <= 0) return;
   const t = cmd.target;
-  // tubes train to either beam: acceptable when the intercept bearing is within +-65 deg of a beam
-  const tt = interceptTime(ship.x, ship.z, t.x, t.z, t.vx, t.vz, tp.speed);
-  if (tt < 0 || tt * tp.speed > tp.range * 0.95) return;
-  const ix = t.x + t.vx * tt, iz = t.z + t.vz * tt;
-  const bearing = Math.atan2(ix - ship.x, -(iz - ship.z));
+  const sol = torpedoSolution(ship, t, tp);
+  if (!sol) return;
+  const { bearing, tt } = sol;
   const rel = wrapPi(bearing - ship.heading);
-  const offBeam = Math.min(Math.abs(wrapPi(rel - Math.PI / 2)), Math.abs(wrapPi(rel + Math.PI / 2)));
-  if (offBeam > 70 * D2R) return;
-  // salvo: spread of torpedoes around the solution
-  const n = Math.min(ship.torpLeft, Math.max(2, Math.min(5, Math.round(tp.tubes / 2))));
-  const startTube = ship.tubes.length ? ship.tubes[Math.floor(world.rng() * ship.tubes.length)] : { x: 0, y: 2, z: 0 };
+  let ready = [];
+  if (tp.bow) {
+    // tubes fixed in the bow: nothing trains, the boat is turned onto the target
+    if (Math.abs(rel) > BOW_ARC) return;
+  } else {
+    // the launchers that bear: each trains over the beam sectors of its side (20 to 160 deg off the bow) that no structure blocks (model/clearance.js `computeTubeArcs`)
+    ready = ship.tubes.filter((q) => tubeBears(q, rel));
+    if (!ready.length && ship.tubes.length) return;
+  }
+  // salvo: spread of torpedoes around the solution (no more than the tubes that bear can send)
+  const room = tp.bow || !ready.length ? 99 : ready.reduce((a, q) => a + q.n, 0);
+  const n = Math.min(ship.torpLeft, room, Math.max(2, Math.min(5, Math.round(tp.tubes / 2))));
+  const pool = ready.length ? ready : ship.tubes;
+  const startTube = pool.length ? pool[Math.floor(world.rng() * pool.length)] : { x: 0, y: 2, z: 0 };
   ship.toWorld(startTube.x, 0, startTube.z, _q);
-  const spread = clamp(t.stats.L / Math.max(tt * tp.speed, 500) * 1.3, 0.012, 0.06);
+  const spread = clamp(t.stats.L / Math.max(tt * tp.speed, 500) * 1.3, 0.012, tp.bow ? 0.02 : 0.06);
   for (let i = 0; i < n; i++) {
     const a = bearing + (i - (n - 1) / 2) * spread + (world.rng() - 0.5) * 0.004;
     world.spawnTorpedo({
@@ -319,7 +344,7 @@ export function updateTorpedoes(ship, world, dt) {
   }
   ship.torpLeft -= n;
   ship.shotsFired += n; ship.torpFired = (ship.torpFired || 0) + n;
-  if (ship.torpLeft <= 0) ship.torpReload = 300;
+  if (ship.torpLeft <= 0) ship.torpReload = tp.reloadS;
   world.events.push({ type: 'torpedoLaunch', ship, x: _q[0], z: _q[2], bearing });
   cmd.fire = false;
 }

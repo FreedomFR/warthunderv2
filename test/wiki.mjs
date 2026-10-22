@@ -1,6 +1,7 @@
 // The wiki and the viewer without a browser: node test/wiki.mjs
 // Every ship and aircraft has a record, a tier, statistic sections and silhouettes; the tech-tree layout of each nation places every ship
 // once, without overlaps, with its ships of one type chained from the oldest to the newest; the viewer's link format round-trips.
+import fs from 'node:fs';
 import { ALL_SHIPS } from '../js/game/data/ships.js';
 import { SHIPS, AIRCRAFT, NATIONS, TYPES, shipSections, bars, sheetNotes, aircraftSections, fr, describeMounts } from '../js/wiki/data.js';
 import { TIERS, tierOf } from '../js/wiki/tiers.js';
@@ -13,7 +14,7 @@ let fail = 0;
 const ok = (c, m) => { if (!c) { fail++; process.exitCode = 1; console.log('FAIL', m); } };
 
 // ---- data ----
-ok(SHIPS.length === ALL_SHIPS.length && SHIPS.length === 30, 'one record per ship');
+ok(SHIPS.length === ALL_SHIPS.length && SHIPS.length === 34, 'one record per ship');
 ok(fr(48880, 0) === '48 880' && fr(2.5, 1) === '2,5', 'French number format: ' + fr(48880, 0));
 ok(tierOf(1927).n === 1 && tierOf(1940).n === 4 && tierOf(1943).n === 6 && tierOf(1999).n === 6, 'tier boundaries');
 for (let i = 1; i < TIERS.length; i++) ok(TIERS[i].from === TIERS[i - 1].to + 1, 'tiers are contiguous: ' + TIERS[i].roman);
@@ -24,6 +25,7 @@ for (const r of SHIPS) {
   for (const s of secs) for (const row of s.rows) ok(!/undefined|NaN|null/.test(row.v), `${r.id}: "${row.k}" = ${row.v}`);
   ok(bars(r).every((b) => b.v >= 0 && b.v <= 1.0001 && !/NaN/.test(b.text)), `${r.id}: bars`);
   ok(sheetNotes(r).length > 0, `${r.id}: notes`);
+  ok(fs.existsSync(new URL(`../wiki/ships/${r.id}.webp`, import.meta.url)), `${r.id}: the side view of the model (wiki/ships/${r.id}.webp, node tools/wikishots.mjs then python3 tools/wikishots.py out/wiki wiki/ships)`);
   const svg = shipProfile(r.spec);
   ok(svg.startsWith('<svg') && !/NaN|undefined/.test(svg), `${r.id}: silhouette`);
   ok(!/NaN|undefined/.test(shipProfile(r.spec, { full: true })), `${r.id}: full silhouette`);
@@ -32,6 +34,7 @@ ok(describeMounts([{ guns: 3 }, { guns: 3 }, { guns: 3 }]) === '3 affûts tripl
 ok(AIRCRAFT.length === 18 + 6 + 6, 'aircraft records (18 carrier types, 6 land-based bombers, 6 floatplanes): ' + AIRCRAFT.length);
 for (const a of AIRCRAFT) {
   ok(aircraftSections(a)[0].rows.length >= 5, `${a.key}: rows`);
+  ok(fs.existsSync(new URL(`../wiki/aircraft/${a.key.replace(':', '_')}.webp`, import.meta.url)), `${a.key}: the 3D picture (wiki/aircraft/, node tools/wikiplanes.mjs then python3 tools/wikishots.py out/wiki wiki/aircraft --planes)`);
   ok(!/NaN|undefined/.test(aircraftTop(a.spec)), `${a.key}: top view`);
   ok(isSubject(a.key), `${a.key}: viewer subject`);
 }
@@ -63,7 +66,7 @@ for (const compact of [true, false]) {
 }
 
 // ---- viewer link ----
-ok(ALL_KEYS.length === 30 + 30, 'viewer subjects: ' + ALL_KEYS.length);
+ok(ALL_KEYS.length === 34 + 30, 'viewer subjects: ' + ALL_KEYS.length);
 for (const k of ALL_KEYS) ok(isSubject(k) && framing(k).dist > 0, `${k}: subject and framing`);
 const st = defaults('yamato');
 Object.assign(st, { az: 123.4, el: -10.2, dist: 456.7, tx: 12, light: 'coucher', ocean: false, damage: 'ruin', train: 35, parked: 3 });

@@ -15,7 +15,7 @@ const mod = (s, kind, i = 0) => s.modules.filter((m) => m.kind === kind)[i];
 for (const spec of ALL_SHIPS) {
   const { s } = mk(spec.id);
   const kinds = new Set(s.modules.map((m) => m.kind));
-  ok(['engine', 'magazine', 'steering', 'shaft', 'bridge', 'funnel'].every((k) => kinds.has(k) || (spec.type === 'CV' && k === 'magazine' && false)) || spec.id === 'shokaku', `${spec.id}: modules ${[...kinds].join(',')}`);
+  ok(['engine', 'magazine', 'steering', 'shaft', 'bridge', 'funnel'].every((k) => kinds.has(k) || (spec.type === 'CV' && k === 'magazine' && false) || (k === 'funnel' && spec.silhouette?.funnels?.count === 0)) || spec.id === 'shokaku', `${spec.id}: modules ${[...kinds].join(',')}`);
   ok(s.model.parts.every((p) => p.mesh && p.mesh.indexCount > 0), `${spec.id}: ${s.model.parts.length} parts with meshes, ${s.model.aaMounts.length} AA mounts`);
 }
 

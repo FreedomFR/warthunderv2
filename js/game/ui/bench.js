@@ -13,18 +13,23 @@ export const PHASES = [
   // (not reported: the first seconds of a run are slower than the rest, the pipelines compile and the GPU is still at its low clock; they are kept apart as `prime`)
   { id: 'prime', name: 'Chauffe (non rapportée)', secs: 7, mode: 'follow', warmup: true },
   { id: 'sea', name: 'Mer : le navire de ligne', secs: 12, mode: 'follow' },
-  { id: 'noclouds', name: '… sans nuages volumétriques', secs: 8, mode: 'follow', clouds: false },
-  { id: 'noshadow', name: '… sans ombres', secs: 8, mode: 'follow', shadows: false },
-  { id: 'half', name: '… à la moitié de la résolution', secs: 8, mode: 'follow', scale: 0.5 },
-  { id: 'fewp', name: '… avec peu de particules', secs: 8, mode: 'follow', particles: 3000 },
+  // The A/B views: the battle is frozen (the same smoke, the same ships in every view: otherwise the views differ by what the battle did in between, which the last report
+  // showed to be more than the settings: 0.6 screens of smoke in the first view, 7 to 12 in the later ones) and each switch is compared with the frozen view `seaf`.
+  { id: 'seaf', name: 'Mer : la scène figée (référence)', secs: 7, mode: 'follow', freeze: true },
+  { id: 'noclouds', name: '… sans nuages volumétriques', secs: 7, mode: 'follow', freeze: true, clouds: false },
+  { id: 'noshadow', name: '… sans ombres', secs: 7, mode: 'follow', freeze: true, shadows: false },
+  { id: 'half', name: '… à la moitié de la résolution', secs: 7, mode: 'follow', freeze: true, scale: 0.5 },
   // what is switched off to see what it costs: the particles are not drawn at all, the sea, everything that is not the sea (ships, aircraft, islands, bases),
-  // the trees; and the same smoke at its two ends of detail (0: what a phone gets, 2: the volume lighting of a PC)
-  { id: 'nopart', name: '… sans dessiner les particules', secs: 6, mode: 'follow', hide: { particles: true } },
-  { id: 'smoke0', name: '… fumée au niveau de détail 0', secs: 6, mode: 'follow', smoke: 0 },
-  { id: 'smoke2', name: '… fumée au niveau de détail 2', secs: 6, mode: 'follow', smoke: 2 },
-  { id: 'noocean', name: '… sans la mer (ni les nuages)', secs: 6, mode: 'follow', ocean: false },
-  { id: 'noopaque', name: '… sans navires, avions, îles ni bases', secs: 6, mode: 'follow', hide: { opaque: true } },
-  { id: 'notrees', name: '… sans la végétation', secs: 6, mode: 'follow', trees: false },
+  // the trees; and the same smoke at its three levels of detail (0: two octaves and no haze, 2: lit as a volume)
+  { id: 'nopart', name: '… sans dessiner les particules', secs: 6, mode: 'follow', freeze: true, hide: { particles: true } },
+  { id: 'smoke0', name: '… fumée au niveau de détail 0', secs: 6, mode: 'follow', freeze: true, smoke: 0 },
+  { id: 'smoke1', name: '… fumée au niveau de détail 1', secs: 6, mode: 'follow', freeze: true, smoke: 1 },
+  { id: 'smoke2', name: '… fumée au niveau de détail 2', secs: 6, mode: 'follow', freeze: true, smoke: 2 },
+  { id: 'noocean', name: '… sans la mer (ni les nuages)', secs: 6, mode: 'follow', freeze: true, ocean: false },
+  { id: 'noopaque', name: '… sans navires, avions, îles ni bases', secs: 6, mode: 'follow', freeze: true, hide: { opaque: true } },
+  { id: 'notrees', name: '… sans la végétation', secs: 6, mode: 'follow', freeze: true, trees: false },
+  // (last of the frozen views: a smaller pool of particles loses some of them for good)
+  { id: 'fewp', name: '… avec peu de particules', secs: 7, mode: 'follow', freeze: true, particles: 3000 },
   { id: 'tactical', name: 'Vue tactique', secs: 10, mode: 'tactical' },
   { id: 'air', name: 'Vue d\'un avion en vol', secs: 10, mode: 'plane' },
   { id: 'sea2', name: 'Mer : de nouveau (la chauffe)', secs: 12, mode: 'follow' },
@@ -73,7 +78,7 @@ export function summarize(frames) {
 }
 
 /** The GPU passes of the engine, in French (engine.js, TS_PASSES). */
-const PASS_NAMES = { sim: 'simulation de la mer et du ciel', shadow: 'ombres', cloudWeather: 'nuages : météo', main: 'passe principale (mer, navires, ciel' + ', particules sans nuages)', cloudMarch: 'nuages : calcul', cloudApply: 'nuages : application', cloudOverlay: 'particules (avec nuages)', bloom: 'halo (bloom)', composite: 'image finale' };
+const PASS_NAMES = { sim: 'simulation de la mer', sky: 'ciel et environnement (LUT, cube)', shadow: 'ombres', cloudWeather: 'nuages : météo', main: 'passe principale (mer, navires, ciel' + ', particules sans nuages)', cloudMarch: 'nuages : calcul', cloudApply: 'nuages : application', cloudOverlay: 'particules (avec nuages)', bloom: 'halo (bloom)', composite: 'image finale' };
 
 /** What the A/B views say: the cost of each setting (ms a frame, from the GPU time when the device gives it, else the frame time) and what limits the frame. */
 export function analyse(phases, hasTS) {
@@ -81,26 +86,34 @@ export function analyse(phases, hasTS) {
   const base = by.sea;
   const out = { notes: [], costs: {} };
   if (!base || !base.frames) return out;
-  const cost = (p) => (hasTS && p.gpu ? p.gpu.mean : p.ms.mean);
-  for (const [id, label] of [['noclouds', 'les nuages'], ['noshadow', 'les ombres'], ['fewp', 'les particules']]) if (by[id] && by[id].frames) out.costs[label] = cost(base) - cost(by[id]);
-  if (by.half && by.half.frames) out.costs['la moitié des pixels'] = cost(base) - cost(by.half);
-  for (const [id, label] of [['nopart', 'dessiner les particules'], ['noocean', 'la mer'], ['noopaque', 'navires, avions, îles et bases'], ['notrees', 'la végétation']]) if (by[id] && by[id].frames) out.costs[label] = cost(base) - cost(by[id]);
-  if (by.smoke0 && by.smoke0.frames && by.smoke2 && by.smoke2.frames) {
-    const d = cost(by.smoke2) - cost(by.smoke0);
-    out.smoke = d;
-    out.notes.push(`fumée : niveau de détail 2 contre 0 : ${d < 0.35 ? 'le même coût' : '+' + f1(d) + ' ms par image'} sur cet appareil`);
+  // the A/B views are compared with the frozen view when there is one, and each is divided by how much slower or faster the GPU was in it than in the reference: the
+  // simulation of the sea costs the same in every view, so its time says how hot the GPU was (a phone loses a fifth of its speed in a minute of this)
+  const ref = by.seaf && by.seaf.frames ? by.seaf : base;
+  const heat = (p) => (p.passes && ref.passes && p.passes.sim > 0 && ref.passes.sim > 0 ? p.passes.sim / ref.passes.sim : 1);
+  const raw = (p) => (hasTS && p.gpu ? p.gpu.mean : p.ms.mean);
+  const cost = (p) => raw(p) / heat(p);
+  out.reference = ref.id;
+  for (const [id, label] of [['noclouds', 'les nuages'], ['noshadow', 'les ombres'], ['fewp', 'les particules']]) if (by[id] && by[id].frames) out.costs[label] = cost(ref) - cost(by[id]);
+  if (by.half && by.half.frames) out.costs['la moitié des pixels'] = cost(ref) - cost(by.half);
+  for (const [id, label] of [['nopart', 'dessiner les particules'], ['noocean', 'la mer'], ['noopaque', 'navires, avions, îles et bases'], ['notrees', 'la végétation']]) if (by[id] && by[id].frames) out.costs[label] = cost(ref) - cost(by[id]);
+  // the smoke at its levels of detail, in ms a frame over the same frozen scene
+  const lv = ['smoke0', 'smoke1', 'smoke2'].filter((id) => by[id] && by[id].frames);
+  if (lv.length >= 2) {
+    out.smoke = Object.fromEntries(lv.map((id) => [id, cost(by[id])]));
+    const lo = cost(by[lv[0]]);
+    out.notes.push('fumée, sur la même scène figée : ' + lv.map((id, k) => { const d = cost(by[id]) - lo; return `niveau ${id.slice(-1)} ${k === 0 ? '(référence)' : d < 0.35 ? ': le même coût' : `: +${f1(d)} ms`}`; }).join(' · '));
   }
-  // where the GPU time of a view goes, by pass (the main pass holds the sea, the ships, the sky and the particles)
+  // where the GPU time of a view goes, by pass (the main pass holds the sea, the ships, the sky and, with no clouds, the particles)
   const ps = base.passes;
   if (ps) {
     const tot = Object.values(ps).reduce((a, b) => a + b, 0) || 1;
     const top = Object.entries(ps).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k, v]) => `${PASS_NAMES[k] || k} ${Math.round(100 * v / tot)} %`);
     out.notes.push('passes GPU de la vue « Mer » : ' + top.join(', '));
   }
-  const pc = base.census;
+  const pc = by.seaf && by.seaf.census ? by.seaf.census : base.census;
   if (pc && pc.kinds) {
     const sm = pc.kinds.smoke ? pc.kinds.smoke.screens : 0, all = Object.values(pc.kinds).reduce((a, k) => a + k.screens, 0);
-    out.notes.push(`particules de la vue « Mer » : ${pc.inView} à l'écran sur ${pc.total}, ${f1(all)} écrans de surface à remplir dont ${f1(sm)} de fumée`);
+    out.notes.push(`particules de la scène figée : ${pc.inView} à l'écran sur ${pc.total}, ${f1(all)} écrans de surface à remplir dont ${f1(sm)} de fumée`);
   }
   const cpu = base.cpu.update + base.cpu.prepare;
   if (hasTS && base.gpu) out.notes.push(base.gpu.mean > cpu * 1.15 ? `limité par le GPU (${f1(base.gpu.mean)} ms contre ${f1(cpu)} ms de processeur)` : base.gpu.mean < cpu * 0.85 ? `limité par le processeur (${f1(cpu)} ms contre ${f1(base.gpu.mean)} ms de GPU)` : `GPU et processeur à peu près à égalité (${f1(base.gpu.mean)} et ${f1(cpu)} ms)`);
@@ -112,6 +125,7 @@ export function analyse(phases, hasTS) {
   if (end && end.frames && base.fps > 0) {
     const r = end.fps / base.fps;
     out.thermal = r;
+    if (base.passes && end.passes && base.passes.sim > 0 && end.passes.sim > 0) { out.heat = end.passes.sim / base.passes.sim; if (out.heat > 1.1) out.notes.push(`le GPU a ralenti de ${Math.round((1 - 1 / out.heat) * 100)} % entre la première et la dernière vue (la simulation de la mer, qui coûte la même chose dans toutes les vues, passe de ${f1(base.passes.sim)} à ${f1(end.passes.sim)} ms) : les différences entre vues sont corrigées de cet écart`); }
     if (r > 1.3) out.notes.push(`la dernière vue « Mer » est bien plus rapide que la première (${f1(end.fps)} contre ${f1(base.fps)} i/s) : démarrage à froid (compilation, fréquence du GPU) ou bataille qui s'est calmée (${base.particles ?? '-'} puis ${end.particles ?? '-'} particules)`);
     out.notes.push(r < 0.88 ? `l'appareil ralentit en chauffant : ${f1(end.fps)} i/s à la fin contre ${f1(base.fps)} au début (${Math.round((1 - r) * 100)} % de moins)` : `pas de ralentissement visible dû à la chauffe (${f1(base.fps)} puis ${f1(end.fps)} i/s)`);
   }
@@ -138,11 +152,12 @@ export function formatReport(r) {
   // where the GPU goes, pass by pass (ms), for the views that give it; and the CPU in detail
   const withPasses = r.phases.filter((p) => p.frames && p.passes);
   if (withPasses.length) {
-    L.push('Passes GPU (ms)'.padEnd(40) + 'sim   ombres nuages princ. bloom  final');
+    L.push('Passes GPU (ms)'.padEnd(40) + 'mer   ciel  ombres nuages princ. partic.* bloom  final');
     for (const p of withPasses) {
-      const q = p.passes, c = (q.cloudWeather || 0) + (q.cloudMarch || 0) + (q.cloudApply || 0) + (q.cloudOverlay || 0);
-      L.push(nm(p.name) + [q.sim, q.shadow, c, q.main, q.bloom, q.composite].map((v) => f1(v || 0).padStart(5)).join(' ') + '  ');
+      const q = p.passes, c = (q.cloudWeather || 0) + (q.cloudMarch || 0) + (q.cloudApply || 0);
+      L.push(nm(p.name) + [q.sim, q.sky, q.shadow, c, q.main, q.cloudOverlay, q.bloom, q.composite].map((v) => f1(v || 0).padStart(5)).join(' ') + '  ');
     }
+    L.push('* partic. : la passe des particules quand les nuages en volume sont actifs (sinon elles sont dans la passe principale)');
     L.push('');
   }
   const withCpu = r.phases.filter((p) => p.frames && p.cpuParts);
@@ -293,6 +308,7 @@ export class Bench {
       g.particles.setMax(ph.particles ?? this.saved.particleMax);
       if (ph.smoke != null) g.particles.setDetail(ph.smoke);
       g.benchHide = ph.hide || {};
+      g.paused = !!ph.freeze;                                  // (restored by finish)
       e.showOcean = ph.ocean === false ? false : this.saved.showOcean;
       if (g.vegetation) g.vegetation.enabled = ph.trees === false ? false : this.saved.trees;
       if (ph.mode === 'plane') {

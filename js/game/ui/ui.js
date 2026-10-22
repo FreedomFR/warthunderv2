@@ -1,5 +1,5 @@
 // DOM user interface (French): fleet setup, HUD, labels, kill feed, results, settings.
-import { NATIONS, TYPES, ALL_SHIPS, BY_ID, shipsOf, typeName, nationName } from '../data/ships.js';
+import { NATIONS, BY_ID, shipsOf, typeName, nationName } from '../data/ships.js';
 import { PRESETS } from '../scenarios.js';
 import { TEAM_COLORS } from '../sim/world.js';
 import { shipNames } from '../sim/shipdata.js';

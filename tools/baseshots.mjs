@@ -3,6 +3,7 @@
 // shots.json: [{ "name": "a", "eval": "js run in the page first (window.__game is the game)", "sim": seconds of simulation to run before the shot, "wait": ms }, ...]
 // In an `eval`, `plane(b, phase)` is an aircraft of base b in that phase, `follow(p, side, back, up, fov)` puts the camera beside it, `base(kind, team)` is the live base, `look(x, y, z, tx, ty, tz)` puts the free camera there and `near(b, s, t, h)` is the point at s along the axis, t across it
 // (to the right of it) and h above the ground of base b.
+/* global look */
 import { chromium } from 'playwright-core';
 import fs from 'node:fs';
 import { launchOptions } from './browser.mjs';

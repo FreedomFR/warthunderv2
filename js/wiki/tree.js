@@ -4,7 +4,7 @@ import { h } from '../viewer/dom.js';
 import { fr } from './data.js';
 import { TIERS } from './tiers.js';
 import { layoutNation, G } from './layout.js';
-import { shipProfile } from './profile.js';
+import { shipPicture } from './profile.js';
 import { flagSVG } from './flags.js';
 
 const NB = ' ';
@@ -17,7 +17,7 @@ export function shipNode(rec, onOpen, pos) {
     title: `${rec.name} — ${s.className}`, onclick: () => onOpen(rec),
   },
   h('span', { class: 'n-top' }, h('span', {}, h('span', { class: 'n-type' }, rec.type), rec.unfinished ? h('span', { class: 'n-flag' }, 'inachevé') : null), h('span', {}, rec.year, h('span', { class: 'tier-chip' }, 'Ère ' + rec.tier.roman))),
-  h('span', { class: 'n-prof', html: shipProfile(s) }),
+  h('span', { class: 'n-prof' }, shipPicture(s)),
   h('b', { class: 'n-name' }, rec.name),
   h('span', { class: 'n-sub' }, `${s.main.gunsTotal}${NB}×${NB}${fr(s.main.caliberMm, 0)}${NB}mm · ${fr(s.displacementStd, 0)}${NB}t`));
   return b;

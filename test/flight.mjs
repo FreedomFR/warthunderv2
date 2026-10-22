@@ -1,6 +1,6 @@
 // The flight physics against the published figures: node test/flight.mjs — every aircraft flown alone, level at full power, climbing, in a sustained turn, rolling,
 // diving, and pulling at low speed; prints the table and checks it.
-import { guide } from '../js/game/sim/aircraft.js';
+import { guide } from '../js/game/sim/flight.js';
 import { PERF, aeroOf } from '../js/game/sim/airperf.js';
 import { PLANES } from '../js/game/model/planes.js';
 

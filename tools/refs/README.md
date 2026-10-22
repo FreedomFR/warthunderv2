@@ -90,3 +90,15 @@ To check the muzzle blast of a ship: `node tools/trailer/record.mjs firetest out
   cloud environment used for batch 1; from a normal PC they may be, and they have many more photographs and plans of US ships.
 - The browser tools read `CHROME=/path/to/chrome` and `GPU=hardware` (see `tools/browser.mjs`); without `GPU=hardware` they render with
   the software WebGPU adapter, which works everywhere and is slow.
+
+## 3D reference models (measurement only)
+
+Models given as glTF (`modelTmp/*.zip`, git-ignored) are measured, never copied (see CLAUDE.md and `docs/CREDITS.md`):
+
+| File | Use |
+|---|---|
+| `gltf.mjs` | `survey` (size, parts), `views` / `quarters` (orthographic pictures on white), `plan` (side / top silhouettes + the plans.json entry), `tables` (hull tables for tweaks.js from exact cuts), `cut` (half-beams at heights, sheer, sections), `heightmap`, `profile`; `--loa=` scales to the spec's length |
+| `addplan.py`, `addspec.py` | add a plans.json entry / a spec sheet from JSON (keeps the layout of the files) |
+| `chk.sh` | the measured check of a ship (renders on the GPU, prints the silhouette differences); `kagero@ref` = a second plans.json entry of the same ship |
+| `gridview.py`, `crop.py` | read positions on a gridded side view / enlarge a part of a picture |
+| `studio.mjs` | 9 views of a model on a plain background, lit from behind the camera (`?matte=1&bg=` in the engine) |
