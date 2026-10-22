@@ -820,7 +820,7 @@ function buildCarrier(b, model, spec, hull, pal, tw, X, Y, fdY, rnd, note, part)
   for (const [i, f] of els.entries()) {
     const x = X(f);
     if (i === els.length - 1 && tw.deckEdge) { b.decal(x, fdY + 0.015, -hw + 5, 8, 7.5, rgb('#524f49'), MAT.HULL); model.elevators.push({ x, z: -hw + 5, hl: 8, hw: 7.5, edge: true }); continue; }
-    const es = tw.elevSize || [8.5, hw * 0.34];      // measured half-length and half-width of the lifts
+    const es = Array.isArray(tw.elevSize?.[0]) ? tw.elevSize[i] : tw.elevSize || [8.5, hw * 0.34];      // measured half-length and half-width of the lifts (one pair for all, or one pair each)
     b.decal(x, fdY + 0.015, tw.elevZ ?? 0, es[0], es[1], rgb('#55524c'), MAT.HULL);
     model.elevators.push({ x, z: tw.elevZ ?? 0, hl: es[0], hw: es[1], edge: false });
   }
