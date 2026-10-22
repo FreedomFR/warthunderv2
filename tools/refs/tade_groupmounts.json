@@ -15,7 +15,9 @@
    "below": 1.0,
    "above": 2.5,
    "materials": [
-    "b21d938b"
+    "b21d938b",
+    "12b354da",
+    "77880b29"
    ],
    "gun_box": [
     32.05,
@@ -27,7 +29,7 @@
    ],
    "no_cradle": true,
    "barrel_len": 1.2,
-   "radius_x": 4.2,
+   "radius_x": 5.4,
    "radius_z": 1.7,
    "min_part_tris": 1
   },
@@ -45,7 +47,9 @@
    "above": 2.5,
    "materials": [
     "b21d938b",
-    "b7ce36d3"
+    "b7ce36d3",
+    "12b354da",
+    "77880b29"
    ],
    "gun_box": [
     2.55,
@@ -57,7 +61,7 @@
    ],
    "no_cradle": true,
    "barrel_len": 1.2,
-   "radius_x": 4.2,
+   "radius_x": 5.4,
    "radius_z": 1.7,
    "min_part_tris": 1
   },
@@ -75,7 +79,9 @@
    "above": 2.5,
    "materials": [
     "b21d938b",
-    "b7ce36d3"
+    "b7ce36d3",
+    "12b354da",
+    "77880b29"
    ],
    "gun_box": [
     -27.5,
@@ -87,7 +93,7 @@
    ],
    "no_cradle": true,
    "barrel_len": 1.2,
-   "radius_x": 4.2,
+   "radius_x": 5.4,
    "radius_z": 1.7,
    "min_part_tris": 1
   }

@@ -15,12 +15,13 @@
     ]
    },
    "radius": 5.0,
-   "below": 2.5,
+   "below": 0.6,
    "above": 5.5,
    "materials": [
     "e1bbcaf3",
     "4ff91d0f",
-    "306b13b2"
+    "306b13b2",
+    "9febe4ac"
    ],
    "split": true,
    "barrel_len": 2.0,
@@ -62,9 +63,9 @@
     "aa": true,
     "n": 3
    },
-   "radius": 1.4,
-   "below": 1.8,
-   "above": 2.6,
+   "radius": 1.35,
+   "below": 0.4,
+   "above": 2.8,
    "facing": "mass"
   },
   {
@@ -76,9 +77,9 @@
     "aa": true,
     "n": 2
    },
-   "radius": 1.1,
-   "below": 1.2,
-   "above": 2.6,
+   "radius": 1.0,
+   "below": 0.4,
+   "above": 2.8,
    "facing": "mass"
   }
  ]

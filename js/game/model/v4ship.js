@@ -2,7 +2,7 @@
 // the fine detail and the destroyable parts are replaced by the model's own triangles, recoloured with the game's paint so that the ship keeps its livery: the texture colour only decides what
 // is wood (a warm colour on an upward face: the planking) and how light or dark a spot is against its kind (a window, a hatch, a plate).
 import { MeshBuilder, MAT, rgb } from './meshbuilder.js';
-import { decodeBaked } from './bakedmesh.js';
+import { decodeBaked, cutBaked } from './bakedmesh.js';
 import { buildHitModel } from './v4hit.js';
 
 const lum = (r, g, b) => (0.3 * r + 0.59 * g + 0.11 * b) / 255;
@@ -67,7 +67,9 @@ export function paintInto(nb, piece, scale, pal, cls, ref, maxY = Infinity) {
   for (const [mat, o] of paint(piece, scale, pal, cls, ref, maxY)) nb.raw(o.pos, o.nrm, o.col, Uint32Array.from({ length: o.pos.length / 3 }, (_, i) => i), mat);
 }
 
-export function applyV4(model, data, pal, drop = []) {      // drop: ids of parts the fit of this ship does not have (not drawn, no hit volume)
+export function applyV4(model, data, pal, drop = [], clean = []) {
+  // clean: [{ x, z, r, y0, maxArea }]: the small triangles (details of what stood there: a turret's roller path, its fittings) of the static pieces above y0 within r of (x, z) are left out: what a fit has landed leaves no trace
+  if (clean.length) data = { SCALE: data.SCALE, SHIP: { ...data.SHIP, static: Object.fromEntries(Object.entries(data.SHIP.static).map(([k, p]) => [k, cutBaked(p, data.SCALE, (x, y, z, a) => clean.some((c) => y >= c.y0 && Math.hypot(x - c.x, z - c.z) <= c.r && a <= c.maxArea))])) } };      // drop: ids of parts the fit of this ship does not have (not drawn, no hit volume)
   const sc = data.SCALE, S = data.SHIP;
   const nb = new MeshBuilder();
   const ref = reference([...Object.values(S.static), ...(S.fine ? [S.fine] : []), ...Object.values(S.parts).map((p) => p.mesh)], sc);

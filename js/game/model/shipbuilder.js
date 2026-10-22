@@ -832,7 +832,7 @@ export function buildShipModel(spec, tw = {}) {
   for (const sp of model.spinners) sp.mesh = built.groups[sp.id];
   for (const p of model.parts) { p.mesh = built.groups[p.id]; p.ruin = p.hasRuin ? built.groups[p.id + '_ruin'] : null; p.fineMesh = p.hasFine ? built.groups[p.id + '_fine'] : null; }
   model.fine = built.groups.fine || null;
-  if (tw.v4) applyV4(model, tw.v4, pal, tw.v4Drop);                      // tw.v4: the ship's hull, structure and parts from the groups of its reference model (v4ship.js)
+  if (tw.v4) applyV4(model, tw.v4, pal, tw.v4Drop, tw.v4Clean);                      // tw.v4: the ship's hull, structure and parts from the groups of its reference model (v4ship.js)
   return model;
 }
 

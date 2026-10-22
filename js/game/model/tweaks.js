@@ -1040,7 +1040,7 @@ export const TWEAKS = {
 // aaAt: the light mounts it has that the model lacks; noTubes / v4Drop: the tubes are landed and not drawn.
 const VARIANT_TWEAKS = {
   tade_pb39: { noTubes: true, v4Drop: ['tubes0', 'tubes1'], aaAt: TADE_PB39_AA, dropPlacements: ['m2'] },
-  kagero_1944: { aaAt: KAGERO_1944_AA, dropPlacements: ['m1'] },
+  kagero_1944: { aaAt: KAGERO_1944_AA, dropPlacements: ['m1'], v4Clean: [{ x: -27.2, z: 0, r: 2.7, y0: 5.6, maxArea: 1.5 }, { x: -27.2, z: 0, r: 4.4, y0: 5.6, maxArea: 0.12 }] },      // the roller path of the X turret
   shokaku_1944: { aaAt: SHOKAKU_1944_AA },
 };
 for (const v of VARIANTS) TWEAKS[v.id] = { ...TWEAKS[v.base], ...VARIANT_TWEAKS[v.id] };

@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased — nothing is left of a gun a fit has landed
+
+- Kagero 1944: pieces of other materials of the X turret (small sights, hand wheels) were left floating on its barbette, and its roller path was still drawn: the element takes them too (`9febe4ac`, window from 0.6 m under the pivot), and the variant cleans the small triangles of the barbette (`v4Clean`, `cutBaked`). Tade PB-39: the tip of the aft gun's barrel was outside its window (the window is 5.4 m long now) and stayed in the air.
+- The triples of the Kagero are cut out of a smaller window (1.35 m).
+
 ## Unreleased — the armament checked against the real ships; three more ships (other fits)
 
 - Two research passes (real armament of every ship rebuilt from a model, against the game): the Iowa, the Graf Spee, the Adams and the Yamato's heavy guns match; see the gaps below.
