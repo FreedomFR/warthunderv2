@@ -131,6 +131,60 @@ with Pool() as pool:                                                            
     slices = pool.map(one, list(heights), chunksize=2)
 print(f'{sum(1 for s in slices if s)} of {len(slices)} slices not empty', file=sys.stderr)
 
+if int(fl.get('poly3d', 0)):
+    # one convex solid: the 3D hull of the biggest outline of every slice, its near-coplanar triangles merged into plane faces -> { verts, faces } (faces as loops of vertex indices, outward)
+    from scipy.spatial import ConvexHull
+    pts = []
+    for k, parts in enumerate(slices):
+        if not parts:
+            continue
+        big = max(parts, key=lambda q: q.area)
+        y = Y0 + (k + 0.5) * STEP
+        pts += [(x, y, z) for x, z in list(big.exterior.coords)[:-1]]
+    P3 = np.array(pts)
+    hull = ConvexHull(P3)
+    C = P3[hull.vertices].mean(0)
+    cosmin = float(fl.get('merge', 0.985))
+    tris = []
+    for sidx, eq in zip(hull.simplices, hull.equations):
+        n = eq[:3]
+        tris.append({'v': list(sidx), 'n': n})
+    # merge triangles that share an edge and whose normals agree
+    parent = list(range(len(tris)))
+    def find(i):
+        while parent[i] != i:
+            parent[i] = parent[parent[i]]; i = parent[i]
+        return i
+    edges = {}
+    for i, t in enumerate(tris):
+        for a_, b_ in ((0, 1), (1, 2), (2, 0)):
+            e = tuple(sorted((t['v'][a_], t['v'][b_])))
+            edges.setdefault(e, []).append(i)
+    for e, ts in edges.items():
+        if len(ts) == 2 and float(np.dot(tris[ts[0]]['n'], tris[ts[1]]['n'])) >= cosmin:
+            parent[find(ts[0])] = find(ts[1])
+    groups = {}
+    for i in range(len(tris)):
+        groups.setdefault(find(i), []).append(i)
+    verts, vmap, faces = [], {}, []
+    for g in groups.values():
+        n = np.mean([tris[i]['n'] for i in g], 0); n /= np.linalg.norm(n)
+        vs = sorted({v for i in g for v in tris[i]['v']})
+        c = P3[vs].mean(0)
+        # order the face's corners round its centre, looking against the outward normal
+        ref = np.cross(n, [0, 1, 0]) if abs(n[1]) < 0.9 else np.cross(n, [1, 0, 0])
+        ref /= np.linalg.norm(ref); ref2 = np.cross(n, ref)
+        vs.sort(key=lambda v: np.arctan2(np.dot(P3[v] - c, ref2), np.dot(P3[v] - c, ref)))
+        loop = []
+        for v in vs:
+            if v not in vmap:
+                vmap[v] = len(verts); verts.append([round(float(P3[v][0]), 2), round(float(P3[v][1]), 2), round(float(P3[v][2]), 2)])
+            loop.append(vmap[v])
+        faces.append(loop)
+    print(f'{len(verts)} vertices, {len(faces)} faces (from {len(hull.simplices)} triangles)', file=sys.stderr)
+    json.dump({'verts': verts, 'faces': faces}, sys.stdout)
+    sys.exit(0)
+
 # runs: each blob follows the blob of the slice below it that overlaps it most
 def iou(p, q):
     u = p.union(q).area
@@ -160,6 +214,20 @@ for k, parts in enumerate(slices):
             runs.append(r)
             nxt.append(r)
     open_runs = nxt
+
+
+def rays(c):
+    """A convex outline as LOFT points on rays from its centroid at fixed angles (the same angles for every slice: no twisting between slices)."""
+    pg = Polygon(c).convex_hull
+    cx, cy = pg.centroid.x, pg.centroid.y
+    out = []
+    for i in range(LOFT):
+        a = 2 * np.pi * i / LOFT
+        far = LineString([(cx, cy), (cx + np.cos(a) * 80, cy + np.sin(a) * 80)])
+        inter = pg.exterior.intersection(far)
+        pt = inter if inter.geom_type == 'Point' else (max(inter.geoms, key=lambda q: Point(cx, cy).distance(q)) if hasattr(inter, 'geoms') and len(inter.geoms) else Point(cx, cy))
+        out.append([round(pt.x, 2), round(pt.y, 2)])
+    return out
 
 
 def resample(c):
@@ -210,8 +278,8 @@ if SKIN:
             continue
         pts = []
         for y, p in c['rings']:
-            rs = resample(p.exterior)
-            if pts:
+            rs = rays(p.exterior) if int(fl.get('rays', 0)) else resample(p.exterior)
+            if pts and not int(fl.get('rays', 0)):
                 prev = pts[-1][1]
                 best = min(range(SKIN), key=lambda k: sum((prev[i][0] - rs[(i + k) % SKIN][0]) ** 2 + (prev[i][1] - rs[(i + k) % SKIN][1]) ** 2 for i in range(SKIN)))
                 rs = rs[best:] + rs[:best]

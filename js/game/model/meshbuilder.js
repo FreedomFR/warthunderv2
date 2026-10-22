@@ -310,6 +310,21 @@ export class MeshBuilder {
   }
 
   /**
+   * A convex polyhedron from its plane faces: verts = [[x, y, z], ...], faces = [[i, j, ...], ...] (each a loop of vertex indices round a flat face, either way round). The faces are oriented away from the centre.
+   */
+  poly3d(verts, faces, col, mat = MAT.HULL, o = {}) {
+    const ao = o.ao ?? this.ao;
+    let cx = 0, cy = 0, cz = 0;
+    for (const v of verts) { cx += v[0]; cy += v[1]; cz += v[2]; }
+    const ref = [cx / verts.length, cy / verts.length, cz / verts.length];
+    if (this.solids) {
+      this._track(Math.min(...verts.map((v) => v[0])), Math.max(...verts.map((v) => v[0])), Math.min(...verts.map((v) => v[1])), Math.max(...verts.map((v) => v[1])), Math.min(...verts.map((v) => v[2])), Math.max(...verts.map((v) => v[2])));
+    }
+    for (const f of faces) for (let i = 1; i + 1 < f.length; i++) this.triFlat(verts[f[0]], verts[f[i]], verts[f[i + 1]], col, mat, ref, ao);
+    return this;
+  }
+
+  /**
    * Loft between two outlines of the same number of points (a tapered or leaning house): rA at y0, rB at y1, corresponding point to point, counter-clockwise; flat caps. Convex-ish
    * outlines only for the caps' orientation test (the sides are oriented by the edges, the caps by the loft's axis).
    */

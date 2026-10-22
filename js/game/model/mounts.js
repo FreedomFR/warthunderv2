@@ -429,14 +429,33 @@ function houseDop105(hb, col, dark, f) {
   }
 }
 
+/** The outline of a house stage: u0..u1 along the mount, half width hw, the front corners cut by `ch` (the gun-port side is narrower: 0.55 of hw). */
+const stageRing = ([u0, u1, hw, ch]) => [[u0, -hw], [u0, hw], [u1 - ch, hw], [u1, hw * 0.55], [u1, -hw * 0.55], [u1 - ch, -hw]];
+
+/**
+ * A gun house of flat faces read on the reference model: stages = [[y0, y1, [u0, u1, hw, ch] at y0, [u0, u1, hw, ch] at y1], ...] (y from the base of the house), each a loft between
+ * two six-corner outlines (a vertical wall when they are equal, a sloped one when they differ); `extras` = boxes [u0, u1, hw, y0, y1].
+ */
+function stagedHouse(stages, extras = [], o = {}) {
+  return (hb, col, dark, f) => {
+    stages.forEach(([y0, y1, a, b], k) => hb.loft(stageRing(a), y0, stageRing(b), y1, shade(col, 0.97 + 0.05 * (k % 2)), MAT.HULL, { bottom: k === 0 }));
+    for (const [u0, u1, hw, y0, y1] of extras) hb.block({ x0: u0, x1: u1, hw, y0, y1 }, shade(col, 1.05), MAT.HULL);
+    for (let i = 0; i < f.n; i++) {
+      const z = (i - (f.n - 1) / 2) * f.spacing;
+      hb.block({ x0: f.port - 0.3, x1: f.port + 0.3, hw: o.hw ?? 0.7, zc: z, y0: f.trunY - (o.hh ?? 0.7), y1: f.trunY + (o.hh ?? 0.7) }, dark, MAT.DARK);
+    }
+  };
+}
+
 /**
  * A gun house drawn from the cross-sections read on the reference model (mountdata.js): each solid is an extrusion or a loft between two outlines, the gun ports are dark plates in the face.
  * o: { port: [half width, half height] of the ports }
  */
 function measuredHouse(key, o = {}) {
   return (hb, col, dark, f) => {
-    HOUSE_DATA[key].forEach(({ skin }, k) => {
+    HOUSE_DATA[key].forEach(({ skin, poly }, k) => {
       const c = shade(col, 0.96 + 0.06 * (k % 2));
+      if (poly) { hb.poly3d(poly.verts, poly.faces, c, MAT.HULL); return; }
       for (let i = 0; i + 1 < skin.length; i++) hb.loft(skin[i][1], skin[i][0], skin[i + 1][1], skin[i + 1][0], c, MAT.HULL, { top: i + 2 === skin.length, bottom: i === 0 });
     });
     for (let i = 0; i < f.n; i++) {
@@ -447,7 +466,7 @@ function measuredHouse(key, o = {}) {
   };
 }
 
-const HOUSES = { dop105: houseDop105, de150_1: houseMpl28, type89c: measuredHouse('type89c', { hw: 0.3, hh: 0.3 }), drh28_283: houseDrhLC28, it120o: houseIt120o, type3c_127: houseType3C, mk42: houseMk42, type3_120: houseType3_120, de37: houseFlak37, mk7: houseMk7, type94: measuredHouse('type94', { hw: 1.0, hh: 0.9 }), type3_155: measuredHouse('type3_155', { hw: 0.4, hh: 0.4 }), drh28_150: houseDrh28, lit381: houseLit381, lit152: houseLit152, rich380: houseRich380, fr152: houseFr152, it152: houseIt152, us152: houseUs152, brit152: houseBrit152, it120: houseIt120, de150_2: houseDe150_2, fr138: houseMk30, brit120: houseBrit120, type3_127: houseType3_127, brit203: houseBrit203, type41_152: houseType41_152, us203: houseUs203, fr203: houseFr203, fr152_30: houseFr152_30, zara203: houseZara203, type3_203: houseType3_203, drh203: houseDrh203, drh34: houseDrh34, mk28: houseMk28, mk30: houseMk30 };
+const HOUSES = { dop105: houseDop105, de150_1: houseMpl28, type89c: measuredHouse('type89c', { hw: 0.3, hh: 0.3 }), drh28_283: houseDrhLC28, it120o: houseIt120o, type3c_127: houseType3C, mk42: houseMk42, type3_120: houseType3_120, de37: houseFlak37, mk7: houseMk7, type94: stagedHouse([[0.38, 2.0, [-8.2, 8.6, 6.9, 3.5], [-7.9, 7.25, 6.0, 3.0]], [2.0, 3.0, [-8.0, 7.1, 6.9, 3.0], [-7.95, 6.1, 5.3, 2.6]], [3.0, 3.9, [-7.95, 6.1, 5.3, 2.6], [-7.1, 5.0, 4.4, 2.0]]], [], { hw: 1.0, hh: 0.9 }), type3_155: stagedHouse([[0, 1.5, [-4.8, 3.0, 3.0, 1.2], [-4.8, 2.85, 3.0, 1.2]], [1.5, 2.1, [-4.8, 2.85, 3.0, 1.2], [-4.8, 1.7, 3.1, 1.0]]], [[-3.7, -0.7, 4.3, 2.0, 3.0]], { hw: 0.4, hh: 0.4 }), drh28_150: houseDrh28, lit381: houseLit381, lit152: houseLit152, rich380: houseRich380, fr152: houseFr152, it152: houseIt152, us152: houseUs152, brit152: houseBrit152, it120: houseIt120, de150_2: houseDe150_2, fr138: houseMk30, brit120: houseBrit120, type3_127: houseType3_127, brit203: houseBrit203, type41_152: houseType41_152, us203: houseUs203, fr203: houseFr203, fr152_30: houseFr152_30, zara203: houseZara203, type3_203: houseType3_203, drh203: houseDrh203, drh34: houseDrh34, mk28: houseMk28, mk30: houseMk30 };
 
 /**
  * Paint the flat roof of a gun house: `top.col` recolours it (Kriegsmarine turret tops were dark grey); `top.bands` = [stripe, ground]
