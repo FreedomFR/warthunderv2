@@ -1,0 +1,181 @@
+{
+ "ship": "La Galissonnière",
+ "use_claimed": true,
+ "skip_groups": [
+  "d251e472-a246-4313-b12d-84f8df1f1404#1601",
+  "d251e472-a246-4313-b12d-84f8df1f1404#1602",
+  "d251e472-a246-4313-b12d-84f8df1f1404#1603",
+  "d251e472-a246-4313-b12d-84f8df1f1404#1604",
+  "d251e472-a246-4313-b12d-84f8df1f1404#1605",
+  "d251e472-a246-4313-b12d-84f8df1f1404#1606",
+  "d251e472-a246-4313-b12d-84f8df1f1404#1607",
+  "d251e472-a246-4313-b12d-84f8df1f1404#1608",
+  "d251e472-a246-4313-b12d-84f8df1f1404#1315",
+  "d251e472-a246-4313-b12d-84f8df1f1404#1347",
+  "d251e472-a246-4313-b12d-84f8df1f1404#1349",
+  "d251e472-a246-4313-b12d-84f8df1f1404#1350",
+  "d251e472-a246-4313-b12d-84f8df1f1404#1348"
+ ],
+ "skip_material": [],
+ "cuts": [
+  {
+   "group": "^d0cd71c8.*1096#0$",
+   "gre": true,
+   "id": "rudderdrop",
+   "drop": true,
+   "box": [
+    -88,
+    -74.5,
+    -5.3,
+    0.5,
+    -0.45,
+    0.45
+   ]
+  },
+  {
+   "group": ".*",
+   "gre": true,
+   "id": "cat0",
+   "kind": "catapult",
+   "label": "Catapulte et hydravion",
+   "box": [
+    -59.5,
+    -30.5,
+    9.1,
+    16.8,
+    -6.8,
+    6.8
+   ]
+  },
+  {
+   "group": ".*",
+   "gre": true,
+   "id": "crane",
+   "kind": "crane",
+   "label": "Grue",
+   "box": [
+    -94.0,
+    -66.5,
+    5.3,
+    21.0,
+    -3.5,
+    3.5
+   ]
+  },
+  {
+   "group": ".*",
+   "gre": true,
+   "id": "mast1",
+   "kind": "mast",
+   "label": "Mât arrière",
+   "box": [
+    -25.8,
+    -16.0,
+    10.2,
+    29.8,
+    -4.5,
+    4.5
+   ]
+  },
+  {
+   "group": ".*",
+   "gre": true,
+   "id": "director0",
+   "kind": "director",
+   "label": "Directeur de tir avant",
+   "box": [
+    22.0,
+    27.4,
+    22.6,
+    28.6,
+    -3.2,
+    3.2
+   ],
+   "track": true
+  },
+  {
+   "group": ".*",
+   "gre": true,
+   "id": "mast0",
+   "kind": "mast",
+   "label": "Mât avant",
+   "box": [
+    20.8,
+    23.9,
+    27.6,
+    34.0,
+    -1.6,
+    1.6
+   ]
+  },
+  {
+   "group": ".*",
+   "gre": true,
+   "id": "funnel0",
+   "kind": "funnel",
+   "label": "Cheminée 1",
+   "box": [
+    9.8,
+    16.6,
+    6.0,
+    20.8,
+    -3.6,
+    3.6
+   ]
+  },
+  {
+   "group": ".*",
+   "gre": true,
+   "id": "funnel1",
+   "kind": "funnel",
+   "label": "Cheminée 2",
+   "box": [
+    -10.9,
+    -3.9,
+    6.0,
+    18.4,
+    -3.2,
+    3.2
+   ]
+  },
+  {
+   "group": ".*",
+   "gre": true,
+   "id": "tower",
+   "kind": "bridge",
+   "label": "Passerelle",
+   "box": [
+    18.4,
+    34.6,
+    7.6,
+    31.0,
+    -6.6,
+    6.6
+   ]
+  }
+ ],
+ "rules": [
+  {
+   "match": "5ea33f0d|e985ae75|ef1e08b8",
+   "to": "part",
+   "id": "tubes",
+   "cluster": 1.0,
+   "kind": "tubes",
+   "label": "Tubes lance-torpilles"
+  },
+  {
+   "match": "^(085adfb5|763fd753|2540d128|260bc42b|010008a4|9f1784d9|7571d002|cb5ba1c0)",
+   "to": "fine"
+  },
+  {
+   "min_len": 60,
+   "to": "static",
+   "cls": "hull"
+  },
+  {
+   "match": ".*",
+   "to": "static",
+   "cls": "equip"
+  }
+ ]
+}

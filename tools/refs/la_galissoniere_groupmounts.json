@@ -1,0 +1,89 @@
+{
+ "ship": "La Galissonnière",
+ "elements": [
+  {
+   "id": "t152",
+   "type": "main",
+   "cal": 152,
+   "group": "main",
+   "template": {
+    "x": 52.67,
+    "z": 0,
+    "y": 9.0,
+    "x_range": [
+     -5.2,
+     7.8
+    ],
+    "z_range": [
+     -3.7,
+     3.7
+    ],
+    "below": 1.2,
+    "above": 4.4,
+    "min_part_tris": 1
+   },
+   "split": true,
+   "barrel_len": 4.0,
+   "gun_materials": [
+    "83962b9f",
+    "b088dae0"
+   ],
+   "min_part_tris": 1
+  },
+  {
+   "id": "s90",
+   "type": "sec",
+   "cal": 90,
+   "group": "sec",
+   "materials": [
+    "7db3e9e5",
+    "8e46e4d6",
+    "d0594bef",
+    "240eda03"
+   ],
+   "cluster": {
+    "gap": 0.3,
+    "min_tris": 5000
+   },
+   "split": true,
+   "barrel_len": 2.0
+  },
+  {
+   "id": "t37",
+   "type": "f37",
+   "cal": 37,
+   "group": "aa",
+   "materials": [
+    "719b589a",
+    "3efcca1d",
+    "260e418c",
+    "57fdcf26"
+   ],
+   "cluster": {
+    "gap": 0.3,
+    "min_tris": 2000
+   },
+   "facing": "thin",
+   "thin_len": 0.8
+  },
+  {
+   "id": "m13",
+   "type": "m13",
+   "cal": 13,
+   "group": "aa",
+   "materials": [
+    "f4ff6418",
+    "acb7a090",
+    "50a658b8",
+    "a7ea396d",
+    "cb5ba1c0"
+   ],
+   "cluster": {
+    "gap": 0.3,
+    "min_tris": 3000
+   },
+   "facing": "thin",
+   "thin_len": 0.5
+  }
+ ]
+}

@@ -139,6 +139,7 @@ Le propriétaire demande cette liste quand il veut savoir s'il n'a rien oublié.
 - [ ] **Kagero, Yukikaze 1944-45** : 2 triples sur le socle de la tourelle X, 14 simples de 25 mm.
 - [ ] **Tade, patrouilleur n°39 (1940)** : 2 triples de 25 mm ; quel canon a été débarqué (arrière d'après combinedfleet, milieu d'après le Wikipédia de la classe) ; les 7,7 mm.
 - [ ] **Shokaku, juin 1944** : 2 triples et 10 simples de 25 mm (groupés vers la proue et la poupe).
+- [ ] **La Galissonnière** : 4 doubles de 13,2 mm (sur 6 pour la classe) ajoutées sur du pont libre (deux à l'arrière du hangar, deux près des tourelles avant) ; le modèle n'a que 2 doubles ; gouvernail du modèle gardé tel quel (pas d'animation de barre).
 - [ ] **Gioberti 1940 et 1942-43** : 8 simples de 20/65, 2 doubles de 20/70, 2 doubles de 37/54 ; sources en désaccord (3 doubles de 20/65 d'après le Wikipédia italien ; un ou deux 120/15 gardés).
 
 **Écarts d'armement connus et non traités** :

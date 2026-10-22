@@ -15,6 +15,7 @@ import * as IOWA_V4 from './ships/iowa_v4.js';
 import * as RICHELIEU_V4 from './ships/richelieu_v4.js';
 import * as FLETCHER_V4 from './ships/fletcher_v4.js';
 import * as BEARN_V4 from './ships/bearn_v4.js';
+import * as GALISSONIERE_V4 from './ships/la_galissoniere_v4.js';
 import { TADE_PB39_AA, KAGERO_1944_AA, SHOKAKU_1944_AA, GIOBERTI_1940_AA, GIOBERTI_1942_AA } from './ships/variants_aa.js';
 import { VARIANTS } from '../data/variants.js';
 import { GIOBERTI } from './ships/gioberti.js';
@@ -460,6 +461,13 @@ export const TWEAKS = {
     funnels: [{ lx: 5.6, lz: 3.6, h: 8.9, rake: 1.2, top: 0.92, pipes: false }, { lx: 5.0, lz: 3.0, h: 6.5, rake: 1.0, top: 0.95, pipes: false }],
     mastY0: { 1: 7.6 },
     cat: { f: 0.775, z: 0, yaw: 0, len: 13.5, y: 5.2, craneF: 0.975, craneY: 0, craneH: 1.5, craneLen: 16, craneDir: 1, craneAng: 0.15, craneSide: 0, craneW: 0.6 },
+    aa: [],      // the light mounts come from the model (4 twin 37 mm, 2 twin 13.2 mm)
+    // the four twin 13.2 mm the model lacks (the class carried six), on free deck: places, not measurements
+    aaAt: [{ k: 'm13', x: -40.25, y: 6.0, z: 6.25 }, { k: 'm13', x: -40.25, y: 6.0, z: -6.25 }, { k: 'm13', x: 46.75, y: 8.5, z: 5.75 }, { k: 'm13', x: 46.75, y: 8.5, z: -5.75 }],
+    v4: GALISSONIERE_V4,
+    // two screws and a rudder where the model has them (its shafts and brackets stay drawn; its own screws and rudder are left out)
+    props: [{ f: 0.89, z: 5.1, depth: 3.3, d: 4.2, blades: 3, toF: 0.8895 }],
+    rudders: [{ f: 0.943, top: 0.3, bottom: 4.6, chord: 5.0, t: 0.4 }],
   },
   // Algerie (ONI sheet of 1942, public domain; profile and plan at one scale, small: 4.7 px per metre, so about +-0.7 m): a flush deck at 7.6 m at the stem, 6.4 m
   // aft of f 0.25; turrets A / B at 0.225 / 0.275 (B 3.5 m above A), X / Y at 0.69 / 0.74; the block tower bridge 0.30-0.372 (platform 21 m, director 35 m, pole 40 m),
