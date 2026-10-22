@@ -119,6 +119,10 @@ export function computeClearance(model, solids, hull, opts = {}) {
     }
     rec.clr = clr; rec.clrHi = clrHi;
     arcsFrom(rec, isAA ? BLOCKED.aa : rec.group === 'main' ? BLOCKED.main : BLOCKED.sec, !!opts.bothBeams);
+    if (rec.look && rec.noArc) {                      // a mount copied from the reference model stands where the model has it, in a place the hand-made masses round it may close: it keeps the outward half circle
+      rec.noArc = false; rec.arcC = isAA ? rec.yaw0 : rec.arcC; rec.arcH = Math.PI / 2; rec.arcMin = -Math.PI / 2; rec.arcMax = Math.PI / 2;
+      rec.clr = new Float32Array(CLR_N).fill(0.05); rec.clrHi = new Float32Array(CLR_N).fill(1.4);
+    }
     if (isAA) rec.yaw0 = rec.arcC;
   }
 }

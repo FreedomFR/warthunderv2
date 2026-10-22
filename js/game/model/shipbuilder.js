@@ -664,12 +664,27 @@ export function buildShipModel(spec, tw = {}) {
       note(y + 3);
     }
   }
-  // the light mounts copied from the reference model (model/elements.js): where the model has each one, nothing slid aside, no procedural tub or pedestal under it (its house comes with its ring)
-  for (const pl of (ELEMENTS[spec.id] && tw.elements !== false ? ELEMENTS[spec.id].PLACEMENTS : []).filter((q) => AA_TYPES[q.type])) {
-    const ty = AA_TYPES[pl.type];
-    model.aaMounts.push({ variant: ty.v, cal: ty.cal, n: ty.n, bore: ty.bore, x: pl.x, y: pl.y, z: pl.z, rad: 1.8, yaw0: pl.yaw, label: ty.label, look: `${spec.id}/${pl.kind}` });
+  // the mounts copied from the reference model (model/elements.js): each stands where the model has it, facing the way the model has it, drawn as the model's own house and guns
+  const elPl = ELEMENTS[spec.id] && tw.elements !== false ? ELEMENTS[spec.id].PLACEMENTS : [];
+  for (const pl of elPl.filter((q) => q.type === 't25' && AA_TYPES.t25)) {
+    const ty = AA_TYPES.t25;
+    model.aaMounts.push({ variant: ty.v, cal: ty.cal, n: ty.n, bore: ty.bore, x: pl.x, y: pl.y, z: pl.z, rad: 1.8, yaw0: pl.yaw * Math.PI / 180, label: ty.label, look: `${spec.id}/${pl.kind}` });
     model.aa.push([pl.x, pl.y + 1.2, pl.z]);
     note(pl.y + 3);
+  }
+  const claimed = new Set();
+  for (const pl of elPl.filter((q) => q.type !== 't25')) {
+    let best = null, bd = 9;
+    for (const r of model.mounts) {
+      if (claimed.has(r) || Math.abs(r.cal - pl.cal) > 6) continue;
+      const d = Math.hypot(r.x - pl.x, r.z - pl.z);
+      if (d < bd) { best = r; bd = d; }
+    }
+    if (!best) continue;
+    claimed.add(best);
+    best.x = pl.x; best.y = pl.y; best.z = pl.z; best.look = `${spec.id}/${pl.kind}`;
+    const ya = pl.yaw * Math.PI / 180;
+    best.arcC = Math.atan2(Math.sin(ya), Math.cos(ya));                         // at rest it points the way the model has it (the arc is centred there)
   }
   // measured boats (tw.boats: [{ f0, f1, z (a boat off the centreline has its twin on the other side), y (above the deck), cabin, davits }])
   for (const bt of tw.boats || []) {

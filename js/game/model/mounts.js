@@ -111,6 +111,18 @@ const FAMILY = {
 
 /** Numbers of a mount without building it: { trunnion, muzzle (trunnion -> muzzle), spacing, recoil, lift, height } */
 export function mountDims(s) {
+  const d = mountDimsOf(s);
+  const k = s.look && elementKind(s.look);
+  if (k && k.trunnion) { d.trunnion = k.trunnion.slice(); d.muzzle = k.muzzle; }          // the pivot and the muzzle of a mount copied from the reference model
+  return d;
+}
+
+function elementKind(look) {
+  const [ship, kind] = look.split('/'), el = ELEMENTS[ship];
+  return el && el.KINDS[kind];
+}
+
+function mountDimsOf(s) {
   const f = s.variant && FAMILY[s.variant];
   if (f) return { trunnion: [f.trunX, f.trunY], muzzle: f.fwd, spacing: f.spacing, recoil: f.recoil, lift: f.lift, height: f.h, barbR: f.barbR || 0, barb: f.barb };
   const calM = s.cal / 1000, n = s.n;
@@ -511,14 +523,14 @@ function makeFamily(s, f) {
 function makeMount(s) {
   const mm = makeMountProcedural(s);
   if (!s.look) return mm;
-  const [ship, kind] = s.look.split('/'), el = ELEMENTS[ship], k = el && el.KINDS[kind];
+  const [ship] = s.look.split('/'), el = ELEMENTS[ship], k = elementKind(s.look);
   if (!k || !k.house) return mm;
   const hb = new MeshBuilder(), gb = new MeshBuilder();
   let d = decodeBaked(k.house, el.MOUNT_SCALE); hb.raw(d.pos, d.nrm, d.col, d.idx, MAT.HULL);
   let guns = mm.guns;
   if (k.guns) { d = decodeBaked(k.guns, el.MOUNT_SCALE); gb.raw(d.pos, d.nrm, d.col, d.idx, MAT.HULL); guns = gb.build(); }
-  else if (k.noGuns) guns = gb.build();
-  return { ...mm, house: hb.build(), guns };
+  else if (k.type === 't25') guns = gb.build();                 // a light mount whose guns are part of the copied object: no separate barrels
+  return { ...mm, house: hb.build(), guns, ...(k.trunnion ? { trunnion: k.trunnion.slice(), muzzleX: k.muzzle, barrelLen: k.muzzle } : {}) };
 }
 
 function makeMountProcedural(s) {

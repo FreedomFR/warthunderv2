@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased — the Yamato's mounts copied from a model whose groups are its elements
+
+- With the Yamato model whose groups are the ship's own elements (`yamatoV4`, the parts named after the original assets): **`tools/refs/catalog.py`** lists them (3 turrets of 46 cm, 2 of 15.5 cm, 12 of 12.7 cm, 24 shields and 22 open triples of 25 mm, directors, radars, cutters, crane...) and **`tools/refs/groupmounts.py`** copies the mounts: the guns (barrels and their cradles) are separate from the house, with the trunnion measured, so that they elevate and recoil about the right point; every copy is placed at the position and the rest direction the model has (the secondary mounts are broadside as in the model). In the game: 46 cm A, B, C (A and B identical, C turned aft), 15.5 cm, the 6 open and 6 cupola 12.7 cm, 46 light triples of 25 mm (24 shielded and 22 open); the earlier copies found by shape are replaced.
+- Elevation checked at 0 and 35 degrees: the cradle and the barrels pivot, the house stays. A copied mount with no free arc in the hand-made masses keeps the outward half circle.
+- The other ships' copies are out again; they come back one by one when their models have such groups. `catalog.py`, `groupmounts.py`; `gltf.mjs bakeraw` writes the group of every vertex.
+
 ## Unreleased — elements found by shape and measured, not by boxes
 
 - **`tools/refs/instances.py`**: finds the repeated objects of a model (same triangle count and size), fits each copy onto the first by a turn about the vertical and a shift (residual in cm), and prints the table: 134 kinds on the Yamato, e.g. 23 identical shield objects (0.0 cm residual). **`tools/refs/assemble.py`** builds an element from a kind and the objects standing in its cylinder, written in the mount's own frame (the way its slot faces = forward), with the thin objects as guns (origin at the trunnion: they elevate and recoil), and the placements measured on the model. The previous element copier (boxes of the game's mounts) is dropped from use: its houses overlapped, faced the wrong way and caught pieces of neighbours.

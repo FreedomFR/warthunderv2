@@ -455,23 +455,25 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     fs.mkdirSync(out, { recursive: true });
     let nv = 0, nf = 0;
     for (const p of m.parts) { nv += p.V.length / 3; nf += p.idx.length / 3; }
-    const pos = new Float32Array(nv * 3), uv = new Float32Array(nv * 2), vm = new Int16Array(nv), ix = new Uint32Array(nf * 3);
+    const pos = new Float32Array(nv * 3), uv = new Float32Array(nv * 2), vm = new Int16Array(nv), ix = new Uint32Array(nf * 3), vp = new Int32Array(nv);
     let vo = 0, fo = 0;
+    let pi = -1;
     for (const p of m.parts) {
+      pi++;
       const n = p.V.length / 3;
-      for (let i = 0; i < n; i++) { pos[(vo + i) * 3] = p.V[i * 3]; pos[(vo + i) * 3 + 1] = p.V[i * 3 + 1] - wl; pos[(vo + i) * 3 + 2] = p.V[i * 3 + 2]; if (p.UV) { uv[(vo + i) * 2] = p.UV[i * 2]; uv[(vo + i) * 2 + 1] = p.UV[i * 2 + 1]; } vm[vo + i] = p.mat ?? -1; }
+      for (let i = 0; i < n; i++) { pos[(vo + i) * 3] = p.V[i * 3]; pos[(vo + i) * 3 + 1] = p.V[i * 3 + 1] - wl; pos[(vo + i) * 3 + 2] = p.V[i * 3 + 2]; if (p.UV) { uv[(vo + i) * 2] = p.UV[i * 2]; uv[(vo + i) * 2 + 1] = p.UV[i * 2 + 1]; } vm[vo + i] = p.mat ?? -1; vp[vo + i] = pi; }
       for (let t = 0; t < p.idx.length; t++) ix[fo * 3 + t] = vo + p.idx[t];
       vo += n; fo += p.idx.length / 3;
     }
     const w = (f, a) => fs.writeFileSync(path.join(out, f), Buffer.from(a.buffer, a.byteOffset, a.byteLength));
-    w('pos.f32', pos); w('uv.f32', uv); w('vmat.i16', vm); w('idx.u32', ix);
+    w('pos.f32', pos); w('uv.f32', uv); w('vmat.i16', vm); w('idx.u32', ix); w('vpart.i32', vp);
     const mats = (model.g.materials || []).map((mt) => {
       if (mt.objFactor) return { name: mt.name, diffuse: mt.objDiffuse, factor: mt.objFactor };
       const sg = mt.extensions?.KHR_materials_pbrSpecularGlossiness, pbr = mt.pbrMetallicRoughness;
       const ti = sg?.diffuseTexture?.index ?? pbr?.baseColorTexture?.index;
       return { name: mt.name, diffuse: ti != null ? model.g.images[model.g.textures[ti].source].uri : null, factor: sg?.diffuseFactor || pbr?.baseColorFactor || [1, 1, 1, 1] };
     });
-    fs.writeFileSync(path.join(out, 'info.json'), JSON.stringify({ vertices: nv, triangles: nf, mats, L: m.L, flipV: !(model.g.nodes && model.g.nodes.length) }));
+    fs.writeFileSync(path.join(out, 'info.json'), JSON.stringify({ vertices: nv, triangles: nf, mats, L: m.L, flipV: !(model.g.nodes && model.g.nodes.length), parts: m.parts.map((p) => ({ name: p.name, mat: p.mat ?? -1 })) }));
     console.log(`${out}: ${nv} vertices, ${nf} triangles, ${mats.length} materials`);
   } else if (cmd === 'sections') {
     const step = +(arg || 2);
