@@ -12,7 +12,7 @@ import { GRAF_SPEE } from './ships/graf_spee.js';
 import { TADE } from './ships/tade.js';
 import * as SHOKAKU_V4 from './ships/shokaku_v4.js';
 import * as IOWA_V4 from './ships/iowa_v4.js';
-import { TADE_PB39_AA, KAGERO_1944_AA, SHOKAKU_1944_AA } from './ships/variants_aa.js';
+import { TADE_PB39_AA, KAGERO_1944_AA, SHOKAKU_1944_AA, GIOBERTI_1940_AA, GIOBERTI_1942_AA } from './ships/variants_aa.js';
 import { VARIANTS } from '../data/variants.js';
 import { GIOBERTI } from './ships/gioberti.js';
 import { ADAMS } from './ships/adams.js';
@@ -1042,5 +1042,7 @@ const VARIANT_TWEAKS = {
   tade_pb39: { noTubes: true, v4Drop: ['tubes0', 'tubes1'], aaAt: TADE_PB39_AA, dropPlacements: ['m2'] },
   kagero_1944: { aaAt: KAGERO_1944_AA, dropPlacements: ['m1'], v4Clean: [{ x: -27.2, z: 0, r: 2.7, y0: 5.6, maxArea: 1.5 }, { x: -27.2, z: 0, r: 4.4, y0: 5.6, maxArea: 0.12 }] },      // the roller path of the X turret
   shokaku_1944: { aaAt: SHOKAKU_1944_AA },
+  gioberti_1940: { aa: [], aaAt: GIOBERTI_1940_AA, dropPlacements: ['13mm_Breda_1931_Twin#0', '13mm_Breda_1931_Twin#1', '13mm_Breda_1931_Twin#2', '13mm_Breda_1931_Twin#3'] },
+  gioberti_1942: { aa: [], aaAt: GIOBERTI_1942_AA, dropPlacements: ['13mm_Breda_1931_Twin#0', '13mm_Breda_1931_Twin#1', '13mm_Breda_1931_Twin#2', '13mm_Breda_1931_Twin#3', '120mm-15_StarShell#0'], v4Drop: ['533mm_Torpedo_Triple#0'], dropTubesWhere: (t) => t.x < -15 },
 };
 for (const v of VARIANTS) TWEAKS[v.id] = { ...TWEAKS[v.base], ...VARIANT_TWEAKS[v.id] };

@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased — the three fits of the Gioberti
+
+- **Vincenzo Gioberti**: the base is the 1937 fit (the model's: 4 twin 13.2 mm, 2 triple tube banks, 2 x 120/15). **1940**: the 13.2 mm replaced by 8 single 20/65 Breda (Italian Wikipedia, naval-encyclopedia). **1942-43** (Navypedia, naval-encyclopedia): the after torpedo bank landed (3 tubes), one 120/15 landed, 2 twin 37/54 Breda and 2 twin 20/70 Scotti-Isotta Fraschini added to the 8 singles (Italian Wikipedia has 3 twin 20/65 instead: the sources disagree). The research agent was stopped; the figures come from three direct reads of these sources.
+- New light mounts `b20` (Breda 20/65 single) and `b20d` (Scotti 20/70 double); `tw.dropTubesWhere` (launchers landed). The ships are now 40.
+
 ## Unreleased — nothing is left of a gun a fit has landed
 
 - Kagero 1944: pieces of other materials of the X turret (small sights, hand wheels) were left floating on its barbette, and its roller path was still drawn: the element takes them too (`9febe4ac`, window from 0.6 m under the pivot), and the variant cleans the small triangles of the barbette (`v4Clean`, `cutBaked`). Tade PB-39: the tip of the aft gun's barrel was outside its window (the window is 5.4 m long now) and stayed in the air.
