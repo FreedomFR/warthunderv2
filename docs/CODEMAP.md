@@ -103,7 +103,7 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 - `kit.js` (35) The drawing helpers shared by the ships that are drawn bespoke from a reference model (ships/<id>.js): plans from half-widths, thin walls, railings round a platform,… [cutter, kit] ← 3
 - `tade.js` (162) tade: the tweaks of the tade model (see ../shipbuilder.js for the options and ../tweaks.js for the others); [TADE] ← 1
 - `yamato.js` (284) yamato: the tweaks of the Yamato model (see ../shipbuilder.js for the options and ../tweaks.js for the others); [YAMATO] ← 1
-- `yamato_baked.js` (4) The Yamato's solid masses read on the reference model (KojfDiscord, CC BY 4.0: see docs/CREDITS.md): its triangles simplified to 160k, the colour of its textures at… [SCALE, BAKED] ← 1
+- `yamato_baked.js` (4) The Yamato's solid masses read on the reference model (KojfDiscord, CC BY 4.0: see docs/CREDITS.md): its triangles simplified to 240k, the colour of its textures at… [SCALE, BAKED] ← 1
 - `yamato_mounts_baked.js` (4) The gun houses and barrels of the Yamato's mount families read on the reference model (KojfDiscord, CC BY 4.0: docs/CREDITS.md): one mount of each kind in its own… [MOUNT_SCALE, MOUNTS_BAKED] ← 1
 
 ## js/game/render/
