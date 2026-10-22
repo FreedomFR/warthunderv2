@@ -68,6 +68,8 @@ h1 { font-size: 26px; margin: 6px 0 2px; letter-spacing: .2px; }
 .node .n-type { font-weight: 800; letter-spacing: .6px; background: color-mix(in srgb, var(--acc) 30%, transparent); color: var(--ink); border-radius: 5px; padding: 0 6px; font-size: 11px; }
 .node .n-prof { display: flex; align-items: flex-end; justify-content: center; min-height: 0; padding: 2px 0 1px; }
 .node .n-prof svg { height: auto; max-height: 58px; display: block; }
+.node .n-prof .ship-pic { display: flex; align-items: flex-end; justify-content: center; width: 100%; }
+.node .n-prof img { height: auto; max-height: 58px; object-fit: contain; display: block; }
 .node .n-name { font-size: 14.5px; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .node .n-sub { font-size: 11.5px; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .node .n-flag { margin-left: 5px; padding: 0 6px; font-size: 10px; background: #8a5a1c; color: #ffe2b0; border-radius: 5px; }
@@ -99,6 +101,8 @@ h1 { font-size: 26px; margin: 6px 0 2px; letter-spacing: .2px; }
 .btn.pri { background: color-mix(in srgb, var(--acc) 30%, transparent); border-color: color-mix(in srgb, var(--acc) 70%, transparent); }
 .profile-big { margin: 12px 0 6px; padding: 8px 10px; background: linear-gradient(180deg, #16293b, #0d1722); border: 1px solid var(--line); border-radius: 12px; }
 .profile-big svg { width: 100%; height: auto; max-height: 120px; }
+.profile-big .ship-pic { display: block; }
+.profile-big img { display: block; height: auto; max-height: 190px; object-fit: contain; margin: 0 auto; }
 .bars { display: grid; gap: 7px; margin: 12px 0 14px; }
 .bar { display: grid; grid-template-columns: 138px 1fr 92px; gap: 10px; align-items: center; font-size: 13px; }
 .bar span { color: var(--dim); }
@@ -175,7 +179,7 @@ footer { max-width: 1360px; margin: 0 auto; padding: 0 18px 40px; color: var(--d
   .lane-h::after { content: ''; flex: 1; height: 1px; background: var(--line2); }
   .lane-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 9px; }
   .lane-row .node { position: relative; left: auto !important; top: auto !important; width: auto !important; height: 126px !important; }
-  .lane-row .node .n-prof svg { max-height: 66px; }
+  .lane-row .node .n-prof svg, .lane-row .node .n-prof img { max-height: 66px; }
   .lane-row .node .tier-chip { display: inline; }
   .card { width: 100vw; }
   .card .hd h2 { font-size: 18px; }

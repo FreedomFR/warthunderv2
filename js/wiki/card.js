@@ -4,7 +4,7 @@
 import { h } from '../viewer/dom.js';
 import { nationInfo, typeName, bars, shipSections, aircraftSections, sheetNotes, sourcesOf, SHIPS } from './data.js';
 import { flagSVG, ACCENTS, slug } from './flags.js';
-import { shipProfile, aircraftTop } from './profile.js';
+import { shipPicture, aircraftTop } from './profile.js';
 
 const NB = ' ';
 
@@ -51,7 +51,7 @@ export function createCard({ onClose, onOpenShip, onStep }) {
     const est = s.estimated || [];
     const kids = [
       ...viewer(rec.id),
-      h('div', { class: 'profile-big', html: shipProfile(s, { full: true }) }),
+      h('div', { class: 'profile-big' }, shipPicture(s, { full: true })),
       h('div', { class: 'bars' }, bars(rec).map((b) => h('div', { class: 'bar' }, h('span', {}, b.label), h('i', { style: `--v:${Math.max(0.02, b.v).toFixed(3)}` }), h('b', {}, b.text)))),
       ...secs.map((sec) => section(sec, ['dim', 'main'].includes(sec.id))),
       h('div', { class: 'legend' }, 'valeur estimée dans la fiche technique (non relevée dans les sources)'),

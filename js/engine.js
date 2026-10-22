@@ -1159,6 +1159,8 @@ export async function createEngine(canvas, options = {}) {
 
   const engine = {
     device, canvas, P, qs, cam, hooks, water, foam, shadow, stats, hasTS, offscreen,
+    /** the flat background of `?matte=1` (r, g, b in HDR values), changeable between two captures (tools/wikishots.mjs renders on black and on white to cut a ship out exactly) */
+    matteClear,
     /** what the browser says about the GPU (the performance test's report): vendor, architecture, device, description, and a few limits */
     adapterInfo: (() => {
       const i = adapter.info || {}, L = adapter.limits || {};

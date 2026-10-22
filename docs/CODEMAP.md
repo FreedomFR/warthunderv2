@@ -5,7 +5,7 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 
 ## js/
 
-- `engine.js` (1240) WebGPU ocean engine — derived from Noniv/web-ocean (MIT), restructured so a game can sit on top. [P, SLIDERS, MAX_PROBE, MAX_STAMPS, createEngine] ← 3
+- `engine.js` (1242) WebGPU ocean engine — derived from Noniv/web-ocean (MIT), restructured so a game can sit on top. [P, SLIDERS, MAX_PROBE, MAX_STAMPS, createEngine] ← 3
 - `main.js` (77) Entry point. ← 0
 - `preview.js` (129) Model preview: ?preview=<shipId>[,<shipId>|plane:<type>...] renders models on the ocean with an orbit camera. [runPreview] ← 1
 - `trailer.js` (216) Trailer director: scripted scenes recorded frame by frame with the offline recorder (tools/trailer/record.mjs). [FPS, LOOKS, Trailer, mv] ← 3
@@ -51,7 +51,7 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 - `balance.js` (87) Balance: multipliers of the damage done in the battle, so that it can be tuned without touching the code. [BALANCE_FIELDS, BALANCE_MIN, BALANCE, balanceNeutral, balanceOfFile, balanceNow, setBalance, setBalanceFile, balanceDiff, … +2] ← 7
 - `explosives.js` (40) Explosive fillers of torpedoes and their strength against a ship's hull, as kg of TNT per kg of filler. [EXPLOSIVE, tntEquivalent, AIR_TORPEDO, airTorpedoEq] ← 4
 - `protection.js` (72) Protection and survivability data that the spec sheets do not carry: how the armour is laid out (belt inclination, the thin weather deck above the armoured one), the… [NAVY, PROTECTION, protectionOf, navyOf] ← 1
-- `ships.js` (30) Ship roster: the six nations' spec sheets (real-ship data) indexed by id / nation / type. [NATIONS, TYPES, ALL_SHIPS, BY_ID, typeName, nationName, shipsOf] ← 33
+- `ships.js` (30) Ship roster: the six nations' spec sheets (real-ship data) indexed by id / nation / type. [NATIONS, TYPES, ALL_SHIPS, BY_ID, typeName, nationName, shipsOf] ← 34
 
 ## js/game/data/specs/
 
@@ -197,8 +197,8 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 - `data.js` (251) Data adapter of the wiki: reads the same spec sheets as the game (js/game/data, js/game/model/planes.js) and turns them into display records (French labels, number… [fr, SHIPS, SHIP, nationShips, nationInfo, nationBySlug, MAXIMA, bars, describeMounts, … +13] ← 7
 - `flags.js` (21) Small national flags (simplified drawings, 3:2) and the accent colour of each nation's tree. [ACCENTS, flagSVG, slug] ← 5
 - `layout.js` (68) Tech-tree layout of one nation (pure functions, no DOM): tiers in columns (left = oldest), the five ship types in rows (lanes), a ship in the cell of its tier and its… [G, layoutNation] ← 2
-- `profile.js` (135) Little silhouettes drawn from the spec sheets: the side profile of a ship (hull length, funnels, masts, turrets, island, flight deck at their measured positions, in… [iconScale, shipProfile, aircraftTop, lighten, darken] ← 4
-- `styles.js` (199) Styles of the wiki, injected by js/wiki.js (kept in a module so the page is a plain shell and the whole wiki lives in js/wiki/). [CSS, injectStyles] ← 1
+- `profile.js` (154) Little silhouettes drawn from the spec sheets: the side profile of a ship (hull length, funnels, masts, turrets, island, flight deck at their measured positions, in… [iconScale, shipPicture, shipProfile, aircraftTop, lighten, darken] ← 4
+- `styles.js` (203) Styles of the wiki, injected by js/wiki.js (kept in a module so the page is a plain shell and the whole wiki lives in js/wiki/). [CSS, injectStyles] ← 1
 - `tiers.js` (14) Tiers of the tech tree: six eras, cut by the year the class entered service. [TIERS, tierOf] ← 4
 - `tree.js` (68) Renders the tech tree of one nation: columns = tiers, rows = ship types, nodes = ships, lines = successions. [shipNode, renderTree] ← 1
 
@@ -243,6 +243,7 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 - `uishots.mjs` Pictures of the interface in a running battle, to judge it: node tools/uishots.mjs <outDir> [width] [height] GPU=hardware WSLENV=GPU "/mnt/c/Program…
 - `unused.mjs` Exports that nothing imports: node tools/unused.mjs (the candidates for dead code: check each before removing it;
 - `wgslcheck.mjs` Compile the WGSL shaders with a real WebGPU device (headless Chromium) and print the compiler messages.
+- `wikishots.mjs` The side view of each ship's model, for the wiki (wiki/ships/<id>.webp): every ship is rendered twice from the starboard beam, on a black and on a white background,…
 
 ## Tests (liste et durées : node tools/runtests.mjs --list)
 

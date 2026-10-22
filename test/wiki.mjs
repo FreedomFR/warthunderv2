@@ -1,6 +1,7 @@
 // The wiki and the viewer without a browser: node test/wiki.mjs
 // Every ship and aircraft has a record, a tier, statistic sections and silhouettes; the tech-tree layout of each nation places every ship
 // once, without overlaps, with its ships of one type chained from the oldest to the newest; the viewer's link format round-trips.
+import fs from 'node:fs';
 import { ALL_SHIPS } from '../js/game/data/ships.js';
 import { SHIPS, AIRCRAFT, NATIONS, TYPES, shipSections, bars, sheetNotes, aircraftSections, fr, describeMounts } from '../js/wiki/data.js';
 import { TIERS, tierOf } from '../js/wiki/tiers.js';
@@ -24,6 +25,7 @@ for (const r of SHIPS) {
   for (const s of secs) for (const row of s.rows) ok(!/undefined|NaN|null/.test(row.v), `${r.id}: "${row.k}" = ${row.v}`);
   ok(bars(r).every((b) => b.v >= 0 && b.v <= 1.0001 && !/NaN/.test(b.text)), `${r.id}: bars`);
   ok(sheetNotes(r).length > 0, `${r.id}: notes`);
+  ok(fs.existsSync(new URL(`../wiki/ships/${r.id}.webp`, import.meta.url)), `${r.id}: the side view of the model (wiki/ships/${r.id}.webp, node tools/wikishots.mjs then python3 tools/wikishots.py out/wiki wiki/ships)`);
   const svg = shipProfile(r.spec);
   ok(svg.startsWith('<svg') && !/NaN|undefined/.test(svg), `${r.id}: silhouette`);
   ok(!/NaN|undefined/.test(shipProfile(r.spec, { full: true })), `${r.id}: full silhouette`);
