@@ -670,7 +670,9 @@ export function createUI(game) {
     // kill feed
     const now = performance.now();
     state.killFeed = state.killFeed.filter((k) => now - k.t < 9000);
-    feed.replaceChildren(...state.killFeed.map((k) => h('div', { class: 'kline' }, h('span', {}, (k.plane ? '✈ ' : '') + k.text), h('i', { style: `background:${k.c2}` }))));
+    // each line keeps its element: rebuilding them every frame replayed the fade-in animation (the lines flickered)
+    const lines = state.killFeed.map((k) => k.el || (k.el = h('div', { class: 'kline' }, h('span', {}, (k.plane ? '✈ ' : '') + k.text), h('i', { style: `background:${k.c2}` }))));
+    if (lines.length !== feed.children.length || lines.some((el, i) => feed.children[i] !== el)) feed.replaceChildren(...lines);
     // what the camera shows and who it follows
     updateCaption();
     // selected ship

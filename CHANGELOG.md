@@ -3,6 +3,7 @@
 ## Unreleased — the right-hand panels no longer overlap
 
 - The fleets, the reload rings and the ship's sheet are stacked in a column that follows their real heights (`layoutRight` in `ui/ui.js`): the rings sit under the fleets table (it grows with the number of ships: they used to be drawn over its last rows) and the sheet takes what is left, scrolling when short.
+- The kill feed at the top flickered: its lines were rebuilt every frame, which replayed their fade-in each time; each line now keeps its element.
 - Phone: the reload rings had no touch layout (a 340 px panel over the middle of the screen); they are now small, under the menu button, shown only held sideways and while the ship's sheet is closed.
 
 ## Unreleased — Shokaku, Graf Spee and Gioberti built from the groups of their new models
