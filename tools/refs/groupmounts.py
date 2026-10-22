@@ -56,9 +56,13 @@ def bbox(tris):
 
 
 def analyse(gtris, el):
-    gm = el.get('gun_materials')
-    if gm:     # the pieces of the guns' materials are separated from the rest first (a barrel touching its cradle is not one object)
-        isg = np.array([parts[tp[t]]['mat'] >= 0 and any(m in mats[parts[tp[t]]['mat']] for m in gm) for t in gtris])
+    gm = el.get('gun_materials'); gbox = el.get('gun_box')
+    if gm or gbox:     # the pieces of the guns' materials (or the triangles whose centre lies in the box `gun_box` of the model: the barrel of a gun whose house and barrel are one piece) are separated from the rest first (a barrel touching its cradle is not one object)
+        if gbox:
+            cen = P[I[gtris]].mean(axis=1)
+            isg = (cen[:, 0] >= gbox[0]) & (cen[:, 0] <= gbox[1]) & (cen[:, 1] >= gbox[2]) & (cen[:, 1] <= gbox[3]) & (cen[:, 2] >= gbox[4]) & (cen[:, 2] <= gbox[5])
+        else:
+            isg = np.array([parts[tp[t]]['mat'] >= 0 and any(m in mats[parts[tp[t]]['mat']] for m in gm) for t in gtris])
         lab = np.zeros(len(gtris), dtype=np.int64)
         if (~isg).any(): lab[~isg] = components(gtris[~isg])
         if isg.any(): lab[isg] = components(gtris[isg]) + (lab.max() + 1)
@@ -138,11 +142,11 @@ claimed = set()
 for el in cfg['elements']:
     sel = []
     if 'layout_match' in el:
-        R = float(el.get('radius', 4.0)); below = float(el.get('below', 1.5)); above = float(el.get('above', 6.0)); mt = int(el.get('min_part_tris', 8))
+        R = float(el.get('radius', 4.0)); RX = float(el.get('radius_x', R)); RZ = float(el.get('radius_z', R)); below = float(el.get('below', 1.5)); above = float(el.get('above', 6.0)); mt = int(el.get('min_part_tris', 8))
         for r in LAYOUT['mounts']:
             if not all((r.get(k) in v) if isinstance(v, list) else r.get(k) == v for k, v in el['layout_match'].items()):
                 continue
-            ok = np.where((PN >= mt) & (PBMIN[:, 0] >= r['x'] - R) & (PBMAX[:, 0] <= r['x'] + R) & (PBMIN[:, 2] >= r['z'] - R) & (PBMAX[:, 2] <= r['z'] + R) & (PBMIN[:, 1] >= r['y'] - below) & (PBMAX[:, 1] <= r['y'] + above))[0]
+            ok = np.where((PN >= mt) & (PBMIN[:, 0] >= r['x'] - RX) & (PBMAX[:, 0] <= r['x'] + RX) & (PBMIN[:, 2] >= r['z'] - RZ) & (PBMAX[:, 2] <= r['z'] + RZ) & (PBMIN[:, 1] >= r['y'] - below) & (PBMAX[:, 1] <= r['y'] + above))[0]
             ok = [int(k) for k in ok if k not in claimed and not (el.get('exclude') and parts[k]['mat'] >= 0 and el['exclude'] in mats[parts[k]['mat']])
                   and (not el.get('materials') or (parts[k]['mat'] >= 0 and any(m in mats[parts[k]['mat']] for m in el['materials'])))]
             if len(ok) < int(el.get('min_parts', 1)):
@@ -187,7 +191,7 @@ for el in cfg['elements']:
             bc = (lo + hi) / 2
             rear = bc - fwd * (np.hypot(hi[0] - lo[0], hi[2] - lo[2]) / 2)
             for k, (clo, chi) in info_c.items():
-                if k in gun_k or k == house_k:
+                if k in gun_k or k == house_k or el.get('no_cradle'):
                     continue
                 ext = chi - clo
                 if np.all(rear >= clo - np.array([0.25, 0.6, 0.25])) and np.all(rear <= chi + np.array([0.25, 0.6, 0.25])) and ext.max() < 6:

@@ -1,6 +1,7 @@
 // tade: the tweaks of the tade model (see ../shipbuilder.js for the options and ../tweaks.js for the others); measured on a reference model, see docs/CREDITS.md.
 // The helpers of the builder are passed to `extra(ctx)`.
 import { kit, cutter } from './kit.js';
+import * as V4 from './tade_v4.js';
 
 
 
@@ -150,6 +151,7 @@ function tadeExtras({ b, hull, X, Y, pal, model, MAT, rgb, shade, part, PT, DT, 
 }
 
 export const TADE = {
+  v4: V4,
   mainVariant: 'type3_120', houseH: 0.1, bulwarkF: [0, 0.2], bulwark: 0.55,
   bow: { rake: 2.3, pr: 1.25, forefoot: 1.0, entrance: 0.36 }, stern: { overhang: 0.15, rise: 0.8, run: 0.25 },
   fb: [[0, 5.4], [0.04, 5.4], [0.1, 5.3], [0.18, 5.3], [0.196, 5.2], [0.2, 2.7], [0.25, 2.6], [0.3, 2.5], [0.4, 2.45], [0.5, 2.4], [0.7, 2.4], [0.78, 2.5], [0.85, 2.5], [1, 2.6]],
