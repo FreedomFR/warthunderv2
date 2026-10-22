@@ -12,6 +12,8 @@ import { GRAF_SPEE } from './ships/graf_spee.js';
 import { TADE } from './ships/tade.js';
 import * as SHOKAKU_V4 from './ships/shokaku_v4.js';
 import * as IOWA_V4 from './ships/iowa_v4.js';
+import * as RICHELIEU_V4 from './ships/richelieu_v4.js';
+import * as FLETCHER_V4 from './ships/fletcher_v4.js';
 import { TADE_PB39_AA, KAGERO_1944_AA, SHOKAKU_1944_AA, GIOBERTI_1940_AA, GIOBERTI_1942_AA } from './ships/variants_aa.js';
 import { VARIANTS } from '../data/variants.js';
 import { GIOBERTI } from './ships/gioberti.js';
@@ -252,6 +254,7 @@ export const TWEAKS = {
   // in front of it, the funnel merged with the aft mast ("mack") at 0.634, the hangar roof 4.8 m above the deck at 0.746-0.845, the
   // catapult at 0.907-0.992; hull widths are estimated (no plan view).
   richelieu: {
+    v4: RICHELIEU_V4, aa: [],      // the light mounts are the model's
     mainVariant: 'rich380', secVariant: ['fr152'], houseH: 4.8, bulwarkF: [0, 0.05],
     fb: [[0, 9.2], [0.05, 8.5], [0.1, 8.0], [0.15, 7.5], [0.2, 7.2], [0.3, 7.0], [0.8, 7.0], [0.85, 6.7], [1, 6.7]],
     keel: [[0, 0.8], [0.05, 0.92], [0.1, 0.97], [0.15, 0.94], [0.85, 0.94], [0.9, 0.82], [0.93, 0.62], [0.96, 0.38], [1, 0.2]],
@@ -669,10 +672,8 @@ export const TWEAKS = {
     props: [{ f: 0.936, z: 2.9, depth: 3.0, d: 3.6, blades: 4, toF: 0.84, strutF: 0.866 }],
     rudders: [{ f: 0.96, z: 0, top: 0.6, bottom: 4.4, chord: 3.3 }],
     boats: [{ f0: 0.347, f1: 0.41, z: 3.6, y: 2.2, cabin: false, davits: true }],
-    aa: [
-      { k: 't40', f: 0.61, z: 4.1, y: 0 }, { k: 't40', f: 0.717, z: 0, y: 7.4 }, { k: 't40', f: 0.953, z: 0, y: 0.5 },
-      { k: 'o20', f: 0.29, z: 4.7, y: 4.5 }, { k: 'o20', f: 0.345, z: 3.9, y: 4.5 }, { k: 'o20', f: 0.5, z: 4.8, y: 0 },
-    ],
+    aa: [],      // the light mounts come from the model (3 twin 40 mm, 9 single 20 mm)
+    v4: FLETCHER_V4,
   },
   // Cleveland class (Colosseum drawing of USS Cleveland, Measure 12 modified, 1942, with a scale bar and the waterline; plan from the Pit-Road 1/700 sheet; shared by
   // the project owner, measured only: 3.9 px per metre, about +-0.5 m): freeboard 8.8 m at the stem, 7.3 m at f 0.2, 6.8-7.0 m amidships and aft, a 9.6 m hangar roof at

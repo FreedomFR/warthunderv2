@@ -1,0 +1,88 @@
+{
+ "ship": "Richelieu",
+ "elements": [
+  {
+   "id": "t380",
+   "type": "main",
+   "cal": 380,
+   "group": "main",
+   "material": "FGM049",
+   "cluster": {
+    "gap": 0.5,
+    "min_tris": 1000
+   },
+   "split": true,
+   "barrel_len": 8
+  },
+  {
+   "id": "s152",
+   "type": "sec",
+   "cal": 152,
+   "group": "sec",
+   "material": "FGM047",
+   "cluster": {
+    "gap": 0.5,
+    "min_tris": 1000
+   },
+   "split": true,
+   "barrel_len": 4
+  },
+  {
+   "id": "s100",
+   "type": "sec100",
+   "cal": 100,
+   "group": "sec",
+   "template": {
+    "x": -28.69,
+    "z": 10.43,
+    "y": 10.5,
+    "x_range": [
+     -3.4,
+     3.4
+    ],
+    "z_range": [
+     -2.2,
+     2.2
+    ],
+    "below": 0.3,
+    "above": 4.0,
+    "materials": [
+     "FGS024"
+    ]
+   },
+   "split": true,
+   "barrel_len": 2.2,
+   "grow": {
+    "radius": 4.2
+   }
+  },
+  {
+   "id": "q40",
+   "type": "q40",
+   "cal": 40,
+   "group": "aa",
+   "materials": [
+    "FGA050_40mm_Bofors"
+   ],
+   "cluster": {
+    "gap": 0.5,
+    "min_tris": 500
+   },
+   "facing": "thin",
+   "thin_len": 0.9
+  },
+  {
+   "id": "o20",
+   "type": "o20",
+   "cal": 20,
+   "group": "aa",
+   "material": "FGA014",
+   "cluster": {
+    "gap": 0.02,
+    "min_tris": 200
+   },
+   "facing": "thin",
+   "thin_len": 0.6
+  }
+ ]
+}

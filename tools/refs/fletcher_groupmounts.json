@@ -1,0 +1,46 @@
+{
+ "ship": "Fletcher",
+ "elements": [
+  {
+   "id": "t127",
+   "type": "main",
+   "cal": 127,
+   "group": "main",
+   "material": "ags001",
+   "cluster": {
+    "gap": 0.3,
+    "min_tris": 1500
+   },
+   "unit_tris": 3000,
+   "split": true,
+   "barrel_len": 1.5,
+   "split_key": "min"
+  },
+  {
+   "id": "b40",
+   "type": "t40",
+   "cal": 40,
+   "group": "aa",
+   "material": "aga002",
+   "cluster": {
+    "gap": 0.3,
+    "min_tris": 500
+   },
+   "facing": "thin",
+   "thin_len": 0.9
+  },
+  {
+   "id": "o20",
+   "type": "o20",
+   "cal": 20,
+   "group": "aa",
+   "material": "aga003",
+   "cluster": {
+    "gap": 0.1,
+    "min_tris": 300
+   },
+   "facing": "thin",
+   "thin_len": 0.6
+  }
+ ]
+}

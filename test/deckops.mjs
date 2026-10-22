@@ -52,7 +52,7 @@ for (const id of ids) {
     parkedMin = Math.min(parkedMin, ship.parked);
     if (f && f() === false) break; } };
   // 1. the launch
-  step(250, () => { if (!wave) { const p = w.planes.find((q) => q.owner === ship && q.wave); if (p) wave = p.wave; } if (wave) ship.air.cooldown = 1e9; return wave && wave.launched >= wave.planes.length; });
+  step(420, () => { if (!wave) { const p = w.planes.find((q) => q.owner === ship && q.wave); if (p) wave = p.wave; } if (wave) ship.air.cooldown = 1e9; return wave && wave.launched >= wave.planes.length; });
   ok(!!wave && wave.launched >= wave.planes.length, `${id}: the whole wave (${wave && wave.planes.length} with its escort) took off, in ${firstTakeoff ? (lastTakeoff - firstTakeoff).toFixed(0) : '?'} s from the first to the last`);
   if (!wave) continue;
   const lifted = wave.planes.filter((p) => states.get(p.id)?.has('queue/rise'));

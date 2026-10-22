@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased — the Richelieu and the Fletcher from their models
+
+- **Richelieu** and **Fletcher** are now drawn from their reference models, like the other ships: hull, structure and fine detail, 21 destroyable parts for the Richelieu (directors, radars, boats...) and 15 for the Fletcher (funnels, bridge, mast, tube banks, directors, radars, boats), and the mounts copied one element at a time with their guns elevating and recoiling: Richelieu 2 x 4 x 380 mm, 3 x 3 x 152 mm, 6 x 2 x 100 mm, 14 x 4 x 40 mm, 48 x 20 mm; Fletcher 5 x 127 mm, 3 x 2 x 40 mm, 9 x 20 mm and the two quintuple tube banks (the counts are those of the models, checked against the real armament: see TODO 6 ter for the differences).
+- `groupmounts.py`: `cluster` (the pieces of one material that touch make one mount), `materials`, `unit_tris`, `facing: thin` (the way the barrels point from long thin pieces), `grow`, `split_key: min` (a barrel that reaches over the next mount goes by its rear end); `shipgroups.py`: a rule with `cluster` makes one part per cluster; `tools/refs/clusters.py` lists the mounts a model really has; `pair.mjs` takes `--elev=` (gun elevation).
+- Tests: `elements` accepts a median gap up to 10 cm for the copies with their own guns; `hitbox` counts a scar as lying on the drawn surface when a short path along its normal or along an axis meets it (a rod or a plate edge has no normal worth the name).
+
 ## Unreleased — the three fits of the Gioberti
 
 - **Vincenzo Gioberti**: the base is the 1937 fit (the model's: 4 twin 13.2 mm, 2 triple tube banks, 2 x 120/15). **1940**: the 13.2 mm replaced by 8 single 20/65 Breda (Italian Wikipedia, naval-encyclopedia). **1942-43** (Navypedia, naval-encyclopedia): the after torpedo bank landed (3 tubes), one 120/15 landed, 2 twin 37/54 Breda and 2 twin 20/70 Scotti-Isotta Fraschini added to the 8 singles (Italian Wikipedia has 3 twin 20/65 instead: the sources disagree). The research agent was stopped; the figures come from three direct reads of these sources.

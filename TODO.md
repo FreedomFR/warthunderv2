@@ -143,6 +143,8 @@ Le propriétaire demande cette liste quand il veut savoir s'il n'a rien oublié.
 
 **Écarts d'armement connus et non traités** :
 - [ ] **Graf Spee** : 12 canons de 20 mm dans le jeu, 10 d'après les sources.
+- [ ] **Richelieu** : le modèle montre le refit de New York (1943) : 14 quadruples de 40 mm, 48 Oerlikon de 20 mm ; les quatre 40 mm de plus de 1944 ne sont pas dans le modèle (le jeu n'en ajoute pas) ; pas de version 1940 (13,2 mm et 37 mm).
+- [ ] **Fletcher** : le jeu dessine ce que le modèle porte (3 doubles de 40 mm, 9 simples de 20 mm, 2 quintuples de tubes) ; la fiche dit 4 doubles de 40 mm à la construction et 7 de 20 mm (Wikipédia : 6 canons de 40 mm et 7 de 20 mm mi-1943) ; pas de version 1945 (Kidd : 5 doubles de 40 mm).
 - [ ] **Iowa** : 20 quadruples de 40 mm et 49 de 20 mm (la classe) ; l'Iowa elle-même en avait 19 et 52.
 - [ ] Charges de profondeur et lanceurs (Kagero, Tade, Gioberti, Adams ?), mitrailleuses de 13,2 mm (Yamato, Kagero 1944) et hydravions des cuirassés (Yamato, Graf Spee, Iowa) : non simulés.
 - [ ] **Wiki** : les images des versions d'un navire sont des vues de leur modèle, sans mention des différences d'armement.

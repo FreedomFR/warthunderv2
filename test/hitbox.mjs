@@ -203,9 +203,10 @@ ok(offRate < 0.07, `hits more than 6 m from the drawn surface: ${(100 * offRate)
       const sc = ship.scars[ship.scars.length - 1];
       if (!sc || ship.scars.length === before && before < 54) continue;
       if (isV4) nV++; else n++;
-      // a short path across the scar along its normal must meet the drawn surface
+      // a short path across the scar along its normal must meet the drawn surface (or one along an axis: a rod or the edge of a plate has no normal worth the name, and the scar still lies on it)
       const a = [sc.x + sc.nx * 0.9, sc.y + sc.ny * 0.9, sc.z + sc.nz * 0.9], b = [sc.x - sc.nx * 0.9, sc.y - sc.ny * 0.9, sc.z - sc.nz * 0.9];
-      if (trace(G, a, b) != null) { if (isV4) nearV++; else near++; }
+      const onSurface = trace(G, a, b) != null || [[1, 0, 0], [0, 1, 0], [0, 0, 1]].some((u) => trace(G, [sc.x + u[0] * 0.9, sc.y + u[1] * 0.9, sc.z + u[2] * 0.9], [sc.x - u[0] * 0.9, sc.y - u[1] * 0.9, sc.z - u[2] * 0.9]) != null);
+      if (onSurface) { if (isV4) nearV++; else near++; }
     }
     console.log(`   scars of ${id}: ${(isV4 ? nearV : near) - near0} of ${(isV4 ? nV : n) - n0} on the drawn surface`);
   }

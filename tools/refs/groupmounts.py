@@ -101,6 +101,15 @@ def analyse(gtris, el):
         sign = 1.0 if np.dot(bc - hc, axis) >= 0 else -1.0
         v = axis * sign
         yaw = float(np.degrees(np.arctan2(v[2], v[0])))
+    elif el.get('facing') == 'thin':                      # no separate guns, but long thin pieces (the barrels) that stick out of the mount: it faces from the middle of the rest to them, snapped to a right angle when it is within 25 degrees
+        thin = [k for k, (lo, hi) in info_c.items() if max(hi[0] - lo[0], hi[2] - lo[2]) >= float(el.get('thin_len', 0.9)) and max(hi[0] - lo[0], hi[2] - lo[2]) >= 3.5 * max(min(hi[0] - lo[0], hi[2] - lo[2]), 0.02) and hi[1] - lo[1] < 0.6 * max(hi[0] - lo[0], hi[2] - lo[2])]
+        if thin:
+            rest = [k for k in comps if k not in thin]
+            def cen(ks): t_ = np.concatenate([comps[k] for k in ks]); V_ = P[I[t_]].reshape(-1, 3); return V_.mean(0)
+            d = cen(thin) - (cen(rest) if rest else cen(list(comps)))
+            yaw = float(np.degrees(np.arctan2(d[2], d[0])))
+            sn = np.round(yaw / 90) * 90
+            if abs(((yaw - sn + 180) % 360) - 180) < 25: yaw = float(sn)
     elif el.get('facing') == 'mass':                       # no barrels to tell the way: it faces away from the heavy side (a shield's slot, an open gun's muzzles), snapped to a right angle
         tt = np.concatenate(list(comps.values()))
         A, B, Cc = P[I[tt, 0]], P[I[tt, 1]], P[I[tt, 2]]
@@ -135,7 +144,7 @@ kinds, placements, report = {}, [], []
 # a model whose materials are merged has no group per mount: `layout_match` picks, for each mount record of the game that matches ({"group": "main", "cal": 127}), the whole objects (connected pieces of
 # one material) that lie entirely inside a window round the record (`radius`, `below`, `above` in metres), pieces taken by an earlier element left out. Nothing is cut.
 LAYOUT = json.load(open(cfg['layout'])) if cfg.get('layout') else None
-if LAYOUT or any('template' in e for e in cfg['elements']):
+if LAYOUT or any('template' in e or 'cluster' in e for e in cfg['elements']):
     order = np.argsort(tp, kind='stable'); tps = tp[order]
     st = np.searchsorted(tps, np.arange(len(parts))); en = np.searchsorted(tps, np.arange(len(parts)), side='right')
     PBMIN = np.full((len(parts), 3), 1e9); PBMAX = np.full((len(parts), 3), -1e9); PN = en - st
@@ -206,6 +215,14 @@ for el in cfg['elements']:
             if core:
                 ok = core; claimed_before = set(claimed)
                 inst = find_copies(ok, float(el.get('min_frac', 0.9)))
+        if el.get('grow'):      # the pieces the copies do not share (barrels trained or elevated differently) are given to the nearest copy, within `radius` (m) of its first piece
+            gr = el['grow']; rad = float(gr.get('radius', 3.5)); gm = gr.get('materials') or el['template'].get('materials') or []
+            anchors = [PCEN[ks[0]] for ks in inst]
+            extra = [k for k in range(len(parts)) if PN[k] >= 1 and k not in claimed and not any(k in ks for ks in inst) and parts[k]['mat'] >= 0 and any(m in mats[parts[k]['mat']] for m in gm)]
+            for k in extra:
+                d = [np.hypot(PCEN[k][0] - a[0], PCEN[k][2] - a[2]) for a in anchors]
+                j = int(np.argmin(d))
+                if d[j] <= rad: inst[j].append(k)
         if el.get('instance_box'):      # only the copies whose first piece lies in this box [x0, x1, z0, z1] (a template made of a few pieces also finds them elsewhere)
             bx = el['instance_box']
             inst = [ks for ks in inst if bx[0] <= PCEN[ks[0]][0] <= bx[1] and bx[2] <= PCEN[ks[0]][2] <= bx[3]]
@@ -227,20 +244,41 @@ for el in cfg['elements']:
             claimed.update(ok)
             sel.append((ok[0], r['name'], np.concatenate([order[st[k]:en[k]] for k in ok])))
     for k, p in enumerate(parts if ('layout_match' not in el and 'template' not in el) else []):
-        if p['mat'] >= 0 and el['material'] in mats[p['mat']] and not (el.get('exclude') and el['exclude'] in mats[p['mat']]):
+        wm = el.get('materials') or [el['material']]
+        if p['mat'] >= 0 and any(w in mats[p['mat']] for w in wm) and not (el.get('exclude') and el['exclude'] in mats[p['mat']]):
             t = np.where(tp == k)[0]
             if len(t) >= int(el.get('min_tris', 0)):
                 sel.append((k, p['name'], t))
+    if el.get('cluster') and sel:      # a model whose material is one per kind of mount: the pieces of the material are joined when their boxes are within `gap` (m): every group is one mount
+        gap = float(el['cluster'].get('gap', 0.4)); mt = int(el['cluster'].get('min_tris', 0))
+        ids = [k for k, _, _ in sel]; n = len(ids); par = list(range(n))
+        def find(a):
+            while par[a] != a: par[a] = par[par[a]]; a = par[a]
+            return a
+        srt = sorted(range(n), key=lambda i: PBMIN[ids[i], 0])
+        for a in range(n):
+            i = srt[a]
+            for b in range(a + 1, n):
+                j = srt[b]
+                if PBMIN[ids[j], 0] > PBMAX[ids[i], 0] + gap: break
+                if np.all(PBMIN[ids[j]] <= PBMAX[ids[i]] + gap) and np.all(PBMAX[ids[j]] >= PBMIN[ids[i]] - gap): par[find(i)] = find(j)
+        groups = {}
+        for i in range(n): groups.setdefault(find(i), []).append(i)
+        sel2 = []
+        for gi, mem in enumerate(sorted(groups.values(), key=lambda m: float(np.mean([PBMIN[ids[i], 0] for i in m])))):
+            t = np.concatenate([sel[i][2] for i in mem])
+            if len(t) >= mt: sel2.append((ids[mem[0]], f"{el['id']}#{gi}", t))
+        sel = sel2
     if not sel:
         print(f"element {el['id']}: no group with material {el.get('material')}", file=sys.stderr); continue
     # a group that is twice the size of the usual one holds two mounts whose parts touch: split it in two by the middle of its objects along the ship (1-D two-means on the centres of its objects)
-    med = float(np.median([len(t) for _, _, t in sel]))
+    med = float(el.get('unit_tris') or np.median([len(t) for _, _, t in sel]))      # unit_tris: the triangles of one mount, when groups of several touching mounts are not twice the median
     fixed = []
     for k, name, t in sel:
         if len(t) > 1.5 * med and len(sel) > 1 and not el.get('layout_match') and not el.get('template'):
             lab = components(t)
             ax = 2 if el.get('split_axis') == 'z' else 0      # split_axis 'z': the two mounts stand side by side across the ship (their barrels would mix along x)
-            cs = np.array([P[I[t[lab == q]]].reshape(-1, 3)[:, ax].mean() for q in np.unique(lab)])
+            cs = np.array([(P[I[t[lab == q]]].reshape(-1, 3)[:, ax].min() if el.get('split_key') == 'min' else P[I[t[lab == q]]].reshape(-1, 3)[:, ax].mean()) for q in np.unique(lab)])      # split_key 'min': an object goes by its rear end (the barrel of a mount that reaches over the next one)
             c0, c1 = cs.min(), cs.max()
             for _ in range(20):
                 a = np.abs(cs - c0) <= np.abs(cs - c1)
@@ -252,6 +290,8 @@ for el in cfg['elements']:
         else:
             fixed.append((k, name, t))
     sel = fixed
+    for _, _, t in sel:
+        claimed.update(int(k) for k in np.unique(tp[t]))      # (shipgroups.py leaves these pieces out when its config says `use_claimed`)
     first = None
     for gi, (k, name, t) in enumerate(sel):
         comps, info_c, house_k, barrels, yaw = analyse(t, el)
