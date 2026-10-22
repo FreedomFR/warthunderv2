@@ -510,7 +510,7 @@ export function buildShipModel(spec, tw = {}) {
       let sideZ2 = sideZ; [sideZ2, pivot] = landOn(x, sideZ, pivot, Math.max(1.2, calM * 9), dm.height + 0.8, false);
       const r = dm.barbR || Math.max(calM * 6, 1.1);
       PT.barbette(b, x, sideZ2, mainKind === 'turret' ? r : 0.9, deckY - 0.2, pivot, pal.hull);
-      const [ac, ah] = arcFor(x, sideZ2);
+      const [ac, ah0] = arcFor(x, sideZ2), ah = m.arcHalfDeg != null ? m.arcHalfDeg * D2R : ah0;      // m.arcHalfDeg: the traverse limit of this mount (degrees either side of its rest bearing), when it is known
       mountRec('main', mainKind, mainCal, m.guns, spec.main.boreCalibers, x, sideZ2, pivot, ac, ah, { label: m.label, bore: spec.main.boreCalibers, variant });
       note(pivot + dm.height + 0.8);
     }

@@ -97,6 +97,10 @@ Useful URLs: `?scenario=duel&start=1&seed=3`, `?preview=iowa,yamato&offscreen=1&
 
 The owner drops glTF models (Sketchfab, War Thunder "Ninth Wave", CC BY 4.0) in `modelTmp/` (git-ignored). They are **for measuring only**: extract them to `refs/<id>/src` (git-ignored; `python3 -c "import zipfile..."`, there is no `unzip`), measure with `node tools/refs/gltf.mjs` (it also reads a Wavefront `.obj` placed in `refs/<id>/src/` instead of `scene.gltf`; a zip may hold another zip: extract both) (`survey`, `views`, `quarters`, `plan`, `tables`, `cut`, `heightmap`, `profile`; `--loa=` scales the model to the spec's length), build the ship procedurally (spec sheet + `tweaks.js`, never a copy of the mesh), credit the author in `docs/CREDITS.md`. Research guns, shells and torpedoes on the internet (NavWeaps...) for the spec sheet. Then check the model: `tools/refs/chk.sh <ship>` (silhouettes in metres, from the plans.json entry that `gltf.mjs plan ... | python3 tools/refs/addplan.py` writes), and **look at it from every side on a plain background**: `GPU=hardware WSLENV=GPU "/mnt/c/Program Files/nodejs/node.exe" tools/refs/studio.mjs <ids> out/studio` (9 views, lit from behind the camera) then `python3 tools/refs/sheet.py out/studio/<id>.jpg out/studio/<id> 3`. `tools/refs/addspec.py <nation> spec.json` adds a spec sheet. Positions read on a grid: `gridview.py` (the label is the fraction at the LEFT edge, it decreases to the right: bow on the right).
 
+## Acceptance rules for every new ship (set by the owner)
+
+Faithful to the reference as far as it can be measured; **every weapon must work in the game whatever the ship's era** (guns, AA, tubes, aircraft, and missiles / rockets too: a launcher that is only drawn is a bug); the skin, the firing arcs (`tools/audit/arcs.mjs`, `test/arcs.mjs`) and the visuals (nine views, pairs with the reference, wiki picture) checked. Full list: `tools/refs/WORKFLOW.md`.
+
 ## Conventions
 
 - Match the surrounding code: short English comments that say why, no model or tool names in repository files.
