@@ -46,7 +46,7 @@ for (let t = 0; t < I.length; t += 3) {
   groups[k].push(t);
 }
 // ---- the structure of the ship as independent pieces: the separate objects of the model (deckhouses, platforms, boats, cranes, gun tubs...) that are not the hull ----
-const MAXC = +(fl.chunks ?? 48), MINT = +(fl.minTris ?? 90);
+const MAXC = +(fl.chunks ?? 48), MINT = +(fl.minTris ?? 150);
 const chunks = [];
 if (MAXC > 0) {
   const st = groups.static, par = new Int32Array(P.length / 3).map((_, i) => i);

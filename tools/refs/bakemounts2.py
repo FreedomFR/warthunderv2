@@ -15,7 +15,7 @@ from scipy.sparse.csgraph import connected_components
 pos_args = [x for x in sys.argv[1:] if not x.startswith('--')]
 fl = dict((x[2:].split('=') + ['1'])[:2] for x in sys.argv[1:] if x.startswith('--'))
 src, layf, outf, maskf = pos_args[:4]
-TRIS_H, TRIS_G = int(fl.get('tris', 6000)), int(fl.get('guns', 3000))
+TRIS_H, TRIS_G = int(fl.get('tris', 12000)), int(fl.get('guns', 5000))
 info = json.load(open(os.path.join(src, 'info.json')))
 nv, nf = info['vertices'], info['triangles']
 P = np.fromfile(os.path.join(src, 'pos.f32'), dtype=np.float32).reshape(nv, 3)

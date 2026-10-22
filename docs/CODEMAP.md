@@ -65,7 +65,7 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 ## js/game/model/
 
 - `ao.js` (110) Baked ambient occlusion for the procedural ship meshes. [bakeAO] ← 1
-- `bakedmesh.js` (19) Reading the baked reference meshes (ships/<id>_baked.js, ships/<id>_mounts_baked.js, made by tools/refs/bake*.py): base64 pieces -> positions in metres, smooth… [decodeBaked] ← 2
+- `bakedmesh.js` (40) Reading the baked reference meshes (ships/<id>_baked.js, ships/<id>_mounts_baked.js, made by tools/refs/bake*.py): base64 pieces -> positions in metres, smooth… [decodeBaked] ← 2
 - `bakedmounts.js` (10) The gun houses and barrels read on the reference models of the ships drawn from baked meshes (tools/refs/bakemounts2.py), by ship id: { MOUNTS_BAKED, MOUNT_SCALE }. [BAKED_MOUNTS] ← 1
 - `bakedship.js` (23) A ship drawn from a baked reference mesh (ships/<id>_baked.js, made by tools/refs/bake.py + bakeship.mjs): after the procedural build the hull and structure mesh and… [applyBaked] ← 1
 - `baseGuns.js` (94) The guns of the bases: the mount of each gun (the same meshes as on the ships, see mounts.js) and what it stands on - a concrete emplacement with a ring wall, an… [gunMountSpec, buildEmplacement] ← 1

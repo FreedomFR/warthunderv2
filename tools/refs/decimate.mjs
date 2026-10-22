@@ -12,7 +12,7 @@ const P = rd('pos.f32', Float32Array), C = rd('col.u8', Uint8Array), I = rd('idx
 await MeshoptSimplifier.ready;
 const att = new Float32Array(C.length); for (let i = 0; i < C.length; i++) att[i] = C[i] / 255;
 const target = TRIS * 3;
-let [idx, err] = MeshoptSimplifier.simplifyWithAttributes(I, P, 3, att, 3, [CW, CW, CW], null, Math.min(target, I.length), 0.5, ['Prune']);
+let [idx, err] = MeshoptSimplifier.simplifyWithAttributes(I, P, 3, att, 3, [CW, CW, CW], null, Math.min(target, I.length), +(fl.err ?? 0.003), ['LockBorder']);
 console.error(`${I.length / 3} -> ${idx.length / 3} triangles (error ${err.toFixed(4)})`);
 // compact the vertices
 const map = new Int32Array(P.length / 3).fill(-1); let n = 0;

@@ -17,8 +17,8 @@ pos_args = [x for x in a if not x.startswith('--')]
 fl = dict((x[2:].split('=') + ['1'])[:2] for x in a if x.startswith('--'))
 src = pos_args[0]
 TRIS = int(fl.get('tris', 150000))
-TEX = int(fl.get('tex', 512))
-EPS = float(fl.get('eps', 0.02))
+TEX = int(fl.get('tex', 1024))
+EPS = float(fl.get('eps', 0.004))
 out = fl.get('out', os.path.join(os.path.dirname(src.rstrip('/')), 'baked'))
 os.makedirs(out, exist_ok=True)
 t0 = time.time()
@@ -30,6 +30,33 @@ vm = np.fromfile(os.path.join(src, 'vmat.i16'), dtype=np.int16)
 idx = np.fromfile(os.path.join(src, 'idx.u32'), dtype=np.uint32).reshape(nf, 3)
 print(f'{nv} vertices, {nf} triangles', file=sys.stderr)
 
+# long triangles are split first (midpoints, uv interpolated): a texture is sampled at the vertices, so a big flat plate (a flight deck, a hull plank) must have vertices wherever its paint changes
+SPLIT = float(fl.get('split', 2.0))
+def split_long(pos, uv, vm, idx, L):
+    for _ in range(6):
+        e = np.stack([np.linalg.norm(pos[idx[:, 1]] - pos[idx[:, 0]], axis=1), np.linalg.norm(pos[idx[:, 2]] - pos[idx[:, 1]], axis=1), np.linalg.norm(pos[idx[:, 0]] - pos[idx[:, 2]], axis=1)], axis=1)
+        big = e.max(axis=1) > L
+        if not big.any():
+            break
+        keep, tb = idx[~big], idx[big]
+        a, b, c = tb[:, 0], tb[:, 1], tb[:, 2]
+        n0 = len(pos)
+        k = len(tb)
+        mids = []
+        for u, v in ((a, b), (b, c), (c, a)):
+            mids.append((pos[u] + pos[v]) / 2)
+        pm = np.concatenate(mids)
+        um = np.concatenate([(uv[u] + uv[v]) / 2 for u, v in ((a, b), (b, c), (c, a))])
+        vmm = np.concatenate([vm[u] for u, v in ((a, b), (b, c), (c, a))])
+        pos = np.concatenate([pos, pm]); uv = np.concatenate([uv, um]); vm = np.concatenate([vm, vmm])
+        ab = n0 + np.arange(k); bc = n0 + k + np.arange(k); ca = n0 + 2 * k + np.arange(k)
+        new = np.concatenate([np.stack([a, ab, ca], 1), np.stack([ab, b, bc], 1), np.stack([ca, bc, c], 1), np.stack([ab, bc, ca], 1)])
+        idx = np.concatenate([keep, new.astype(idx.dtype)])
+    return pos, uv, vm, idx
+if SPLIT > 0:
+    pos, uv, vm, idx = split_long(pos, uv, vm, idx.astype(np.int64), SPLIT)
+    nv, nf = len(pos), len(idx)
+    print(f'split to {nv} vertices, {nf} triangles', file=sys.stderr)
 # the colour of the textures at each vertex
 col = np.full((nv, 3), 0.6, dtype=np.float32)
 texdir = os.path.join(os.path.dirname(src.rstrip('/')), 'src')
@@ -47,7 +74,11 @@ for mi, m in enumerate(info['mats']):
             u = np.mod(uv[sel, 0], 1.0); v = np.mod(uv[sel, 1], 1.0)
             if info.get('flipV'):                                                   # an OBJ's v runs up, a glTF's down
                 v = 1.0 - v
-            c = arr[np.clip((v * h).astype(int), 0, h - 1), np.clip((u * w).astype(int), 0, w - 1)]
+            fx, fy = u * w - 0.5, v * h - 0.5                                   # bilinear, wrapping
+            x0, y0 = np.floor(fx).astype(int), np.floor(fy).astype(int)
+            tx, ty = (fx - x0)[:, None], (fy - y0)[:, None]
+            g = lambda yy, xx: arr[np.mod(yy, h), np.mod(xx, w)]
+            c = g(y0, x0) * (1 - tx) * (1 - ty) + g(y0, x0 + 1) * tx * (1 - ty) + g(y0 + 1, x0) * (1 - tx) * ty + g(y0 + 1, x0 + 1) * tx * ty
             col[sel] = c * f
             continue
         except Exception as e:
