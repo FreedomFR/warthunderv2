@@ -1,0 +1,54 @@
+{
+ "ship": "Adams",
+ "layout": "refs/adams/layout.json",
+ "elements": [
+  {
+   "id": "g0",
+   "type": "main",
+   "cal": 127,
+   "group": "main",
+   "layout_match": {
+    "group": "main",
+    "name": "m0"
+   },
+   "radius_x": 6.6,
+   "radius_z": 2.4,
+   "below": 2.5,
+   "above": 5.5,
+   "gun_box": [
+    44.6,
+    49.3,
+    7.0,
+    8.6,
+    -0.45,
+    0.45
+   ],
+   "no_cradle": true,
+   "barrel_len": 1.5
+  },
+  {
+   "id": "g1",
+   "type": "main",
+   "cal": 127,
+   "group": "main",
+   "layout_match": {
+    "group": "main",
+    "name": "m1"
+   },
+   "radius_x": 7.3,
+   "radius_z": 2.4,
+   "below": 2.5,
+   "above": 5.5,
+   "gun_box": [
+    -39.4,
+    -33.6,
+    7.0,
+    8.6,
+    -0.45,
+    0.45
+   ],
+   "no_cradle": true,
+   "barrel_len": 1.5
+  }
+ ]
+}

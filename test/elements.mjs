@@ -36,7 +36,7 @@ for (const id of Object.keys(ELEMENTS)) {
   }
   gaps.sort((a, b) => a - b);
   // a few mounts of a model are trained a few degrees off the rest bearing: the guns of those stand up to 0.35 m off the first copy's, the rest (and the median) within 5 cm
-  ok(n >= 3 && worst < 0.35 && gaps[gaps.length >> 1] < 0.05, `${id}: ${n} copies placed where the model has them (worst gap ${(worst * 100).toFixed(1)} cm between the placed copy and its group in the model, alignment ${JSON.stringify(el.PLACEMENTS[0].align)} taken off)`);
+  ok(n >= 2 && worst < 0.35 && gaps[gaps.length >> 1] < 0.05, `${id}: ${n} copies placed where the model has them (worst gap ${(worst * 100).toFixed(1)} cm between the placed copy and its group in the model, alignment ${JSON.stringify(el.PLACEMENTS[0].align)} taken off)`);
   const m = buildShipModel(spec, TWEAKS[id] || {});
   const rec = [...m.mounts, ...m.aaMounts].filter((r) => r.look);
   const moved = rec.filter((r) => el.PLACEMENTS.some((p) => `${id}/${p.kind}` === r.look && Math.hypot(p.x - r.x, p.z - r.z) < 0.05 && Math.abs(p.y - r.y) < 0.8));

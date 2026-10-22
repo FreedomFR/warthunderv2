@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased — the Tade and the USS Adams built from their models
+
+- **Tade**: 3 single 120 mm (the barrel is cut out of the piece it is welded to: `gun_box`, in the model's frame; `no_cradle`, `radius_x` / `radius_z` for a window that is not square), tower, funnels, galley vent, tubes and masts as parts. **USS Adams**: 2 Mk 42 (the exposed barrel of each is the gun, the gunhouse stays), tower, director, funnels, masts, radars and tubes as parts. The Adams model's waterline is 6.9 m above its lowest point (the sonar dome and the skegs lie under it), measured on the bow, the stern and the pivot of the guns.
+- `test/hitbox.mjs` judges the ghost hits of the ships drawn from a reference model apart as well (below 20 %: their hit volumes are the hand-made ones); `test/arcs.mjs`: the Tade's B gun, with its real barrel length, clears the funnels 4 m away; `test/elements.mjs` accepts 2 copies.
+- Not done: **the weight**: the seven `_v4.js` files are 2.4 to 6.8 MB each (naval.html is 35 MB); dropping the pieces under 15 cm would save 16 %, a compressed encoding more.
+
 ## Unreleased — the Kagero built from its model (materials merged)
 
 - The model has no named groups (the materials of its atlas are merged), so `groupmounts.py` takes **whole objects round the mount records of the game** (`layout`, `layout_match`, `radius`, `below`, `above`, optional `materials`): the pieces that lie entirely in the window, never cut; `gun_materials` separates the guns' pieces from the rest (a barrel touching its cradle is not one object); the pieces taken are written to `claimed.json` and `shipgroups.py` leaves them out of the ship (`use_claimed`). `shipgroups.py` also takes `drop` cuts (the screws and rudders) and `min_len` rules (the long pieces are the hull).

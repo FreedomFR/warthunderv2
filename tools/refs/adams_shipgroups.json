@@ -1,0 +1,275 @@
+{
+ "ship": "USS Adams",
+ "use_claimed": true,
+ "skip_groups": [],
+ "skip_material": [],
+ "cuts": [
+  {
+   "group": ".*",
+   "gre": true,
+   "id": "spin0",
+   "drop": true,
+   "box": [
+    -56.92,
+    -55.85,
+    -5.68,
+    -2.59,
+    0.84,
+    3.85
+   ]
+  },
+  {
+   "group": ".*",
+   "gre": true,
+   "id": "spin1",
+   "drop": true,
+   "box": [
+    -56.92,
+    -55.85,
+    -5.68,
+    -2.59,
+    -3.85,
+    -0.84
+   ]
+  },
+  {
+   "group": ".*",
+   "gre": true,
+   "id": "spin2",
+   "drop": true,
+   "box": [
+    -62.13,
+    -58.93,
+    -3.9,
+    1.3,
+    1.83,
+    2.27
+   ]
+  },
+  {
+   "group": ".*",
+   "gre": true,
+   "id": "spin3",
+   "drop": true,
+   "box": [
+    -62.13,
+    -58.93,
+    -3.9,
+    1.3,
+    -2.27,
+    -1.83
+   ]
+  },
+  {
+   "group": ".*",
+   "gre": true,
+   "id": "tower",
+   "kind": "bridge",
+   "label": "Passerelle",
+   "box": [
+    11.1,
+    32.16,
+    7.94,
+    13.45,
+    -5.93,
+    5.93
+   ]
+  },
+  {
+   "group": ".*",
+   "gre": true,
+   "id": "director0",
+   "kind": "director",
+   "label": "Directeur de tir Mk 68",
+   "box": [
+    24.35,
+    26.72,
+    13.45,
+    17.67,
+    -1.9,
+    1.9
+   ]
+  },
+  {
+   "group": ".*",
+   "gre": true,
+   "id": "funnel0",
+   "kind": "funnel",
+   "label": "Cheminée avant",
+   "box": [
+    10.3,
+    15.05,
+    11.25,
+    19.3,
+    -1.5,
+    1.5
+   ]
+  },
+  {
+   "group": ".*",
+   "gre": true,
+   "id": "mast0",
+   "kind": "mast",
+   "label": "Mât avant",
+   "box": [
+    11.07,
+    19.9,
+    8.52,
+    31.4,
+    -5.2,
+    5.2
+   ]
+  },
+  {
+   "group": ".*",
+   "gre": true,
+   "id": "radar0",
+   "kind": "radar",
+   "label": "Radar de veille",
+   "box": [
+    15.7,
+    16.7,
+    28.1,
+    31,
+    -2.3,
+    2.3
+   ]
+  },
+  {
+   "group": ".*",
+   "gre": true,
+   "id": "radar3",
+   "kind": "radar",
+   "label": "Radar de surface",
+   "box": [
+    18.02,
+    18.6,
+    24,
+    26.25,
+    -1.81,
+    1.81
+   ]
+  },
+  {
+   "group": ".*",
+   "gre": true,
+   "id": "funnel1",
+   "kind": "funnel",
+   "label": "Cheminée arrière",
+   "box": [
+    -10.82,
+    -5.25,
+    5.3,
+    17.9,
+    -1.45,
+    1.45
+   ]
+  },
+  {
+   "group": ".*",
+   "gre": true,
+   "id": "radar1",
+   "kind": "radar",
+   "label": "Radar de conduite de tir SPG-51 avant",
+   "box": [
+    -15.82,
+    -14.19,
+    13.55,
+    16.38,
+    -1,
+    1
+   ]
+  },
+  {
+   "group": ".*",
+   "gre": true,
+   "id": "radar2",
+   "kind": "radar",
+   "label": "Radar de conduite de tir SPG-51 arrière",
+   "box": [
+    -20.62,
+    -18.99,
+    11,
+    13.83,
+    -1,
+    1
+   ]
+  },
+  {
+   "group": ".*",
+   "gre": true,
+   "id": "tubes0",
+   "kind": "tubes",
+   "label": "Tubes lance-torpilles Mk 32",
+   "box": [
+    27.3,
+    30.76,
+    6.58,
+    8.33,
+    -5.74,
+    -4.66
+   ]
+  },
+  {
+   "group": ".*",
+   "gre": true,
+   "id": "tubes1",
+   "kind": "tubes",
+   "label": "Tubes lance-torpilles Mk 32",
+   "box": [
+    27.3,
+    30.76,
+    6.58,
+    8.33,
+    4.66,
+    5.74
+   ]
+  },
+  {
+   "group": ".*",
+   "gre": true,
+   "id": "mast1",
+   "kind": "mast",
+   "label": "Mât arrière",
+   "box": [
+    -6.43,
+    -1.6,
+    5.22,
+    10.95,
+    -3.31,
+    3.31
+   ]
+  },
+  {
+   "group": ".*",
+   "gre": true,
+   "id": "radar4",
+   "kind": "radar",
+   "label": "Radar de veille SPS-37",
+   "box": [
+    -5.8,
+    -3.3,
+    18.54,
+    21.6,
+    -1.65,
+    1.65
+   ]
+  }
+ ],
+ "rules": [
+  {
+   "match": "(1d4831a9|ef4beed9|145a46fe|78395a00|8c7e81ed|954e2769|1287e836|8bdb27a7)",
+   "to": "fine"
+  },
+  {
+   "min_len": 60,
+   "to": "static",
+   "cls": "hull"
+  },
+  {
+   "match": ".*",
+   "to": "static",
+   "cls": "equip"
+  }
+ ]
+}

@@ -90,7 +90,7 @@ function trace(G, a, b) {
 
 const list = ids.length ? ALL_SHIPS.filter((s) => ids.includes(s.id)) : ALL_SHIPS;
 const totals = { rays: 0, ghost: 0, miss: 0, off: 0, good: 0, clear: 0 };
-const bakedMiss = { miss: 0, solids: 0 };
+const bakedMiss = { miss: 0, solids: 0, ghost: 0, hits: 0 };
 const offBy = {}, gaps = [];
 for (const spec of list) {
   const w = new World(1); w.addTeam(0); w.addTeam(1);
@@ -126,8 +126,8 @@ for (const spec of list) {
   }
   // a ship drawn from a baked reference mesh shows every fitting of the model, which the hit volumes do not model: its misses are judged apart (below), the rest as before
   const baked = !!(TWEAKS[spec.id]?.baked || TWEAKS[spec.id]?.v4);      // (a ship drawn from the groups of a reference model shows its fittings too)
-  for (const k of Object.keys(totals)) { if (baked && k === 'miss') bakedMiss.miss += st2.miss; else totals[k] += st2[k]; }
-  if (baked) bakedMiss.solids += st2.good + st2.miss + st2.off;
+  for (const k of Object.keys(totals)) { if (baked && (k === 'miss' || k === 'ghost')) bakedMiss[k] += st2[k]; else totals[k] += st2[k]; }
+  if (baked) { bakedMiss.solids += st2.good + st2.miss + st2.off; bakedMiss.hits += st2.good + st2.ghost + st2.off; }
   const solid = st2.rays - st2.clear;
   console.log(`${spec.id.padEnd(16)} rays ${st2.rays}  good ${st2.good}  ghost ${st2.ghost} (${(100 * st2.ghost / Math.max(1, st2.ghost + st2.good + st2.off)).toFixed(0)}% of the hits)  miss ${st2.miss}  off ${st2.off}  clear ${st2.clear}`);
   if (DUMP) for (const o of worst.slice(0, 6)) console.log('   ', JSON.stringify(o));
@@ -141,6 +141,7 @@ ok(med < 0.6 && p90 < 4, `where both stop the shell, the burst is ${med.toFixed(
 ok(ghostRate < 0.04, `hits where nothing is drawn: ${(100 * ghostRate).toFixed(1)} % of the hits (${totals.ghost} of ${hits})`);
 ok(missRate < 0.04, `paths through drawn solids that the simulation let through: ${(100 * missRate).toFixed(1)} % (${totals.miss} of ${solids})`);
 ok(bakedMiss.solids === 0 || bakedMiss.miss / bakedMiss.solids < 0.15, `ships drawn from a baked reference mesh: paths through drawn solids that the simulation let through: ${(100 * bakedMiss.miss / Math.max(1, bakedMiss.solids)).toFixed(1)} % (${bakedMiss.miss} of ${bakedMiss.solids}, below 15 %)`);
+ok(bakedMiss.hits === 0 || bakedMiss.ghost / bakedMiss.hits < 0.2, `ships drawn from a reference model: hits where nothing is drawn: ${(100 * bakedMiss.ghost / Math.max(1, bakedMiss.hits)).toFixed(1)} % (${bakedMiss.ghost} of ${bakedMiss.hits}, below 20 %; their hit volumes are those of the hand-made build)`);
 ok(offRate < 0.07, `hits more than 6 m from the drawn surface: ${(100 * offRate).toFixed(1)} % (${totals.off} of ${hits})`);
 
 // ---- a ship that heels and trims is hit where she is drawn, not where her upright self would be ----

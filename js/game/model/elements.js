@@ -6,5 +6,6 @@ import * as graf_spee from './ships/graf_spee_elements.js';
 import * as shokaku from './ships/shokaku_elements.js';
 import * as kagero from './ships/kagero_elements.js';
 import * as tade from './ships/tade_elements.js';
+import * as adams from './ships/adams_elements.js';
 
-export const ELEMENTS = { yamato, gioberti, graf_spee, shokaku, kagero, tade };
+export const ELEMENTS = { yamato, gioberti, graf_spee, shokaku, kagero, tade, adams };

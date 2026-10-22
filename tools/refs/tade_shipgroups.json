@@ -169,13 +169,13 @@
  ],
  "rules": [
   {
+   "match": "(ca25525d|0dfd1363|135b9c8e|c1d607d8|12b354da|88268369)",
+   "to": "fine"
+  },
+  {
    "min_len": 60,
    "to": "static",
    "cls": "hull"
-  },
-  {
-   "match": "(ca25525d|0dfd1363|135b9c8e|c1d607d8|12b354da|88268369)",
-   "to": "fine"
   },
   {
    "match": ".*",
