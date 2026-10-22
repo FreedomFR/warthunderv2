@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased — the Iowa keeps her real number of light guns
+
+- The first Iowa from the model carried only 18 quads and 5 single 20 mm (the copies found by shape), against 20 quads (80 x 40 mm) and 49 x 20 mm in 1943. More 20 mm variants are found in the model (42 in all, `o20`, `o20b`, `o20c`, `o20d`, `instance_box` keeps the copies of a template of a few pieces to one place); the tweak `aaCap: { 40: 20, 20: 49 }` makes up the rest of the real count from the tweaks' list (copies of the model count first, the list stops at the cap); `shipbuilder.js` skips a list entry that stands within 3.5 m of a copy.
+- Other ships whose model has fewer light mounts than the sheet (Graf Spee 12 x 20 mm instead of 14, Gioberti 4 twin 13 mm instead of 6) keep the model's: give them `aaCap` to make up the number.
+
 ## Unreleased — the USS Iowa built from its model, and hit volumes made from what is drawn
 
 - **USS Iowa** (model by OUTPISTON, CC-BY-NC-SA-4.0, see docs/CREDITS.md): 3 x 16 inch (their barrels, found by their material, elevate), 10 twin 5 inch, 18 quad 40 mm and 5 single 20 mm copied at the places the model has them; funnels, tower, directors, masts, radars, catapults and crane as parts. The deck edge of the hand-made hull was lowered to the model's (`fb` of the tweak): it was 1.4 to 1.9 m too high.

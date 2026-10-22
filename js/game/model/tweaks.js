@@ -142,7 +142,7 @@ export const TWEAKS = {
   // silhouette) and NH 44538. Heights are above the local deck: 01 level 2.3 m, 02 level 4.8 m, forward bridge 13.2 m, the block around
   // the forward funnel 19.4 m, Mk 38 director 29.3-32.5 m; funnel tops 23.8 / 22.9 m; after director tower 18 m.
   iowa: {
-    v4: IOWA_V4,
+    v4: IOWA_V4, aaCap: { 40: 20, 20: 49 },      // 80 x 40 mm in 20 quads and 49 x 20 mm (1943 fit)
     mainVariant: 'mk7', secVariant: ['mk28'], houseH: 2.3,
     // freeboards from the profile: 13.5 m at the stem, about 6.5 m amidships, 7.8 m at the stern; a bulwark only round the bow
     fb: [[0, 10.4], [0.02, 9.75], [0.056, 8.72], [0.093, 8.0], [0.15, 6.9], [0.204, 5.97], [0.26, 5.5], [0.315, 5.19], [0.5, 5.09], [0.8, 5.1], [0.87, 5.18], [0.906, 5.38], [0.944, 5.63], [1, 6.4]],      // the deck edge measured on the reference model (the v4 model is drawn on it)

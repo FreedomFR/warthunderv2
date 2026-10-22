@@ -152,6 +152,78 @@
     "above": 1.9
    },
    "facing": "mass"
+  },
+  {
+   "id": "o20b",
+   "type": "o20",
+   "cal": 20,
+   "group": "aa",
+   "template": {
+    "x": -90.29,
+    "z": 5.0,
+    "y": 6.24,
+    "x_range": [
+     -1.2,
+     1.2
+    ],
+    "z_range": [
+     -1.5,
+     1.4
+    ],
+    "below": 1.6,
+    "above": 1.8
+   },
+   "facing": "mass"
+  },
+  {
+   "id": "o20c",
+   "type": "o20",
+   "cal": 20,
+   "group": "aa",
+   "template": {
+    "x": -2.6,
+    "z": 8.37,
+    "y": 13.01,
+    "x_range": [
+     -1.2,
+     1.2
+    ],
+    "z_range": [
+     -1.5,
+     1.4
+    ],
+    "below": 1.6,
+    "above": 1.8
+   },
+   "facing": "mass"
+  },
+  {
+   "id": "o20d",
+   "type": "o20",
+   "cal": 20,
+   "group": "aa",
+   "template": {
+    "x": 30.7,
+    "z": 0.0,
+    "y": 12.3,
+    "x_range": [
+     -1.0,
+     2.0
+    ],
+    "z_range": [
+     -0.9,
+     0.9
+    ],
+    "below": 0.2,
+    "above": 1.9
+   },
+   "facing": "mass",
+   "instance_box": [
+    29,
+    33,
+    -5,
+    5
+   ]
   }
  ]
 }

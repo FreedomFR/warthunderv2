@@ -647,10 +647,21 @@ export function buildShipModel(spec, tw = {}) {
   // two light mounts never share a spot: a measured mount that would stand in another one slides fore or aft along its deck until it is clear (and is left out
   // when there is no room), and a mount that is not measured is only put where no other is
   const aaTaken = (x, y, z, rad) => model.aaMounts.some((m) => Math.abs(m.y - y) < 2.2 && Math.hypot(m.x - x, m.z - z) < (m.rad || 0.9) + rad) || model.tubes.some((q) => Math.abs(q.y - y) < 2.4 && Math.abs(q.x - x) < 2.8 && Math.abs(q.z - z) < 2.8);
-  const copiedAA = !!(ELEMENTS[spec.id] && tw.elements !== false && ELEMENTS[spec.id].PLACEMENTS.some((q) => AA_TYPES[q.type]));
-  for (const a of copiedAA ? [] : tw.aa || []) {
+  // the mounts copied from the reference model (model/elements.js): each stands where the model has it, facing the way the model has it, drawn as the model's own house and guns
+  const elPl = ELEMENTS[spec.id] && tw.elements !== false ? ELEMENTS[spec.id].PLACEMENTS : [];
+  for (const pl of elPl.filter((q) => AA_TYPES[q.type])) {
+    const ty = AA_TYPES[pl.type];
+    model.aaMounts.push({ variant: ty.v, cal: ty.cal, n: ty.n, bore: ty.bore, x: pl.x, y: pl.y, z: pl.z, rad: 1.8, yaw0: pl.yaw * Math.PI / 180, label: ty.label, look: `${spec.id}/${pl.kind}` });
+    model.aa.push([pl.x, pl.y + 1.2, pl.z]);
+    note(pl.y + 3);
+  }
+  // (a light mount of the list that stands within 3.5 m of a copy of the reference model's is that copy; the others, which the model does not have, keep the places measured for them)
+  const copiedAA = elPl.some((q) => AA_TYPES[q.type]);
+  for (const a of copiedAA && !tw.aaCap ? [] : tw.aa || []) {      // (a ship whose model has its light mounts takes them all, unless the tweak gives `aaCap`)
     const ty = AA_TYPES[a.k], x0 = X(a.f), rad = ty.tub ? ty.tub * 0.55 : 0.55;
     for (const sg of a.z && !a.one ? [1, -1] : [a.z < 0 ? -1 : 1]) {
+      if (tw.aaCap && tw.aaCap[ty.cal] != null && model.aaMounts.filter((m) => m.cal === ty.cal).length >= tw.aaCap[ty.cal]) continue;      // tw.aaCap: the number of mounts of a calibre the real ship carried: the copies of the model count, the list only makes up the rest
+      if (elPl.some((q) => AA_TYPES[q.type] && AA_TYPES[q.type].cal === ty.cal && Math.hypot(q.x - x0, q.z - (a.one ? a.z : sg * Math.abs(a.z || 0))) < 3.5)) continue;
       let placed = null;
       for (const dx of [0, 0.6, -0.6, 1.2, -1.2, 1.8, -1.8, 2.5, -2.5]) {
         const x = x0 + dx;
@@ -665,14 +676,6 @@ export function buildShipModel(spec, tw = {}) {
       model.aa.push([x, y + 1.2, z]);
       note(y + 3);
     }
-  }
-  // the mounts copied from the reference model (model/elements.js): each stands where the model has it, facing the way the model has it, drawn as the model's own house and guns
-  const elPl = ELEMENTS[spec.id] && tw.elements !== false ? ELEMENTS[spec.id].PLACEMENTS : [];
-  for (const pl of elPl.filter((q) => AA_TYPES[q.type])) {
-    const ty = AA_TYPES[pl.type];
-    model.aaMounts.push({ variant: ty.v, cal: ty.cal, n: ty.n, bore: ty.bore, x: pl.x, y: pl.y, z: pl.z, rad: 1.8, yaw0: pl.yaw * Math.PI / 180, label: ty.label, look: `${spec.id}/${pl.kind}` });
-    model.aa.push([pl.x, pl.y + 1.2, pl.z]);
-    note(pl.y + 3);
   }
   const claimed = new Set();
   for (const pl of elPl.filter((q) => !AA_TYPES[q.type])) {

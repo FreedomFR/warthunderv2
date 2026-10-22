@@ -206,6 +206,9 @@ for el in cfg['elements']:
             if core:
                 ok = core; claimed_before = set(claimed)
                 inst = find_copies(ok, float(el.get('min_frac', 0.9)))
+        if el.get('instance_box'):      # only the copies whose first piece lies in this box [x0, x1, z0, z1] (a template made of a few pieces also finds them elsewhere)
+            bx = el['instance_box']
+            inst = [ks for ks in inst if bx[0] <= PCEN[ks[0]][0] <= bx[1] and bx[2] <= PCEN[ks[0]][2] <= bx[3]]
         print(f"element {el['id']}: template of {len(ok)} pieces found {len(inst)} times", file=sys.stderr)
         for n, ks in enumerate(inst):
             claimed.update(ks)
