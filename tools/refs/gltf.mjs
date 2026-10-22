@@ -27,8 +27,40 @@ function nodeMatrix(n) {
   return [(1 - 2 * (yy + zz)) * sx, 2 * (xy + wz) * sx, 2 * (xz - wy) * sx, 0, 2 * (xy - wz) * sy, (1 - 2 * (xx + zz)) * sy, 2 * (yz + wx) * sy, 0, 2 * (xz + wy) * sz, 2 * (yz - wx) * sz, (1 - 2 * (xx + yy)) * sz, 0, tx, ty, tz, 1];
 }
 
+/**
+ * A Wavefront OBJ (some of the models given for measurement come that way: refs/<id>/src/<name>.obj, y up like the glTF ones) read into the same parts: one part per group (`g`) and
+ * material, named after its object (`o`) and group, with its own vertex list. `g` carries the names of the materials so that `survey` works.
+ */
+export function loadObj(file) {
+  const text = fs.readFileSync(file, 'latin1');
+  const X = [], Yv = [], Zv = [];
+  const parts = [], mats = [];
+  let obj = '', grp = '', mat = -1, cur = null;
+  const open = () => { cur = { name: grp || obj, path: obj && grp && grp !== obj ? `${obj}/${grp}` : grp || obj, node: parts.length, mat, map: new Map(), P: [], idx: [] }; parts.push(cur); };
+  let pos = 0;
+  while (pos < text.length) {
+    let end = text.indexOf('\n', pos); if (end < 0) end = text.length;
+    const c0 = text.charCodeAt(pos), c1 = text.charCodeAt(pos + 1);
+    if (c0 === 118 && c1 === 32) {                                              // v x y z
+      const t = text.slice(pos + 2, end).trim().split(/\s+/); X.push(+t[0]); Yv.push(+t[1]); Zv.push(+t[2]);
+    } else if (c0 === 102 && c1 === 32) {                                       // f a b c ... (v, v/vt, v/vt/vn, negative indices)
+      if (!cur) open();
+      const t = text.slice(pos + 2, end).trim().split(/\s+/).map((q) => { let i = parseInt(q, 10); if (i < 0) i = X.length + i + 1; return i - 1; });
+      const loc = t.map((vi) => { let l = cur.map.get(vi); if (l === undefined) { l = cur.P.length / 3; cur.map.set(vi, l); cur.P.push(X[vi], Yv[vi], Zv[vi]); } return l; });
+      for (let k = 1; k + 1 < loc.length; k++) cur.idx.push(loc[0], loc[k], loc[k + 1]);
+    } else if (c0 === 111 && c1 === 32) { obj = text.slice(pos + 2, end).trim(); grp = ''; cur = null; }
+    else if (c0 === 103 && c1 === 32) { grp = text.slice(pos + 2, end).trim(); cur = null; }
+    else if (text.startsWith('usemtl ', pos)) { const m = text.slice(pos + 7, end).trim(); let i = mats.indexOf(m); if (i < 0) { i = mats.length; mats.push(m); } mat = i; cur = null; }
+    pos = end + 1;
+  }
+  const out = parts.filter((p) => p.idx.length).map((p) => ({ name: p.name, path: p.path, node: p.node, mat: p.mat, V: Float32Array.from(p.P), idx: Uint32Array.from(p.idx) }));
+  return { g: { materials: mats.map((name) => ({ name })), nodes: [], meshes: [] }, parts: out };
+}
+
 /** Loads the glTF in `dir` into world-space triangles: parts = [{ name, node, mat, V: Float32Array (x,y,z...), idx, bb }]. */
 export function load(dir) {
+  const obj = fs.existsSync(path.join(dir, 'scene.gltf')) ? null : fs.readdirSync(dir).find((f) => /\.obj$/i.test(f));
+  if (obj) return loadObj(path.join(dir, obj));
   const g = JSON.parse(fs.readFileSync(path.join(dir, 'scene.gltf'), 'utf8'));
   const bin = fs.readFileSync(path.join(dir, g.buffers[0].uri || 'scene.bin'));
   const dv = new DataView(bin.buffer, bin.byteOffset, bin.byteLength);
