@@ -75,7 +75,7 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 - `clearance.js` (250) What each gun can bear on. A mount stands on a deck among towers, funnels, masts and other turrets, so the barrel cannot be trained or raised through them: for every… [CLR_STEP, CLR_N, inFoot, computeClearance, clearElev, clearMax, barrelBlocked, pathClear, inArcRel, … +2] ← 7
 - `cockpit.js` (376) The cockpit seen from the pilot's seat: the instrument panel with working dials (airspeed, artificial horizon, altimeter, compass, climb, revolutions, clock and… [cockpitEye, canopyFrame, GAUGE, buildCockpit, getCockpit] ← 6
 - `details.js` (183) Fine detail for the ship models: lifelines, boats on their davits, life rafts, ventilators, anchors and hawse pipes, rigging, searchlight platforms, depth charge… [lifelines, roofRail, launch, raft, vent, anchorAndHawse, stay, depthCharges, mooring, … +4] ← 3
-- `elements.js` (10) The gun mounts copied from the reference models of the ships that have one (tools/refs/elements.py), by ship id: { MOUNT_SCALE, KINDS, MOUNT_KIND }. [ELEMENTS] ← 2
+- `elements.js` (5) The gun mounts copied from the reference models (tools/refs/elements.py wrote ships/<id>_elements.js), by ship id: { MOUNT_SCALE, KINDS, MOUNT_KIND }. [ELEMENTS] ← 2
 - `glyphs.js` (59) 5x7 bitmap font for hull numbers (digits, capital letters, dash). [GLYPH_CHARS, GLYPH_BITS, glyphIndex] ← 3
 - `heavy.js` (472) The multi-engine land-based bombers (B-17, G4M, Lancaster, He 111, SM.79, LeO 451): the generator for aircraft with `spec.engines`. [frameOf, bayPivot, propMounts, drawHeavy] ← 3
 - `hull.js` (246) Parametric hull lofting. The hull is a parametric surface P(t, k): t runs from the bow (0) to the stern (1) along each horizontal "level" k (k < 0 below the… [pchip, buildHull] ← 1
@@ -98,19 +98,19 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 ## js/game/model/ships/
 
 - `adams.js` (566) adams: the tweaks of the adams model (see ../shipbuilder.js for the options and ../tweaks.js for the others); [ADAMS] ← 1
-- `adams_elements.js` (5) The gun mounts of the adams copied from its reference model (see docs/CREDITS.md), element by element: one copy of each different mount in its own frame (house:… [MOUNT_SCALE, KINDS, MOUNT_KIND] ← 1
+- `adams_elements.js` (5) The gun mounts of the adams copied from its reference model (see docs/CREDITS.md), element by element: one copy of each different mount in its own frame (house:… [MOUNT_SCALE, KINDS, MOUNT_KIND] ← 0
 - `gioberti.js` (506) gioberti: the tweaks of the gioberti model (see ../shipbuilder.js for the options and ../tweaks.js for the others); [GIOBERTI] ← 1
-- `gioberti_elements.js` (5) The gun mounts of the gioberti copied from its reference model (see docs/CREDITS.md), element by element: one copy of each different mount in its own frame (house:… [MOUNT_SCALE, KINDS, MOUNT_KIND] ← 1
+- `gioberti_elements.js` (5) The gun mounts of the gioberti copied from its reference model (see docs/CREDITS.md), element by element: one copy of each different mount in its own frame (house:… [MOUNT_SCALE, KINDS, MOUNT_KIND] ← 0
 - `graf_spee.js` (159) graf_spee: the tweaks of the Admiral Graf Spee model (see ../shipbuilder.js for the options and ../tweaks.js for the others); [GRAF_SPEE] ← 1
-- `graf_spee_elements.js` (5) The gun mounts of the graf_spee copied from its reference model (see docs/CREDITS.md), element by element: one copy of each different mount in its own frame (house:… [MOUNT_SCALE, KINDS, MOUNT_KIND] ← 1
+- `graf_spee_elements.js` (5) The gun mounts of the graf_spee copied from its reference model (see docs/CREDITS.md), element by element: one copy of each different mount in its own frame (house:… [MOUNT_SCALE, KINDS, MOUNT_KIND] ← 0
 - `kagero.js` (163) kagero: the tweaks of the Kagero model (see ../shipbuilder.js for the options and ../tweaks.js for the others); [KAGERO] ← 1
-- `kagero_elements.js` (5) The gun mounts of the kagero copied from its reference model (see docs/CREDITS.md), element by element: one copy of each different mount in its own frame (house:… [MOUNT_SCALE, KINDS, MOUNT_KIND] ← 1
+- `kagero_elements.js` (5) The gun mounts of the kagero copied from its reference model (see docs/CREDITS.md), element by element: one copy of each different mount in its own frame (house:… [MOUNT_SCALE, KINDS, MOUNT_KIND] ← 0
 - `kit.js` (35) The drawing helpers shared by the ships that are drawn bespoke from a reference model (ships/<id>.js): plans from half-widths, thin walls, railings round a platform,… [cutter, kit] ← 4
-- `shokaku_elements.js` (5) The gun mounts of the shokaku copied from its reference model (see docs/CREDITS.md), element by element: one copy of each different mount in its own frame (house:… [MOUNT_SCALE, KINDS, MOUNT_KIND] ← 1
+- `shokaku_elements.js` (5) The gun mounts of the shokaku copied from its reference model (see docs/CREDITS.md), element by element: one copy of each different mount in its own frame (house:… [MOUNT_SCALE, KINDS, MOUNT_KIND] ← 0
 - `tade.js` (162) tade: the tweaks of the tade model (see ../shipbuilder.js for the options and ../tweaks.js for the others); [TADE] ← 1
-- `tade_elements.js` (5) The gun mounts of the tade copied from its reference model (see docs/CREDITS.md), element by element: one copy of each different mount in its own frame (house: origin… [MOUNT_SCALE, KINDS, MOUNT_KIND] ← 1
+- `tade_elements.js` (5) The gun mounts of the tade copied from its reference model (see docs/CREDITS.md), element by element: one copy of each different mount in its own frame (house: origin… [MOUNT_SCALE, KINDS, MOUNT_KIND] ← 0
 - `yamato.js` (297) yamato: the tweaks of the Yamato model (see ../shipbuilder.js for the options and ../tweaks.js for the others); [YAMATO] ← 1
-- `yamato_elements.js` (5) The gun mounts of the yamato copied from its reference model (see docs/CREDITS.md), element by element: one copy of each different mount in its own frame (house:… [MOUNT_SCALE, KINDS, MOUNT_KIND] ← 1
+- `yamato_elements.js` (5) The gun mounts of the yamato copied from its reference model (see docs/CREDITS.md), element by element: one copy of each different mount in its own frame (house:… [MOUNT_SCALE, KINDS, MOUNT_KIND] ← 0
 
 ## js/game/render/
 
