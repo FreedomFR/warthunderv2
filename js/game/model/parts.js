@@ -256,6 +256,11 @@ export function propeller(b, o) {
 /** Rudder: a thick plate with rounded leading and trailing edges. o: { x (centre), z, y0 (bottom), y1 (top), chord, t } */
 export function rudder(b, o, pal) {
   const col = rgb(o.col || pal.boot || '#5a2a22'), t = o.t ?? 0.45;
+  if (o.round) {       // a balanced rudder of an old destroyer: a round blade, hung under the counter
+    b.sphere(o.x, (o.y0 + o.y1) / 2, o.z || 0, o.chord / 2, (o.y1 - o.y0) / 2, Math.min(t, 0.16), col, MAT.HULL, { seg: 14, rings: 9 });
+    b.cylinder(o.x + o.chord * 0.25, o.y1 - 0.2, o.z || 0, 0.12, 0.12, o.y1 + (o.stock ?? 1.2), shade(col, 0.8), MAT.HULL, { seg: 8 });
+    return;
+  }
   b.block({ x0: o.x - o.chord / 2, x1: o.x + o.chord / 2, hw: t, zc: o.z || 0, y0: o.y0, y1: o.y1, tx0: o.x - o.chord / 2 + Math.min(0.3, o.chord * 0.3), tx1: o.x + o.chord / 2 - Math.min(0.2, o.chord * 0.2) }, col, MAT.HULL);
   const sr = Math.min(0.35, t * 0.8);
   b.cylinder(o.x + o.chord * 0.25, o.y1, o.z || 0, sr, sr, o.y1 + (o.stock ?? 2.5), shade(col, 0.8), MAT.HULL, { seg: 8 });   // stock into the hull

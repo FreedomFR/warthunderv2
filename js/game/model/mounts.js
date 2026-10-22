@@ -73,6 +73,7 @@ const FAMILY = {
   // Kagero class 12.7 cm/50 Type 3 Model C twin (Commons outline drawing, MacMoreno, scaled to the 118.5 m length): a house 6.2 m long, 4.6 m wide and 3.0 m high, barrels 5.8 m clear
   // of the pivot, the superfiring turret on the deckhouse 2.3 m above the lower one
   type3_127: { kind: 'turret', cal: 127, n: 2, spacing: 1.0, trunX: 0.4, trunY: 1.5, face: 2.8, port: 2.6, fwd: 5.8, back: 0.9, rB: 0.15, rP: 0.12, rM: 0.07, bagR: 0.22, bagLen: 0.3, recoil: 0.4, lift: 2.3, h: 2.8, barbR: 2.6 },
+  type3c_127: { kind: 'turret', cal: 127, n: 2, spacing: 1.0, trunX: 0.4, trunY: 1.05, face: 2.8, port: 2.85, fwd: 5.8, back: 0.9, rB: 0.15, rP: 0.12, rM: 0.07, bagR: 0.22, bagLen: 0.3, recoil: 0.4, lift: 2.3, h: 2.8, barbR: 2.6 },
   // Tribal class 4.7 in/45 QF Mk XII twin (TZoli profile / plan scaled to the 114.9 m length): a house 3.5 m long, 3.4 m wide and 2.6 m high, barrels 4.4 m clear of the pivot, the
   // superfiring turret on a bridge deck 2.2 m above the lower one
   brit120: { kind: 'turret', cal: 120, n: 2, spacing: 0.95, trunX: 0.3, trunY: 1.35, face: 1.6, port: 1.5, fwd: 4.4, back: 0.8, rB: 0.14, rP: 0.11, rM: 0.065, bagR: 0.2, bagLen: 0.3, recoil: 0.4, lift: 2.2, h: 2.6, barbR: 1.9 },
@@ -84,15 +85,18 @@ const FAMILY = {
   // on a bridge / deckhouse top 2.5 m higher
   fr138: { kind: 'shield', cal: 138.6, n: 1, spacing: 0, trunX: 0.5, trunY: 1.35, face: 2.1, fwd: 6.2, back: 1.0, rB: 0.18, rP: 0.14, rM: 0.08, bagR: 0.0, bagLen: 0, recoil: 0.5, lift: 2.5, h: 2.9 },
   // Soldati class 120/50 Ansaldo 1936 twin (a small profile / plan, 7 px per metre, about +-0.5 m): a house 3.4 m long, 3.2 m wide and 2.4 m high, barrels 5 m clear of the pivot
+  // Oriani class 120/50 OTO 1936 twin (measured on a reference model): a faceted house 3.5 m long and 2.6 m wide, 2.55 m high at the back and sloping to 1.95 m at the front, the barrels 0.5 m apart (close together: poor dispersion),
+  // 1.5 m over the foot of the house, 3.4 m of barrel clear of the trunnion (muzzle 4 m from the pivot)
+  it120o: { kind: 'turret', cal: 120, n: 2, spacing: 0.5, trunX: 0.6, trunY: 1.5, face: 1.55, port: 1.55, fwd: 3.4, back: 1.5, rB: 0.17, rP: 0.15, rM: 0.1, bagR: 0.25, bagLen: 0.25, recoil: 0.4, lift: 2.2, h: 2.55, barbR: 1.5, barb: 0.12 },
   it120: { kind: 'turret', cal: 120, n: 2, spacing: 0.9, trunX: 0.5, trunY: 1.4, face: 1.7, port: 1.5, fwd: 5.2, back: 0.8, rB: 0.14, rP: 0.11, rM: 0.065, bagR: 0.2, bagLen: 0.3, recoil: 0.4, lift: 2.2, h: 2.4, barbR: 1.8 },
   // S-30 class Schnellboot 3.7 cm Flak M42 (measured on a reference model of the boat, see the s30 entry of tweaks.js): a pedestal 0.55 m high, a sloped shield 1 m wide, the gun
   // axis 1.15 m above the pedestal's foot, a barrel 3.2 m clear of the trunnion
   de37: { kind: 'shield', cal: 37, n: 1, spacing: 0, barb: 0.15, trunX: 0.15, trunY: 1.15, face: 0.6, fwd: 3.2, back: 0.5, rB: 0.045, rP: 0.032, rM: 0.026, bagR: 0.0, bagLen: 0, recoil: 0.2, lift: 0, h: 1.7 },
   // Momi / Wakatake class 12 cm/45 3rd Year Type single shielded mount (measured on a reference model of the Tade, see its entry in tweaks.js): a shield 2.6 m long on a low pedestal, the
   // trunnion 1.4 m above the pivot, a barrel 4.6 m clear of it (bore 5.4 m with the breech behind), the gun on the bandstand between the funnels 2.7 m above the forecastle one
-  type3_120: { kind: 'shield', cal: 120, n: 1, spacing: 0, trunX: 0.4, trunY: 1.0, face: 1.3, fwd: 4.6, back: 1.0, rB: 0.16, rP: 0.13, rM: 0.075, bagR: 0.0, bagLen: 0, recoil: 0.45, lift: 2.7, h: 2.6 },
-  // Charles F. Adams class 5"/54 Mk 42 (measured on a reference model, see the adams entry of tweaks.js)
-  mk42: { kind: 'shield', cal: 127, n: 1, spacing: 0, trunX: 0.3, trunY: 2.0, face: 2.0, fwd: 4.6, back: 1.0, rB: 0.17, rP: 0.13, rM: 0.08, bagR: 0.0, bagLen: 0, recoil: 0.35, lift: 0, h: 3.9 },
+  type3_120: { kind: 'shield', cal: 120, n: 1, spacing: 0, trunX: 0.4, trunY: 1.5, face: 1.0, fwd: 4.6, back: 1.0, rB: 0.2, rP: 0.15, rM: 0.1, bagR: 0.0, bagLen: 0, recoil: 0.45, lift: 2.7, h: 2.6 },
+  // Charles F. Adams class 5"/54 Mk 42 (measured on a reference model, see ships/adams.js): the training axis 2.05 m behind the face of the house, the trunnion at the face, 2 m above the ring, the barrel 4.6 m clear of it
+  mk42: { kind: 'shield', cal: 127, n: 1, spacing: 0, trunX: 1.95, trunY: 2.0, face: 2.05, fwd: 4.6, back: 1.0, rB: 0.26, rP: 0.21, rM: 0.095, bagR: 0.0, bagLen: 0, recoil: 0.35, lift: 0, h: 4.4 },
   mk28: { kind: 'dp', cal: 127, n: 2, spacing: 0.78, trunX: 0.55, trunY: 1.35, face: 1.9, fwd: 3.6, back: 0.9, rB: 0.19, rP: 0.15, rM: 0.085, bagR: 0.3, bagLen: 0.3, recoil: 0.5, lift: 3.0, h: 2.9 },
   mk30: { kind: 'shield', cal: 127, n: 1, spacing: 0, trunX: 0.5, trunY: 1.3, face: 1.5, fwd: 3.4, back: 0.9, rB: 0.19, rP: 0.15, rM: 0.085, bagR: 0.0, bagLen: 0, recoil: 0.5, lift: 1.7, h: 2.9 },
 };
@@ -116,7 +120,7 @@ export function mountDims(s) {
 
 function aaLen(s) {
   const v = s.variant || 'bofors';
-  return v === 'oerlikon' ? 1.1 : v === 'iijn25' ? 1.2 : 2.1;
+  return v === 'oerlikon' ? 1.1 : v === 'iijn25' ? 1.2 : v === 'breda37' ? 1.8 : 2.1;
 }
 
 export function getMountModel(spec) {
@@ -292,29 +296,83 @@ function houseFlak37(hb, col, dark, f) {
   hb.block({ x0: f.face - 0.12, x1: f.face, hw: 0.14, y0: f.trunY - 0.2, y1: f.trunY + 0.2 }, dark, MAT.DARK);
 }
 
+/** a skin through rounded-rectangle sections (rows: { y, x (centre), rx, rz, p (2 = ellipse, large = squarer) }), n points a ring, closed by a flat top */
+function roundLoft(hb, rows, col, n = 20) {
+  const ring = (r) => { const q = []; for (let i = 0; i < n; i++) { const a = i / n * Math.PI * 2, ca = Math.cos(a), sa = Math.sin(a), e = 2 / r.p; q.push([r.x + Math.sign(ca) * Math.pow(Math.abs(ca), e) * r.rx, r.y, Math.sign(sa) * Math.pow(Math.abs(sa), e) * r.rz]); } return q; };
+  const rs = rows.map(ring);
+  for (let k = 0; k + 1 < rs.length; k++) {
+    const ref = [rows[k].x, (rows[k].y + rows[k + 1].y) / 2, 0];
+    for (let i = 0; i < n; i++) { const j = (i + 1) % n; hb.quad(rs[k][i], rs[k][j], rs[k + 1][j], rs[k + 1][i], col, MAT.HULL, ref); }
+  }
+  const t = rs[rs.length - 1], r = rows[rows.length - 1];
+  for (let i = 0; i < n; i++) hb.triFlat([r.x, r.y, 0], t[i], t[(i + 1) % n], col, MAT.HULL, [r.x, r.y - 1, 0]);
+}
+
 /**
- * US 5"/54 Mk 42: the rounded 'anvil' gun house of the Forrest Sherman / Charles F. Adams classes (measured on a reference model of the Adams: 3.75 m wide, 4 m high over the
- * barbette, the trunnion 2 m above the pivot, a barrel 4.6 m clear of it): a round base, a house with a sloped front and a domed back, the slot of the gun, the hatch on the roof.
+ * US 5"/54 Mk 42: the rounded gun house of the Forrest Sherman / Charles F. Adams classes (measured on a reference model of the Adams, in metres): a round ring, a house 4.15 m long and
+ * 3.7 m wide with big rounded corners and a front plate where the gun leaves it (the trunnion 2 m above the ring), a roof that curves over, two hatch domes (1.7 m across, to 4.4 m)
+ * either side of the centre line and a smaller dome behind them. The axis of training is 2.05 m behind the front.
  */
 function houseMk42(hb, col, dark, f) {
-  const mid = shade(col, 0.93), light = shade(col, 1.08);
-  hb.cylinder(0, 0, 0, 1.95, 1.9, 1.3, shade(col, 0.88), MAT.HULL, { seg: 18 });                                     // the round base (the training ring)
-  hb.block({ x0: -2.0, x1: f.face, hw: 1.85, y0: 1.2, y1: 3.25, tx0: -1.6, tx1: 1.0, thw: 1.55 }, col, MAT.HULL);      // the house, front plate sloping back at the top
-  hb.sphere(-0.6, 3.05, 0, 1.45, 0.75, 1.35, light, MAT.HULL, { seg: 12, rings: 6 });                                  // the domed roof
-  hb.block({ x0: -2.35, x1: -1.7, hw: 1.0, y0: 1.5, y1: 3.0, tx0: -2.1, tx1: -1.75, thw: 0.8 }, mid, MAT.HULL);       // the bulge at the back (the loader)
-  hb.block({ x0: f.face - 0.35, x1: f.face + 0.02, hw: 0.42, y0: f.trunY - 0.45, y1: f.trunY + 0.45 }, dark, MAT.DARK);   // the slot of the gun
-  hb.cylinder(-0.2, 3.5, 0.9, 0.28, 0.26, 3.85, shade(col, 0.8), MAT.HULL, { seg: 6 });                                 // the hatch
+  const mid = shade(col, 0.93), light = shade(col, 1.06);
+  hb.cylinder(0, 0, 0, 1.7, 1.65, 0.42, shade(col, 0.85), MAT.HULL, { seg: 18 });                                    // the training ring
+  roundLoft(hb, [{ y: 0.4, x: -0.1, rx: 1.95, rz: 1.72, p: 3.2 }, { y: 2.0, x: -0.05, rx: 2.05, rz: 1.85, p: 3.2 }, { y: 2.7, x: -0.05, rx: 2.05, rz: 1.83, p: 3.4 },
+    { y: 3.05, x: -0.15, rx: 1.85, rz: 1.7, p: 3.4 }, { y: 3.3, x: -0.3, rx: 1.5, rz: 1.35, p: 3.4 }], col, 20);                                            // the house
+  for (const sg of [-1, 1]) {                                                                                           // the two hatch domes, each on its collar
+    hb.cylinder(0.35, 3.0, sg * 1.15, 0.9, 0.9, 3.45, mid, MAT.HULL, { seg: 14 });
+    hb.sphere(0.35, 3.45, sg * 1.15, 0.85, 0.95, 0.85, light, MAT.HULL, { half: true, seg: 14, rings: 6 });
+  }
+  hb.cylinder(-1.15, 3.05, 0, 0.62, 0.62, 3.4, mid, MAT.HULL, { seg: 10 });                                              // the small dome
+  hb.sphere(-1.15, 3.4, 0, 0.6, 0.38, 0.6, light, MAT.HULL, { half: true, seg: 10, rings: 4 });
+  hb.block({ x0: -0.65, x1: -0.05, hw: 0.3, y0: 3.15, y1: 3.75 }, mid, MAT.HULL);                                       // the base of the whip aerial
+  hb.block({ x0: f.face - 0.12, x1: f.face + 0.03, hw: 0.5, y0: f.trunY - 0.5, y1: f.trunY + 0.5 }, dark, MAT.DARK);   // the slot of the gun
 }
 
 /** Japanese 12 cm Type 3 single (Momi / Wakatake class): a shield with a sloped, rounded top on a short pedestal, open at the back. */
 function houseType3_120(hb, col, dark, f) {
-  hb.cylinder(0, 0, 0, 1.15, 1.1, 0.5, shade(col, 0.85), MAT.HULL, { seg: 14 });
-  hb.block({ x0: -0.15, x1: f.face, hw: 1.15, y0: 0.45, y1: 2.35, tx0: -0.3, tx1: 0.6, thw: 1.0 }, col, MAT.HULL);
-  hb.block({ x0: -1.25, x1: -0.15, hw: 1.05, y0: 0.45, y1: 1.2 }, shade(col, 0.9), MAT.HULL);
-  hb.block({ x0: f.face - 0.3, x1: f.face, hw: 0.26, y0: f.trunY - 0.3, y1: f.trunY + 0.3 }, dark, MAT.DARK);
+  // measured on a reference model: a closed shield, rounded at the corners, 1.8 m long, 2 m wide and 1.7 m high over its pedestal ring, a flat roof sloping a little, the gun
+  // going through a wide opening in the front
+  hb.cylinder(0, 0, 0, 0.55, 0.5, 0.35, shade(col, 0.85), MAT.HULL, { seg: 12 });                                            // the pedestal ring
+  const oct = [[-1.0, -0.82], [-0.7, -1.12], [0.7, -1.12], [1.0, -0.82], [1.0, 0.82], [0.7, 1.12], [-0.7, 1.12], [-1.0, 0.82]];
+  hb.prism(oct, 0.3, 2.0, col, MAT.HULL, { topScale: 0.93 });                                                                 // the shield
+  hb.block({ x0: -1.05, x1: 0.95, hw: 1.05, y0: 1.95, y1: 2.12, tx0: -0.95, tx1: 0.8, thw: 0.95 }, shade(col, 1.07), MAT.HULL);   // the roof
+  hb.block({ x0: f.face - 0.12, x1: f.face + 0.02, hw: 0.45, y0: f.trunY - 0.45, y1: f.trunY + 0.4 }, dark, MAT.DARK);       // the opening of the gun
+  hb.block({ x0: -1.15, x1: -0.9, hw: 0.4, y0: f.trunY - 0.3, y1: f.trunY + 0.3 }, shade(col, 0.8), MAT.HULL);               // the breech behind
 }
 
-const HOUSES = { mk42: houseMk42, type3_120: houseType3_120, de37: houseFlak37, mk7: houseMk7, type94: houseType94, type3_155: houseType3, drh28_150: houseDrh28, lit381: houseLit381, lit152: houseLit152, rich380: houseRich380, fr152: houseFr152, it152: houseIt152, us152: houseUs152, brit152: houseBrit152, it120: houseIt120, de150_2: houseDe150_2, de150_1: houseMk30, fr138: houseMk30, brit120: houseBrit120, type3_127: houseType3_127, brit203: houseBrit203, type41_152: houseType41_152, us203: houseUs203, fr203: houseFr203, fr152_30: houseFr152_30, zara203: houseZara203, type3_203: houseType3_203, drh203: houseDrh203, drh34: houseDrh34, mk28: houseMk28, mk30: houseMk30 };
+/** Japanese 12.7 cm Type C twin mount (Kagero class), measured on a reference model: a low closed shield, 5.7 m long and 4.5 m wide at the rear, narrowing to the gun openings, 1.8 m high over its ring. */
+function houseType3C(hb, col, dark, f) {
+  const light = shade(col, 1.08), shadow = shade(col, 0.82);
+  hb.cylinder(0, -0.05, 0, 2.3, 2.35, 0.1, shadow, MAT.HULL, { seg: 22 });
+  const half = [[-2.9, 0.98], [-2.65, 1.65], [-0.1, 2.25], [2.3, 2.25], [2.8, 1.4], [2.82, 0]];
+  const plan = [...half, ...half.slice(0, -1).reverse().map(([x, w]) => [x, -w])];
+  hb.prism(plan, 0.1, 1.5, col, MAT.HULL);
+  hb.prism(plan.map(([x, w]) => [x, w * 0.97]), 1.5, 1.8, light, MAT.HULL, { topScale: 0.9 });
+  hb.cylinder(-1.6, 1.75, 1.1, 0.3, 0.27, 2.1, shadow, MAT.HULL, { seg: 8 });
+  hb.cylinder(-1.6, 1.75, -1.1, 0.3, 0.27, 2.1, shadow, MAT.HULL, { seg: 8 });
+  for (let i = 0; i < f.n; i++) {
+    const z = (i - (f.n - 1) / 2) * f.spacing;
+    hb.block({ x0: f.port - 0.2, x1: f.port + 0.25, hw: 0.4, zc: z, y0: f.trunY - 0.4, y1: f.trunY + 0.4 }, dark, MAT.DARK);
+  }
+}
+
+/** Oriani class 120/50 OTO twin: a faceted house, flat sides, the roof chamfered at its edges and sloping down to a steep front plate (stations: x, half width, roof height, chamfer). */
+function houseIt120o(hb, col, dark, f) {
+  const light = shade(col, 1.08), shadow = shade(col, 0.84);
+  const st = [[-1.95, 1.26, 2.5, 0.35], [-1.7, 1.31, 2.55, 0.4], [0.9, 1.1, 1.95, 0.35], [1.55, 0.9, 0.4, 0.2]];
+  const ring = ([x, w, yt, c]) => [[x, 0.15, -w], [x, 0.15, w], [x, yt - c, w], [x, yt, w - c], [x, yt, -(w - c)], [x, yt - c, -w]];
+  const R = st.map(ring), mid = [-0.3, 1.0, 0];
+  hb.cylinder(0, -0.1, 0, 1.4, 1.45, 0.2, shadow, MAT.HULL, { seg: 24 });
+  for (let k = 0; k < R.length - 1; k++) for (let i = 0; i < 6; i++) {
+    const j = (i + 1) % 6;
+    hb.quad(R[k][i], R[k][j], R[k + 1][j], R[k + 1][i], i === 3 ? light : col, MAT.HULL, mid);
+  }
+  for (let i = 1; i < 5; i++) hb.triFlat(R[0][0], R[0][i], R[0][i + 1], shadow, MAT.HULL, mid);
+  for (let i = 1; i < 5; i++) hb.triFlat(R[3][0], R[3][i], R[3][i + 1], col, MAT.HULL, mid);
+  hb.block({ x0: f.face - 0.25, x1: f.face + 0.05, hw: (f.n - 1) * f.spacing / 2 + 0.3, y0: f.trunY - 0.35, y1: f.trunY + 0.35 }, dark, MAT.DARK);   // the opening the barrels go through
+}
+
+const HOUSES = { it120o: houseIt120o, type3c_127: houseType3C, mk42: houseMk42, type3_120: houseType3_120, de37: houseFlak37, mk7: houseMk7, type94: houseType94, type3_155: houseType3, drh28_150: houseDrh28, lit381: houseLit381, lit152: houseLit152, rich380: houseRich380, fr152: houseFr152, it152: houseIt152, us152: houseUs152, brit152: houseBrit152, it120: houseIt120, de150_2: houseDe150_2, de150_1: houseMk30, fr138: houseMk30, brit120: houseBrit120, type3_127: houseType3_127, brit203: houseBrit203, type41_152: houseType41_152, us203: houseUs203, fr203: houseFr203, fr152_30: houseFr152_30, zara203: houseZara203, type3_203: houseType3_203, drh203: houseDrh203, drh34: houseDrh34, mk28: houseMk28, mk30: houseMk30 };
 
 /**
  * Paint the flat roof of a gun house: `top.col` recolours it (Kriegsmarine turret tops were dark grey); `top.bands` = [stripe, ground]
@@ -443,6 +501,13 @@ function aaMount(hb, gb, s, col, dark) {
     hb.box(-0.15, 1.0, 0, 0.5, 0.5, 0.45, shade(col, 0.95), MAT.HULL);
     gb.rod(-0.2, 1.1, 0, 0, 0.035, 0.03, dark, MAT.DARK, { seg: 6 });
     s._tx = 0; s._ty = 1.0; s._len = 1.1;
+    return;
+  }
+  if (v === 'breda37') {   // the twin 37/54 Breda of the Oriani class (measured on a reference model): a short pedestal, a small shield, two barrels 0.24 m apart
+    hb.cylinder(0, 0, 0, 0.42, 0.4, 0.55, shade(col, 0.9), MAT.HULL, { seg: 10 });
+    hb.block({ x0: -0.55, x1: 0.45, hw: 0.5, y0: 0.55, y1: 1.4, tx0: -0.5, tx1: 0.3, thw: 0.45 }, col, MAT.HULL);
+    for (let i = 0; i < n; i++) gb.rod(-0.35, 1.8, 0, (i - (n - 1) / 2) * 0.24, 0.07, 0.045, dark, MAT.DARK, { seg: 8 });
+    s._tx = 0.2; s._ty = 1.2; s._len = 1.8;
     return;
   }
   if (v === 'iijn25') {   // shielded triple 25 mm

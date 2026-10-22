@@ -255,7 +255,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       return dmax > e ? [...dp(pts.slice(0, im + 1), e).slice(0, -1), ...dp(pts.slice(im), e)] : [a, b2]; };
     const simp = (c, e) => { const closed = Math.hypot(c[0][0] - c[c.length - 1][0], c[0][1] - c[c.length - 1][1]) < 0.05; if (!closed) return dp(c, e); let k = 0, dm = 0; c.forEach((q, i) => { const d2 = Math.hypot(q[0] - c[0][0], q[1] - c[0][1]); if (d2 > dm) { dm = d2; k = i; } }); return [...dp(c.slice(0, k + 1), e).slice(0, -1), ...dp(c.slice(k), e)]; };
     const out = chains.map((c) => { let len = 0; for (let i = 1; i < c.length; i++) len += Math.hypot(c[i][0] - c[i - 1][0], c[i][1] - c[i - 1][1]); const xs = c.map((q) => q[0]), zs = c.map((q) => q[1]); return { c, len, bb: [Math.min(...xs), Math.max(...xs), Math.min(...zs), Math.max(...zs)] }; })
-      .filter((o) => o.len >= minl && o.bb[0] >= x0 && o.bb[1] <= x1 + 2 && o.bb[2] >= z0 && o.bb[3] <= z1).sort((a, b2) => b2.len - a.len);
+      .filter((o) => o.len >= minl && o.bb[0] >= x0 && o.bb[1] <= x1 + 2 && o.bb[2] >= z0 && o.bb[3] <= z1).sort((a, b2) => (flags.sortx ? a.bb[0] - b2.bb[0] : b2.len - a.len));
     for (const o of out.slice(0, +(flags.n || 8))) console.log(`len ${o.len.toFixed(1)} m  x ${o.bb[0].toFixed(2)}..${o.bb[1].toFixed(2)}  z ${o.bb[2].toFixed(2)}..${o.bb[3].toFixed(2)}  ${simp(o.c, tol).map((q) => `[${q[0].toFixed(2)},${q[1].toFixed(2)}]`).join('')}`);
   } else if (cmd === 'quarters') {
     // the oblique views the studio takes of the game's model (tools/refs/studio.mjs), as orthographic pictures of the reference, to compare them side by side
