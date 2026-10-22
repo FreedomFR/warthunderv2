@@ -122,6 +122,22 @@ export class MeshBuilder {
     return this.p.length / 3 - 1;
   }
   tri(a, b, c) { this.idx.push(a, b, c); }
+
+  /** Append ready-made geometry (a baked reference mesh): pos / nrm = x y z per vertex, rgb = 0..255 per vertex, idx = triangles; everything goes through the current transform. */
+  raw(pos, nrm, rgb, idx, mat = MAT.HULL, ao = this.ao) {
+    const base = this.p.length / 3, n = pos.length / 3;
+    for (let i = 0; i < n; i++) this.vert(pos[i * 3], pos[i * 3 + 1], pos[i * 3 + 2], nrm[i * 3], nrm[i * 3 + 1], nrm[i * 3 + 2], [rgb[i * 3], rgb[i * 3 + 1], rgb[i * 3 + 2]], mat, ao);
+    for (let i = 0; i < idx.length; i++) this.idx.push(base + idx[i]);
+    return this;
+  }
+
+  /** Run `fn` for its bounding boxes only (`solids`: the arcs and the clearances are read from them): what it draws is thrown away. */
+  ghost(fn) {
+    const L = [this.p.length, this.n.length, this.c.length, this.idx.length];
+    fn();
+    this.p.length = L[0]; this.n.length = L[1]; this.c.length = L[2]; this.idx.length = L[3];
+    return this;
+  }
   quadIdx(a, b, c, d) { this.idx.push(a, b, c, a, c, d); }
 
   /** world(position) of the last vertex pushed through the current transform (for oriented tests) */

@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased — the Yamato's masses are the reference model itself, baked
+
+- On the owner's request for a true copy: the model's triangles (simplified to 160k, the texture colours at the vertices) are baked into `ships/yamato_baked.js` (1.4 MB) and drawn instead of the stepped prisms: the tower with its platforms and rangefinders, the funnel with its pipes, the central house, the sponsons and the deck are the model's. `static` / `tower` / `funnel` pieces: the tower and the funnel stay destroyable parts (their ruins are the game's), the rest is the hull mesh, so the scars, the fires and the break in two work as before. Turrets, cupolas, AA, screws, rudders, rigging and catapult are still the game's own, for the fire and the arcs.
+- New: `MeshBuilder.raw` (ready-made geometry) and `ghost` (solids without geometry), `tools/refs/bake.py`, `bakepack.mjs`, `gltf.mjs bakeraw`.
+
 ## Unreleased — the Yamato's gun houses and barrels read on the reference model
 
 - **Gun houses redrawn from cross-sections**: the 46 cm turret and the 15.5 cm triple are a few stages of flat faces (`stagedHouse` in `mounts.js`: each stage a loft between two six-corner outlines, numbers read on the model: rear, front, half width, front corners, at the foot and at the top of the stage; the 46 cm house is 16.8 m long, 13.8 m wide at the foot and 8.8 m at the roof with a sloped front); the 12.7 cm cupola is the round dome with its sloped hood, a chain of outlines lofted one to the next (`model/mountdata.js`, `solids.py --local --box --hull=1 --skin=N --rays=1`). Chains of outlines of every slice were tried for the big turrets too: they came out ragged and were dropped for the flat stages.

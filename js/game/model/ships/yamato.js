@@ -3,6 +3,25 @@
 // y over the waterline; z to starboard): MASSES are the solid volumes of the model read as stacked footprints (tools/refs/footprints.mjs: a height band at a time, the thin things opened
 // away, runs of bands with the same outline taken as one prism), redrawn as prisms; the masts, the stays and the small fittings are drawn by hand.
 import { kit } from './kit.js';
+import { BAKED, SCALE } from './yamato_baked.js';
+
+/** One baked piece as typed arrays: positions in metres, smooth normals, colours, indices. */
+function decodeBaked(piece) {
+  const bytes = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
+  const q = new Int16Array(bytes(piece.pos).buffer), col = bytes(piece.col), ib = bytes(piece.idx).buffer;
+  const idx = piece.wide ? new Uint32Array(ib) : new Uint16Array(ib);
+  const pos = new Float32Array(q.length);
+  for (let i = 0; i < q.length; i++) pos[i] = q[i] / SCALE;
+  const nrm = new Float32Array(pos.length);
+  for (let t = 0; t < idx.length; t += 3) {
+    const a = idx[t] * 3, b = idx[t + 1] * 3, c = idx[t + 2] * 3;
+    const ux = pos[b] - pos[a], uy = pos[b + 1] - pos[a + 1], uz = pos[b + 2] - pos[a + 2], vx = pos[c] - pos[a], vy = pos[c + 1] - pos[a + 1], vz = pos[c + 2] - pos[a + 2];
+    const nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx;                      // area weighted
+    for (const k of [a, b, c]) { nrm[k] += nx; nrm[k + 1] += ny; nrm[k + 2] += nz; }
+  }
+  for (let i = 0; i < nrm.length; i += 3) { const l = Math.hypot(nrm[i], nrm[i + 1], nrm[i + 2]) || 1; nrm[i] /= l; nrm[i + 1] /= l; nrm[i + 2] /= l; }
+  return { pos, nrm, col, idx };
+}
 
 // [y0, y1, [outline, hole, ...]]: a solid between two heights over the waterline, each ring a list of [x, z]
 const MASSES = [
@@ -192,10 +211,14 @@ function yamatoExtras({ b, hull, X, Y, pal, model, MAT, rgb, shade, part, PT, DT
     const [cx, cz] = cen(m[2][0]);
     if (m[0] >= 18 && cx > -8 && cx < 16) tower.push(m);
     else if (m[0] >= 14 && cx > -33 && cx < -12 && Math.abs(cz) < 2 && span(m[2][0], 0) < 17 && span(m[2][0], 1) < 9.5) funnel.push(m);
-    else solid(m, shade(sup, 0.9 + 0.1 * ((m[0] * 7) % 3) / 2));
+    else b.ghost(() => solid(m, sup));                                                       // the procedural masses only give the solids (arcs, clearances); the baked mesh is what is drawn
     note(m[1]);
   }
-  part('tower', 'bridge', 'Passerelle', () => { for (const m of tower) solid(m, shade(sup, 0.94 + 0.08 * ((m[0] * 5) % 3) / 2)); },
+  const baked = Object.fromEntries(Object.entries(BAKED).map(([k, v]) => [k, decodeBaked(v)]));
+  const drawBaked = (k) => b.raw(baked[k].pos, baked[k].nrm, baked[k].col, baked[k].idx, MAT.HULL);
+  drawBaked('static');
+  b.ghost(() => { for (const m of tower) solid(m, sup); });
+  part('tower', 'bridge', 'Passerelle', () => drawBaked('tower'),
     () => b.prism([[-2, -3], [6, -3], [6, 3], [-2, 3]], 18, 24, shade(dark, 1.1), MAT.DARK));
   const ellipse = (poly) => {                                                                  // the stack is an oval: each slice is the ellipse of its measured extent
     const xs = poly.map((q) => q[0]), zs = poly.map((q) => q[1]), cx = (Math.min(...xs) + Math.max(...xs)) / 2, cz = (Math.min(...zs) + Math.max(...zs)) / 2;
@@ -203,9 +226,8 @@ function yamatoExtras({ b, hull, X, Y, pal, model, MAT, rgb, shade, part, PT, DT
     return Array.from({ length: 24 }, (_, i) => [cx + Math.cos(i / 24 * Math.PI * 2) * ax, cz + Math.sin(i / 24 * Math.PI * 2) * az]);
   };
   part('funnel0', 'funnel', 'Cheminée 1', () => {
-    for (const m of funnel) b.loft(ellipse(m[2][0]), m[0], ellipse(m[3] || m[2][0]), m[1], func, MAT.HULL);
-    const top = funnel.reduce((a, m) => (m[1] > a[1] ? m : a), funnel[0]);
-    b.prism(ellipse(top[3] || top[2][0]).map(([x, z]) => [x * 0.98 + 0.0, z * 0.9]), top[1], top[1] + 0.2, capc, MAT.DARK);
+    b.ghost(() => { for (const m of funnel) b.loft(ellipse(m[2][0]), m[0], ellipse(m[3] || m[2][0]), m[1], func, MAT.HULL); });
+    drawBaked('funnel');
   },
     () => PT.funnelRuin(b, { x: -22, y0: 14, h: 8, lx: 9, lz: 5, topLx: 8, topLz: 4, rake: 0, cap: 0.4, pipes: false, trunk: true }, pal));
   // ---- the masts and the stays, measured on the model ----
