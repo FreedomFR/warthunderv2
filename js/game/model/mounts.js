@@ -87,7 +87,7 @@ const FAMILY = {
   // Soldati class 120/50 Ansaldo 1936 twin (a small profile / plan, 7 px per metre, about +-0.5 m): a house 3.4 m long, 3.2 m wide and 2.4 m high, barrels 5 m clear of the pivot
   // Oriani class 120/50 OTO 1936 twin (measured on a reference model): a faceted house 3.5 m long and 2.6 m wide, 2.55 m high at the back and sloping to 1.95 m at the front, the barrels 0.5 m apart (close together: poor dispersion),
   // 1.5 m over the foot of the house, 3.4 m of barrel clear of the trunnion (muzzle 4 m from the pivot)
-  it120o: { kind: 'turret', cal: 120, n: 2, spacing: 0.5, trunX: 0.6, trunY: 1.5, face: 1.55, port: 1.55, fwd: 3.4, back: 1.5, rB: 0.17, rP: 0.15, rM: 0.1, bagR: 0.25, bagLen: 0.25, recoil: 0.4, lift: 2.2, h: 2.55, barbR: 1.5, barb: 0.12 },
+  it120o: { kind: 'turret', cal: 120, n: 2, spacing: 0.5, trunX: 0.6, trunY: 1.5, face: 1.15, port: 1.15, fwd: 3.4, back: 1.5, rB: 0.17, rP: 0.15, rM: 0.1, bagR: 0.25, bagLen: 0.25, recoil: 0.4, lift: 2.2, h: 2.55, barbR: 1.5, barb: 0.12 },
   it120: { kind: 'turret', cal: 120, n: 2, spacing: 0.9, trunX: 0.5, trunY: 1.4, face: 1.7, port: 1.5, fwd: 5.2, back: 0.8, rB: 0.14, rP: 0.11, rM: 0.065, bagR: 0.2, bagLen: 0.3, recoil: 0.4, lift: 2.2, h: 2.4, barbR: 1.8 },
   // S-30 class Schnellboot 3.7 cm Flak M42 (measured on a reference model of the boat, see the s30 entry of tweaks.js): a pedestal 0.55 m high, a sloped shield 1 m wide, the gun
   // axis 1.15 m above the pedestal's foot, a barrel 3.2 m clear of the trunnion
