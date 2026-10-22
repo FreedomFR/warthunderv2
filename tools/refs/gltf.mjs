@@ -109,7 +109,9 @@ export function render(m, view, s, opts = {}) {
   const H = ax(view.h), Vv = ax(view.v), D = ax(view.d);
   const lo = [1e9, 1e9], hi = [-1e9, -1e9];
   for (const p of m.parts) for (let i = 0; i < p.V.length; i += 3) { const a = p.V[i + H.i] * H.k, b = p.V[i + Vv.i] * Vv.k; lo[0] = Math.min(lo[0], a); hi[0] = Math.max(hi[0], a); lo[1] = Math.min(lo[1], b); hi[1] = Math.max(hi[1], b); }
-  const pad = 2, W = Math.ceil((hi[0] - lo[0] + 2 * pad) * s), HH = Math.ceil((hi[1] - lo[1] + 2 * pad) * s);
+  // opts.window = [h0, h1, v0, v1] (metres in the view): only that part of the view is drawn (no padding)
+  if (opts.window) { lo[0] = opts.window[0]; hi[0] = opts.window[1]; lo[1] = opts.window[2]; hi[1] = opts.window[3]; }
+  const pad = opts.window ? 0 : 2, W = Math.ceil((hi[0] - lo[0] + 2 * pad) * s), HH = Math.ceil((hi[1] - lo[1] + 2 * pad) * s);
   const zb = new Float32Array(W * HH).fill(-1e9), img = Buffer.alloc(W * HH * 3, 255);
   const Ld = [0.4, 0.75, 0.5]; const ll = Math.hypot(...Ld);
   const sel = opts.xmin != null ? (p) => p.bb[1][0] >= opts.xmin : () => true;
@@ -157,7 +159,7 @@ export function turned(m, az, el) {
   const v = [d[1] * h[2] - d[2] * h[1], d[2] * h[0] - d[0] * h[2], d[0] * h[1] - d[1] * h[0]];
   // h must point to the viewer's right: for a camera on the starboard side looking at the ship the bow is on the right
   const parts = m.parts.map((p) => { const V = new Float32Array(p.V.length); for (let i = 0; i < V.length; i += 3) { const x = p.V[i], y = p.V[i + 1], z = p.V[i + 2]; V[i] = x * h[0] + y * h[1] + z * h[2]; V[i + 1] = x * v[0] + y * v[1] + z * v[2]; V[i + 2] = x * d[0] + y * d[1] + z * d[2]; } return { ...p, V, bb: [[0, 0, 0], [0, 0, 0]] }; });
-  return { ...m, parts };
+  return { ...m, parts, basis: { h, v, d } };
 }
 
 const VIEWS = {
@@ -195,6 +197,66 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     for (const p of m.parts) { const keep = []; for (let t = 0; t < p.idx.length; t += 3) { const zs = [0, 1, 2].map((q) => p.V[p.idx[t + q] * 3 + 2]); if (Math.max(...zs) <= 0.05) keep.push(p.idx[t], p.idx[t + 1], p.idx[t + 2]); } p.idx = Uint32Array.from(keep); }
     const r = render(m, VIEWS.side_starboard, +(flags.s || 12));
     fs.mkdirSync(path.dirname(arg), { recursive: true }); fs.writeFileSync(arg, png(r.W, r.H, r.img)); console.log('wrote', arg, r.W, 'x', r.H);
+  } else if (cmd === 'crop') {
+    // an oblique orthographic window on the reference, to put next to the same window of the game (tools/refs/pair.sh): --az --el (the game's preview angles), the window's centre
+    // --cx --cy --cz (model metres: x along the length, y above the WATERLINE (--draft), z to starboard), its size --w --h (m) and the scale --s (px/m)
+    const az = +(flags.az ?? 180), el = +(flags.el ?? 8), wl = +(flags.draft || 0);
+    const t = turned(m, az, el), b = t.basis;
+    const c = [+(flags.cx || 0), +(flags.cy || 0) + wl, +(flags.cz || 0)];
+    const ch = c[0] * b.h[0] + c[1] * b.h[1] + c[2] * b.h[2], cv = c[0] * b.v[0] + c[1] * b.v[1] + c[2] * b.v[2];
+    const w = +(flags.w || 30), h = +(flags.h || 20);
+    const r = render(t, { h: 'x', v: 'y', d: 'z' }, +(flags.s || 30), { window: [ch - w / 2, ch + w / 2, cv - h / 2, cv + h / 2] });
+    fs.mkdirSync(path.dirname(arg), { recursive: true }); fs.writeFileSync(arg, png(r.W, r.H, r.img)); console.log('wrote', arg, r.W, 'x', r.H);
+  } else if (cmd === 'slice') {
+    // the plan outline of everything at height --y (m above the waterline, --draft) as lines (where the plane cuts the triangles), over the window --x0 --x1 (model m, bow +) and half-width --hz,
+    // with a ruler: dark ticks every metre on the edges, lines every 5 m; several heights at once: --y=2,3.5,5 writes arg_<y>.png
+    const wl = +(flags.draft || 0), x0 = +flags.x0, x1 = +flags.x1, hz = +(flags.hz || 6), S = +(flags.s || 40);
+    const tris = []; for (const p of m.parts) for (let t = 0; t < p.idx.length; t += 3) { const T = [0, 1, 2].map((q) => { const o = p.idx[t + q] * 3; return [p.V[o], p.V[o + 1], p.V[o + 2]]; }); if (Math.max(T[0][0], T[1][0], T[2][0]) < x0 || Math.min(T[0][0], T[1][0], T[2][0]) > x1) continue; tris.push(T); }
+    for (const yy of String(flags.y).split(',').map(Number)) {
+      const W = Math.round((x1 - x0) * S), H = Math.round(2 * hz * S), img = Buffer.alloc(W * H * 3, 255);
+      const put = (x, z, c) => { const px = Math.round((x - x0) * S), py = Math.round((hz - z) * S); if (px >= 0 && px < W && py >= 0 && py < H) { const o = (py * W + px) * 3; img[o] = c[0]; img[o + 1] = c[1]; img[o + 2] = c[2]; } };
+      for (let x = Math.ceil(x0); x <= x1; x++) for (let z = -hz; z <= hz; z += 1 / S * 2) if (x % 5 === 0 || Math.abs(z - Math.round(z)) < 1 / S) put(x, z, x % 5 === 0 ? [255, 190, 190] : [225, 235, 255]);
+      for (let z = -Math.floor(hz); z <= hz; z++) for (let x = x0; x <= x1; x += 1 / S * 2) put(x, z, z === 0 ? [255, 190, 190] : [225, 235, 255]);
+      for (const T of tris) {
+        const d = T.map((v) => v[1] - (yy + wl)); if (d[0] > 0 && d[1] > 0 && d[2] > 0 || d[0] < 0 && d[1] < 0 && d[2] < 0) continue;
+        const pts = []; for (let e = 0; e < 3; e++) { const a = T[e], b2 = T[(e + 1) % 3], da = d[e], db = d[(e + 1) % 3]; if ((da < 0) !== (db < 0)) { const k = da / (da - db); pts.push([a[0] + (b2[0] - a[0]) * k, a[2] + (b2[2] - a[2]) * k]); } }
+        if (pts.length === 2) { const n = Math.ceil(Math.hypot(pts[1][0] - pts[0][0], pts[1][1] - pts[0][1]) * S) + 1; for (let i = 0; i <= n; i++) put(pts[0][0] + (pts[1][0] - pts[0][0]) * i / n, pts[0][1] + (pts[1][1] - pts[0][1]) * i / n, [20, 20, 20]); }
+      }
+      const f = String(flags.y).includes(',') ? arg.replace(/\.png$/, `_${yy}.png`) : arg; fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, png(W, H, img)); console.log('wrote', f, W, 'x', H);
+    }
+  } else if (cmd === 'outline') {
+    // the closed outlines (chains of the cut segments) at height --y (m above the waterline) inside the window --x0 --x1 --z0 --z1, simplified to --tol (m, default 0.12), longest first, as
+    // [x, z] points (model metres): a MEASUREMENT of the plan of a block, to be redrawn by hand with a few points (never pasted whole into the models)
+    const wl = +(flags.draft || 0), yy = +flags.y + wl, tol = +(flags.tol || 0.12), x0 = +flags.x0, x1 = +flags.x1, z0 = +(flags.z0 ?? -99), z1 = +(flags.z1 ?? 99), minl = +(flags.minlen || 1.5);
+    const segs = [];
+    for (const p of m.parts) for (let t = 0; t < p.idx.length; t += 3) {
+      const T = [0, 1, 2].map((q) => { const o = p.idx[t + q] * 3; return [p.V[o], p.V[o + 1], p.V[o + 2]]; });
+      const d = T.map((v) => v[1] - yy); if (d[0] > 0 && d[1] > 0 && d[2] > 0 || d[0] < 0 && d[1] < 0 && d[2] < 0) continue;
+      const pts = []; for (let e = 0; e < 3; e++) { const a = T[e], b2 = T[(e + 1) % 3], da = d[e], db = d[(e + 1) % 3]; if ((da < 0) !== (db < 0)) { const k = da / (da - db); pts.push([a[0] + (b2[0] - a[0]) * k, a[2] + (b2[2] - a[2]) * k]); } }
+      if (pts.length === 2 && pts[0][0] >= x0 - 1 && pts[0][0] <= x1 + 1) segs.push(pts);
+    }
+    // chain the segments by their end points (rounded to 2 cm)
+    const key = (q) => `${Math.round(q[0] * 50)},${Math.round(q[1] * 50)}`, ends = new Map();
+    segs.forEach((sg, i) => { for (const q of sg) { const k = key(q); if (!ends.has(k)) ends.set(k, []); ends.get(k).push(i); } });
+    const used = new Array(segs.length).fill(false), chains = [];
+    for (let i = 0; i < segs.length; i++) {
+      if (used[i]) continue; used[i] = true; let chain = [segs[i][0], segs[i][1]];
+      for (let dir = 0; dir < 2; dir++) {
+        for (;;) {
+          const tail = chain[chain.length - 1], nx = (ends.get(key(tail)) || []).find((j) => !used[j]);
+          if (nx === undefined) break; used[nx] = true; const sg = segs[nx]; chain.push(key(sg[0]) === key(tail) ? sg[1] : sg[0]);
+        }
+        chain.reverse();
+      }
+      chains.push(chain);
+    }
+    const dp = (pts, e) => { if (pts.length < 3) return pts; let dmax = 0, im = 0; const [a, b2] = [pts[0], pts[pts.length - 1]], L2 = Math.hypot(b2[0] - a[0], b2[1] - a[1]) || 1e-9;
+      for (let i = 1; i < pts.length - 1; i++) { const d2 = Math.abs((b2[0] - a[0]) * (a[1] - pts[i][1]) - (a[0] - pts[i][0]) * (b2[1] - a[1])) / L2; if (d2 > dmax) { dmax = d2; im = i; } }
+      return dmax > e ? [...dp(pts.slice(0, im + 1), e).slice(0, -1), ...dp(pts.slice(im), e)] : [a, b2]; };
+    const simp = (c, e) => { const closed = Math.hypot(c[0][0] - c[c.length - 1][0], c[0][1] - c[c.length - 1][1]) < 0.05; if (!closed) return dp(c, e); let k = 0, dm = 0; c.forEach((q, i) => { const d2 = Math.hypot(q[0] - c[0][0], q[1] - c[0][1]); if (d2 > dm) { dm = d2; k = i; } }); return [...dp(c.slice(0, k + 1), e).slice(0, -1), ...dp(c.slice(k), e)]; };
+    const out = chains.map((c) => { let len = 0; for (let i = 1; i < c.length; i++) len += Math.hypot(c[i][0] - c[i - 1][0], c[i][1] - c[i - 1][1]); const xs = c.map((q) => q[0]), zs = c.map((q) => q[1]); return { c, len, bb: [Math.min(...xs), Math.max(...xs), Math.min(...zs), Math.max(...zs)] }; })
+      .filter((o) => o.len >= minl && o.bb[0] >= x0 && o.bb[1] <= x1 + 2 && o.bb[2] >= z0 && o.bb[3] <= z1).sort((a, b2) => b2.len - a.len);
+    for (const o of out.slice(0, +(flags.n || 8))) console.log(`len ${o.len.toFixed(1)} m  x ${o.bb[0].toFixed(2)}..${o.bb[1].toFixed(2)}  z ${o.bb[2].toFixed(2)}..${o.bb[3].toFixed(2)}  ${simp(o.c, tol).map((q) => `[${q[0].toFixed(2)},${q[1].toFixed(2)}]`).join('')}`);
   } else if (cmd === 'quarters') {
     // the oblique views the studio takes of the game's model (tools/refs/studio.mjs), as orthographic pictures of the reference, to compare them side by side
     fs.mkdirSync(arg, { recursive: true });

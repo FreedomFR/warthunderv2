@@ -88,8 +88,14 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 - `screws.js` (25) The screws and the rudder of the ships whose underwater body was not measured on a plan (tweaks.props / tweaks.rudders): drawn from the number of shafts the class… [defaultScrews] ← 1
 - `shipbuilder.js` (920) Spec-driven ship builder. Reads a real-ship spec sheet (dimensions, turret / funnel / mast positions as fractions of the overall length, class, paint) and builds the… [pagodaTiers, buildShipModel] ← 10
 - `treeMeshes.js` (506) The plants as meshes: eight species (oak, fir, palm, tropical canopy tree, acacia, cypress, shrub, boulder), three variants each, at four levels of detail. [FAM, SHAPE, getTemplate, ROCK_TINT, stampPlants] ← 2
-- `tweaks.js` (1212) Per-ship hand tuning of the generated models (see shipbuilder.js for the options). [TWEAKS] ← 10
+- `tweaks.js` (1083) Per-ship hand tuning of the generated models (see shipbuilder.js for the options). [TWEAKS] ← 10
 - `vegetation.js` (143) Where the plants grow. Pure functions of an island (no GPU): the climate of the island, how much of the ground is covered at a point (used both to scatter trees and… [SP, SPECIES, VARIANTS, STEP, climateOf, cover, scatter] ← 5
+
+## js/game/model/ships/
+
+- `adams.js` (87) adams: the tweaks of the adams model (see ../shipbuilder.js for the options and ../tweaks.js for the others); [ADAMS] ← 1
+- `gioberti.js` (30) gioberti: the tweaks of the gioberti model (see ../shipbuilder.js for the options and ../tweaks.js for the others); [GIOBERTI] ← 1
+- `tade.js` (25) tade: the tweaks of the tade model (see ../shipbuilder.js for the options and ../tweaks.js for the others); [TADE] ← 1
 
 ## js/game/render/
 
@@ -215,6 +221,7 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 - `perf.mjs` Where the time of a frame goes in a running battle: node tools/perf.mjs "<url>" [seconds] [profileSeconds] GPU=hardware WSLENV=GPU "/mnt/c/Program…
 - `check.mjs` Render the matte views listed for a ship in tools/refs/plans.json (?matte=1: flat green background), for silhouette.py to compare with the plans.
 - `gltf.mjs` Reads a glTF given for MEASUREMENT ONLY (refs/<id>/src/scene.gltf, git-ignored;
+- `pair.mjs` The game's picture of a window on a ship, to put beside the same window of the reference model (tools/refs/pair.sh): a narrow field of view from far away (nearly…
 - `planecheck.mjs` Render the matte top and side views of an aircraft model of the preview scene (nose to the right), for planecheck.py.
 - `shots.mjs` Take screenshots of the 3D models in the preview scene, from camera positions given in a JSON file.
 - `studio.mjs` A model seen from every side on a plain background, each view lit from behind the camera (the sun in the sky of the game is behind the ship from most angles, which…
