@@ -4,7 +4,7 @@
 
 - **The Admiral Graf Spee** (Deutschland class, 1936, German CA): six 28 cm SK C/28 in two triple turrets (a new `drh28_283` house measured on the model), eight 15 cm singles, three twin 10.5 cm, four twin 3.7 cm and fourteen 2 cm, two quadruple 53.3 cm tube banks at the stern, an Ar 196 on the catapult. Hull lines, the tall tapered tower, the hexagonal funnel, the deckhouses, the boats and the positions of every gun measured on the reference model (`js/game/model/ships/graf_spee.js`, the sheet in `specs/germany.js`). The model names its parts (`main_caliber_turret`, `auxiliary_caliber_turret`, `aa_turret`, `tt`...), which gave the position of each mount to +-0.1 m.
 - **Tools**: `gltf.mjs` reads a Wavefront OBJ (`loadObj`); `tools/refs/gcrop.sh` / `gcrop.py` draw the model on a window with a grid in game metres to read positions (side or top view). The hull of this ship needs `--bow=1` (the bow-end heuristic of `upright` picks the wrong end).
-- **Credits**: the archive holds no licence file, the author and the licence of this model are to be confirmed (`docs/CREDITS.md`).
+- **Credits**: the model is by KojfDiscord like the others of the lot, CC BY 4.0 (`docs/CREDITS.md`; the Sketchfab page of this one is still to be added there).
 
 ## Unreleased — three new destroyers measured on reference models, and a way to look at a model from every side
 
