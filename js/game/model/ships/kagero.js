@@ -93,7 +93,7 @@ function kageroExtras({ b, hull, X, Y, pal, model, MAT, rgb, shade, part, PT, DT
         b.rod(x + m.t1 + 3.2, x + m.t1 + 3.35, D + 1.5, z, 0.3, 0.22, shade(grey, 0.8), MAT.HULL, { seg: 12 });
       }
     }, () => b.box(x, 4.2, 0, 3.0, 1.0, 2.4, shade(dark, 1.1), MAT.DARK));
-    model.tubes.push({ x: x + m.t1 + 3.2, y: D + 1.5, z: 0, n: 4, side: 0 });                                            // at the muzzles, out of the hood
+    model.tubes.push({ x: x + m.t1 + 3.2, cx: x, y: D + 1.5, z: 0, n: 4, side: 0, reach: 5.2 });                                            // at the muzzles, out of the hood
   });
 
   // ---- the after deckhouse and the round house under turret X ----

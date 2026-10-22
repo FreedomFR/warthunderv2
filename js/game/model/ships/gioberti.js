@@ -476,7 +476,7 @@ function giobertiExtras(ctx) {
         b.rod(cap[0], cap[1], 4.8, z, 0.2, 0.2, shade(sup, 0.8), MAT.HULL, { seg: 12 });
       }
     }, () => b.box(xc, 4.0, 0, 2.4, 1.0, 3.2, shade(black, 1.1), MAT.DARK));
-    model.tubes.push({ x: xc, y: 4.8, z: 0, n: 3, side: 0 });
+    model.tubes.push({ x: xc, y: 4.8, z: 0, n: 3, side: 0, r0: 2.3 });
   };
   model.tubes.length = 0;
   bank(0, -8.875, 1); bank(1, -21.525, -1);

@@ -22,6 +22,8 @@ let nextBomb = 1;
 /** New ids for the aircraft and the bombs made outside this file (sim/airfield.js). */
 export const planeId = () => nextPlane++;
 export const bombId = () => nextBomb++;
+/** A new world starts the numbering again: some aircraft behaviour (the weave of an escort) follows the id, so two battles of one process must not differ by the ids of the earlier ones. */
+export const resetAirIds = () => { nextPlane = 1; nextBomb = 1; };
 
 
 

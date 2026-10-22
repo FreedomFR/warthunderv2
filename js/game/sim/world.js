@@ -7,7 +7,7 @@ import { BY_ID } from '../data/ships.js';
 import { updateGunnery, updateTorpedoes } from './weapons.js';
 import { stepShell } from './ballistics.js';
 import { segmentNearShip, segmentHit, resolveShellHit, resolveTorpedoHit } from './damage.js';
-import { updateAir } from './aircraft.js';
+import { updateAir, resetAirIds } from './aircraft.js';
 import { spawnPartDebris, stepDebris } from './debris.js';
 import { magazineExplosion, shipGone, secondaryBlast, breakInTwo } from './explosions.js';
 import { FleetCommand } from './fleet.js';
@@ -41,6 +41,7 @@ export class World {
     this.debris = [];
     this.seaFires = [];          // burning oil / fuel on the water
     this.timers = [];            // scheduled callbacks (sequences of explosions)
+    resetAirIds();
     this.events = [];
     this.teams = [];
     this.state = 'setup';        // setup | running | finished

@@ -17,6 +17,7 @@ for (const spec of ALL_SHIPS) {
     id: spec.id, L: spec.loa, B: spec.beam, outline,
     solids: m.solids.map((s) => ({ b: s.map(r1), poly: s.poly ? s.poly.map((q) => q.map(r1)) : null, round: !!s.round })),
     mounts: m.mounts.map((r) => ({ g: r.group, l: r.label || '', x: r1(r.x), y: r1(r.y), z: r1(r.z), c: r1(r.arcC), a: r1(r.arcMin), b: r1(r.arcMax), h: r1(r.arcH), no: !!r.noArc, n: r.n, cal: r.cal })),
+    tubes: m.tubes.map((t) => ({ x: r1(t.cx ?? t.x), z: r1(t.z), n: t.n, no: !!t.noArc, s: (t.sectors || [[-2.79, -0.35], [0.35, 2.79]]).map((q) => [r1(q[0]), r1(q[1])]) })),
     aa: m.aaMounts.map((r) => ({ v: r.variant, x: r1(r.x), y: r1(r.y), z: r1(r.z), c: r1(r.arcC), a: r1(r.arcMin), b: r1(r.arcMax), no: !!r.noArc })),
   });
 }

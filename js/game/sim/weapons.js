@@ -3,7 +3,7 @@ import { clamp, wrapPi, approach, D2R } from '../math.js';
 import { gunBallistics, solve } from './ballistics.js';
 import { V_EXP, effectiveThickness, spacedPlates, fuzeThickness } from './penetration.js';
 import { mountDims } from '../model/mounts.js';
-import { clearElev, clearMax, pathClear, inArcRel } from '../model/clearance.js';
+import { clearElev, clearMax, pathClear, inArcRel, tubeBears } from '../model/clearance.js';
 
 /** how far a turret can depress below the horizontal (rad): a battleship has to shoot down at a destroyer that is close */
 const DEPRESS = 4 * D2R;
@@ -319,17 +319,20 @@ export function updateTorpedoes(ship, world, dt) {
   if (!sol) return;
   const { bearing, tt } = sol;
   const rel = wrapPi(bearing - ship.heading);
+  let ready = [];
   if (tp.bow) {
     // tubes fixed in the bow: nothing trains, the boat is turned onto the target
     if (Math.abs(rel) > BOW_ARC) return;
   } else {
-    // tubes train to either beam: acceptable when the intercept bearing is within +-70 deg of a beam
-    const offBeam = Math.min(Math.abs(wrapPi(rel - Math.PI / 2)), Math.abs(wrapPi(rel + Math.PI / 2)));
-    if (offBeam > 70 * D2R) return;
+    // the launchers that bear: each trains over the beam sectors of its side (20 to 160 deg off the bow) that no structure blocks (model/clearance.js `computeTubeArcs`)
+    ready = ship.tubes.filter((q) => tubeBears(q, rel));
+    if (!ready.length && ship.tubes.length) return;
   }
-  // salvo: spread of torpedoes around the solution
-  const n = Math.min(ship.torpLeft, Math.max(2, Math.min(5, Math.round(tp.tubes / 2))));
-  const startTube = ship.tubes.length ? ship.tubes[Math.floor(world.rng() * ship.tubes.length)] : { x: 0, y: 2, z: 0 };
+  // salvo: spread of torpedoes around the solution (no more than the tubes that bear can send)
+  const room = tp.bow || !ready.length ? 99 : ready.reduce((a, q) => a + q.n, 0);
+  const n = Math.min(ship.torpLeft, room, Math.max(2, Math.min(5, Math.round(tp.tubes / 2))));
+  const pool = ready.length ? ready : ship.tubes;
+  const startTube = pool.length ? pool[Math.floor(world.rng() * pool.length)] : { x: 0, y: 2, z: 0 };
   ship.toWorld(startTube.x, 0, startTube.z, _q);
   const spread = clamp(t.stats.L / Math.max(tt * tp.speed, 500) * 1.3, 0.012, tp.bow ? 0.02 : 0.06);
   for (let i = 0; i < n; i++) {

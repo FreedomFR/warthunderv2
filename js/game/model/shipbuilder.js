@@ -6,7 +6,7 @@ import { MeshBuilder, MAT, rgb, shade, mix } from './meshbuilder.js';
 import { buildHull } from './hull.js';
 import * as PT from './parts.js';
 import { makeRng } from '../math.js';
-import { computeClearance, inFoot, barrelBlocked } from './clearance.js';
+import { computeClearance, computeTubeArcs, inFoot, barrelBlocked } from './clearance.js';
 import { clearHouses, houseRect } from './layout.js';
 import { defaultScrews } from './screws.js';
 import { paintOf, hullNumber, LIVERY, MARKS, PALETTES } from './livery.js';
@@ -777,7 +777,8 @@ export function buildShipModel(spec, tw = {}) {
   if (model.bridge) bridgeEye(model, b.solids, L);
   // a gun house that is sunk in a deckhouse slides a few tenths of a metre along its deck before the arcs are worked out
   clearHouses(model, b.solids, hull, supportBelow, { carrier });
-  computeClearance(model, b.solids, hull);
+  computeClearance(model, b.solids, hull, { bothBeams: !!tw.own });
+  if (tw.ownTubes) computeTubeArcs(model, b.solids, !!(spec.torpedoes && spec.torpedoes.bow));      // the ships drawn from a reference model: the launchers' sectors from what stands round them (the others fire 20-160 degrees off the bow on either beam)
   model.solids = b.solids;                 // kept for the audit (tools/audit.mjs)
   b.solids = null;
   const built = b.build(boat ? { aoOpts: { cell: tw.aoCell ?? 0.25, reach: 2.5 } } : undefined);       // (a boat: the occlusion on a grid of 25 cm, the usual 90 cm is the size of its wheelhouse)

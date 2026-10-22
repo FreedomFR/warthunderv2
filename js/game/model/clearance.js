@@ -68,7 +68,7 @@ function houseRadius(rec) {
  * Fill `clr`, `arcMin` and `arcMax` of every mount (main, secondary and light AA) of a model. `solids` are the boxes of the structures, `hull` the hull object (deck height).
  * The deck itself blocks the barrel only when it rises in front of the muzzle (the sheer at the bow).
  */
-export function computeClearance(model, solids, hull) {
+export function computeClearance(model, solids, hull, opts = {}) {
   // a mount that a structure built after it has swallowed (a platform, a director tower) stands on that structure instead: up to 2.4 m higher
   const settle = (rec) => {
     let top = -1;
@@ -118,7 +118,7 @@ export function computeClearance(model, solids, hull) {
       clr[i] = lo; clrHi[i] = lo > hi ? -1 : hi;
     }
     rec.clr = clr; rec.clrHi = clrHi;
-    arcsFrom(rec, isAA ? BLOCKED.aa : rec.group === 'main' ? BLOCKED.main : BLOCKED.sec);
+    arcsFrom(rec, isAA ? BLOCKED.aa : rec.group === 'main' ? BLOCKED.main : BLOCKED.sec, !!opts.bothBeams);
     if (isAA) rec.yaw0 = rec.arcC;
   }
 }
@@ -150,8 +150,21 @@ export function clearMax(rec, phi) {
   return Math.min(rec.clrHi[i], rec.clrHi[(i + 1) % CLR_N]);
 }
 
+/** Are there free stretches of at least 20 degrees on both sides of the declared arc (each wholly on its own side of the centre)? */
+function both(rec, free, H, step) {
+  let port = 0, star = 0, runP = 0, runS = 0;
+  for (let rel = -H; rel <= H + 1e-9; rel += step) {
+    const ok = free(rel);
+    // the free run counts for the side that the bearing is on, seen from the ship (arcC + rel against the bow)
+    const side = Math.sin(rec.arcC + rel) >= 0 ? 1 : -1;
+    if (ok && side > 0) { runS += step; star = Math.max(star, runS); } else if (side > 0) runS = 0;
+    if (ok && side < 0) { runP += step; port = Math.max(port, runP); } else if (side < 0) runP = 0;
+  }
+  return port >= 20 * D2R && star >= 20 * D2R;
+}
+
 /** Choose the arc: the stretch around `arcC` (inside the declared half-width `arcH`) where the barrel can be trained; if `arcC` itself is blocked, the widest free stretch of the declared arc. */
-function arcsFrom(rec, limit) {
+function arcsFrom(rec, limit, bothBeams = false) {
   const free = (rel) => clearElev(rec, rec.arcC + rel) <= limit && clearMax(rec, rec.arcC + rel) - clearElev(rec, rec.arcC + rel) >= 10 * D2R;
   const step = 1.5 * D2R, H = rec.arcH;
   if (free(0)) {
@@ -167,6 +180,8 @@ function arcsFrom(rec, limit) {
     if (free(rel)) { if (!cur) cur = { a: rel, b: rel }; else cur.b = rel; if (!best || cur.b - cur.a > best.b - best.a) best = { ...cur }; } else cur = null;
   }
   if (!best || best.b - best.a < 6 * D2R) { rec.arcMin = rec.arcMax = 0; rec.noArc = true; return; }
+  // (ships drawn from a reference model, `opts.bothBeams`) a mount on the centre line between two funnels or towers is free on both beams: it keeps the whole declared arc, and the table of elevations (`clr`) refuses the blocked bearings
+  if (bothBeams && rec.kind !== 'aa' && Math.abs(rec.z) < 0.5 && both(rec, free, H, step)) { rec.arcMin = -H; rec.arcMax = H; rec.bothBeams = true; return; }
   const mid = (best.a + best.b) / 2;
   rec.arcC += mid; rec.arcMin = best.a - mid; rec.arcMax = best.b - mid; rec.moved = mid;
 }
@@ -196,4 +211,40 @@ export function inArcRel(rec, rel) {
   if (rel < rec.arcMin && rel + 2 * Math.PI <= rec.arcMax + 1e-6) return rel + 2 * Math.PI;
   if (rel > rec.arcMax && rel - 2 * Math.PI >= rec.arcMin - 1e-6) return rel - 2 * Math.PI;
   return rel;
+}
+
+/**
+ * The bearings (ship relative, rad, clockwise from the bow) a launcher can fire on: the beam sectors of the side it stands on (both for a mount on the centre line),
+ * taken 20 to 160 degrees off the bow, less what a structure at the height of the tubes stands in. `tube.cx` is the training axis when the tube entry is its muzzle,
+ * `tube.reach` how far the tubes and the torpedoes leaving them reach from it, `tube.r0` the radius of the mount's own carriage (nothing within it is an obstacle). Sets `tube.sectors` ([[from, to], ...]), or `tube.noArc`.
+ */
+export function computeTubeArcs(model, solids, bowTubes = false) {
+  if (bowTubes) return;
+  const step = 2 * D2R;
+  for (const t of model.tubes) {
+    const ox = t.cx ?? t.x, oz = t.z, reach = t.reach ?? 5.5, r0 = t.r0 ?? 2.0;      // what stands within r0 of the axis is the mount's own carriage and cheeks
+    const mirrored = model.tubes.some((u) => u !== t && Math.abs(u.z + t.z) < 0.8 && Math.abs(u.x - t.x) < 3);
+    const sideOnly = Math.abs(t.z) > 1.4 && mirrored ? Math.sign(t.z) : 0;      // a pair of launchers, one on each side, fire to their own side
+    const near = solids.filter((q) => !(q[1] - q[0] < 1.3 && q[5] - q[4] < 1.3 && q[3] - q[2] < 1.2) && !(q[3] - q[2] < 1.0 && Math.min(q[1] - q[0], q[5] - q[4]) < 1.0) && q[2] < t.y + 0.25 && q[3] > t.y - 0.25 && !inFoot(q, ox, oz, -0.1)
+      && !(q[1] < ox - reach - 1 || q[0] > ox + reach + 1 || q[5] < oz - reach - 1 || q[4] > oz + reach + 1));
+    const sectors = [];
+    let cur = null;
+    for (let a = -Math.PI; a <= Math.PI + 1e-9; a += step) {
+      const off = Math.min(Math.abs(Math.abs(a) - Math.PI / 2));
+      let ok = Math.abs(a) >= 20 * D2R && Math.abs(a) <= 160 * D2R && off <= 70 * D2R && (!sideOnly || Math.sign(a) === sideOnly);
+      if (ok) { const c = Math.cos(a), sn = Math.sin(a); for (const q of near) if (segHitsBox(ox + c * r0, t.y, oz + sn * r0, c, 0, sn, reach - r0, q, 0.15)) { ok = false; break; } }
+      if (ok) { if (!cur) cur = [a, a]; else cur[1] = a; } else if (cur) { sectors.push(cur); cur = null; }
+    }
+    if (cur) sectors.push(cur);
+    t.sectors = sectors.filter((q) => q[1] - q[0] >= 6 * D2R);
+    if (!t.sectors.length) t.noArc = true;
+  }
+}
+
+/** Can launcher `t` fire on the ship relative bearing `rel` (rad, +-pi)? One without sectors (a model that did not compute them) fires 20 to 160 degrees off the bow on either beam. */
+export function tubeBears(t, rel) {
+  if (t.noArc) return false;
+  if (!t.sectors) { const off = Math.min(Math.abs(rel - Math.PI / 2), Math.abs(rel + Math.PI / 2)); return off <= 70 * D2R; }
+  for (const q of t.sectors) if (rel >= q[0] - 1e-6 && rel <= q[1] + 1e-6) return true;
+  return false;
 }
