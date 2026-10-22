@@ -888,7 +888,7 @@ function buildCarrier(b, model, spec, hull, pal, tw, X, Y, fdY, rnd, note, part)
     const sgm = (m.side === 'port' ? -1 : m.side === 'starboard' ? 1 : /^P/.test(m.label || '') ? -1 : /^S/.test(m.label || '') ? 1 : (i % 2 ? -1 : 1));   // the label (S-fwd-1, P-aft-2) says the side when the sheet does not
     // m.offsetM / m.fdHeightM: a measured mount on the flight deck (Essex: the twin 5in pairs fore and aft of the island)
     const onFD = m.fdHeightM != null;
-    const z = onFD ? sgm * m.offsetM : sgm * (hull.halfBeamDeck(x) + (tw.sponsonOut ?? 1.5));
+    const z = onFD ? sgm * m.offsetM : sgm * (m.sponsonZ ?? hull.halfBeamDeck(x) + (tw.sponsonOut ?? 1.5));      // m.sponsonZ: the measured offset of the sponson from the centre line
     const y = onFD ? fdY + m.fdHeightM : fdY - 3.2;
     if (!onFD) b.block({ x0: x - 2.6, x1: x + 2.6, hw: 2.2, zc: z, y0: y - 1.2, y1: y, tx0: x - 2.0, tx1: x + 2.0, thw: 1.8 }, shade(rgb(pal.hull), 1.1), MAT.HULL);
     else if (m.fdHeightM > 0.2) b.cylinder(x, fdY, z, 2.0, 2.0, y, shade(rgb(pal.sup), 0.95), MAT.HULL, { seg: 16 });

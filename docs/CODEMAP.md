@@ -88,7 +88,7 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 - `screws.js` (25) The screws and the rudder of the ships whose underwater body was not measured on a plan (tweaks.props / tweaks.rudders): drawn from the number of shafts the class… [defaultScrews] ← 1
 - `shipbuilder.js` (924) Spec-driven ship builder. Reads a real-ship spec sheet (dimensions, turret / funnel / mast positions as fractions of the overall length, class, paint) and builds the… [pagodaTiers, buildShipModel] ← 10
 - `treeMeshes.js` (506) The plants as meshes: eight species (oak, fir, palm, tropical canopy tree, acacia, cypress, shrub, boulder), three variants each, at four levels of detail. [FAM, SHAPE, getTemplate, ROCK_TINT, stampPlants] ← 2
-- `tweaks.js` (1065) Per-ship hand tuning of the generated models (see shipbuilder.js for the options). [TWEAKS] ← 10
+- `tweaks.js` (1082) Per-ship hand tuning of the generated models (see shipbuilder.js for the options). [TWEAKS] ← 10
 - `vegetation.js` (143) Where the plants grow. Pure functions of an island (no GPU): the climate of the island, how much of the ground is covered at a point (used both to scatter trees and… [SP, SPECIES, VARIANTS, STEP, climateOf, cover, scatter] ← 5
 
 ## js/game/model/ships/

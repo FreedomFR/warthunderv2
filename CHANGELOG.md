@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased — the Shokaku redone on a reference model (an OBJ)
+
+- The Shokaku was already in the game (from a drawing); a measured model was added, so it is corrected: flight deck 236 m long (it was 241.5) and 31.8 m wide at the widest, 14.65 m over the waterline (14.0), its half-width every 0.1 of the length measured (the bow end 19 m wide, narrower on the island side aft); the quarter deck under its after end at 9.3 m; the eight 127 mm twins at their measured positions and distance from the centre line (`sponsonZ` on a spec mount); the eighteen 25 mm triples at the 18 measured positions (they had been spread by estimate and clashed with the twins). The `shokaku@ref` entry of `plans.json` holds its silhouettes; `gltf.mjs --mirror=1` for a model exported mirrored (the island on the wrong side). Not redone: the lifts, the funnels, the island blocks (they were already close).
+- `test/airops.mjs` runs seed 25 (the battle that cuts a strike down to eight is chaotic and moved with the new AA layout).
+
 ## Unreleased — reload gauges, as in the naval HUD of War Thunder
 
 - **The reload of every gun mount is shown** for the ship that is watched (`ui/reloads.js`, key **R** or the "Recharge" button): a ring per turret that fills while the mount reloads, with the seconds left inside and the shell loaded (AP / HE) under it; "PRÊT" in green when it can fire, "ENRAYÉE" for a jammed mount, "VIDE" without ammunition, a cross when it is destroyed. The batteries are grouped by calibre (main, then each secondary calibre), followed by the torpedo tubes (rounds in the tubes, reload of the next set) and the missile systems (stock and the cycle between two salvos). The simulation keeps the whole duration of each reload (`reloadMax`) so that the ring is exact, including the longer reload after a change of shell and a mount that is damaged. Under the team table on the right; hidden on a phone.

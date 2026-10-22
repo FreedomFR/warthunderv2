@@ -112,7 +112,7 @@ export function upright(model, opts = {}) {
   // which sign of the beam axis is starboard: the game has +z starboard with x forward and y up, i.e. a left-handed frame; keep the orientation of the source (x fwd, y up) and take z so that (x, y, z) is left-handed
   const src = [0, 0, 0]; src[lenAx] = sgn; const up = [0, 0, 0]; up[upAx] = 1;
   const cr = [src[1] * up[2] - src[2] * up[1], src[2] * up[0] - src[0] * up[2], src[0] * up[1] - src[1] * up[0]];     // forward x up (right-handed: points to port)
-  const sz = -cr[beamAx];                                                                                          // starboard = -port
+  const sz = -cr[beamAx] * (opts.mirror ? -1 : 1);                                                                 // starboard = -port (`--mirror=1`: a model exported mirrored, the island on the wrong side)
   for (const p of parts) {
     const V = new Float32Array(p.V.length);
     for (let i = 0; i < V.length; i += 3) { V[i] = (p.V[i + lenAx] - cx) * sgn; V[i + 1] = p.V[i + upAx] - bb[0][upAx]; V[i + 2] = (p.V[i + beamAx] - cz) * (sz || 1); }
@@ -207,7 +207,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const args = process.argv.slice(2).filter((a) => !a.startsWith('--')), flags = Object.fromEntries(process.argv.slice(2).filter((a) => a.startsWith('--')).map((a) => a.slice(2).split('=')));
   const [cmd, dir, arg] = args;
   const model = load(dir);
-  const m = upright(model, { bow: flags.bow ? +flags.bow : undefined, up: flags.up });
+  const m = upright(model, { bow: flags.bow ? +flags.bow : undefined, up: flags.up, mirror: !!+(flags.mirror || 0) });
   if (flags.loa) {                                   // the reference scaled to the spec's length (the models are game assets, a few percent off the published figures)
     const k = +flags.loa / m.L;
     for (const p of m.parts) { for (let i = 0; i < p.V.length; i++) p.V[i] *= k; for (const b of p.bb) for (let i = 0; i < 3; i++) b[i] *= k; }

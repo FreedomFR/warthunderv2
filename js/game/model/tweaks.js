@@ -928,9 +928,9 @@ export const TWEAKS = {
   // 20.1 m, bridge 21.2 m, radar 26.6 m, mast 31.7 m); two funnels outboard; lifts at 0.341 / 0.581 / 0.831. The underwater body and the
   // hull widths below the deck edge are estimated.
   shokaku: {
-    noFunnels: true, flightDeckY: 14.0, noGallery: true, elevators: [0.341, 0.581, 0.831], elevSize: [6.5, 7.2], elevZ: -0.5, extra: shokakuFunnels, sponsonOut: 2.6,
-    fb: [[0, 10.7], [0.03, 10.3], [0.06, 10.2], [0.075, 12.9], [0.97, 12.9], [0.99, 9.6], [1, 9.5]],
-    fdPlan: [[0.047, 6.6], [0.09, 9.5], [0.125, 10.7], [0.2, 12.2], [0.3, 13.7], [0.4, 14.6], [0.5, 14.65], [0.65, 14.65], [0.7, 14.1], [0.8, 13.0], [0.9, 12.4], [0.985, 12.2]],
+    noFunnels: true, flightDeckY: 14.65, noGallery: true, elevators: [0.341, 0.581, 0.831], elevSize: [6.5, 7.2], elevZ: -0.5, extra: shokakuFunnels, sponsonOut: 2.6,
+    fb: [[0, 10.7], [0.03, 10.3], [0.06, 10.2], [0.075, 12.9], [0.9, 12.9], [0.94, 9.8], [1, 9.3]],      // the quarter deck under the flight deck's after end at 9.3 m (measured)
+    fdPlan: [[0.0445, 9.5], [0.075, 9.9], [0.1117, 10.4], [0.209, 12.0], [0.298, 13.3], [0.4, 15.0], [0.5, 15.0], [0.671, 15.0], [0.811, 14.1], [0.889, 13.0], [0.962, 13.2]],     // measured on the flight deck of the reference model (236 m, 31.8 m wide at the widest, the bow end 19 m wide)
     planDeck: [[0, 0.05], [0.02, 0.24], [0.047, 0.48], [0.09, 0.68], [0.125, 0.78], [0.2, 0.9], [0.3, 1.02], [0.4, 1.07], [0.5, 1.07], [0.65, 1.07], [0.7, 1.03], [0.8, 0.95], [0.9, 0.9], [0.98, 0.88], [1, 0.84]],
     planWL: [[0, 0], [0.02, 0.12], [0.05, 0.26], [0.1, 0.42], [0.2, 0.62], [0.3, 0.78], [0.4, 0.9], [0.5, 0.96], [0.6, 1], [0.7, 1], [0.8, 0.97], [0.9, 0.9], [0.97, 0.78], [1, 0.6]],
     keel: [[0, 0.8], [0.04, 0.94], [0.88, 0.94], [0.92, 0.8], [0.95, 0.5], [1, 0.35]],
@@ -945,9 +945,26 @@ export const TWEAKS = {
       ],
     },
     // 127 mm twins in the sponsons at the sides (the spec positions moved to the plan); 25 mm triples round them: positions estimated
+    // the 25 mm triples, at the positions measured on the reference model (x, z, platform height); the 127 mm twins are in the sheet (`sponsonZ`)
     aa: [
-      ...[0.43, 0.50, 0.57, 0.63, 0.68, 0.74].map((f) => ({ k: 't25', f, z: -16.2, y: -3.2, one: true })),
-      ...[0.60, 0.66, 0.71, 0.86, 0.90, 0.93].map((f) => ({ k: 't25', f, z: 16.2, y: -3.2, one: true })),
+      { k: 't25', f: 0.0417, z: -4.2, y: -2.75, one: true, noTub: true },
+      { k: 't25', f: 0.0417, z: 3.4, y: -2.75, one: true, noTub: true },
+      { k: 't25', f: 0.4893, z: -17.3, y: -2.25, one: true, noTub: true },
+      { k: 't25', f: 0.5161, z: -17.3, y: -2.25, one: true, noTub: true },
+      { k: 't25', f: 0.546, z: -17.3, y: -2.25, one: true, noTub: true },
+      { k: 't25', f: 0.5744, z: -17.3, y: -2.25, one: true, noTub: true },
+      { k: 't25', f: 0.635, z: -17.3, y: -2.35, one: true, noTub: true },
+      { k: 't25', f: 0.661, z: -17.3, y: -2.35, one: true, noTub: true },
+      { k: 't25', f: 0.294, z: 12.6, y: 0.25, one: true, noTub: true },
+      { k: 't25', f: 0.4109, z: 17.5, y: -2.25, one: true, noTub: true },
+      { k: 't25', f: 0.4373, z: 17.5, y: -2.25, one: true, noTub: true },
+      { k: 't25', f: 0.4214, z: 13.9, y: 0.25, one: true, noTub: true },
+      { k: 't25', f: 0.8571, z: 15.15, y: -2.4, one: true, noTub: true },
+      { k: 't25', f: 0.8825, z: 15.15, y: -2.4, one: true, noTub: true },
+      { k: 't25', f: 0.9788, z: 3.05, y: -5.35, one: true, noTub: true },
+      { k: 't25', f: 0.9788, z: -3.75, y: -5.35, one: true, noTub: true },
+      { k: 't25', f: 0.7724, z: 15.8, y: -1.5, one: true, noTub: true },
+      { k: 't25', f: 0.7975, z: 15.8, y: -1.5, one: true, noTub: true },
     ],
   },
   // Essex class (long hull): measured on the starboard broadside of Ticonderoga, 5 November 1944: flight deck 18.5 m above the water,
