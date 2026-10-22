@@ -369,6 +369,22 @@ export function createUI(game) {
   if (game.audio.muted) setTimeout(() => { const b = document.getElementById('btn-sound'); if (b) b.textContent = 'Son coupé'; }, 0);
 
   root.append(labelsBox, setup, topbar, teamsHud, camBar, caption, tip, minimap.el, shipInfo, reloads.el, planeInfo, feed, banner, loadBox, results, score, hitlog, helpEl, settings);
+  // the right-hand column: the fleets, then the reload rings, then the ship's sheet, each in what the others leave (their sizes change with the number of ships, of mounts and of lines)
+  const BOTTOM = 66, GAP = 8;
+  const shown = (el) => el.getClientRects().length > 0;      // (offsetParent is null for a fixed element)
+  function layoutRight() {
+    if (document.body.classList.contains('mobile')) return;      // the phone's layout is in mobileStyle.js
+    if (!shown(teamsHud) && !shown(reloads.el) && !shown(shipInfo)) return;
+    const vh = window.innerHeight, top = (shown(teamsHud) ? teamsHud.getBoundingClientRect().bottom : 58) + GAP;
+    const set = (el, k, v) => { if (el.style[k] !== v) el.style[k] = v; };
+    const shipH = shown(shipInfo) ? Math.min(shipInfo.scrollHeight + 20, 300) : 0, avail = vh - top - BOTTOM;
+    set(reloads.el, 'top', `${Math.round(top)}px`);
+    set(reloads.el, 'maxHeight', `${Math.max(90, Math.round(avail - (shipH ? shipH + GAP : 0)))}px`);
+    const rb = shown(reloads.el) ? reloads.el.getBoundingClientRect().bottom + GAP : top;
+    set(shipInfo, 'maxHeight', `${Math.max(120, Math.round(vh - BOTTOM - rb))}px`);
+  }
+  if (window.ResizeObserver) { const ro = new ResizeObserver(layoutRight); for (const el of [teamsHud, reloads.el, shipInfo]) ro.observe(el); }
+  window.addEventListener('resize', layoutRight);
   refreshToggles();
   setHudVisible(false);
 

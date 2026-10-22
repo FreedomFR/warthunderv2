@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased — the right-hand panels no longer overlap
+
+- The fleets, the reload rings and the ship's sheet are stacked in a column that follows their real heights (`layoutRight` in `ui/ui.js`): the rings sit under the fleets table (it grows with the number of ships: they used to be drawn over its last rows) and the sheet takes what is left, scrolling when short.
+- Phone: the reload rings had no touch layout (a 340 px panel over the middle of the screen); they are now small, under the menu button, shown only held sideways and while the ship's sheet is closed.
+
 ## Unreleased — Shokaku, Graf Spee and Gioberti built from the groups of their new models
 
 - The three models given as `.glb` files have no named groups, so **`tools/refs/glb2gltf.py`** unpacks them and **`tools/refs/splitparts.py`** makes the parts: the connected objects of each material (`<material>#k`), with an optional merge of close objects of a family (`--merge`, `--gap`, `--family`). From there the Yamato pipeline is unchanged: `groupmounts.py` (mounts), `shipgroups.py` (hull, structure, fine detail, parts), `ships/<id>_v4.js`, `ships/<id>_elements.js`.

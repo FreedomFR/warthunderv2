@@ -28,6 +28,17 @@ body.mobile #cambar .cam b { display: none; }
 body.mobile #shipinfo, body.mobile #planeinfo { display: none; position: fixed; right: max(8px, env(safe-area-inset-right)); bottom: 64px; top: auto; width: min(320px, 46vw); max-height: calc(100vh - 150px); overflow-y: auto; font-size: 12px; z-index: 12; }
 body.mobile.m-info #shipinfo:not(:empty) { display: block; }
 body.mobile.m-info #planeinfo:not(.hidden) { display: block; }
+/* the reload rings: small, under the menu button, only when the phone is held sideways and the ship's sheet is not open */
+body.mobile #reloads { display: flex; top: 58px; right: max(8px, env(safe-area-inset-right)); width: auto; max-width: 44vw; max-height: 55vh; padding: 5px 7px; gap: 4px; z-index: 11; }
+body.mobile #reloads .rl-title { font-size: 9.5px; margin-bottom: 2px; }
+body.mobile #reloads .rl-row { gap: 3px; }
+body.mobile #reloads .rl-cell { width: 34px; }
+body.mobile #reloads .rl-ring { width: 28px; height: 28px; }
+body.mobile #reloads .rl-ring b { font-size: 11px; }
+body.mobile #reloads .rl-cell small { font-size: 9px; }
+body.mobile #reloads .rl-cell i { display: none; }
+body.mobile #reloads:empty, body.mobile.m-info #reloads { display: none; }
+@media (orientation: portrait) { body.mobile #reloads { display: none; } }
 body.mobile #teamshud { display: none; top: 58px; right: max(8px, env(safe-area-inset-right)); max-width: 52vw; font-size: 11.5px; z-index: 12; }
 body.mobile.m-teams #teamshud { display: flex; }
 body.mobile #hitlog { left: max(8px, env(safe-area-inset-left)); bottom: 64px; width: min(340px, 46vw); font-size: 11.5px; max-height: 40vh; overflow: hidden; }
