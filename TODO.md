@@ -130,6 +130,25 @@ Lot 2 (cuirassés et porte-avions des autres nations) : **fait, avec des réserv
 - [ ] `wiki.html` et `viewer.html` demandent le serveur (modules ES) : ils ne sont pas dans `naval.html`.
 - [ ] Les textes en anglais des fiches techniques (traits distinctifs, DCA, blindage) sont affichés tels quels dans la fiche du wiki.
 
+## 6 ter. À ressortir sur demande : ce qui n'a pas de plan ou de source sûre (navires faits depuis les modèles)
+
+Le propriétaire demande cette liste quand il veut savoir s'il n'a rien oublié. **La ressortir en entier, sans résumer.**
+
+**Armes ajoutées à la main, positions non mesurées** (les modèles n'ont pas ces armes ; elles sont posées sur du pont libre du modèle par `tools/refs/freespots.mjs`, pas relevées sur un plan ou une photo ; à refaire si un plan de pont ou des photos datées sont fournis) :
+- [ ] **Yamato** : 24 canons de 25 mm simples (162 canons au total, avril 1945) ; le détail triples / simples reste discuté entre les sources.
+- [ ] **Kagero, Yukikaze 1944-45** : 2 triples sur le socle de la tourelle X, 14 simples de 25 mm.
+- [ ] **Tade, patrouilleur n°39 (1940)** : 2 triples de 25 mm ; quel canon a été débarqué (arrière d'après combinedfleet, milieu d'après le Wikipédia de la classe) ; les 7,7 mm.
+- [ ] **Shokaku, juin 1944** : 2 triples et 10 simples de 25 mm (groupés vers la proue et la poupe).
+- [ ] **Gioberti 1940 et 1942-43** : 8 simples de 20/65, 2 doubles de 20/70, 2 doubles de 37/54 ; sources en désaccord (3 doubles de 20/65 d'après le Wikipédia italien ; un ou deux 120/15 gardés).
+
+**Écarts d'armement connus et non traités** :
+- [ ] **Graf Spee** : 12 canons de 20 mm dans le jeu, 10 d'après les sources.
+- [ ] **Iowa** : 20 quadruples de 40 mm et 49 de 20 mm (la classe) ; l'Iowa elle-même en avait 19 et 52.
+- [ ] Charges de profondeur et lanceurs (Kagero, Tade, Gioberti, Adams ?), mitrailleuses de 13,2 mm (Yamato, Kagero 1944) et hydravions des cuirassés (Yamato, Graf Spee, Iowa) : non simulés.
+- [ ] **Wiki** : les images des versions d'un navire sont des vues de leur modèle, sans mention des différences d'armement.
+
+**Licences et auteurs à confirmer** : Yamato v4, Shokaku, Graf Spee, Gioberti (`.glb`), Fletcher et Béarn (`.glb`) ; l'Iowa est en CC-BY-NC-SA-4.0 (pas d'usage commercial).
+
 ## 7. Limites connues
 
 - Les modèles sont **construits par le programme** (formes simples, pas de sculpture à la main) : ils suivront de près les proportions, mais ne seront jamais aussi détaillés qu'un modèle fait sous Blender.
