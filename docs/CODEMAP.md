@@ -65,7 +65,7 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 ## js/game/model/
 
 - `ao.js` (110) Baked ambient occlusion for the procedural ship meshes. [bakeAO] ← 1
-- `bakedmesh.js` (40) Reading the baked reference meshes (ships/<id>_baked.js, ships/<id>_mounts_baked.js, made by tools/refs/bake*.py): base64 pieces -> positions in metres, smooth… [decodeBaked] ← 3
+- `bakedmesh.js` (50) Reading the baked reference meshes (ships/<id>_baked.js, ships/<id>_mounts_baked.js, made by tools/refs/bake*.py): base64 pieces -> positions in metres, smooth… [decodeBaked, decodeBakedGeometry] ← 4
 - `baseGuns.js` (94) The guns of the bases: the mount of each gun (the same meshes as on the ships, see mounts.js) and what it stands on - a concrete emplacement with a ring wall, an… [gunMountSpec, buildEmplacement] ← 1
 - `baseKit.js` (210) Shared bits of the base models: the palette of each nation, and small drawing helpers (smooth lofts, rings, ragged ground patches, vehicles, drums...). [BASE_PAL, palOf, EARTH, earthOf, DIRT, dirtOf, C, DARK, CHAR, … +19] ← 4
 - `baseMesh.js` (314) The look of a military base: buildBaseModel(layout, nation) turns the layout of sim/bases.js into the meshes that render/baseVisual.js draws. [orientPart, buildBaseModel, clearBaseCaches] ← 2
@@ -75,7 +75,7 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 - `clearance.js` (255) What each gun can bear on. A mount stands on a deck among towers, funnels, masts and other turrets, so the barrel cannot be trained or raised through them: for every… [CLR_STEP, CLR_N, inFoot, computeClearance, clearElev, clearMax, barrelBlocked, pathClear, inArcRel, … +2] ← 7
 - `cockpit.js` (376) The cockpit seen from the pilot's seat: the instrument panel with working dials (airspeed, artificial horizon, altimeter, compass, climb, revolutions, clock and… [cockpitEye, canopyFrame, GAUGE, buildCockpit, getCockpit] ← 6
 - `details.js` (183) Fine detail for the ship models: lifelines, boats on their davits, life rafts, ventilators, anchors and hawse pipes, rigging, searchlight platforms, depth charge… [lifelines, roofRail, launch, raft, vent, anchorAndHawse, stay, depthCharges, mooring, … +4] ← 3
-- `elements.js` (11) Elements copied from the reference models, by ship id (tools/refs/groupmounts.py wrote ships/<id>_elements.js): { MOUNT_SCALE, KINDS: { id: { house, guns, trunnion,… [ELEMENTS] ← 3
+- `elements.js` (12) Elements copied from the reference models, by ship id (tools/refs/groupmounts.py wrote ships/<id>_elements.js): { MOUNT_SCALE, KINDS: { id: { house, guns, trunnion,… [ELEMENTS] ← 3
 - `glyphs.js` (59) 5x7 bitmap font for hull numbers (digits, capital letters, dash). [GLYPH_CHARS, GLYPH_BITS, glyphIndex] ← 3
 - `heavy.js` (472) The multi-engine land-based bombers (B-17, G4M, Lancaster, He 111, SM.79, LeO 451): the generator for aircraft with `spec.engines`. [frameOf, bayPivot, propMounts, drawHeavy] ← 3
 - `hull.js` (246) Parametric hull lofting. The hull is a parametric surface P(t, k): t runs from the bow (0) to the stern (1) along each horizontal "level" k (k < 0 below the… [pchip, buildHull] ← 1
@@ -92,8 +92,9 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 - `shipbuilder.js` (959) Spec-driven ship builder. Reads a real-ship spec sheet (dimensions, turret / funnel / mast positions as fractions of the overall length, class, paint) and builds the… [pagodaTiers, buildShipModel] ← 12
 - `treeMeshes.js` (506) The plants as meshes: eight species (oak, fir, palm, tropical canopy tree, acacia, cypress, shrub, boulder), three variants each, at four levels of detail. [FAM, SHAPE, getTemplate, ROCK_TINT, stampPlants] ← 2
 - `triangulate.js` (53) Triangulation of a polygon with holes (ear clipping after the holes are bridged into the outline), for the flat caps of the solids read from a reference model… [triangulate] ← 1
-- `tweaks.js` (1033) Per-ship hand tuning of the generated models (see shipbuilder.js for the options). [TWEAKS] ← 13
-- `v4ship.js` (94) A ship drawn from the groups of a reference model (ships/<id>_v4.js, tools/refs/shipgroups.py): after the procedural build (which keeps giving the hit volumes, the… [reference, paintInto, applyV4] ← 2
+- `tweaks.js` (1035) Per-ship hand tuning of the generated models (see shipbuilder.js for the options). [TWEAKS] ← 13
+- `v4hit.js` (88) The hit volumes of a ship drawn from a reference model (model/v4ship.js), made from what is drawn: a grid of 0.5 m cells that holds the surfaces of the hull plating,… [buildHitModel, hitNormalAt] ← 2
+- `v4ship.js` (96) A ship drawn from the groups of a reference model (ships/<id>_v4.js, tools/refs/shipgroups.py): after the procedural build (which keeps giving the hit volumes, the… [reference, paintInto, applyV4] ← 2
 - `vegetation.js` (143) Where the plants grow. Pure functions of an island (no GPU): the climate of the island, how much of the ground is covered at a point (used both to scatter trees and… [SP, SPECIES, VARIANTS, STEP, climateOf, cover, scatter] ← 5
 
 ## js/game/model/ships/
@@ -107,6 +108,8 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 - `graf_spee.js` (162) graf_spee: the tweaks of the Admiral Graf Spee model (see ../shipbuilder.js for the options and ../tweaks.js for the others); [GRAF_SPEE] ← 1
 - `graf_spee_elements.js` (5) Mounts of the Admiral Graf Spee copied from its reference model, one element at a time (see docs/CREDITS.md; [MOUNT_SCALE, KINDS, PLACEMENTS] ← 1
 - `graf_spee_v4.js` (4) The Admiral Graf Spee built from its reference model (see docs/CREDITS.md; [SCALE, SHIP] ← 1
+- `iowa_elements.js` (5) Mounts of the Iowa copied from its reference model, one element at a time (see docs/CREDITS.md; [MOUNT_SCALE, KINDS, PLACEMENTS] ← 1
+- `iowa_v4.js` (4) The USS Iowa built from its reference model (see docs/CREDITS.md; [SCALE, SHIP] ← 1
 - `kagero.js` (165) kagero: the tweaks of the Kagero model (see ../shipbuilder.js for the options and ../tweaks.js for the others); [KAGERO] ← 1
 - `kagero_elements.js` (5) Mounts of the Kagero copied from its reference model, one element at a time (see docs/CREDITS.md; [MOUNT_SCALE, KINDS, PLACEMENTS] ← 1
 - `kagero_v4.js` (4) The Kagero built from its reference model (see docs/CREDITS.md; [SCALE, SHIP] ← 1
@@ -152,7 +155,7 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 - `ballistics.js` (104) Exterior ballistics: point-mass shells with altitude-dependent air drag. [gunBallistics, solve, stepShell] ← 5
 - `baseops.js` (384) What the bases do during a battle: the coastal batteries shell the enemy ships in range, the anti-aircraft guns fire at the aircraft, the shells and the bombs that… [coastalGunOf, BaseSim, damageBase, shellHitsBase, shellGround, bombHitsBase, buildBases, updateBases] ← 3
 - `bases.js` (247) Military bases on the islands: an airfield (a runway, the apron, hangars, a control tower, fuel tanks, barracks, a radar, anti-aircraft guns and the places where the… [placeBases, BaseState] ← 4
-- `damage.js` (552) Impact resolution against ships: shells, bombs, torpedoes and crashing aircraft. [insideHull, segmentNearShip, segmentHit, resolveShellHit, resolveBombHit, resolveNearMiss, resolveCrashHit, torpedoReach, resolveTorpedoHit] ← 8
+- `damage.js` (573) Impact resolution against ships: shells, bombs, torpedoes and crashing aircraft. [insideHull, segmentNearShip, segmentHit, resolveShellHit, resolveBombHit, resolveNearMiss, resolveCrashHit, torpedoReach, resolveTorpedoHit] ← 8
 - `debris.js` (95) Flying wreckage: funnels, masts, turrets and scrap torn off ships, pieces of broken aircraft. [spawnPartDebris, spawnMountDebris, spawnScrap, spawnPlaneDebris, stepDebris] ← 4
 - `deck.js` (539) Flight-deck operations of an aircraft carrier. [TAKEOFF_RUN, DECK_PHASES, deckOf, launching, settleService, planLaunch, stepDeckShip, beginRecovery, clearToLand, … +5] ← 7
 - `explosions.js` (112) Ship explosions and break-ups: the magazine detonation (primary blast, thrown turrets, secondary explosions running down the hull, the ship breaking in two), boiler… [explosionScale, magazineExplosion, secondaryBlast, breakInTwo, shipGone] ← 2

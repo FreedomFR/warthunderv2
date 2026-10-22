@@ -38,3 +38,13 @@ export function decodeBaked(piece, scale) {
   }
   return { pos: P2, nrm: N2, col: C2, idx: I2 };
 }
+
+/** The geometry of a baked piece only (positions in metres, indices): for what does not need normals or colours. */
+export function decodeBakedGeometry(piece, scale) {
+  const bytes = (s) => { const bin = atob(s), u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return u; };
+  const q = new Int16Array(bytes(piece.pos).buffer), ib = bytes(piece.idx).buffer;
+  const idx = piece.wide ? new Uint32Array(ib) : new Uint16Array(ib);
+  const pos = new Float32Array(q.length);
+  for (let i = 0; i < q.length; i++) pos[i] = q[i] / scale;
+  return { pos, idx };
+}

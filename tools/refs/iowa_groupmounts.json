@@ -1,0 +1,157 @@
+{
+ "ship": "Iowa",
+ "layout": "refs/iowa_v2/layout.json",
+ "elements": [
+  {
+   "id": "tA",
+   "type": "main",
+   "cal": 406,
+   "group": "main",
+   "layout_match": {
+    "group": "main",
+    "name": [
+     "m0"
+    ]
+   },
+   "x_range": [
+    -9.5,
+    21.5
+   ],
+   "z_range": [
+    -9,
+    9
+   ],
+   "below": 2.5,
+   "above": 5.4,
+   "gun_materials": [
+    "94cc59b6"
+   ],
+   "gun_min_len": 8,
+   "split": true,
+   "barrel_len": 8
+  },
+  {
+   "id": "tB",
+   "type": "main",
+   "cal": 406,
+   "group": "main",
+   "layout_match": {
+    "group": "main",
+    "name": [
+     "m1"
+    ]
+   },
+   "x_range": [
+    -8.3,
+    21.5
+   ],
+   "z_range": [
+    -9,
+    9
+   ],
+   "below": 2.5,
+   "above": 5.4,
+   "gun_materials": [
+    "94cc59b6"
+   ],
+   "gun_min_len": 8,
+   "split": true,
+   "barrel_len": 8
+  },
+  {
+   "id": "tC",
+   "type": "main",
+   "cal": 406,
+   "group": "main",
+   "layout_match": {
+    "group": "main",
+    "name": [
+     "m2"
+    ]
+   },
+   "x_range": [
+    -21.5,
+    9.5
+   ],
+   "z_range": [
+    -9,
+    9
+   ],
+   "below": 2.5,
+   "above": 9,
+   "gun_materials": [
+    "94cc59b6"
+   ],
+   "gun_min_len": 8,
+   "split": true,
+   "barrel_len": 8
+  },
+  {
+   "id": "s127",
+   "type": "sec",
+   "cal": 127,
+   "group": "sec",
+   "template": {
+    "x": 8.2,
+    "z": 9.8,
+    "y": 11.5,
+    "x_range": [
+     -3.2,
+     7.2
+    ],
+    "z_range": [
+     -2.8,
+     2.8
+    ],
+    "below": 2.2,
+    "above": 3.0
+   },
+   "split": true,
+   "barrel_len": 2.0
+  },
+  {
+   "id": "q40",
+   "type": "q40",
+   "cal": 40,
+   "group": "aa",
+   "template": {
+    "x": 20.5,
+    "z": -12.2,
+    "y": 8.2,
+    "x_range": [
+     -1.7,
+     1.7
+    ],
+    "z_range": [
+     -2.3,
+     1.6
+    ],
+    "below": 0.15,
+    "above": 2.3
+   },
+   "facing": "mass"
+  },
+  {
+   "id": "o20",
+   "type": "o20",
+   "cal": 20,
+   "group": "aa",
+   "template": {
+    "x": -19.0,
+    "z": 12.9,
+    "y": 8.0,
+    "x_range": [
+     -1.0,
+     1.0
+    ],
+    "z_range": [
+     -1.0,
+     1.2
+    ],
+    "below": 0.15,
+    "above": 1.9
+   },
+   "facing": "mass"
+  }
+ ]
+}

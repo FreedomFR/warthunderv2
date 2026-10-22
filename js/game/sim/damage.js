@@ -7,6 +7,7 @@ import { effectiveThickness, spacedPlates, fuzeThickness, residualSpeed, V_EXP }
 import { blast, damageMount, damageModule } from './modules.js';
 import { inFoot } from '../model/clearance.js';
 import { getMountModel } from '../model/mounts.js';
+import { hitNormalAt } from '../model/v4hit.js';
 
 const _l = [0, 0, 0];
 
@@ -121,7 +122,7 @@ export function segmentNearShip(ship, x0, y0, z0, x1, y1, z1) {
 export function segmentHit(ship, x0, y0, z0, x1, y1, z1) {
   if (ship.state === 'sunk') return null;
   const len = Math.hypot(x1 - x0, y1 - y0, z1 - z0);
-  const n = Math.max(2, Math.ceil(len / 1.2));
+  const n = Math.max(2, Math.ceil(len / (ship.model.hit ? 0.4 : 1.2)));      // (a ship with hit volumes made from what is drawn: its surfaces are 0.5 m thick)
   // the ship's own frame: heading, pitch and roll (a ship that rolls in the swell or heels as she goes down is not where her upright self would be)
   const B = poseBasis(ship);
   const at = (f) => {
@@ -155,6 +156,7 @@ function probe(ship, lx, ly, lz, f) {
   if (mnt) return { t: f, part: 'mount', lx, ly, lz, mount: mnt };
   const aa = insideAA(ship, lx, ly, lz);
   if (aa) return { t: f, part: 'aa', lx, ly, lz, aa };
+  if (ship.model.hit) return probeDrawn(ship, lx, ly, lz, f);
   const q = insideSolid(ship, lx, ly, lz);
   if (q) {
     const mod = moduleOfSolid(ship, q);
@@ -166,6 +168,24 @@ function probe(ship, lx, ly, lz, f) {
     return { t: f, part: ly > deck - 0.8 ? 'deck' : 'hull', lx, ly, lz };
   }
   return null;
+}
+
+/** A ship drawn from a reference model (model/v4hit.js): what is hit is what is drawn there (the plating, a structure, a destroyable part); the procedural hull only says whether it is the hull or the deck. */
+function probeDrawn(ship, lx, ly, lz, f) {
+  const m = ship.model, h = m.hit;
+  const i = Math.floor((lx - h.x0) / h.cell), j = Math.floor((lz - h.z0) / h.cell), k = Math.floor((ly - h.y0) / h.cell);
+  if (i < 0 || j < 0 || k < 0 || i >= h.nx || j >= h.nz || k >= h.ny) return null;
+  const lab = h.data[(j * h.nx + i) * h.ny + k];
+  if (!lab) return null;
+  if (lab > 1) {
+    const mod = moduleOfSolid(ship, { part: h.ids[lab - 2] });
+    if (!mod) return { t: f, part: 'super', lx, ly, lz, grid: [i, j, k] };
+    if (mod.state === 2) return null;      // (a part that has been destroyed leaves a stump: the shell goes on)
+    return { t: f, part: 'module', lx, ly, lz, module: mod, grid: [i, j, k] };
+  }
+  const deck = m.hull.deckY(lx), zin = lz - Math.sign(lz) * Math.min(Math.abs(lz), 1.0);
+  if (insideHull(ship, lx, Math.min(ly, deck), zin)) return { t: f, part: ly > deck - 0.8 ? 'deck' : 'hull', lx, ly, lz, grid: [i, j, k] };
+  return { t: f, part: 'super', lx, ly, lz, grid: [i, j, k] };
 }
 
 const _B = new Float64Array(9);
@@ -190,6 +210,7 @@ function faceCos(ship, hit, ldx, ldy, ldz) {
 
 /** Surface normal at a hit, in ship-local axes. */
 function hitNormal(ship, hit) {
+  if (hit.grid) return hitNormalAt(ship.model.hit, hit.grid[0], hit.grid[1], hit.grid[2]);      // the drawn surface (model/v4hit.js)
   switch (hit.part) {
     case 'deck': case 'mount': case 'aa': return [0, 1, 0];
     case 'hull': {

@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased — the USS Iowa built from its model, and hit volumes made from what is drawn
+
+- **USS Iowa** (model by OUTPISTON, CC-BY-NC-SA-4.0, see docs/CREDITS.md): 3 x 16 inch (their barrels, found by their material, elevate), 10 twin 5 inch, 18 quad 40 mm and 5 single 20 mm copied at the places the model has them; funnels, tower, directors, masts, radars, catapults and crane as parts. The deck edge of the hand-made hull was lowered to the model's (`fb` of the tweak): it was 1.4 to 1.9 m too high.
+- **`groupmounts.py` finds the copies of a mount by their shape** (`template`: the window round one instance; the same pieces, same size and same layout, turned by a multiple of 90 degrees, are looked for in the whole model: 10 twin 5 inch, 18 quads; the pieces that most copies share are kept as the template), `x_range` / `z_range` for a window that is not symmetric, `gun_min_len`.
+- **Hit volumes made from what is drawn** (`model/v4hit.js`, `sim/damage.js` `probeDrawn`): the ships drawn from a reference model had the hit volumes of the hand-made build, so about a third of the scars lay off the drawn surface. A grid of 0.5 m cells now holds the surfaces of the hull, of the structure and of each part (without the rods, wires and rails); a shell stops on the first cell it meets, the scar lies on it and its normal is the one of the drawn surface (the angle of the armour is then the real one); the procedural hull only says hull or deck. Scars on the drawn surface: 83 % on the Yamato (63 % before), 74 % on the Iowa.
+- Tests: the scars of the ships drawn from a reference model are judged apart (above 70 %), a hit within 0.8 m of the drawn surface is not a ghost for them, `elements` accepts an instance that lacks a piece of the first copy (1.2 m).
+
 ## Unreleased — the Tade and the USS Adams built from their models
 
 - **Tade**: 3 single 120 mm (the barrel is cut out of the piece it is welded to: `gun_box`, in the model's frame; `no_cradle`, `radius_x` / `radius_z` for a window that is not square), tower, funnels, galley vent, tubes and masts as parts. **USS Adams**: 2 Mk 42 (the exposed barrel of each is the gun, the gunhouse stays), tower, director, funnels, masts, radars and tubes as parts. The Adams model's waterline is 6.9 m above its lowest point (the sonar dome and the skegs lie under it), measured on the bow, the stern and the pivot of the guns.

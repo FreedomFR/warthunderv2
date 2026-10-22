@@ -67,6 +67,10 @@ def analyse(gtris, el):
         if (~isg).any(): lab[~isg] = components(gtris[~isg])
         if isg.any(): lab[isg] = components(gtris[isg]) + (lab.max() + 1)
         gun_set = set(int(k) for k in np.unique(lab[isg]))
+        if el.get('gun_min_len') and gun_set:     # only the long pieces of those materials are guns, the others (rails, sights) belong to the house
+            def hlen(k):
+                V = P[I[gtris[lab == k]]].reshape(-1, 3); return max(np.ptp(V[:, 0]), np.ptp(V[:, 2]))
+            gun_set = set(k for k in gun_set if hlen(k) >= float(el['gun_min_len']))
     else:
         lab = components(gtris); gun_set = set()
     comps = {int(k): gtris[lab == k] for k in np.unique(lab)}
@@ -131,7 +135,7 @@ kinds, placements, report = {}, [], []
 # a model whose materials are merged has no group per mount: `layout_match` picks, for each mount record of the game that matches ({"group": "main", "cal": 127}), the whole objects (connected pieces of
 # one material) that lie entirely inside a window round the record (`radius`, `below`, `above` in metres), pieces taken by an earlier element left out. Nothing is cut.
 LAYOUT = json.load(open(cfg['layout'])) if cfg.get('layout') else None
-if LAYOUT:
+if LAYOUT or any('template' in e for e in cfg['elements']):
     order = np.argsort(tp, kind='stable'); tps = tp[order]
     st = np.searchsorted(tps, np.arange(len(parts))); en = np.searchsorted(tps, np.arange(len(parts)), side='right')
     PBMIN = np.full((len(parts), 3), 1e9); PBMAX = np.full((len(parts), 3), -1e9); PN = en - st
@@ -139,21 +143,87 @@ if LAYOUT:
         if PN[k]:
             V = P[I[order[st[k]:en[k]]]].reshape(-1, 3); PBMIN[k] = V.min(0); PBMAX[k] = V.max(0)
 claimed = set()
+PCEN = (PBMIN + PBMAX) / 2 if 'PBMIN' in dir() else None
+PKEY = {}
+
+
+def part_key(k):
+    e = np.round(np.sort(PBMAX[k] - PBMIN[k]), 2)
+    return (int(parts[k]['mat']), int(PN[k]), float(e[0]), float(e[1]), float(e[2]))
+
+
+def find_copies(tpl, min_frac=0.9, tol=0.06):
+    """The copies of a set of pieces (a mount found once): the same pieces (same material, triangle count and size) at the same places relative to the biggest one, turned by a multiple of 90 degrees about the
+    vertical and shifted (also in height). Returns a list of lists of pieces, the template first."""
+    if not PKEY:
+        for k in range(len(parts)):
+            if PN[k] >= 4:
+                PKEY.setdefault(part_key(k), []).append(k)
+    anchor = max(tpl, key=lambda k: PN[k]); A = PCEN[anchor]
+    tot = sum(PN[k] for k in tpl)
+    out = [list(tpl)]; used = set(tpl)
+    cands = [k for k in PKEY.get(part_key(anchor), []) if k not in used and k not in claimed]
+    rots = [np.array([[np.cos(a), 0, np.sin(a)], [0, 1, 0], [-np.sin(a), 0, np.cos(a)]]) for a in np.radians([0, 90, 180, 270])]
+    for c in cands:
+        if c in used:
+            continue
+        best = None
+        for R in rots:
+            C = PCEN[c]; m = [c]; tris = PN[c]
+            ok = True
+            for t in tpl:
+                if t == anchor:
+                    continue
+                pc = R @ (PCEN[t] - A) + C
+                hit = None
+                for q in PKEY.get(part_key(t), []):
+                    if q in used or q in claimed or q in m:
+                        continue
+                    if np.abs(PCEN[q] - pc).max() < tol:
+                        hit = q; break
+                if hit is not None:
+                    m.append(hit); tris += PN[hit]
+            if best is None or tris > best[0]:
+                best = (tris, m)
+        if best and best[0] >= min_frac * tot:
+            out.append(best[1]); used.update(best[1])
+    return out
+
+
 for el in cfg['elements']:
     sel = []
-    if 'layout_match' in el:
+    if 'template' in el:
+        T = el['template']; mt = int(T.get('min_part_tris', 4))
+        xr, zr = T['x_range'], T['z_range']
+        ok = np.where((PN >= mt) & (PBMIN[:, 0] >= T['x'] + xr[0]) & (PBMAX[:, 0] <= T['x'] + xr[1]) & (PBMIN[:, 2] >= T['z'] + zr[0]) & (PBMAX[:, 2] <= T['z'] + zr[1]) & (PBMIN[:, 1] >= T['y'] - T.get('below', 1.5)) & (PBMAX[:, 1] <= T['y'] + T.get('above', 6.0)))[0]
+        ok = [int(k) for k in ok if k not in claimed and (not T.get('materials') or (parts[k]['mat'] >= 0 and any(m in mats[parts[k]['mat']] for m in T['materials'])))]
+        if not ok:
+            print(f"element {el['id']}: nothing in the template window", file=sys.stderr); continue
+        inst = find_copies(ok, 0.5)
+        if len(inst) > 1:       # the template caught things that belong to the place (a rail, a ladder): keep the pieces that most of the copies have, and look again with those only
+            cnt = {k: sum(1 for ks in inst if any(part_key(q) == part_key(k) for q in ks)) for k in ok}
+            core = [k for k in ok if cnt[k] >= 0.7 * len(inst)]
+            if core:
+                ok = core; claimed_before = set(claimed)
+                inst = find_copies(ok, float(el.get('min_frac', 0.9)))
+        print(f"element {el['id']}: template of {len(ok)} pieces found {len(inst)} times", file=sys.stderr)
+        for n, ks in enumerate(inst):
+            claimed.update(ks)
+            sel.append((ks[0], f"{el['id']}#{n}", np.concatenate([order[st[k]:en[k]] for k in ks])))
+    elif 'layout_match' in el:
         R = float(el.get('radius', 4.0)); RX = float(el.get('radius_x', R)); RZ = float(el.get('radius_z', R)); below = float(el.get('below', 1.5)); above = float(el.get('above', 6.0)); mt = int(el.get('min_part_tris', 8))
         for r in LAYOUT['mounts']:
             if not all((r.get(k) in v) if isinstance(v, list) else r.get(k) == v for k, v in el['layout_match'].items()):
                 continue
-            ok = np.where((PN >= mt) & (PBMIN[:, 0] >= r['x'] - RX) & (PBMAX[:, 0] <= r['x'] + RX) & (PBMIN[:, 2] >= r['z'] - RZ) & (PBMAX[:, 2] <= r['z'] + RZ) & (PBMIN[:, 1] >= r['y'] - below) & (PBMAX[:, 1] <= r['y'] + above))[0]
+            xr = el.get('x_range', [-RX, RX]); zr = el.get('z_range', [-RZ, RZ])      # x_range / z_range: the window relative to the record, when it is not symmetric (a turret's barrels reach far on one side)
+            ok = np.where((PN >= mt) & (PBMIN[:, 0] >= r['x'] + xr[0]) & (PBMAX[:, 0] <= r['x'] + xr[1]) & (PBMIN[:, 2] >= r['z'] + zr[0]) & (PBMAX[:, 2] <= r['z'] + zr[1]) & (PBMIN[:, 1] >= r['y'] - below) & (PBMAX[:, 1] <= r['y'] + above))[0]
             ok = [int(k) for k in ok if k not in claimed and not (el.get('exclude') and parts[k]['mat'] >= 0 and el['exclude'] in mats[parts[k]['mat']])
                   and (not el.get('materials') or (parts[k]['mat'] >= 0 and any(m in mats[parts[k]['mat']] for m in el['materials'])))]
             if len(ok) < int(el.get('min_parts', 1)):
                 print(f"element {el['id']}: nothing near {r['name']} ({r['x']}, {r['z']})", file=sys.stderr); continue
             claimed.update(ok)
             sel.append((ok[0], r['name'], np.concatenate([order[st[k]:en[k]] for k in ok])))
-    for k, p in enumerate(parts if 'layout_match' not in el else []):
+    for k, p in enumerate(parts if ('layout_match' not in el and 'template' not in el) else []):
         if p['mat'] >= 0 and el['material'] in mats[p['mat']] and not (el.get('exclude') and el['exclude'] in mats[p['mat']]):
             t = np.where(tp == k)[0]
             if len(t) >= int(el.get('min_tris', 0)):
@@ -164,7 +234,7 @@ for el in cfg['elements']:
     med = float(np.median([len(t) for _, _, t in sel]))
     fixed = []
     for k, name, t in sel:
-        if len(t) > 1.5 * med and len(sel) > 1 and not el.get('layout_match'):
+        if len(t) > 1.5 * med and len(sel) > 1 and not el.get('layout_match') and not el.get('template'):
             lab = components(t)
             ax = 2 if el.get('split_axis') == 'z' else 0      # split_axis 'z': the two mounts stand side by side across the ship (their barrels would mix along x)
             cs = np.array([P[I[t[lab == q]]].reshape(-1, 3)[:, ax].mean() for q in np.unique(lab)])

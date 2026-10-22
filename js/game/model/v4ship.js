@@ -3,6 +3,7 @@
 // is wood (a warm colour on an upward face: the planking) and how light or dark a spot is against its kind (a window, a hatch, a plate).
 import { MeshBuilder, MAT, rgb } from './meshbuilder.js';
 import { decodeBaked } from './bakedmesh.js';
+import { buildHitModel } from './v4hit.js';
 
 const lum = (r, g, b) => (0.3 * r + 0.59 * g + 0.11 * b) / 255;
 const CHROMA = 0.6, CHROMA_HULL = 0.4;      // how much of the texture's colour variations the paint takes (1 = all of it)
@@ -66,7 +67,7 @@ export function paintInto(nb, piece, scale, pal, cls, ref, maxY = Infinity) {
   for (const [mat, o] of paint(piece, scale, pal, cls, ref, maxY)) nb.raw(o.pos, o.nrm, o.col, Uint32Array.from({ length: o.pos.length / 3 }, (_, i) => i), mat);
 }
 
-export function applyV4(model, data, pal) {
+export function applyV4(model, data, pal, deckY) {
   const sc = data.SCALE, S = data.SHIP;
   const nb = new MeshBuilder();
   const ref = reference([...Object.values(S.static), ...(S.fine ? [S.fine] : []), ...Object.values(S.parts).map((p) => p.mesh)], sc);
@@ -90,5 +91,6 @@ export function applyV4(model, data, pal) {
   model.fine = built.groups.fine || null;
   for (const p of parts) { p.mesh = built.groups[p.id]; p.ruin = built.groups[p.id + '_ruin']; p.fineMesh = null; }
   model.parts = parts;
+  if (deckY) model.hit = buildHitModel(data);      // the hit volumes made from what is drawn (v4hit.js)
   return model;
 }
