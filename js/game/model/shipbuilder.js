@@ -110,6 +110,7 @@ const AA_TYPES = {
   t40: { v: 'bofors', n: 2, cal: 40, bore: 56, tub: 1.8, label: 'Bofors 40 mm double' },
   o20: { v: 'oerlikon', n: 1, cal: 20, bore: 70, label: 'Oerlikon 20 mm' },
   t25: { v: 'iijn25', n: 3, cal: 25, bore: 60, tub: 1.6, label: 'Type 96 de 25 mm triple' },
+  y25: { v: 'iijn25', n: 3, cal: 25, bore: 61, tub: 1.6, label: 'Type 96 de 25 mm triple' },   // the Yamato's shielded triples: bore 61 selects the shield read on its reference model (mounts.js)
   d25: { v: 'iijn25', n: 2, cal: 25, bore: 60, label: 'Type 96 de 25 mm double' },
   s25: { v: 'oerlikon', n: 1, cal: 25, bore: 60, label: 'Type 96 de 25 mm simple' },
   m13: { v: 'iijn25', n: 2, cal: 13, bore: 76, label: 'Type 93 de 13,2 mm double' },
@@ -188,7 +189,9 @@ export function buildShipModel(spec, tw = {}) {
     const top = fdY - 1.3;
     hp.fb = [[0, top], [0.1, top], [0.5, top - 0.4], [0.9, top - 0.3], [1, top - 0.2]];
   }
-  const hull = buildHull(b, hp);
+  let hull;
+  if (tw.bakedHull) b.ghost(() => { hull = buildHull(b, hp); });         // tw.bakedHull: the hull is drawn from a baked reference mesh (ships/<id>.js); the tables only serve the sim and the placing
+  else hull = buildHull(b, hp);
   const X = (f) => hull.fracToX(f), Y = (x) => hull.deckY(x);
   const sil = spec.silhouette || {};
   const model = {
@@ -577,7 +580,7 @@ export function buildShipModel(spec, tw = {}) {
   }
 
   // -------- aircraft facilities (cruisers / battleships) --------
-  if (!carrier && spec.aircraft && spec.aircraft.catapults > 0) {
+  if (!carrier && !tw.noCat && spec.aircraft && spec.aircraft.catapults > 0) {         // tw.noCat: the reference mesh has its own catapults, planes and crane
     const mid = kindOf(spec.aircraft.hangar + ' ' + spec.aircraft.notes, 'amidships|between the funnels|athwart');
     // tw.cat: measured { f, z (m off the centreline), yaw (rad, bow end turned outboard; a single catapult turns by yaw), len,
     // y (above the deck), craneF, craneY (base above the deck), craneZ }

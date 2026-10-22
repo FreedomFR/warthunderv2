@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased — the Yamato's hull, houses and mounts are the reference model too
+
+- **The whole ship above and below the waterline is baked** (`tw.bakedHull`): the hull with its plating, bulges and fittings, the catapults with their floatplanes, the crane, the masts' lattice (the procedural hull stays only as `ghost` geometry for the sim; `tw.noCat` drops the builder's catapults, masts and rails duplicates). The model's flat aerial sheets floating over the mast tops, its screws and its rudder are left out (the game spins its own).
+- **Mount families baked from the model** (`tools/refs/bakemounts.py`, `ships/yamato_mounts_baked.js`, 0.36 MB): the 46 cm house and its three barrels with their cradle bells (cut at the gun ports, trunnion at the cut: they still elevate and recoil), the 15.5 cm house and barrels, the 12.7 cm cupola hood and the shielded 25 mm triple (AA type `y25`, `bore: 61`) are the model's triangles in the mount's own frame; barrels of the cupola and of the 25 mm stay procedural. They train, elevate and fire as before.
+- The audit of overlapping houses skips ships drawn from a baked mesh. Bakes are written by `bake.py` (full-resolution colours kept for the mounts), `bakepack.mjs` (with `cut` entries for what the game draws itself) and `bakemounts.py`.
+
 ## Unreleased — the Yamato's masses are the reference model itself, baked
 
 - On the owner's request for a true copy: the model's triangles (simplified to 160k, the texture colours at the vertices) are baked into `ships/yamato_baked.js` (1.4 MB) and drawn instead of the stepped prisms: the tower with its platforms and rangefinders, the funnel with its pipes, the central house, the sponsons and the deck are the model's. `static` / `tower` / `funnel` pieces: the tower and the funnel stay destroyable parts (their ruins are the game's), the rest is the hull mesh, so the scars, the fires and the break in two work as before. Turrets, cupolas, AA, screws, rudders, rigging and catapult are still the game's own, for the fire and the arcs.

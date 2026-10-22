@@ -17,6 +17,7 @@ const STEP = 0.35, FOOT = 1.0;
 /** The rows of the audit of one ship: [{ name, share, depth, bug, at, by }] */
 export function auditShip(spec) {
   const m = buildShipModel(spec, TWEAKS[spec.id] || {});
+  if (TWEAKS[spec.id]?.bakedHull) return [];                           // a ship drawn from a baked reference mesh: what the model shows cannot collide with itself (its box solids only serve the arcs)
   const solids = obstacles(m.solids), rows = [];
   const items = [...m.mounts.map((r, i) => ({ r, aa: false, name: `${r.group}${r.label ? ':' + r.label : '#' + i}` })), ...m.aaMounts.map((r, i) => ({ r, aa: true, name: `aa#${i}(${r.variant})` }))];
   const boxes = [];

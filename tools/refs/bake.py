@@ -51,6 +51,7 @@ for mi, m in enumerate(info['mats']):
         except Exception as e:
             print('texture', m['diffuse'], e, file=sys.stderr)
     col[sel] = f
+(np.clip(col, 0, 1) * 255).astype(np.uint8).tofile(os.path.join(src, 'colfull.u8'))               # the full resolution colours, for bakemounts.py
 print(f'colours read ({time.time() - t0:.0f} s)', file=sys.stderr)
 
 mesh = o3d.geometry.TriangleMesh()

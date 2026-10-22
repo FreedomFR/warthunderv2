@@ -2,26 +2,8 @@
 // Everything above the main deck except the turrets, the 12.7 cm cupolas and the 25 mm mounts (the builder's, placed from the spec sheet) is drawn here in metres (x along the ship, bow +;
 // y over the waterline; z to starboard): MASSES are the solid volumes of the model read as stacked footprints (tools/refs/footprints.mjs: a height band at a time, the thin things opened
 // away, runs of bands with the same outline taken as one prism), redrawn as prisms; the masts, the stays and the small fittings are drawn by hand.
-import { kit } from './kit.js';
 import { BAKED, SCALE } from './yamato_baked.js';
-
-/** One baked piece as typed arrays: positions in metres, smooth normals, colours, indices. */
-function decodeBaked(piece) {
-  const bytes = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
-  const q = new Int16Array(bytes(piece.pos).buffer), col = bytes(piece.col), ib = bytes(piece.idx).buffer;
-  const idx = piece.wide ? new Uint32Array(ib) : new Uint16Array(ib);
-  const pos = new Float32Array(q.length);
-  for (let i = 0; i < q.length; i++) pos[i] = q[i] / SCALE;
-  const nrm = new Float32Array(pos.length);
-  for (let t = 0; t < idx.length; t += 3) {
-    const a = idx[t] * 3, b = idx[t + 1] * 3, c = idx[t + 2] * 3;
-    const ux = pos[b] - pos[a], uy = pos[b + 1] - pos[a + 1], uz = pos[b + 2] - pos[a + 2], vx = pos[c] - pos[a], vy = pos[c + 1] - pos[a + 1], vz = pos[c + 2] - pos[a + 2];
-    const nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx;                      // area weighted
-    for (const k of [a, b, c]) { nrm[k] += nx; nrm[k + 1] += ny; nrm[k + 2] += nz; }
-  }
-  for (let i = 0; i < nrm.length; i += 3) { const l = Math.hypot(nrm[i], nrm[i + 1], nrm[i + 2]) || 1; nrm[i] /= l; nrm[i + 1] /= l; nrm[i + 2] /= l; }
-  return { pos, nrm, col, idx };
-}
+import { decodeBaked } from '../bakedmesh.js';
 
 // [y0, y1, [outline, hole, ...]]: a solid between two heights over the waterline, each ring a list of [x, z]
 const MASSES = [
@@ -202,7 +184,7 @@ const MASSES = [
 ];
 
 function yamatoExtras({ b, hull, X, Y, pal, model, MAT, rgb, shade, part, PT, DT, note }) {
-  const sup = rgb(pal.sup), dark = rgb(pal.dark), func = rgb(pal.funnel), capc = rgb(pal.cap), grey = rgb('#8d9296');
+  const sup = rgb(pal.sup), dark = rgb(pal.dark), func = rgb(pal.funnel);
   const cen = (poly) => [poly.reduce((s, q) => s + q[0], 0) / poly.length, poly.reduce((s, q) => s + q[1], 0) / poly.length];
   const span = (poly, k) => Math.max(...poly.map((q) => q[k])) - Math.min(...poly.map((q) => q[k]));
   const solid = (m, col) => (m[3] ? b.loft(m[2][0], m[0], m[3], m[1], col, MAT.HULL) : b.slab(m[2], m[0], m[1], col, MAT.HULL));
@@ -214,7 +196,7 @@ function yamatoExtras({ b, hull, X, Y, pal, model, MAT, rgb, shade, part, PT, DT
     else b.ghost(() => solid(m, sup));                                                       // the procedural masses only give the solids (arcs, clearances); the baked mesh is what is drawn
     note(m[1]);
   }
-  const baked = Object.fromEntries(Object.entries(BAKED).map(([k, v]) => [k, decodeBaked(v)]));
+  const baked = Object.fromEntries(Object.entries(BAKED).map(([k, v]) => [k, decodeBaked(v, SCALE)]));
   const drawBaked = (k) => b.raw(baked[k].pos, baked[k].nrm, baked[k].col, baked[k].idx, MAT.HULL);
   drawBaked('static');
   b.ghost(() => { for (const m of tower) solid(m, sup); });
@@ -231,29 +213,14 @@ function yamatoExtras({ b, hull, X, Y, pal, model, MAT, rgb, shade, part, PT, DT
   },
     () => PT.funnelRuin(b, { x: -22, y0: 14, h: 8, lx: 9, lz: 5, topLx: 8, topLz: 4, rake: 0, cap: 0.4, pipes: false, trunk: true }, pal));
   // ---- the masts and the stays, measured on the model ----
-  const mc = rgb(pal.mast), sc = rgb(pal.dark);
+  const sc = rgb(pal.dark);
   const apex = [-40.3, 37.7, 0];
-  part('mast0', 'mast', 'Mât avant', () => PT.poleMast(b, { x: -2.8, y0: 40.2, h: 4.4, r: 0.2, z: 0, yards: [[0.45, 4.5]] }, pal), () => b.cylinder(-2.8, 40.2, 0, 0.4, 0.2, 42, shade(dark, 1.1), MAT.DARK, { seg: 6 }));
-  part('mast1', 'mast', 'Mât arrière', () => {
-    for (const sg of [-1, 1]) {
-      b.beam([-47.3, 20.3, sg * 5.5], apex, 0.55, 0.55, mc, MAT.HULL);                                  // the legs of the after mast: a tripod each side
-      b.beam([-34.5, 22.0, sg * 5.5], apex, 0.55, 0.55, mc, MAT.HULL);
-    }
-    b.beam([-40.6, 22.0, 0], apex, 0.6, 0.6, mc, MAT.HULL);
-    b.beam([-37.5, 25.0, 0], [-35.0, 41.5, 0], 0.3, 0.3, mc, MAT.HULL);                                  // the leaning pole with the aerials
-    b.rodZ(-35.6, 38.5, -2.5, 2.5, 0.08, 0.05, mc, MAT.HULL, { seg: 5 });
-  }, () => b.cylinder(-40.5, 22, 0, 0.6, 0.3, 27, shade(dark, 1.1), MAT.DARK, { seg: 6 }), {
-    fine: () => {
-      for (const sg of [-1, 1]) DT.stay(b, [-9.0, 35.5, sg * 1.5], apex.map((v, i) => (i === 2 ? sg * 1.5 : v)), sc, 0.1);   // from the top of the tower to the after mast
-      for (const sg of [-1, 1]) DT.stay(b, [3.0, 36.5, sg * 1.3], [X(0.045), Y(X(0.045)) + 1.2, sg * 0.8], sc, 0.1);          // the great stays to the bow
-      for (const sg of [-1, 1]) DT.stay(b, apex.map((v, i) => (i === 2 ? sg * 1.0 : v)), [X(0.955), Y(X(0.955)) + 1.0, sg * 1.0], sc, 0.1);   // and to the stern
-    },
-  });
-  b.group('fine', () => {                                                                     // the rails along the deck edge, the anchor and the jackstaff
-    DT.lifelines(b, hull, X(0.985), X(0.2), pal, { base: 0.1, h: 0.95, step: 2.5 });
+  b.group('fine', () => {                                                                     // the great stays (the model's own are mostly too thin to survive its simplification)
+    for (const sg of [-1, 1]) DT.stay(b, [-9.0, 35.5, sg * 1.5], apex.map((v, i) => (i === 2 ? sg * 1.5 : v)), sc, 0.1);   // from the top of the tower to the after mast
+    for (const sg of [-1, 1]) DT.stay(b, [3.0, 36.5, sg * 1.3], [X(0.045), Y(X(0.045)) + 1.2, sg * 0.8], sc, 0.1);          // to the bow
+    for (const sg of [-1, 1]) DT.stay(b, apex.map((v, i) => (i === 2 ? sg * 1.0 : v)), [X(0.955), Y(X(0.955)) + 1.0, sg * 1.0], sc, 0.1);   // and to the stern
+    DT.lifelines(b, hull, X(0.985), X(0.2), pal, { base: 0.1, h: 0.95, step: 2.5 });          // the rails along the deck edge (too thin for the baked mesh)
     DT.lifelines(b, hull, X(0.19), X(0.02), pal, { base: 0.1, h: 0.95, step: 2.5 });
-    DT.anchorAndHawse(b, hull, X(0.06), 8.0, pal);
-    b.cylinder(X(0.008), 9.2, 0, 0.06, 0.05, 13.0, grey, MAT.HULL, { seg: 5 });
   });
   model.bridge = { x: 7.6, y: 39.99, z: 2.5, towerX: 2.63 };
   model.superBox = { x0: -42.2, x1: 43.4, hw: 15.45, y1: 39.99 };
@@ -261,7 +228,7 @@ function yamatoExtras({ b, hull, X, Y, pal, model, MAT, rgb, shade, part, PT, DT
 }
 
 export const YAMATO = {
-  own: true, extra: yamatoExtras,
+  own: true, bakedHull: true, noCat: true, extra: yamatoExtras,
     mainVariant: 'type94', secVariant: ['type3_155', 'type89c'], dirKind: 'drum', houseH: 4.33, noFittings: true,
     // the upper deck runs aft to 87 % of the length, then steps down to the quarterdeck
     fb: [[0, 10.0], [0.03, 9.2], [0.09, 8.3], [0.18, 7.5], [0.27, 7.3], [0.4, 8.2], [0.5, 8.6], [0.7, 8.6], [0.87, 8.7], [0.903, 8.65], [0.907, 5.85], [1, 5.85]],
@@ -283,37 +250,35 @@ export const YAMATO = {
     // ones in their crescent tubs on the decks, two on each of turrets 2 and 3, the quarterdeck and the stern)
     // light AA at the positions measured on the reference model: 12 shielded triple 25 mm a side along the deck edges and on the sponsons, one higher by the tower, two singles aft (z: signed, one mount each)
     aa: [
-      { k: 't25', f: 0.87, z: 15.5, y: 0.45, one: true, noTub: true },
-      { k: 't25', f: 0.87, z: -15.5, y: 0.45, one: true, noTub: true },
-      { k: 't25', f: 0.8498, z: 16.1, y: 0.45, one: true, noTub: true },
-      { k: 't25', f: 0.8498, z: -16.1, y: 0.45, one: true, noTub: true },
-      { k: 't25', f: 0.6327, z: 7.6, y: 3.0, one: true, noTub: true },
-      { k: 't25', f: 0.6327, z: -7.6, y: 3.0, one: true, noTub: true },
-      { k: 't25', f: 0.6251, z: 11.1, y: 2.2, one: true, noTub: true },
-      { k: 't25', f: 0.6251, z: -11.1, y: 2.2, one: true, noTub: true },
-      { k: 't25', f: 0.6163, z: 14.3, y: 1.4, one: true, noTub: true },
-      { k: 't25', f: 0.6163, z: -14.3, y: 1.4, one: true, noTub: true },
-      { k: 't25', f: 0.6027, z: 18.1, y: 0.45, one: true, noTub: true },
-      { k: 't25', f: 0.6027, z: -18.1, y: 0.45, one: true, noTub: true },
-      { k: 't25', f: 0.5802, z: 18.1, y: 0.45, one: true, noTub: true },
-      { k: 't25', f: 0.5802, z: -18.1, y: 0.45, one: true, noTub: true },
-      { k: 't25', f: 0.5582, z: 18.1, y: 0.45, one: true, noTub: true },
-      { k: 't25', f: 0.5582, z: -18.1, y: 0.45, one: true, noTub: true },
-      { k: 't25', f: 0.5361, z: 18.1, y: 0.45, one: true, noTub: true },
-      { k: 't25', f: 0.5361, z: -18.1, y: 0.45, one: true, noTub: true },
-      { k: 't25', f: 0.5137, z: 18.1, y: 0.45, one: true, noTub: true },
-      { k: 't25', f: 0.5137, z: -18.1, y: 0.45, one: true, noTub: true },
-      { k: 't25', f: 0.4996, z: 15.0, y: 1.4, one: true, noTub: true },
-      { k: 't25', f: 0.4996, z: -15.0, y: 1.4, one: true, noTub: true },
-      { k: 't25', f: 0.4928, z: 10.7, y: 1.9, one: true, noTub: true },
-      { k: 't25', f: 0.4928, z: -10.7, y: 1.9, one: true, noTub: true },
-      { k: 't25', f: 0.5106, z: 7.2, y: 7.3, one: true, noTub: true },
-      { k: 't25', f: 0.8768, z: 2.8, y: 0.1, one: true, noTub: true },
-      { k: 't25', f: 0.5106, z: -7.2, y: 7.3, one: true, noTub: true },
-      { k: 't25', f: 0.8768, z: -2.8, y: 0.1, one: true, noTub: true },
+      { k: 'y25', f: 0.87, z: 15.5, y: 0.45, one: true, noTub: true },
+      { k: 'y25', f: 0.87, z: -15.5, y: 0.45, one: true, noTub: true },
+      { k: 'y25', f: 0.8498, z: 16.1, y: 0.45, one: true, noTub: true },
+      { k: 'y25', f: 0.8498, z: -16.1, y: 0.45, one: true, noTub: true },
+      { k: 'y25', f: 0.6327, z: 7.6, y: 3.0, one: true, noTub: true },
+      { k: 'y25', f: 0.6327, z: -7.6, y: 3.0, one: true, noTub: true },
+      { k: 'y25', f: 0.6251, z: 11.1, y: 2.2, one: true, noTub: true },
+      { k: 'y25', f: 0.6251, z: -11.1, y: 2.2, one: true, noTub: true },
+      { k: 'y25', f: 0.6163, z: 14.3, y: 1.4, one: true, noTub: true },
+      { k: 'y25', f: 0.6163, z: -14.3, y: 1.4, one: true, noTub: true },
+      { k: 'y25', f: 0.6027, z: 18.1, y: 0.45, one: true, noTub: true },
+      { k: 'y25', f: 0.6027, z: -18.1, y: 0.45, one: true, noTub: true },
+      { k: 'y25', f: 0.5802, z: 18.1, y: 0.45, one: true, noTub: true },
+      { k: 'y25', f: 0.5802, z: -18.1, y: 0.45, one: true, noTub: true },
+      { k: 'y25', f: 0.5582, z: 18.1, y: 0.45, one: true, noTub: true },
+      { k: 'y25', f: 0.5582, z: -18.1, y: 0.45, one: true, noTub: true },
+      { k: 'y25', f: 0.5361, z: 18.1, y: 0.45, one: true, noTub: true },
+      { k: 'y25', f: 0.5361, z: -18.1, y: 0.45, one: true, noTub: true },
+      { k: 'y25', f: 0.5137, z: 18.1, y: 0.45, one: true, noTub: true },
+      { k: 'y25', f: 0.5137, z: -18.1, y: 0.45, one: true, noTub: true },
+      { k: 'y25', f: 0.4996, z: 15.0, y: 1.4, one: true, noTub: true },
+      { k: 'y25', f: 0.4996, z: -15.0, y: 1.4, one: true, noTub: true },
+      { k: 'y25', f: 0.4928, z: 10.7, y: 1.9, one: true, noTub: true },
+      { k: 'y25', f: 0.4928, z: -10.7, y: 1.9, one: true, noTub: true },
+      { k: 'y25', f: 0.5106, z: 7.2, y: 7.3, one: true, noTub: true },
+      { k: 'y25', f: 0.8768, z: 2.8, y: 0.1, one: true, noTub: true },
+      { k: 'y25', f: 0.5106, z: -7.2, y: 7.3, one: true, noTub: true },
+      { k: 'y25', f: 0.8768, z: -2.8, y: 0.1, one: true, noTub: true },
     ],
     // ship's boats stowed in the recesses of the hull sides aft
     boats: [{ f0: 0.80, f1: 0.83, z: 15.5, y: -4.2, cabin: true }, { f0: 0.835, f1: 0.865, z: 15.5, y: -4.2 }],
-    // the catapults lie fore and aft at the quarterdeck edges, with their turntables
-    cat: { f: 0.931, z: 9.5, yaw: 0.23, len: 19.3, y: 4.4, craneF: 0.99, craneH: 6, craneLen: 20, craneDir: 1, craneAng: 0.05, craneSide: 0, craneW: 1.0 },
   };

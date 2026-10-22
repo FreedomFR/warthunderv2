@@ -14,7 +14,9 @@ const mounts = JSON.parse(fs.readFileSync(mountsFile, 'utf8'));
 const tw = (fl.tower || '-8,16,18').split(',').map(Number), fu = (fl.funnel || '-33,-12,5,14').split(',').map(Number);
 
 const masked = (x, y, z) => {
+  if (y > 46.2) return true;                                                           // the flat aerial arrays floating over the mast tops: not part of the ship
   for (const m of mounts) {
+    if (m.g === 'cut') { if (y > m.y0 && y < m.y1 && Math.hypot(x - m.x, z - m.z) < m.r && Math.abs(z - m.z) < (m.w ?? 99)) return true; continue; }
     const r = m.g === 'main' ? 9.5 : m.cal === 155 ? 5.6 : m.g === 'sec' ? 4.0 : 3.2;
     if (y > m.y - 0.3 && Math.hypot(x - m.x, z - m.z) < r) return true;
     // the barrels of the turrets, which the game draws as guns

@@ -8,6 +8,8 @@
 // Japanese Type 94 46 cm triple, the German Drh LC/34 38 cm twin and the US 5"/38 twin (Mk 28) and single (Mk 30) mounts.
 import { MeshBuilder, MAT, rgb, shade } from './meshbuilder.js';
 import { HOUSE_DATA } from './mountdata.js';
+import { MOUNTS_BAKED, MOUNT_SCALE } from './ships/yamato_mounts_baked.js';
+import { decodeBaked } from './bakedmesh.js';
 
 const cache = new Map();
 
@@ -24,9 +26,9 @@ const FAMILY = {
   // Yamato 1945 profile and plan (Commons, Alexpl, after the Kure museum photographs; heights scaled to the builders' freeboards):
   // 18.5 m long, 14.4 m wide without the rangefinder arms, 3.9 m high (the profile is drawn 10 % flat: heights read at its own vertical
   // scale; roofs 11.7 and 15.1 m above the waterline), barrels 13.3 m clear of the ports, turret 2 2.7 m above turret 1
-  type94: { kind: 'turret', cal: 460, n: 3, spacing: 2.94, trunX: 3.6, trunY: 1.68, face: 8.3, port: 7.6, fwd: 17.84, back: 2.9, rB: 0.70, rP: 0.50, rM: 0.262, bagR: 1.05, bagLen: 1.3, recoil: 1.3, lift: 2.7, h: 3.9, barbR: 6.6, barb: 0.1 },
+  type94: { kind: 'turret', cal: 460, n: 3, spacing: 2.94, trunX: 8.2, trunY: 1.7, face: 8.3, port: 7.6, fwd: 13.24, back: 2.9, rB: 0.70, rP: 0.50, rM: 0.262, bagR: 1.05, bagLen: 1.3, recoil: 1.3, lift: 2.7, h: 3.9, barbR: 6.6, barb: 0.1 },
   // Yamato's 15.5 cm/60 triple (ex-Mogami): 8.6 m long, 3.4 m high, barrels 5.9 m clear of the face, on a 7.3-7.9 m barbette
-  type3_155: { kind: 'turret', cal: 155, n: 3, spacing: 1.51, trunX: 1.2, trunY: 0.95, face: 3.0, port: 2.7, fwd: 8.2, back: 1.2, rB: 0.26, rP: 0.21, rM: 0.115, bagR: 0.33, bagLen: 0.5, recoil: 0.6, lift: 2.6, h: 3.0, barbR: 2.5 },
+  type3_155: { kind: 'turret', cal: 155, n: 3, spacing: 1.51, trunX: 3.0, trunY: 0.95, face: 3.0, port: 2.7, fwd: 6.4, back: 1.2, rB: 0.26, rP: 0.21, rM: 0.115, bagR: 0.33, bagLen: 0.5, recoil: 0.6, lift: 2.6, h: 3.0, barbR: 2.5 },
   // Bismarck profile (Commons, CC0) and Bundesarchiv photographs: 13.3 m long, 3.5 m high, barrels 13.5 m clear of the face, on a
   // 1.2 m barbette; the superfiring turrets 3.4 m higher
   drh34: { kind: 'turret', cal: 380, n: 2, spacing: 4.6, trunX: 2.6, trunY: 1.6, face: 5.8, port: 5.2, fwd: 16.1, back: 2.6, rB: 0.58, rP: 0.49, rM: 0.29, bagR: 0.85, bagLen: 1.1, recoil: 1.15, lift: 3.4, h: 3.5, barbR: 5.3, barb: 1.2 },
@@ -495,10 +497,11 @@ function markRoof(hb, top, h) {
 function makeFamily(s, f) {
   const col = rgb(s.col || '#6b7076'), dark = rgb(s.dark || '#1d1f22');
   const hb = new MeshBuilder(), gb = new MeshBuilder();
-  HOUSES[s.variant](hb, col, dark, f);
-  if (s.top) markRoof(hb, s.top, f.h);
+  const bk = MOUNTS_BAKED[s.variant];                                           // read on the reference model: its own triangles for the house and, where it has them, the barrels
+  if (bk && bk.house) { const d = decodeBaked(bk.house, MOUNT_SCALE); hb.raw(d.pos, d.nrm, d.col, d.idx, MAT.HULL); } else HOUSES[s.variant](hb, col, dark, f);
+  if (s.top && !(bk && bk.house)) markRoof(hb, s.top, f.h);
   const muz = f.whiteMuzzle ? rgb('#e4e1d4') : null;
-  for (let i = 0; i < f.n; i++) tube(gb, (i - (f.n - 1) / 2) * f.spacing, f, col, dark, muz);
+  if (bk && bk.guns) { const d = decodeBaked(bk.guns, MOUNT_SCALE); gb.raw(d.pos, d.nrm, d.col, d.idx, MAT.HULL); } else for (let i = 0; i < f.n; i++) tube(gb, (i - (f.n - 1) / 2) * f.spacing, f, col, dark, muz);
   return { house: hb.build(), guns: gb.build(), trunnion: [f.trunX, f.trunY], muzzleX: f.fwd, barrelLen: f.fwd, height: f.h, recoil: f.recoil, lift: f.lift };
 }
 
@@ -604,10 +607,14 @@ function aaMount(hb, gb, s, col, dark) {
     s._tx = 0.2; s._ty = 1.2; s._len = 1.8;
     return;
   }
-  if (v === 'iijn25' && n === 3) {   // the shielded triple 25 mm Type 96, measured on a reference model: a 3.6 m round base, a domed shield, three barrels side by side through the slot in front
-    hb.cylinder(0, 0, 0, 1.8, 1.8, 0.55, shade(col, 0.88), MAT.HULL, { seg: 16 });
-    hb.sphere(-0.1, 0.5, 0, 1.7, 1.15, 1.7, col, MAT.HULL, { half: true, seg: 16, rings: 6 });
-    hb.block({ x0: 0.9, x1: 1.55, hw: 0.95, y0: 0.7, y1: 1.45, tx0: 1.0, tx1: 1.45, thw: 0.7 }, shade(col, 0.82), MAT.DARK);   // the slot
+  if (v === 'iijn25' && n === 3) {   // the shielded triple 25 mm Type 96: the shield read on the reference model, the three barrels side by side through the slot in front
+    const bk = s.bore === 61 ? MOUNTS_BAKED.iijn25 : null;                       // bore 61: the Yamato's triples (AA_TYPES y25)
+    if (bk && bk.house) { const d = decodeBaked(bk.house, MOUNT_SCALE); hb.raw(d.pos, d.nrm, d.col, d.idx, MAT.HULL); }
+    else {
+      hb.cylinder(0, 0, 0, 1.8, 1.8, 0.55, shade(col, 0.88), MAT.HULL, { seg: 16 });
+      hb.sphere(-0.1, 0.5, 0, 1.7, 1.15, 1.7, col, MAT.HULL, { half: true, seg: 16, rings: 6 });
+      hb.block({ x0: 0.9, x1: 1.55, hw: 0.95, y0: 0.7, y1: 1.45, tx0: 1.0, tx1: 1.45, thw: 0.7 }, shade(col, 0.82), MAT.DARK);   // the slot
+    }
     for (let i = 0; i < n; i++) gb.rod(0.2, 2.1, 0, (i - 1) * 0.42, 0.07, 0.05, dark, MAT.DARK, { seg: 8 });
     s._tx = 0.6; s._ty = 1.0; s._len = 1.6;
     return;
