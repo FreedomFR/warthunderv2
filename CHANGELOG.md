@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased — back to the hand-made ships, with the mounts copied element by element from the models
+
+- The baked meshes are removed from the game (a hull and structure from the model mixed with the hand-made parts looked bad); the ships are hand-made again (the Yamato as in `9e70369`).
+- **`tools/refs/elements.py`**: cuts the model into its objects and copies the mounts as whole objects: the 46 cm turrets (A and B are one copy, C another), the 15.5 cm turrets, the 12.7 cm cupolas (cut from the deck round their axis when the model fused them), the 25 mm shields (one copy for all), with their barrels as separate guns (they still train, elevate, recoil and fire). Done for the seven ships that have a model (`ships/<id>_elements.js`, 0.1 - 1.9 MB each); `look` on the mount records, `model/elements.js`, `makeMount` in `mounts.js`. Mounts that the model does not carry (a ring and a barrel only) keep the game's own drawing.
+- Not done yet: the elements that are not mounts (boats, cranes, directors, searchlights), and the saw-toothed rim of the cupolas on the central house of the Yamato.
+
 ## Unreleased — the baked ships break piece by piece
 
 - **Every ship drawn from a model is cut into independent pieces** (`bakeship.mjs`, `bakedship.js`): the separate objects of the model that are not the hull (deckhouses, platforms, boats, cranes, gun tubs, up to 48 per ship, with the small fittings that stand on them) are destroyable parts of kind `structure`: hit points by size (`modules.js`), damage and fire like the tower, debris thrown when they go, and a charred stump (the lowest third of the piece) left in place. Gun mounts, AA, screws and radars were already separate (they train, elevate, spin).

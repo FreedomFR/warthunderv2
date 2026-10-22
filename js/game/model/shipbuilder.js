@@ -4,6 +4,7 @@
 // Per-ship hand-tuning goes through `tweaks` (see js/game/model/tweaks.js).
 import { MeshBuilder, MAT, rgb, shade, mix } from './meshbuilder.js';
 import { buildHull } from './hull.js';
+import { ELEMENTS } from './elements.js';
 import * as PT from './parts.js';
 import { makeRng } from '../math.js';
 import { computeClearance, computeTubeArcs, inFoot, barrelBlocked } from './clearance.js';
@@ -777,6 +778,12 @@ export function buildShipModel(spec, tw = {}) {
   model.topY = topY;
   model.radius = Math.hypot(L / 2, topY);
   if (model.bridge) bridgeEye(model, b.solids, L);
+  // the mounts that were copied from the reference model of this ship (tools/refs/elements.py): their record says which element to draw
+  const el = ELEMENTS[spec.id];
+  if (el && tw.elements !== false) {
+    model.mounts.forEach((r, i) => { const k = el.MOUNT_KIND[`m${i}`]; if (k) r.look = `${spec.id}/${k}`; });
+    model.aaMounts.forEach((r, i) => { const k = el.MOUNT_KIND[`a${i}`]; if (k) r.look = `${spec.id}/${k}`; });
+  }
   // a gun house that is sunk in a deckhouse slides a few tenths of a metre along its deck before the arcs are worked out
   clearHouses(model, b.solids, hull, supportBelow, { carrier });
   computeClearance(model, b.solids, hull, { bothBeams: !!tw.own });

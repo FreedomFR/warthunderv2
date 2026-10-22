@@ -8,6 +8,8 @@
 // Japanese Type 94 46 cm triple, the German Drh LC/34 38 cm twin and the US 5"/38 twin (Mk 28) and single (Mk 30) mounts.
 import { MeshBuilder, MAT, rgb, shade } from './meshbuilder.js';
 import { HOUSE_DATA } from './mountdata.js';
+import { decodeBaked } from './bakedmesh.js';
+import { ELEMENTS } from './elements.js';
 
 const cache = new Map();
 
@@ -130,7 +132,7 @@ function aaLen(s) {
 }
 
 export function getMountModel(spec) {
-  const key = [spec.kind, spec.cal, spec.n, spec.bore, spec.col, spec.variant || '', JSON.stringify(spec.top || '')].join('|');
+  const key = [spec.kind, spec.cal, spec.n, spec.bore, spec.col, spec.variant || '', JSON.stringify(spec.top || ''), spec.look || ''].join('|');
   let m = cache.get(key);
   if (!m) { m = makeMount(spec); cache.set(key, m); }
   return m;
@@ -502,7 +504,23 @@ function makeFamily(s, f) {
   return { house: hb.build(), guns: gb.build(), trunnion: [f.trunX, f.trunY], muzzleX: f.fwd, barrelLen: f.fwd, height: f.h, recoil: f.recoil, lift: f.lift };
 }
 
+/**
+ * The mount as the game builds it; when the record carries `look` ('<ship>/<kind>': an element copied from the reference model of that ship, see elements.js), its house and its barrels
+ * are the model's own objects, in the mount's frame (the house at the training axis, the barrels at the trunnion), whatever the game's family says about the shape.
+ */
 function makeMount(s) {
+  const mm = makeMountProcedural(s);
+  if (!s.look) return mm;
+  const [ship, kind] = s.look.split('/'), el = ELEMENTS[ship], k = el && el.KINDS[kind];
+  if (!k || !k.house) return mm;
+  const hb = new MeshBuilder(), gb = new MeshBuilder();
+  let d = decodeBaked(k.house, el.MOUNT_SCALE); hb.raw(d.pos, d.nrm, d.col, d.idx, MAT.HULL);
+  let guns = mm.guns;
+  if (k.guns) { d = decodeBaked(k.guns, el.MOUNT_SCALE); gb.raw(d.pos, d.nrm, d.col, d.idx, MAT.HULL); guns = gb.build(); }
+  return { ...mm, house: hb.build(), guns };
+}
+
+function makeMountProcedural(s) {
   const fam = s.variant && FAMILY[s.variant];
   if (fam && HOUSES[s.variant]) return makeFamily(s, fam);
   const col = rgb(s.col || '#6b7076');
