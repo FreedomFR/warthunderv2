@@ -1,0 +1,171 @@
+{
+ "ship": "Kagero",
+ "use_claimed": true,
+ "skip_groups": [],
+ "skip_material": [],
+ "cuts": [
+  {
+   "group": ".*",
+   "gre": true,
+   "id": "spin2",
+   "drop": true,
+   "box": [
+    -56.36,
+    -52.66,
+    -3.5,
+    2,
+    -0.45,
+    0.45
+   ]
+  },
+  {
+   "group": ".*",
+   "gre": true,
+   "id": "spin1",
+   "drop": true,
+   "box": [
+    -51.28,
+    -50.44,
+    -3.54,
+    -1.32,
+    -2.81,
+    -0.75
+   ]
+  },
+  {
+   "group": ".*",
+   "gre": true,
+   "id": "spin0",
+   "drop": true,
+   "box": [
+    -51.28,
+    -50.44,
+    -3.54,
+    -1.32,
+    0.75,
+    2.81
+   ]
+  },
+  {
+   "group": ".*",
+   "gre": true,
+   "id": "bridge",
+   "kind": "bridge",
+   "label": "Passerelle",
+   "box": [
+    23.7,
+    33.34,
+    3.5,
+    13.2,
+    -2.62,
+    2.62
+   ]
+  },
+  {
+   "group": ".*",
+   "gre": true,
+   "id": "funnel0",
+   "kind": "funnel",
+   "label": "Chemin\u00e9e 1",
+   "box": [
+    11.21,
+    16.59,
+    5.2,
+    11.5,
+    -1.67,
+    1.67
+   ]
+  },
+  {
+   "group": ".*",
+   "gre": true,
+   "id": "funnel1",
+   "kind": "funnel",
+   "label": "Chemin\u00e9e 2",
+   "box": [
+    -4.21,
+    -0.49,
+    5,
+    10.9,
+    -1.16,
+    1.16
+   ]
+  },
+  {
+   "group": ".*",
+   "gre": true,
+   "id": "tubes0",
+   "kind": "tubes",
+   "label": "Tubes lance-torpilles",
+   "box": [
+    -1,
+    12.95,
+    3.5,
+    6.1,
+    -2.3,
+    2.3
+   ]
+  },
+  {
+   "group": ".*",
+   "gre": true,
+   "id": "tubes1",
+   "kind": "tubes",
+   "label": "Tubes lance-torpilles",
+   "box": [
+    -14.8,
+    -2.25,
+    3.5,
+    6.1,
+    -2,
+    2
+   ]
+  },
+  {
+   "group": ".*",
+   "gre": true,
+   "id": "mast0",
+   "kind": "mast",
+   "label": "M\u00e2t avant",
+   "box": [
+    19.67,
+    24.4,
+    3.5,
+    22.52,
+    -1.8,
+    1.8
+   ]
+  },
+  {
+   "group": ".*",
+   "gre": true,
+   "id": "mast1",
+   "kind": "mast",
+   "label": "M\u00e2t arri\u00e8re",
+   "box": [
+    -23.4,
+    -22.8,
+    5,
+    14.22,
+    -1.5,
+    1.5
+   ]
+  }
+ ],
+ "rules": [
+  {
+   "match": "a64eebca",
+   "to": "fine"
+  },
+  {
+   "min_len": 60,
+   "to": "static",
+   "cls": "hull"
+  },
+  {
+   "match": ".*",
+   "to": "static",
+   "cls": "equip"
+  }
+ ]
+}

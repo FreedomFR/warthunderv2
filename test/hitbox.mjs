@@ -125,7 +125,7 @@ for (const spec of list) {
     if (DUMP && (kind === 'ghost' || kind === 'miss' || kind === 'off')) worst.push({ kind, part: h && h.part, at: h ? [h.lx, h.ly, h.lz].map((v) => +v.toFixed(1)) : null, gap: h && tt != null ? +((h.t - tt) * Ls).toFixed(1) : null });
   }
   // a ship drawn from a baked reference mesh shows every fitting of the model, which the hit volumes do not model: its misses are judged apart (below), the rest as before
-  const baked = !!TWEAKS[spec.id]?.baked;
+  const baked = !!(TWEAKS[spec.id]?.baked || TWEAKS[spec.id]?.v4);      // (a ship drawn from the groups of a reference model shows its fittings too)
   for (const k of Object.keys(totals)) { if (baked && k === 'miss') bakedMiss.miss += st2.miss; else totals[k] += st2[k]; }
   if (baked) bakedMiss.solids += st2.good + st2.miss + st2.off;
   const solid = st2.rays - st2.clear;

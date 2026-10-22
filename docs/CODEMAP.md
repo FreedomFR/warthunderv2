@@ -75,7 +75,7 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 - `clearance.js` (255) What each gun can bear on. A mount stands on a deck among towers, funnels, masts and other turrets, so the barrel cannot be trained or raised through them: for every… [CLR_STEP, CLR_N, inFoot, computeClearance, clearElev, clearMax, barrelBlocked, pathClear, inArcRel, … +2] ← 7
 - `cockpit.js` (376) The cockpit seen from the pilot's seat: the instrument panel with working dials (airspeed, artificial horizon, altimeter, compass, climb, revolutions, clock and… [cockpitEye, canopyFrame, GAUGE, buildCockpit, getCockpit] ← 6
 - `details.js` (183) Fine detail for the ship models: lifelines, boats on their davits, life rafts, ventilators, anchors and hawse pipes, rigging, searchlight platforms, depth charge… [lifelines, roofRail, launch, raft, vent, anchorAndHawse, stay, depthCharges, mooring, … +4] ← 3
-- `elements.js` (8) Elements copied from the reference models, by ship id (tools/refs/groupmounts.py wrote ships/<id>_elements.js): { MOUNT_SCALE, KINDS: { id: { house, guns, trunnion,… [ELEMENTS] ← 3
+- `elements.js` (9) Elements copied from the reference models, by ship id (tools/refs/groupmounts.py wrote ships/<id>_elements.js): { MOUNT_SCALE, KINDS: { id: { house, guns, trunnion,… [ELEMENTS] ← 3
 - `glyphs.js` (59) 5x7 bitmap font for hull numbers (digits, capital letters, dash). [GLYPH_CHARS, GLYPH_BITS, glyphIndex] ← 3
 - `heavy.js` (472) The multi-engine land-based bombers (B-17, G4M, Lancaster, He 111, SM.79, LeO 451): the generator for aircraft with `spec.engines`. [frameOf, bayPivot, propMounts, drawHeavy] ← 3
 - `hull.js` (246) Parametric hull lofting. The hull is a parametric surface P(t, k): t runs from the bow (0) to the stern (1) along each horizontal "level" k (k < 0 below the… [pchip, buildHull] ← 1
@@ -93,7 +93,7 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 - `treeMeshes.js` (506) The plants as meshes: eight species (oak, fir, palm, tropical canopy tree, acacia, cypress, shrub, boulder), three variants each, at four levels of detail. [FAM, SHAPE, getTemplate, ROCK_TINT, stampPlants] ← 2
 - `triangulate.js` (53) Triangulation of a polygon with holes (ear clipping after the holes are bridged into the outline), for the flat caps of the solids read from a reference model… [triangulate] ← 1
 - `tweaks.js` (1033) Per-ship hand tuning of the generated models (see shipbuilder.js for the options). [TWEAKS] ← 13
-- `v4ship.js` (85) A ship drawn from the groups of a reference model (ships/<id>_v4.js, tools/refs/shipgroups.py): after the procedural build (which keeps giving the hit volumes, the… [reference, paintInto, applyV4] ← 2
+- `v4ship.js` (94) A ship drawn from the groups of a reference model (ships/<id>_v4.js, tools/refs/shipgroups.py): after the procedural build (which keeps giving the hit volumes, the… [reference, paintInto, applyV4] ← 2
 - `vegetation.js` (143) Where the plants grow. Pure functions of an island (no GPU): the climate of the island, how much of the ground is covered at a point (used both to scatter trees and… [SP, SPECIES, VARIANTS, STEP, climateOf, cover, scatter] ← 5
 
 ## js/game/model/ships/
@@ -105,7 +105,9 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 - `graf_spee.js` (162) graf_spee: the tweaks of the Admiral Graf Spee model (see ../shipbuilder.js for the options and ../tweaks.js for the others); [GRAF_SPEE] ← 1
 - `graf_spee_elements.js` (5) Mounts of the Admiral Graf Spee copied from its reference model, one element at a time (see docs/CREDITS.md; [MOUNT_SCALE, KINDS, PLACEMENTS] ← 1
 - `graf_spee_v4.js` (4) The Admiral Graf Spee built from its reference model (see docs/CREDITS.md; [SCALE, SHIP] ← 1
-- `kagero.js` (163) kagero: the tweaks of the Kagero model (see ../shipbuilder.js for the options and ../tweaks.js for the others); [KAGERO] ← 1
+- `kagero.js` (165) kagero: the tweaks of the Kagero model (see ../shipbuilder.js for the options and ../tweaks.js for the others); [KAGERO] ← 1
+- `kagero_elements.js` (5) Mounts of the Kagero copied from its reference model, one element at a time (see docs/CREDITS.md; [MOUNT_SCALE, KINDS, PLACEMENTS] ← 1
+- `kagero_v4.js` (4) The Kagero built from its reference model (see docs/CREDITS.md; [SCALE, SHIP] ← 1
 - `kit.js` (35) The drawing helpers shared by the ships that are drawn bespoke from a reference model (ships/<id>.js): plans from half-widths, thin walls, railings round a platform,… [cutter, kit] ← 4
 - `shokaku_elements.js` (5) Mounts of the Shokaku copied from its reference model, one element at a time (see docs/CREDITS.md; [MOUNT_SCALE, KINDS, PLACEMENTS] ← 1
 - `shokaku_v4.js` (4) The Shokaku built from its reference model (see docs/CREDITS.md; [SCALE, SHIP] ← 1
@@ -184,7 +186,7 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 - `mobile.js` (136) The touch interface: a compact top bar and a menu in place of the desktop buttons, panels that open on demand, a virtual stick for the free camera and the map, full… [joyKeys, initMobile] ← 2
 - `mobileStyle.js` (89) Style of the touch interface (body.mobile). [MOBILE_CSS] ← 1
 - `reloads.js` (75) The reload gauges of the ship that is watched, laid out as in the naval HUD of War Thunder: one ring per gun mount that fills while the mount reloads (with the… [mountState, reloadGroups, createReloadHud] ← 2
-- `ui.js` (911) DOM user interface (French): fleet setup, HUD, labels, kill feed, results, settings. [createUI] ← 1
+- `ui.js` (913) DOM user interface (French): fleet setup, HUD, labels, kill feed, results, settings. [createUI] ← 1
 
 ## js/viewer/
 

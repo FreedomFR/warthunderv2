@@ -56,10 +56,18 @@ def bbox(tris):
 
 
 def analyse(gtris, el):
-    lab = components(gtris)
+    gm = el.get('gun_materials')
+    if gm:     # the pieces of the guns' materials are separated from the rest first (a barrel touching its cradle is not one object)
+        isg = np.array([parts[tp[t]]['mat'] >= 0 and any(m in mats[parts[tp[t]]['mat']] for m in gm) for t in gtris])
+        lab = np.zeros(len(gtris), dtype=np.int64)
+        if (~isg).any(): lab[~isg] = components(gtris[~isg])
+        if isg.any(): lab[isg] = components(gtris[isg]) + (lab.max() + 1)
+        gun_set = set(int(k) for k in np.unique(lab[isg]))
+    else:
+        lab = components(gtris); gun_set = set()
     comps = {int(k): gtris[lab == k] for k in np.unique(lab)}
     info_c = {k: bbox(t) for k, t in comps.items()}
-    house_k = max(comps, key=lambda k: np.prod(info_c[k][1] - info_c[k][0] + 1e-3))
+    house_k = max((k for k in comps if k not in gun_set), key=lambda k: np.prod(info_c[k][1] - info_c[k][0] + 1e-3))
     barrels = []
     if el.get('split'):
         blen = float(el.get('barrel_len', 2.0))
@@ -71,6 +79,8 @@ def analyse(gtris, el):
         if barrels:                                          # the guns are the longest of them (the others are rails, sights, ladders)
             Lmax = max(max(info_c[k][1][0] - info_c[k][0][0], info_c[k][1][2] - info_c[k][0][2]) for k in barrels)
             barrels = [k for k in barrels if max(info_c[k][1][0] - info_c[k][0][0], info_c[k][1][2] - info_c[k][0][2]) >= 0.6 * Lmax]
+    if gun_set:          # a model whose materials say which pieces are the guns: those, whatever their shape
+        barrels = [k for k in gun_set if comps[k].size >= 20]
     # the way the barrels point: along their long axis, towards the side away from the middle of the rest of the mount
     hlo, hhi = info_c[house_k]
     yaw = 0.0
@@ -114,20 +124,43 @@ def pack(tri_ids, origin, yaw_deg, shift):
 
 
 kinds, placements, report = {}, [], []
+# a model whose materials are merged has no group per mount: `layout_match` picks, for each mount record of the game that matches ({"group": "main", "cal": 127}), the whole objects (connected pieces of
+# one material) that lie entirely inside a window round the record (`radius`, `below`, `above` in metres), pieces taken by an earlier element left out. Nothing is cut.
+LAYOUT = json.load(open(cfg['layout'])) if cfg.get('layout') else None
+if LAYOUT:
+    order = np.argsort(tp, kind='stable'); tps = tp[order]
+    st = np.searchsorted(tps, np.arange(len(parts))); en = np.searchsorted(tps, np.arange(len(parts)), side='right')
+    PBMIN = np.full((len(parts), 3), 1e9); PBMAX = np.full((len(parts), 3), -1e9); PN = en - st
+    for k in range(len(parts)):
+        if PN[k]:
+            V = P[I[order[st[k]:en[k]]]].reshape(-1, 3); PBMIN[k] = V.min(0); PBMAX[k] = V.max(0)
+claimed = set()
 for el in cfg['elements']:
     sel = []
-    for k, p in enumerate(parts):
+    if 'layout_match' in el:
+        R = float(el.get('radius', 4.0)); below = float(el.get('below', 1.5)); above = float(el.get('above', 6.0)); mt = int(el.get('min_part_tris', 8))
+        for r in LAYOUT['mounts']:
+            if not all((r.get(k) in v) if isinstance(v, list) else r.get(k) == v for k, v in el['layout_match'].items()):
+                continue
+            ok = np.where((PN >= mt) & (PBMIN[:, 0] >= r['x'] - R) & (PBMAX[:, 0] <= r['x'] + R) & (PBMIN[:, 2] >= r['z'] - R) & (PBMAX[:, 2] <= r['z'] + R) & (PBMIN[:, 1] >= r['y'] - below) & (PBMAX[:, 1] <= r['y'] + above))[0]
+            ok = [int(k) for k in ok if k not in claimed and not (el.get('exclude') and parts[k]['mat'] >= 0 and el['exclude'] in mats[parts[k]['mat']])
+                  and (not el.get('materials') or (parts[k]['mat'] >= 0 and any(m in mats[parts[k]['mat']] for m in el['materials'])))]
+            if len(ok) < int(el.get('min_parts', 1)):
+                print(f"element {el['id']}: nothing near {r['name']} ({r['x']}, {r['z']})", file=sys.stderr); continue
+            claimed.update(ok)
+            sel.append((ok[0], r['name'], np.concatenate([order[st[k]:en[k]] for k in ok])))
+    for k, p in enumerate(parts if 'layout_match' not in el else []):
         if p['mat'] >= 0 and el['material'] in mats[p['mat']] and not (el.get('exclude') and el['exclude'] in mats[p['mat']]):
             t = np.where(tp == k)[0]
             if len(t) >= int(el.get('min_tris', 0)):
                 sel.append((k, p['name'], t))
     if not sel:
-        print(f"element {el['id']}: no group with material {el['material']}", file=sys.stderr); continue
+        print(f"element {el['id']}: no group with material {el.get('material')}", file=sys.stderr); continue
     # a group that is twice the size of the usual one holds two mounts whose parts touch: split it in two by the middle of its objects along the ship (1-D two-means on the centres of its objects)
     med = float(np.median([len(t) for _, _, t in sel]))
     fixed = []
     for k, name, t in sel:
-        if len(t) > 1.5 * med and len(sel) > 1:
+        if len(t) > 1.5 * med and len(sel) > 1 and not el.get('layout_match'):
             lab = components(t)
             ax = 2 if el.get('split_axis') == 'z' else 0      # split_axis 'z': the two mounts stand side by side across the ship (their barrels would mix along x)
             cs = np.array([P[I[t[lab == q]]].reshape(-1, 3)[:, ax].mean() for q in np.unique(lab)])
@@ -196,6 +229,8 @@ for el in cfg['elements']:
         kd['muzzle'] = round(first['trun'][2] - first['trun'][0], 3)
     kinds[el['id']] = kd
     print(f"element {el['id']}: {len(sel)} copies of {first['name']}: house {first['n_house_tris']} triangles, guns {first.get('n_guns_tris', 0)}", file=sys.stderr)
+if claimed:      # the pieces taken by the mounts: shipgroups.py leaves them out of the ship (cfg `use_claimed`)
+    json.dump(sorted(parts[k]['name'] for k in claimed), open(os.path.join(src, 'claimed.json'), 'w'))
 head = (f"// Mounts of the {cfg.get('ship', '')} copied from its reference model, one element at a time (see docs/CREDITS.md; tools/refs/groupmounts.py): the mesh of each kind in the mount's own frame (house: origin\n"
         "// at the training axis, the way the barrels point = +x; guns: origin at the trunnion) and where the model has every copy (x, y, z over the waterline; yaw = the rest direction in the ship's plane).\n"
         f"export const MOUNT_SCALE = {SC};\nexport const KINDS = ")

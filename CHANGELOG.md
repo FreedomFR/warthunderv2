@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased — the Kagero built from its model (materials merged)
+
+- The model has no named groups (the materials of its atlas are merged), so `groupmounts.py` takes **whole objects round the mount records of the game** (`layout`, `layout_match`, `radius`, `below`, `above`, optional `materials`): the pieces that lie entirely in the window, never cut; `gun_materials` separates the guns' pieces from the rest (a barrel touching its cradle is not one object); the pieces taken are written to `claimed.json` and `shipgroups.py` leaves them out of the ship (`use_claimed`). `shipgroups.py` also takes `drop` cuts (the screws and rudders) and `min_len` rules (the long pieces are the hull).
+- **Kagero**: hull, structure, bridge, funnels, masts, tubes as parts (cut out by the boxes of the layout), 3 twin 127 mm (the guns and cradles elevate), 2 triple and 1 double 25 mm, the model's camouflage in the paint's luminance; checked side by side. 226k triangles, the file weighs 6.7 MB (naval.html is now 23.6 MB).
+- `test/hitbox.mjs` judges the misses of the ships drawn from a reference model apart, as it does for the baked ones.
+
 ## Unreleased — the ships drawn from models take more of the model's colours
 
 - **The weather deck** of the models that keep it apart (`v4ship.js`): the horizontal faces of the hull plating above the water are now drawn with the deck material in the deck colour of the spec sheet (the Yamato's stained-black planking, the destroyers' linoleum), flat-lit. Their winding is not reliable in these models (the Yamato's deck faces are wound downwards), which is why the deck used to come out as the grey of the paint.
