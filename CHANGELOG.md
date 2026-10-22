@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased — the light AA of the Yamato from the model, and visual bugs of the ship
+
+- **The anti-aircraft at its measured places**: the model has 24 shielded triple 25 mm (12 a side: along both deck edges from x -27 to -3.6 at 18.1 m off the centre line, on the sponsons forward and aft of them, on the quarterdeck, two singles aft, one higher by the tower) where the 1945 plan quoted about 50 estimated ones; the 12 twin 12.7 cm are three on the platform edge (2.7 m over the deck) and three higher on the central house, per side. Components of the model (connected pieces of mesh) gave the positions to +-0.1 m (`comp.mjs` method: weld the vertices, take the bounding box of each piece).
+- **New mount shapes**: the shielded triple 25 mm is a domed shield on a 3.6 m round base with its three barrels through a slot (`iijn25` with 3 barrels: every Japanese triple), the 12.7 cm Type 89 twin an armoured round cupola with a sloping hood (`type89c`); `type94`'s house measured on the model.
+- **Visual bugs corrected**: the separate bulbous bow that stuck out of the hull below the stem (the bow is one rounded forefoot on the model); the beige rings spread at random on the deck (life rafts, ventilators and deck clutter: `noFittings` on a ship whose deck is measured); the stems under the 25 mm mounts; the second rudder and the screws (the model has one rudder and the screws at 3.5 / 10.5 m).
+
 ## Unreleased — the Yamato corrected on a reference model
 
 - The Yamato was in the game (from the 1945 plan); a measured model (KojfDiscord, CC BY 4.0) corrects it. **Tower**: seven stages 11 m long and 7 m wide narrowing to 5 m, top 39.6 m over the waterline (it was 12 m wide). **Funnel**: a 10 x 6 m oval raked 7 m aft (it was 12.6 x 7.5 m nearly upright), the mainmast leaning aft from 27 m abaft the middle. **Hull**: lines recut from the model (the waterline narrower at the stern, a blunt stern 9 m wide, the quarterdeck at 5.85 m from f 0.907, the catapults on pedestals 4.4 m high, 13 degrees out of line). The base platform with the cupolas and the central house follow the outlines measured at 1 and 3 m over the deck. **The 46 cm turrets**: the house is 16 m long, 13 m wide at the base and 8.8 m on the roof (it was 18 x 14.4 m), the gun ports on the sloped face, no white muzzle rings. **Arcs**: the three 46 cm turrets train 150 degrees either side (`arcHalfDeg`; turret 3 had been cut to 105 by the pedestals of two 25 mm triples that stood on turret roofs: they are left out, they would turn with the turret). `test/arcs.mjs` covers the ship.
@@ -7,7 +13,7 @@
 
 ## Unreleased — tests that no longer break with each change
 
-- `test/homeward.mjs` and `test/airops.mjs` rested on one seed of a whole simulated battle: every change of a ship moved the outcome and broke them (1 seed of 12 passed after the Shokaku). They now try a few seeds and pass when the property holds for one (the seed used is printed); the rule is noted in `CLAUDE.md`.
+- `test/homeward.mjs` (now the pooled samples of three battles) and `test/airops.mjs` rested on one seed of a whole simulated battle: every change of a ship moved the outcome and broke them (1 seed of 12 passed after the Shokaku). They now try a few seeds and pass when the property holds for one (the seed used is printed); the rule is noted in `CLAUDE.md`.
 
 ## Unreleased — the Shokaku redone on a reference model (an OBJ)
 

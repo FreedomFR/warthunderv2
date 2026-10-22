@@ -673,8 +673,10 @@ export function buildShipModel(spec, tw = {}) {
   }
   if (!carrier && !bare) {
     PT.forecastle(b, hull, X(0.04), pal);
-    PT.deckClutter(b, hull, X(0.05), X(0.30), Math.round(L / 20), rnd, pal);
-    PT.deckClutter(b, hull, X(0.64), X(0.96), Math.round(L / 18), rnd, pal);
+    if (!tw.noFittings) {      // tw.noFittings: no randomly spread clutter, rafts and ventilators (a ship whose deck is measured)
+      PT.deckClutter(b, hull, X(0.05), X(0.30), Math.round(L / 20), rnd, pal);
+      PT.deckClutter(b, hull, X(0.64), X(0.96), Math.round(L / 18), rnd, pal);
+    }
     // fine detail, drawn only when the ship is close
     const rf = makeRng(hashStr(spec.id + ':fine'));
     b.group('fine', () => {
@@ -697,7 +699,7 @@ export function buildShipModel(spec, tw = {}) {
         DT.launch(b, { x, y: hy + 0.55, z, yaw: 0, len, cabin: i === 0, davits: true }, pal);
       }
       // life rafts stacked along the deckhouse sides and on the quarterdeck
-      const nr = Math.round(clamp(L / 20, 5, 14));
+      const nr = tw.noFittings ? 0 : Math.round(clamp(L / 20, 5, 14));
       for (let i = 0; i < nr; i++) {
         const f = i % 2 ? 0.66 + 0.2 * rf() : 0.28 + 0.2 * rf();
         const x = X(f), sg = rf() < 0.5 ? -1 : 1;
@@ -707,7 +709,7 @@ export function buildShipModel(spec, tw = {}) {
         DT.raft(b, x, Y(x) + (onH ? houseH : 0) + 0.15, z, rf() * 3.14, pal);
       }
       // ventilators
-      const nv = Math.round(clamp(L / 14, 6, 18));
+      const nv = tw.noFittings ? 0 : Math.round(clamp(L / 14, 6, 18));
       for (let i = 0; i < nv; i++) {
         const f = rf() < 0.5 ? 0.12 + 0.2 * rf() : 0.62 + 0.3 * rf();
         const x = X(f), onH = model.house && x < model.house.x1 && x > model.house.x0;
