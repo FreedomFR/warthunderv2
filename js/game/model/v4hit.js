@@ -21,8 +21,8 @@ function sampleTriangle(pos, a, b, c, put) {
 }
 
 /** { x0, y0, z0, cell, nx, ny, nz, data (Uint8Array: 0 empty, 1 plating or structure, 2.. a part), ids (the parts' ids) } for the module (SCALE, SHIP) of a ship. */
-export function buildHitModel(data) {
-  const sc = data.SCALE, S = data.SHIP, ids = Object.keys(S.parts);
+export function buildHitModel(data, drop = []) {
+  const sc = data.SCALE, S = data.SHIP, ids = Object.keys(S.parts).filter((id) => !drop.includes(id));
   const src = [];
   for (const piece of Object.values(S.static)) src.push({ g: decodeBakedGeometry(piece, sc), lab: 1 });
   ids.forEach((id, n) => src.push({ g: decodeBakedGeometry(S.parts[id].mesh, sc), lab: 2 + n }));
@@ -41,17 +41,17 @@ export function buildHitModel(data) {
     }
   }
   // rods, wires and rails are no obstacle: a cell with fewer than 7 of its 26 neighbours filled is dropped (a plate or a block has many, a mast leg few)
-  const drop = [];
+  const thin = [];
   for (let j = 1; j < nz - 1; j++) for (let i = 1; i < nx - 1; i++) {
     const base = (j * nx + i) * ny;
     for (let k = 1; k < ny - 1; k++) {
       if (!grid[base + k]) continue;
       let n = 0;
       for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) { const b2 = ((j + dj) * nx + i + di) * ny + k; if (grid[b2 - 1]) n++; if (grid[b2]) n++; if (grid[b2 + 1]) n++; }
-      if (n - 1 < 7) drop.push(base + k);
+      if (n - 1 < 7) thin.push(base + k);
     }
   }
-  for (const d of drop) grid[d] = 0;
+  for (const d of thin) grid[d] = 0;
   return { x0, y0, z0, cell: CELL, nx, ny, nz, data: grid, ids };
 }
 

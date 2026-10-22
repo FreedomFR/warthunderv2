@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased — the armament checked against the real ships; three more ships (other fits)
+
+- Two research passes (real armament of every ship rebuilt from a model, against the game): the Iowa, the Graf Spee, the Adams and the Yamato's heavy guns match; see the gaps below.
+- **Yamato**: 24 single 25 mm added on the free deck of the model (`aaAt`, found by `tools/refs/freespots.mjs`): 46 triples + 24 singles = 162 barrels, the figure of April 1945.
+- **Three variants** (`data/variants.js`: a spec derived from its base's, `baseId` for the lookups the two share; `model/tweaks.js` `VARIANT_TWEAKS`): **Tade, Patrol Boat No. 39 (1940)** (the aft gun and both twin tube mounts landed, two triple 25 mm), **Kagero, Yukikaze 1944-45** (X turret removed, two triples on its barbette, 28 x 25 mm: 4 triples, 1 twin, 14 singles), **Shokaku, June 1944** (20 triples and 10 singles). The existing Tade (1922), Kagero (the model's fit) and Shokaku (June-October 1942, 18 triples) stay. The 35 ships are now 38.
+- New tweaks: `aaAt` (light mounts at given places, drawn as the mount of a model with `look`), `dropPlacements` (the mounts of the model a fit lacks), `noTubes`, `v4Drop` (parts not drawn); `groupmounts.py`: `min_part_tris: 1` for the mounts that can be taken away (small pieces would float).
+- Not simulated: depth charges, the 13.2 mm machine guns, the floatplanes of the battleships and cruisers. Differences left (see the research): Graf Spee 12 x 20 mm instead of 10, Gioberti has the 1937 fit (4 twin 13.2 mm).
+
 ## Unreleased — the Iowa keeps her real number of light guns
 
 - The first Iowa from the model carried only 18 quads and 5 single 20 mm (the copies found by shape), against 20 quads (80 x 40 mm) and 49 x 20 mm in 1943. More 20 mm variants are found in the model (42 in all, `o20`, `o20b`, `o20c`, `o20d`, `instance_box` keeps the copies of a template of a few pieces to one place); the tweak `aaCap: { 40: 20, 20: 49 }` makes up the rest of the real count from the tweaks' list (copies of the model count first, the list stops at the cap); `shipbuilder.js` skips a list entry that stands within 3.5 m of a copy.

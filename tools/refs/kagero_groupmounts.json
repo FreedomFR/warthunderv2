@@ -26,7 +26,8 @@
    "barrel_len": 2.0,
    "gun_materials": [
     "306b13b2"
-   ]
+   ],
+   "min_part_tris": 1
   },
   {
    "id": "tY",
@@ -49,7 +50,8 @@
    "barrel_len": 2.0,
    "gun_materials": [
     "306b13b2"
-   ]
+   ],
+   "min_part_tris": 1
   },
   {
    "id": "t25",

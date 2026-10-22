@@ -67,7 +67,7 @@ export function paintInto(nb, piece, scale, pal, cls, ref, maxY = Infinity) {
   for (const [mat, o] of paint(piece, scale, pal, cls, ref, maxY)) nb.raw(o.pos, o.nrm, o.col, Uint32Array.from({ length: o.pos.length / 3 }, (_, i) => i), mat);
 }
 
-export function applyV4(model, data, pal, deckY) {
+export function applyV4(model, data, pal, drop = []) {      // drop: ids of parts the fit of this ship does not have (not drawn, no hit volume)
   const sc = data.SCALE, S = data.SHIP;
   const nb = new MeshBuilder();
   const ref = reference([...Object.values(S.static), ...(S.fine ? [S.fine] : []), ...Object.values(S.parts).map((p) => p.mesh)], sc);
@@ -76,6 +76,7 @@ export function applyV4(model, data, pal, deckY) {
   if (S.fine) nb.group('fine', () => draw(S.fine, 'fine'));
   const parts = [];
   for (const [id, p] of Object.entries(S.parts)) {
+    if (drop.includes(id)) continue;
     nb.group(id, () => draw(p.mesh, 'part'));
     // the wreck: the lowest third of the piece, charred
     const lo = p.bb[1], hi = p.bb[4], cut = lo + (hi - lo) * 0.33;
@@ -91,6 +92,6 @@ export function applyV4(model, data, pal, deckY) {
   model.fine = built.groups.fine || null;
   for (const p of parts) { p.mesh = built.groups[p.id]; p.ruin = built.groups[p.id + '_ruin']; p.fineMesh = null; }
   model.parts = parts;
-  if (deckY) model.hit = buildHitModel(data);      // the hit volumes made from what is drawn (v4hit.js)
+  model.hit = buildHitModel(data, drop);      // the hit volumes made from what is drawn (v4hit.js)
   return model;
 }

@@ -11,7 +11,7 @@ const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
 /** { props, rudders } in the format of tweaks.js, or null when the class is not in the table. */
 export function defaultScrews(spec) {
-  const n = SHAFTS[spec.id];
+  const n = SHAFTS[spec.baseId || spec.id];
   if (!n) return null;
   const B = spec.beam, draft = spec.draft, big = spec.type === 'BB' || spec.type === 'CV';
   const d = clamp(0.6 * draft + 0.6, 2.4, 5.4), depth = Math.max(d / 2 + 0.2, draft - d / 2 - 0.2), blades = big ? 4 : 3;

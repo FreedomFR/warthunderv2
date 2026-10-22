@@ -22,7 +22,7 @@ export function shipPicture(spec, opts = {}) {
   img.draggable = false;
   img.style.width = opts.full ? '100%' : `${f1(iconScale(spec) * 100)}%`;
   img.onerror = () => { wrap.innerHTML = shipProfile(spec, opts); };
-  img.src = `wiki/ships/${spec.id}.webp`;
+  img.src = `wiki/ships/${spec.baseId || spec.id}.webp`;
   wrap.append(img);
   return wrap;
 }

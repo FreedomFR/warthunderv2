@@ -28,7 +28,8 @@
    "no_cradle": true,
    "barrel_len": 1.2,
    "radius_x": 4.2,
-   "radius_z": 1.7
+   "radius_z": 1.7,
+   "min_part_tris": 1
   },
   {
    "id": "g1",
@@ -57,7 +58,8 @@
    "no_cradle": true,
    "barrel_len": 1.2,
    "radius_x": 4.2,
-   "radius_z": 1.7
+   "radius_z": 1.7,
+   "min_part_tris": 1
   },
   {
    "id": "g2",
@@ -86,7 +88,8 @@
    "no_cradle": true,
    "barrel_len": 1.2,
    "radius_x": 4.2,
-   "radius_z": 1.7
+   "radius_z": 1.7,
+   "min_part_tris": 1
   }
  ]
 }

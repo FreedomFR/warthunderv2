@@ -12,6 +12,8 @@ import { GRAF_SPEE } from './ships/graf_spee.js';
 import { TADE } from './ships/tade.js';
 import * as SHOKAKU_V4 from './ships/shokaku_v4.js';
 import * as IOWA_V4 from './ships/iowa_v4.js';
+import { TADE_PB39_AA, KAGERO_1944_AA, SHOKAKU_1944_AA } from './ships/variants_aa.js';
+import { VARIANTS } from '../data/variants.js';
 import { GIOBERTI } from './ships/gioberti.js';
 import { ADAMS } from './ships/adams.js';
 import { YAMATO } from './ships/yamato.js';
@@ -1033,3 +1035,12 @@ export const TWEAKS = {
     },
   },
 };
+
+// The other fits of a ship (data/variants.js): the tweaks of the base with the differences. dropPlacements: the mounts of the model (names of its layout records) that this fit does not have;
+// aaAt: the light mounts it has that the model lacks; noTubes / v4Drop: the tubes are landed and not drawn.
+const VARIANT_TWEAKS = {
+  tade_pb39: { noTubes: true, v4Drop: ['tubes0', 'tubes1'], aaAt: TADE_PB39_AA, dropPlacements: ['m2'] },
+  kagero_1944: { aaAt: KAGERO_1944_AA, dropPlacements: ['m1'] },
+  shokaku_1944: { aaAt: SHOKAKU_1944_AA },
+};
+for (const v of VARIANTS) TWEAKS[v.id] = { ...TWEAKS[v.base], ...VARIANT_TWEAKS[v.id] };

@@ -62,6 +62,6 @@ export function hex(c) { return '#' + c.map((v) => Math.max(0, Math.min(255, Mat
 
 /** The paint vector uploaded per ship instance: x scheme, y seed, z nation id, w palette. */
 export function paintOf(spec) {
-  const lv = LIVERY[spec.id];
+  const lv = LIVERY[spec.baseId || spec.id];
   return [lv ? lv.scheme : 0, lv ? lv.seed : 0, NATION_ID[spec.nation] || 0, lv ? lv.pal : 0];
 }

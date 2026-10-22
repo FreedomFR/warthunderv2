@@ -28,8 +28,8 @@ function makePalette(spec, tw) {
     sup, dark: '#202327', cap: p.cap || '#18191b', funnel: p.funnel || sup, mast: rgb(shade(sup, 0.82)).map(Math.round),
     boat: '#8c9296', glass: '#0e151b', ...(tw.pal || {}),
   };
-  const lv = LIVERY[spec.id];
-  if (MARKS[spec.id]?.top) pal.top = MARKS[spec.id].top;
+  const lv = LIVERY[spec.baseId || spec.id];
+  if (MARKS[spec.baseId || spec.id]?.top) pal.top = MARKS[spec.baseId || spec.id].top;
   if (lv) { const m = PALETTES[lv.pal]; pal.hull = m[1]; pal.sup = m[2]; pal.funnel = m[1]; pal.mast = m[1]; pal.boat = m[2]; }
   // linoleum / teak decks: keep them from looking orange-bright under the strong sun
   pal.deck = '#' + mix(pal.deck, '#5b5348', 0.42).map((v) => Math.round(v).toString(16).padStart(2, '0')).join('');
@@ -631,7 +631,7 @@ export function buildShipModel(spec, tw = {}) {
   if (tw.extra) tw.extra({ b, hull, X, Y, pal, model, spec, rnd, PT, DT, houseH, note, MAT, rgb, shade, part });
 
   // -------- recognition stripes on the forecastle and the quarterdeck --------
-  const mk = MARKS[spec.id];
+  const mk = MARKS[spec.baseId || spec.id];
   if (mk?.stripes && !carrier) {
     const mf = spec.main.mounts.map((m) => m.fractionFromBow), gap = clamp(L * 0.04, 4, 9);
     PT.deckStripes(b, hull, { ...mk.stripes, x0: X(0.012), x1: X(Math.min(...mf)) - gap });
@@ -648,10 +648,11 @@ export function buildShipModel(spec, tw = {}) {
   // when there is no room), and a mount that is not measured is only put where no other is
   const aaTaken = (x, y, z, rad) => model.aaMounts.some((m) => Math.abs(m.y - y) < 2.2 && Math.hypot(m.x - x, m.z - z) < (m.rad || 0.9) + rad) || model.tubes.some((q) => Math.abs(q.y - y) < 2.4 && Math.abs(q.x - x) < 2.8 && Math.abs(q.z - z) < 2.8);
   // the mounts copied from the reference model (model/elements.js): each stands where the model has it, facing the way the model has it, drawn as the model's own house and guns
-  const elPl = ELEMENTS[spec.id] && tw.elements !== false ? ELEMENTS[spec.id].PLACEMENTS : [];
+  const baseId = spec.baseId || spec.id;      // (a variant of a ship, data/variants.js, shares its model: its elements, its livery)
+  const elPl = ELEMENTS[baseId] && tw.elements !== false ? ELEMENTS[baseId].PLACEMENTS.filter((q) => !(tw.dropPlacements || []).includes(q.group)) : [];      // tw.dropPlacements: the mounts of the model this fit does not have
   for (const pl of elPl.filter((q) => AA_TYPES[q.type])) {
     const ty = AA_TYPES[pl.type];
-    model.aaMounts.push({ variant: ty.v, cal: ty.cal, n: ty.n, bore: ty.bore, x: pl.x, y: pl.y, z: pl.z, rad: 1.8, yaw0: pl.yaw * Math.PI / 180, label: ty.label, look: `${spec.id}/${pl.kind}` });
+    model.aaMounts.push({ variant: ty.v, cal: ty.cal, n: ty.n, bore: ty.bore, x: pl.x, y: pl.y, z: pl.z, rad: 1.8, yaw0: pl.yaw * Math.PI / 180, label: ty.label, look: `${baseId}/${pl.kind}` });
     model.aa.push([pl.x, pl.y + 1.2, pl.z]);
     note(pl.y + 3);
   }
@@ -680,7 +681,7 @@ export function buildShipModel(spec, tw = {}) {
   // tw.aaAt: light mounts at given places [{ k (AA_TYPES key), x, y, z, yaw? }] (found on the free deck of the drawn model by tools/refs/freespots.mjs): the ones a model lacks to make up the real count
   for (const a of tw.aaAt || []) {
     const ty = AA_TYPES[a.k];
-    model.aaMounts.push({ variant: ty.v, cal: ty.cal, n: ty.n, bore: ty.bore, x: a.x, y: a.y, z: a.z, rad: ty.n >= 3 ? 1.1 : 0.7, yaw0: a.yaw ?? (a.z >= 0 ? Math.PI / 2 : -Math.PI / 2), label: ty.label, placed: true });
+    model.aaMounts.push({ variant: ty.v, cal: ty.cal, n: ty.n, bore: ty.bore, x: a.x, y: a.y, z: a.z, rad: a.look ? 1.8 : ty.n >= 3 ? 1.1 : 0.7, yaw0: a.yaw ?? (a.z >= 0 ? Math.PI / 2 : -Math.PI / 2), label: ty.label, placed: true, look: a.look });      // a.look: 'ship/kind', the mount of a model drawn there
     model.aa.push([a.x, a.y + 1.2, a.z]);
     note(a.y + 3);
   }
@@ -701,7 +702,7 @@ export function buildShipModel(spec, tw = {}) {
       q[0] += pl.x - ox; q[1] += pl.x - ox; q[2] += pl.y - oy; q[3] += pl.y - oy; q[4] += pl.z - oz; q[5] += pl.z - oz;
       if (q.poly) for (const v of q.poly) { v[0] += pl.x - ox; v[1] += pl.z - oz; }
     }
-    best.x = pl.x; best.y = pl.y; best.z = pl.z; best.look = `${spec.id}/${pl.kind}`;
+    best.x = pl.x; best.y = pl.y; best.z = pl.z; best.look = `${baseId}/${pl.kind}`;
     const ya = pl.yaw * Math.PI / 180;
     best.arcC = Math.atan2(Math.sin(ya), Math.cos(ya));                         // at rest it points the way the model has it (the arc is centred there)
   }
@@ -822,6 +823,7 @@ export function buildShipModel(spec, tw = {}) {
   // a gun house that is sunk in a deckhouse slides a few tenths of a metre along its deck before the arcs are worked out
   clearHouses(model, b.solids, hull, supportBelow, { carrier });
   computeClearance(model, b.solids, hull, { bothBeams: !!tw.own });
+  if (tw.noTubes) model.tubes.length = 0;      // tw.noTubes: the fit of this variant has no torpedo tubes (the model's own tubes are not drawn either: tw.v4Drop)
   if (tw.ownTubes) computeTubeArcs(model, b.solids, !!(spec.torpedoes && spec.torpedoes.bow));      // the ships drawn from a reference model: the launchers' sectors from what stands round them (the others fire 20-160 degrees off the bow on either beam)
   model.solids = b.solids;                 // kept for the audit (tools/audit.mjs)
   b.solids = null;
@@ -830,7 +832,7 @@ export function buildShipModel(spec, tw = {}) {
   for (const sp of model.spinners) sp.mesh = built.groups[sp.id];
   for (const p of model.parts) { p.mesh = built.groups[p.id]; p.ruin = p.hasRuin ? built.groups[p.id + '_ruin'] : null; p.fineMesh = p.hasFine ? built.groups[p.id + '_fine'] : null; }
   model.fine = built.groups.fine || null;
-  if (tw.v4) applyV4(model, tw.v4, pal, (x) => hull.deckY(x));                      // tw.v4: the ship's hull, structure and parts from the groups of its reference model (v4ship.js)
+  if (tw.v4) applyV4(model, tw.v4, pal, tw.v4Drop);                      // tw.v4: the ship's hull, structure and parts from the groups of its reference model (v4ship.js)
   return model;
 }
 
