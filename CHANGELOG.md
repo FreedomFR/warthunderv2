@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased — the baked ships break piece by piece
+
+- **Every ship drawn from a model is cut into independent pieces** (`bakeship.mjs`, `bakedship.js`): the separate objects of the model that are not the hull (deckhouses, platforms, boats, cranes, gun tubs, up to 48 per ship, with the small fittings that stand on them) are destroyable parts of kind `structure`: hit points by size (`modules.js`), damage and fire like the tower, debris thrown when they go, and a charred stump (the lowest third of the piece) left in place. Gun mounts, AA, screws and radars were already separate (they train, elevate, spin).
+- The yamato bake moved to the generic pipeline (its mounts too, with `tools/refs/yamato_mounts_override.json` for the houses the box of the game does not match); `bakemounts2.py` reads the best-preserved mount of each kind, simplifies with meshoptimizer, and clips what is joined to the house but is not the mount's.
+- Tests: `homeward` pools five battles, the scars test accepts 80 %.
+
 ## Unreleased — every ship that has a reference model is baked from it
 
 - **Shokaku, Graf Spee, Kagero, Tade, Gioberti, Adams join the Yamato**: hull, structure, camouflage and the destroyable parts are the model's own triangles (the texture colours at the vertices), the gun houses and barrels of every kind of mount too (`mounts_baked`); the mounts still train, elevate, recoil and fire. One command per ship (`tools/refs/bakeall.sh`).

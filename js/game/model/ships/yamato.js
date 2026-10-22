@@ -2,8 +2,7 @@
 // Everything above the main deck except the turrets, the 12.7 cm cupolas and the 25 mm mounts (the builder's, placed from the spec sheet) is drawn here in metres (x along the ship, bow +;
 // y over the waterline; z to starboard): MASSES are the solid volumes of the model read as stacked footprints (tools/refs/footprints.mjs: a height band at a time, the thin things opened
 // away, runs of bands with the same outline taken as one prism), redrawn as prisms; the masts, the stays and the small fittings are drawn by hand.
-import { BAKED, SCALE } from './yamato_baked.js';
-import { decodeBaked } from '../bakedmesh.js';
+import * as BAKED_MODEL from './yamato_baked.js';
 
 // [y0, y1, [outline, hole, ...]]: a solid between two heights over the waterline, each ring a list of [x, z]
 const MASSES = [
@@ -193,14 +192,10 @@ function yamatoExtras({ b, hull, X, Y, pal, model, MAT, rgb, shade, part, PT, DT
     const [cx, cz] = cen(m[2][0]);
     if (m[0] >= 18 && cx > -8 && cx < 16) tower.push(m);
     else if (m[0] >= 14 && cx > -33 && cx < -12 && Math.abs(cz) < 2 && span(m[2][0], 0) < 17 && span(m[2][0], 1) < 9.5) funnel.push(m);
-    else b.ghost(() => solid(m, sup));                                                       // the procedural masses only give the solids (arcs, clearances); the baked mesh is what is drawn
+    else b.ghost(() => solid(m, sup));                                                       // the procedural masses only give the solids (arcs, clearances); the baked mesh is what is drawn (bakedship.js)
     note(m[1]);
   }
-  const baked = Object.fromEntries(Object.entries(BAKED).map(([k, v]) => [k, decodeBaked(v, SCALE)]));
-  const drawBaked = (k) => b.raw(baked[k].pos, baked[k].nrm, baked[k].col, baked[k].idx, MAT.HULL);
-  drawBaked('static');
-  b.ghost(() => { for (const m of tower) solid(m, sup); });
-  part('tower', 'bridge', 'Passerelle', () => drawBaked('tower'),
+  part('tower', 'bridge', 'Passerelle', () => { for (const m of tower) solid(m, sup); },
     () => b.prism([[-2, -3], [6, -3], [6, 3], [-2, 3]], 18, 24, shade(dark, 1.1), MAT.DARK));
   const ellipse = (poly) => {                                                                  // the stack is an oval: each slice is the ellipse of its measured extent
     const xs = poly.map((q) => q[0]), zs = poly.map((q) => q[1]), cx = (Math.min(...xs) + Math.max(...xs)) / 2, cz = (Math.min(...zs) + Math.max(...zs)) / 2;
@@ -208,8 +203,7 @@ function yamatoExtras({ b, hull, X, Y, pal, model, MAT, rgb, shade, part, PT, DT
     return Array.from({ length: 24 }, (_, i) => [cx + Math.cos(i / 24 * Math.PI * 2) * ax, cz + Math.sin(i / 24 * Math.PI * 2) * az]);
   };
   part('funnel0', 'funnel', 'Cheminée 1', () => {
-    b.ghost(() => { for (const m of funnel) b.loft(ellipse(m[2][0]), m[0], ellipse(m[3] || m[2][0]), m[1], func, MAT.HULL); });
-    drawBaked('funnel');
+    for (const m of funnel) b.loft(ellipse(m[2][0]), m[0], ellipse(m[3] || m[2][0]), m[1], func, MAT.HULL);
   },
     () => PT.funnelRuin(b, { x: -22, y0: 14, h: 8, lx: 9, lz: 5, topLx: 8, topLz: 4, rake: 0, cap: 0.4, pipes: false, trunk: true }, pal));
   // ---- the masts and the stays, measured on the model ----
@@ -228,7 +222,7 @@ function yamatoExtras({ b, hull, X, Y, pal, model, MAT, rgb, shade, part, PT, DT
 }
 
 export const YAMATO = {
-  own: true, bakedHull: true, noCat: true, extra: yamatoExtras,
+  own: true, bakedHull: true, noCat: true, extra: yamatoExtras, baked: BAKED_MODEL,
     mainVariant: 'type94', secVariant: ['type3_155', 'type89c'], dirKind: 'drum', houseH: 4.33, noFittings: true,
     // the upper deck runs aft to 87 % of the length, then steps down to the quarterdeck
     fb: [[0, 10.0], [0.03, 9.2], [0.09, 8.3], [0.18, 7.5], [0.27, 7.3], [0.4, 8.2], [0.5, 8.6], [0.7, 8.6], [0.87, 8.7], [0.903, 8.65], [0.907, 5.85], [1, 5.85]],
@@ -250,34 +244,34 @@ export const YAMATO = {
     // ones in their crescent tubs on the decks, two on each of turrets 2 and 3, the quarterdeck and the stern)
     // light AA at the positions measured on the reference model: 12 shielded triple 25 mm a side along the deck edges and on the sponsons, one higher by the tower, two singles aft (z: signed, one mount each)
     aa: [
-      { k: 'y25', f: 0.87, z: 15.5, y: 0.45, one: true, noTub: true },
-      { k: 'y25', f: 0.87, z: -15.5, y: 0.45, one: true, noTub: true },
-      { k: 'y25', f: 0.8498, z: 16.1, y: 0.45, one: true, noTub: true },
-      { k: 'y25', f: 0.8498, z: -16.1, y: 0.45, one: true, noTub: true },
-      { k: 'y25', f: 0.6327, z: 7.6, y: 3.0, one: true, noTub: true },
-      { k: 'y25', f: 0.6327, z: -7.6, y: 3.0, one: true, noTub: true },
-      { k: 'y25', f: 0.6251, z: 11.1, y: 2.2, one: true, noTub: true },
-      { k: 'y25', f: 0.6251, z: -11.1, y: 2.2, one: true, noTub: true },
-      { k: 'y25', f: 0.6163, z: 14.3, y: 1.4, one: true, noTub: true },
-      { k: 'y25', f: 0.6163, z: -14.3, y: 1.4, one: true, noTub: true },
-      { k: 'y25', f: 0.6027, z: 18.1, y: 0.45, one: true, noTub: true },
-      { k: 'y25', f: 0.6027, z: -18.1, y: 0.45, one: true, noTub: true },
-      { k: 'y25', f: 0.5802, z: 18.1, y: 0.45, one: true, noTub: true },
-      { k: 'y25', f: 0.5802, z: -18.1, y: 0.45, one: true, noTub: true },
-      { k: 'y25', f: 0.5582, z: 18.1, y: 0.45, one: true, noTub: true },
-      { k: 'y25', f: 0.5582, z: -18.1, y: 0.45, one: true, noTub: true },
-      { k: 'y25', f: 0.5361, z: 18.1, y: 0.45, one: true, noTub: true },
-      { k: 'y25', f: 0.5361, z: -18.1, y: 0.45, one: true, noTub: true },
-      { k: 'y25', f: 0.5137, z: 18.1, y: 0.45, one: true, noTub: true },
-      { k: 'y25', f: 0.5137, z: -18.1, y: 0.45, one: true, noTub: true },
-      { k: 'y25', f: 0.4996, z: 15.0, y: 1.4, one: true, noTub: true },
-      { k: 'y25', f: 0.4996, z: -15.0, y: 1.4, one: true, noTub: true },
-      { k: 'y25', f: 0.4928, z: 10.7, y: 1.9, one: true, noTub: true },
-      { k: 'y25', f: 0.4928, z: -10.7, y: 1.9, one: true, noTub: true },
-      { k: 'y25', f: 0.5106, z: 7.2, y: 7.3, one: true, noTub: true },
-      { k: 'y25', f: 0.8768, z: 2.8, y: 0.1, one: true, noTub: true },
-      { k: 'y25', f: 0.5106, z: -7.2, y: 7.3, one: true, noTub: true },
-      { k: 'y25', f: 0.8768, z: -2.8, y: 0.1, one: true, noTub: true },
+      { k: 't25', f: 0.87, z: 15.5, y: 0.45, one: true, noTub: true },
+      { k: 't25', f: 0.87, z: -15.5, y: 0.45, one: true, noTub: true },
+      { k: 't25', f: 0.8498, z: 16.1, y: 0.45, one: true, noTub: true },
+      { k: 't25', f: 0.8498, z: -16.1, y: 0.45, one: true, noTub: true },
+      { k: 't25', f: 0.6327, z: 7.6, y: 3.0, one: true, noTub: true },
+      { k: 't25', f: 0.6327, z: -7.6, y: 3.0, one: true, noTub: true },
+      { k: 't25', f: 0.6251, z: 11.1, y: 2.2, one: true, noTub: true },
+      { k: 't25', f: 0.6251, z: -11.1, y: 2.2, one: true, noTub: true },
+      { k: 't25', f: 0.6163, z: 14.3, y: 1.4, one: true, noTub: true },
+      { k: 't25', f: 0.6163, z: -14.3, y: 1.4, one: true, noTub: true },
+      { k: 't25', f: 0.6027, z: 18.1, y: 0.45, one: true, noTub: true },
+      { k: 't25', f: 0.6027, z: -18.1, y: 0.45, one: true, noTub: true },
+      { k: 't25', f: 0.5802, z: 18.1, y: 0.45, one: true, noTub: true },
+      { k: 't25', f: 0.5802, z: -18.1, y: 0.45, one: true, noTub: true },
+      { k: 't25', f: 0.5582, z: 18.1, y: 0.45, one: true, noTub: true },
+      { k: 't25', f: 0.5582, z: -18.1, y: 0.45, one: true, noTub: true },
+      { k: 't25', f: 0.5361, z: 18.1, y: 0.45, one: true, noTub: true },
+      { k: 't25', f: 0.5361, z: -18.1, y: 0.45, one: true, noTub: true },
+      { k: 't25', f: 0.5137, z: 18.1, y: 0.45, one: true, noTub: true },
+      { k: 't25', f: 0.5137, z: -18.1, y: 0.45, one: true, noTub: true },
+      { k: 't25', f: 0.4996, z: 15.0, y: 1.4, one: true, noTub: true },
+      { k: 't25', f: 0.4996, z: -15.0, y: 1.4, one: true, noTub: true },
+      { k: 't25', f: 0.4928, z: 10.7, y: 1.9, one: true, noTub: true },
+      { k: 't25', f: 0.4928, z: -10.7, y: 1.9, one: true, noTub: true },
+      { k: 't25', f: 0.5106, z: 7.2, y: 7.3, one: true, noTub: true },
+      { k: 't25', f: 0.8768, z: 2.8, y: 0.1, one: true, noTub: true },
+      { k: 't25', f: 0.5106, z: -7.2, y: 7.3, one: true, noTub: true },
+      { k: 't25', f: 0.8768, z: -2.8, y: 0.1, one: true, noTub: true },
     ],
     // ship's boats stowed in the recesses of the hull sides aft
     boats: [{ f0: 0.80, f1: 0.83, z: 15.5, y: -4.2, cabin: true }, { f0: 0.835, f1: 0.865, z: 15.5, y: -4.2 }],

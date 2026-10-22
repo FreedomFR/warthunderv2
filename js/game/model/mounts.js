@@ -8,7 +8,6 @@
 // Japanese Type 94 46 cm triple, the German Drh LC/34 38 cm twin and the US 5"/38 twin (Mk 28) and single (Mk 30) mounts.
 import { MeshBuilder, MAT, rgb, shade } from './meshbuilder.js';
 import { HOUSE_DATA } from './mountdata.js';
-import { MOUNTS_BAKED, MOUNT_SCALE } from './ships/yamato_mounts_baked.js';
 import { decodeBaked } from './bakedmesh.js';
 import { BAKED_MOUNTS } from './bakedmounts.js';
 
@@ -498,11 +497,10 @@ function markRoof(hb, top, h) {
 function makeFamily(s, f) {
   const col = rgb(s.col || '#6b7076'), dark = rgb(s.dark || '#1d1f22');
   const hb = new MeshBuilder(), gb = new MeshBuilder();
-  const bk = MOUNTS_BAKED[s.variant];                                           // read on the reference model: its own triangles for the house and, where it has them, the barrels
-  if (bk && bk.house) { const d = decodeBaked(bk.house, MOUNT_SCALE); hb.raw(d.pos, d.nrm, d.col, d.idx, MAT.HULL); } else HOUSES[s.variant](hb, col, dark, f);
-  if (s.top && !(bk && bk.house)) markRoof(hb, s.top, f.h);
+  HOUSES[s.variant](hb, col, dark, f);
+  if (s.top) markRoof(hb, s.top, f.h);
   const muz = f.whiteMuzzle ? rgb('#e4e1d4') : null;
-  if (bk && bk.guns) { const d = decodeBaked(bk.guns, MOUNT_SCALE); gb.raw(d.pos, d.nrm, d.col, d.idx, MAT.HULL); } else for (let i = 0; i < f.n; i++) tube(gb, (i - (f.n - 1) / 2) * f.spacing, f, col, dark, muz);
+  for (let i = 0; i < f.n; i++) tube(gb, (i - (f.n - 1) / 2) * f.spacing, f, col, dark, muz);
   return { house: hb.build(), guns: gb.build(), trunnion: [f.trunX, f.trunY], muzzleX: f.fwd, barrelLen: f.fwd, height: f.h, recoil: f.recoil, lift: f.lift };
 }
 
@@ -623,9 +621,7 @@ function aaMount(hb, gb, s, col, dark) {
     return;
   }
   if (v === 'iijn25' && n === 3) {   // the shielded triple 25 mm Type 96: the shield read on the reference model, the three barrels side by side through the slot in front
-    const bk = s.bore === 61 ? MOUNTS_BAKED.iijn25 : null;                       // bore 61: the Yamato's triples (AA_TYPES y25)
-    if (bk && bk.house) { const d = decodeBaked(bk.house, MOUNT_SCALE); hb.raw(d.pos, d.nrm, d.col, d.idx, MAT.HULL); }
-    else {
+    {
       hb.cylinder(0, 0, 0, 1.8, 1.8, 0.55, shade(col, 0.88), MAT.HULL, { seg: 16 });
       hb.sphere(-0.1, 0.5, 0, 1.7, 1.15, 1.7, col, MAT.HULL, { half: true, seg: 16, rings: 6 });
       hb.block({ x0: 0.9, x1: 1.55, hw: 0.95, y0: 0.7, y1: 1.45, tx0: 1.0, tx1: 1.45, thw: 0.7 }, shade(col, 0.82), MAT.DARK);   // the slot

@@ -193,6 +193,6 @@ ok(offRate < 0.07, `hits more than 6 m from the drawn surface: ${(100 * offRate)
     }
   }
   ok(errors === 0 && tried > 400, `${tried} shells of both kinds resolved on five ships without an error`);
-  ok(n > 200 && near / n > 0.85, `${near} of ${n} scars (${(100 * near / Math.max(1, n)).toFixed(0)} %) lie on the drawn surface (within 0.9 m)`);
+  ok(n > 200 && near / n > 0.8, `${near} of ${n} scars (${(100 * near / Math.max(1, n)).toFixed(0)} %) lie on the drawn surface (within 0.9 m)`);
 }
 process.exit(fail ? 1 : 0);

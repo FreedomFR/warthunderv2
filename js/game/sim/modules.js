@@ -24,6 +24,7 @@ const HP = {
   tubes: (t) => pick(t, [45, 60, 60, 60, 60]),
   catapult: (t) => pick(t, [30, 40, 50, 60, 60]),
   crane: (t) => pick(t, [25, 25, 30, 40, 30]),
+  structure: (t, p) => { const bb = p.bb, v = Math.max(1, (bb[3] - bb[0]) * (bb[4] - bb[1]) * (bb[5] - bb[2])); return (8 + 5 * Math.cbrt(v)) * pick(t, [1, 1.3, 1.8, 3, 2.2]); },   // a deckhouse, a platform, a boat: by its size
   hangar: (t) => 520,
   avgas: (t) => 260,
   flightdeck: (t) => 700,
@@ -35,11 +36,11 @@ export const AA_HP = { oerlikon: 7, iijn25: 18, bofors: 26 };
 const LABEL = {
   engine: 'Machines', magazine: 'Soute à munitions', steering: 'Appareil à gouverner', shaft: 'Ligne d\'arbre', bridge: 'Passerelle',
   director: 'Direction de tir', radar: 'Radar', funnel: 'Cheminée', mast: 'Mât', tubes: 'Tubes lance-torpilles', catapult: 'Catapulte',
-  crane: 'Grue', hangar: 'Hangar', avgas: 'Soute à essence', flightdeck: 'Pont d\'envol',
+  crane: 'Grue', structure: 'Structure', hangar: 'Hangar', avgas: 'Soute à essence', flightdeck: 'Pont d\'envol',
 };
 
 /** Structural damage (fraction of the ship's hit points) when a module is destroyed. */
-const STRUCT = { engine: 0.02, magazine: 0.02, steering: 0.006, shaft: 0.005, bridge: 0.012, director: 0.003, radar: 0.001, funnel: 0.006, mast: 0.002, tubes: 0.004, catapult: 0.003, crane: 0.001, hangar: 0.03, avgas: 0.03, flightdeck: 0.02 };
+const STRUCT = { engine: 0.02, magazine: 0.02, steering: 0.006, shaft: 0.005, bridge: 0.012, director: 0.003, radar: 0.001, funnel: 0.006, mast: 0.002, tubes: 0.004, catapult: 0.003, crane: 0.001, structure: 0.0006, hangar: 0.03, avgas: 0.03, flightdeck: 0.02 };
 
 /**
  * Build the module list of a ship from its model. Local coordinates: x forward, y up from the waterline, z starboard.
@@ -97,12 +98,12 @@ export function createModules(model, stats) {
 
   // ---- visible parts ----
   model.parts.forEach((p, pi) => {
-    const kind = { funnel: 'funnel', bridge: 'bridge', mast: 'mast', director: 'director', radar: 'radar', tubes: 'tubes', catapult: 'catapult', crane: 'crane' }[p.kind];
+    const kind = { funnel: 'funnel', bridge: 'bridge', mast: 'mast', director: 'director', radar: 'radar', tubes: 'tubes', catapult: 'catapult', crane: 'crane', structure: 'structure' }[p.kind];
     if (!kind) return;
     const bb = p.bb;
     const cx = (bb[0] + bb[3]) / 2, cy = (bb[1] + bb[4]) / 2, cz = (bb[2] + bb[5]) / 2;
     const thin = kind === 'mast' || kind === 'radar';
-    add({ kind, label: p.label, x: cx, y: cy, z: cz, hx: Math.max((bb[3] - bb[0]) / 2, 0.9), hy: Math.max((bb[4] - bb[1]) / 2, 0.9), hz: Math.max((bb[5] - bb[2]) / 2, thin ? 1.6 : 0.9), hp: HP[kind](t), prot: 'exposed', part: pi });
+    add({ kind, label: p.label, x: cx, y: cy, z: cz, hx: Math.max((bb[3] - bb[0]) / 2, 0.9), hy: Math.max((bb[4] - bb[1]) / 2, 0.9), hz: Math.max((bb[5] - bb[2]) / 2, thin ? 1.6 : 0.9), hp: HP[kind](t, p), prot: 'exposed', part: pi });
   });
 
   // ---- carriers: hangar, aviation fuel and the flight deck itself ----

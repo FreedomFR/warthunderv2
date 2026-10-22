@@ -5,5 +5,6 @@ import * as gioberti from './ships/gioberti_mounts_baked.js';
 import * as adams from './ships/adams_mounts_baked.js';
 import * as graf_spee from './ships/graf_spee_mounts_baked.js';
 import * as shokaku from './ships/shokaku_mounts_baked.js';
+import * as yamato from './ships/yamato_mounts_baked.js';
 
-export const BAKED_MOUNTS = { kagero, tade, gioberti, adams, graf_spee, shokaku };
+export const BAKED_MOUNTS = { kagero, tade, gioberti, adams, graf_spee, shokaku, yamato };

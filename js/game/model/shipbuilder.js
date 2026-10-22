@@ -111,7 +111,6 @@ const AA_TYPES = {
   t40: { v: 'bofors', n: 2, cal: 40, bore: 56, tub: 1.8, label: 'Bofors 40 mm double' },
   o20: { v: 'oerlikon', n: 1, cal: 20, bore: 70, label: 'Oerlikon 20 mm' },
   t25: { v: 'iijn25', n: 3, cal: 25, bore: 60, tub: 1.6, label: 'Type 96 de 25 mm triple' },
-  y25: { v: 'iijn25', n: 3, cal: 25, bore: 61, tub: 1.6, label: 'Type 96 de 25 mm triple' },   // the Yamato's shielded triples: bore 61 selects the shield read on its reference model (mounts.js)
   d25: { v: 'iijn25', n: 2, cal: 25, bore: 60, label: 'Type 96 de 25 mm double' },
   s25: { v: 'oerlikon', n: 1, cal: 25, bore: 60, label: 'Type 96 de 25 mm simple' },
   m13: { v: 'iijn25', n: 2, cal: 13, bore: 76, label: 'Type 93 de 13,2 mm double' },

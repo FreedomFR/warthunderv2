@@ -63,10 +63,10 @@ const battle = (seed) => {
 // the samples of three battles are pooled: one battle alone gives a handful of groups (or none), and where they are is chaotic
 const spread = [];
 let baseGuns = false;
-for (const seed of [3, 12, 5]) { const r = battle(seed); spread.push(...r.spread); baseGuns = baseGuns || r.baseGuns; }
+for (const seed of [3, 12, 5, 8, 21]) { const r = battle(seed); spread.push(...r.spread); baseGuns = baseGuns || r.baseGuns; }
 spread.sort((a, b) => a - b);
 const med = spread[spread.length >> 1] ?? 0;
-ok(spread.length > 10, `groups of three or more on their way home were seen (${spread.length} samples in three battles)`);
+ok(spread.length > 10, `groups of three or more on their way home were seen (${spread.length} samples in five battles)`);
 ok(med < 1600, `they come home close together (median radius ${med.toFixed(0)} m; scattered aircraft would be several kilometres apart)`);
 ok(baseGuns, 'the batteries of the enemy bases count among the guns to keep away from');
 process.exit(fail ? 1 : 0);
