@@ -1,4 +1,5 @@
 // Gameplay statistics derived from the real-ship spec sheets.
+import { missileStats } from './missiles.js';
 import { KN } from '../math.js';
 import { muzzlePenetration } from './penetration.js';
 import { navyOf, protectionOf } from '../data/protection.js';
@@ -66,6 +67,7 @@ export function makeStats(spec) {
       spare: spec.torpedoes.reloads ?? null,       // torpedoes in store for the tubes (null: reloaded without limit, as before)
       reloadS: spec.torpedoes.reloadS || 300,
     } : null,
+    missiles: missileStats(spec),                  // guided missiles and rocket-thrown torpedoes (sim/missiles.js)
     air: spec.aircraft && t === 'CV' ? { capacity: spec.aircraft.capacity || 30 } : null,
     // anti-aircraft strength (barrels), rough: all secondary + light AA estimated from displacement
     aaPower: Math.round(Math.sqrt(dispFull) * 0.35 + secs.reduce((a, s, i) => a + (s.cal <= 140 ? 6 : 1), 0)),

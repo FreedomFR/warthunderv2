@@ -67,7 +67,7 @@ Les dégâts reçus se règlent sans toucher au code, par des multiplicateurs (1
 ## Ce que contient le jeu
 
 - **35 navires réels** (6 nations × destroyer, croiseur léger, croiseur lourd, cuirassé, porte-avions, plus la vedette lance-torpilles S-30, le cuirassé de poche *Admiral Graf Spee*, deux destroyers (*Tade*, *Vincenzo Gioberti*) et le destroyer lance-missiles *USS Adams* de 1960), relevés sur plans d'époque : tourelles aux dimensions réelles,
-  superstructures, camouflages, pavillons, embarcations, hélices.
+  superstructures, camouflages, pavillons, embarcations, hélices. Toutes les armes tirent, quelle que soit l'époque du navire : l'*Adams* lance ses missiles Tartar sur les avions (guidage, fusée de proximité) et ses roquettes ASROC sur les navires.
 - **Aviation embarquée** : bombardiers en piqué, torpilleurs, chasseurs et hydravions de chaque nation ; ascenseurs, ailes repliées, décollage, circuit d'appontage et brins d'arrêt.
 - **Dégâts modulaires** : chaufferies, soutes, tourelles, gouvernail, directeurs de tir, DCA, compartiments étanches, inondation, incendies ; les pièces détruites volent et retombent à la mer.
 - **Balistique et conduite de tir réalistes** : secteurs de tir calculés sur la géométrie du navire, anticipation, dispersion qui diminue salve après salve.

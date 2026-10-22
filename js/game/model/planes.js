@@ -728,7 +728,19 @@ export function drawShell(b, type = 'AP') {
   if (!ap) b.rod(len * 0.12, len * 0.17, 0, 0, r * 1.02, r * 1.02, band, MAT.HULL, { seg: 12, capTop: false });         // the yellow HE band
 }
 
-/** Standalone ordnance meshes, for the objects in flight: { bomb250, bomb500, torpedo, shellAP, shellHE }. */
+/** A ship-launched missile (origin = centre, nose towards +x): 'sam' the 4.7 m RIM-24 Tartar (white body, four wings and four tail fins), 'asroc' the 4.5 m rocket with its torpedo payload. */
+export function drawMissile(b, kind) {
+  const asroc = kind === 'asroc', len = asroc ? 4.5 : 4.7, r = asroc ? 0.19 : 0.17;
+  const body = rgb(asroc ? '#8c9096' : '#d6d8d4'), dark = rgb('#2a2c2e'), band = rgb(asroc ? '#c9a23a' : '#9aa0a4');
+  b.rod(-len / 2, len * 0.28, 0, 0, r, r, body, MAT.HULL, { seg: 12, capTop: false });
+  b.rod(len * 0.28, len / 2, 0, 0, r, 0.02, asroc ? rgb('#5d6468') : dark, MAT.HULL, { seg: 12, capTop: true });                  // the nose
+  b.rod(-len / 2, -len / 2 + 0.5, 0, 0, r * 1.02, r * 1.02, band, MAT.HULL, { seg: 12, capTop: false });                       // the booster band
+  const fin = (x0, x1, span, th) => { for (const a of [0, 1, 2, 3]) { const c = Math.cos(a * Math.PI / 2), s2 = Math.sin(a * Math.PI / 2); b.beam([x0, c * r, s2 * r], [x1, c * (r + span), s2 * (r + span)], th, th, body, MAT.HULL, { caps: false }); } };
+  fin(-len / 2 + 0.15, -len / 2 + 0.75, 0.42, 0.04);
+  if (!asroc) fin(0.35, 0.95, 0.3, 0.035);
+}
+
+/** Standalone ordnance meshes, for the objects in flight: { bomb250, bomb500, torpedo, shellAP, shellHE, missileSam, missileAsroc }. */
 export function buildOrdnanceMeshes() {
   const mk = (fn) => { const b = new MeshBuilder(); fn(b); return b.build(); };
   return {
@@ -737,5 +749,7 @@ export function buildOrdnanceMeshes() {
     torpedo: mk((b) => drawTorpedo(b, 0, 0, 0, 1)),
     shellAP: mk((b) => drawShell(b, 'AP')),
     shellHE: mk((b) => drawShell(b, 'HE')),
+    missileSam: mk((b) => drawMissile(b, 'sam')),
+    missileAsroc: mk((b) => drawMissile(b, 'asroc')),
   };
 }

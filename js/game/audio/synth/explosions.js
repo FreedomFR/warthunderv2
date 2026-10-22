@@ -51,6 +51,24 @@ export const EXPLOSIONS = {
     });
     return normalize(d, 0.85);
   },
+  /** A missile leaves its rail: the crack of the igniter, then the roar of the booster that climbs in pitch while the missile accelerates away, and the hiss that dies in the distance. */
+  missile_launch(sr, seed) {
+    const r = prng(seed), J = (x, f = 0.1) => jit(r, x, f);
+    const f0 = J(420, 0.15), f1 = J(2600, 0.15), burn = J(1.7, 0.12);
+    const d = mk(sr, 4.6, (d, n) => {
+      const a = new SVF(sr), b = new SVF(sr), c = new SVF(sr), k = new SVF(sr);
+      for (let i = 0; i < n; i++) {
+        const t = i / sr, nz = r() * 2 - 1;
+        const crack = k.step(nz, 1400, 0.6).hp * env(t, 0.001, 0.07) * 0.9;
+        const sweep = f0 + (f1 - f0) * Math.min(1, t / (burn * 1.4));
+        const roar = a.step(nz, sweep, 0.9).lp * env(t, 0.06, burn) * (t < burn ? 1.5 : 1.5 * Math.exp(-(t - burn) * 1.6));
+        const rumble = b.step(nz, 140, 0.7).lp * env(t, 0.03, burn * 1.4) * 1.7;
+        const hiss = c.step(nz, 4200 + 2000 * Math.min(1, t / burn), 0.7).hp * env(t, 0.1, 3.2) * 0.4;
+        d[i] = crack + roar + rumble + hiss;
+      }
+    });
+    return normalize(d, 0.85);
+  },
   /** A magazine or a whole ship going up: shock front, fireball roar, sub boom, secondary blasts, debris and the rolling echo. */
   explosion_big(sr, seed) {
     const r = prng(seed), J = (x, f = 0.1) => jit(r, x, f);

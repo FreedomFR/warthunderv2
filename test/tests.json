@@ -100,6 +100,11 @@
    "args": []
   },
   {
+   "file": "missiles.mjs",
+   "args": [],
+   "slow": true
+  },
+  {
    "file": "gunnery.mjs",
    "args": []
   },

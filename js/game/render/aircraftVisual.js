@@ -61,7 +61,7 @@ export class PlaneVisuals {
   ordnance() {
     if (!this.ord) {
       const o = buildOrdnanceMeshes();
-      this.ord = { bomb250: this.r.createMesh(o.bomb250, 'bomb250'), bomb500: this.r.createMesh(o.bomb500, 'bomb500'), torpedo: this.r.createMesh(o.torpedo, 'torpedo'), shellAP: this.r.createMesh(o.shellAP, 'shellAP'), shellHE: this.r.createMesh(o.shellHE, 'shellHE') };
+      this.ord = Object.fromEntries(Object.entries(o).map(([k, m]) => [k, this.r.createMesh(m, k)]));
     }
     return this.ord;
   }

@@ -5,6 +5,7 @@ import { makeStats, pickName } from './shipdata.js';
 import { getModel } from '../model/cache.js';
 import { BY_ID } from '../data/ships.js';
 import { updateGunnery, updateTorpedoes } from './weapons.js';
+import { updateMissileLaunchers, stepMissiles } from './missiles.js';
 import { stepShell } from './ballistics.js';
 import { segmentNearShip, segmentHit, resolveShellHit, resolveTorpedoHit } from './damage.js';
 import { updateAir, resetAirIds } from './aircraft.js';
@@ -36,6 +37,7 @@ export class World {
     this.ships = [];
     this.shells = [];
     this.torpedoes = [];
+    this.missiles = [];          // guided missiles and ASROC rockets in flight (sim/missiles.js)
     this.planes = [];
     this.bombs = [];
     this.debris = [];
@@ -84,7 +86,7 @@ export class World {
   }
 
   clear() {
-    this.ships.length = 0; this.shells.length = 0; this.torpedoes.length = 0; this.planes.length = 0;
+    this.ships.length = 0; this.shells.length = 0; this.torpedoes.length = 0; this.missiles.length = 0; this.planes.length = 0;
     this.bombs.length = 0; this.debris.length = 0; this.seaFires.length = 0; this.timers.length = 0;
     this.events.length = 0; this.time = 0; this.lastCombatT = 0; this.state = 'setup'; this.winner = null; this.kills.length = 0;
     this.nameCounts.clear();
@@ -166,12 +168,13 @@ export class World {
     }
     this.collisions(dt);
     if (this.terrain) this.grounding(dt);
-    if (this.state === 'running') for (const s of this.ships) if (s.alive) { updateGunnery(s, this, dt); updateTorpedoes(s, this, dt); }
+    if (this.state === 'running') for (const s of this.ships) if (s.alive) { updateGunnery(s, this, dt); updateTorpedoes(s, this, dt); updateMissileLaunchers(s, this, dt); }
     // once the battle is won the guns fall silent but the air goes on: the aircraft in the air go home and land (or ditch), the decks go on working
     if (this.state === 'running' || this.state === 'finished') updateAir(this, dt);
     if (this.state === 'running' || this.state === 'finished') updateBases(this, dt);
     this.stepShells(dt);
     this.stepTorpedoes(dt);
+    stepMissiles(this, dt);
     stepDebris(this, dt);
     for (let i = this.seaFires.length - 1; i >= 0; i--) { this.seaFires[i].t -= dt; if (this.seaFires[i].t <= 0) this.seaFires.splice(i, 1); }
     if (this.timers.length) {

@@ -330,6 +330,11 @@ export class Game {
     for (const t of w.torpedoes) {
       if (t.air && t.h > 0.2) pv.addOrdnance('torpedo', t.x, t.h, t.z, t.fallDir, Math.atan2(t.hv, t.fallSpeed || 1), cam);
     }
+    for (const q of w.missiles) {
+      if (q.age < 0) continue;
+      const hs = Math.hypot(q.vx, q.vz) || 1;
+      pv.addOrdnance(q.kind === 'sam' ? 'missileSam' : 'missileAsroc', q.x, q.y, q.z, Math.atan2(q.vx, -q.vz), Math.atan2(q.vy, hs), cam);
+    }
     // the body of every shell within a few hundred metres of the camera (3.8 calibres long)
     for (const s of w.shells) {
       const sp = Math.hypot(s.vx, s.vy, s.vz);

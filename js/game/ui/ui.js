@@ -36,6 +36,7 @@ function describe(spec) {
     `${m.gunsTotal} × ${m.caliberMm} mm` + (sec ? ` · ${sec}` : ''),
   ];
   if (spec.torpedoes && spec.torpedoes.tubes) parts.push(`${spec.torpedoes.tubes} tubes lance-torpilles de ${spec.torpedoes.caliberMm} mm`);
+  if (spec.missiles && spec.missiles.length) parts.push(spec.missiles.map((m) => `${m.count} ${m.name}`).join(' · '));
   if (spec.type === 'CV' && spec.aircraft) parts.push(`Groupe aérien : environ ${spec.aircraft.capacity} appareils`);
   if (spec.armour && spec.armour.beltMm) parts.push(`Ceinture ${spec.armour.beltMm} mm · pont ${spec.armour.deckMm ?? '?'} mm`);
   return parts;

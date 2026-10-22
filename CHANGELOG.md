@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased — the missiles of the USS Adams now fire (a rule for every new ship)
+
+- **The owner's acceptance rules** for every ship added (`CLAUDE.md`, `tools/refs/WORKFLOW.md`): as faithful as the reference allows; **every weapon works in the game whatever the era** (a launcher that is only drawn is a bug); skin, firing arcs and visuals checked.
+- **Guided missiles** (`sim/missiles.js`, `missiles` in the spec sheet): the **RIM-24 Tartar** of the Adams (42 missiles, a salvo of 2 every 20 s, 1.5-16.1 km, Mach 1.8, 59 kg continuous-rod warhead, two fire-control channels = two targets at a time) is fired at enemy aircraft, steers on them (lead pursuit limited to about 25 g), bursts at 25 m and kills with a chance that falls off with the distance of the burst; the **ASROC** (8 rockets, 1.8-9.7 km) is fired at ships, flies a ballistic arc and drops its Mk 46 (43.9 kg) on a parachute short of the target, the torpedo then runs to it. In a battle against a carrier's air group the Adams shoots down about twenty aircraft with its 42 Tartars.
+- Drawn and heard: a missile mesh in flight, a white smoke trail and a motor flame, a cloud and a flash at the launcher, a new synthesised `missile_launch` sound; the ship panel and the wiki list the missiles. `tools/audit/arcs.py` draws the launchers (purple, a traverse in the model's `missileMounts`); `test/missiles.mjs`.
+- Not simulated (no target in the game): depth charges, mines.
+
 ## Unreleased — the Admiral Graf Spee, a 35th ship, from a model given as an OBJ
 
 - **The Admiral Graf Spee** (Deutschland class, 1936, German CA): six 28 cm SK C/28 in two triple turrets (a new `drh28_283` house measured on the model), eight 15 cm singles, three twin 10.5 cm, four twin 3.7 cm and fourteen 2 cm, two quadruple 53.3 cm tube banks at the stern, an Ar 196 on the catapult. Hull lines, the tall tapered tower, the hexagonal funnel, the deckhouses, the boats and the positions of every gun measured on the reference model (`js/game/model/ships/graf_spee.js`, the sheet in `specs/germany.js`). The model names its parts (`main_caliber_turret`, `auxiliary_caliber_turret`, `aa_turret`, `tt`...), which gave the position of each mount to +-0.1 m.

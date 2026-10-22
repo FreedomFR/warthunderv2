@@ -192,7 +192,7 @@ export function buildShipModel(spec, tw = {}) {
   const X = (f) => hull.fracToX(f), Y = (x) => hull.deckY(x);
   const sil = spec.silhouette || {};
   const model = {
-    id: spec.id, spec, L, B, D: hp.D, mounts: [], smoke: [], aa: [], aaMounts: [], tubes: [], floatPts: [], hull, pal,
+    id: spec.id, spec, L, B, D: hp.D, mounts: [], smoke: [], aa: [], aaMounts: [], tubes: [], missileMounts: [], floatPts: [], hull, pal,
     topY: 0, catapults: [], hangar: null, island: null, deckPoints: [], parts: [], deckSlots: [], paint: paintOf(spec),
   };
   // A destroyable piece: built into its own mesh (+ an optional wrecked version drawn once it is destroyed).

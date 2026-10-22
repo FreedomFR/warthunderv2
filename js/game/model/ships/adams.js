@@ -236,7 +236,8 @@ function midships(c) {
   }, undefined, { spin: { x, y: y + 2.0, z: 0, rate: 1.9 } });
   spg('radar1', -15.1, 13.55, 'Radar de conduite de tir SPG-51 avant'); spg('radar2', -19.9, 11.0, 'Radar de conduite de tir SPG-51 arrière');
   note(16.6);
-  // the ASROC (Mk 16) launcher: a drum, its support and the eight-cell box, the cells facing aft
+  // the ASROC (Mk 16) launcher: a drum, its support and the eight-cell box, the cells facing aft (the rockets leave from the face of the box)
+  model.missileMounts.push({ kind: 'asroc', x: -0.16, y: 8.75, z: 0, arcC: 0, arcH: Math.PI });
   { const y = 5.5;
     b.cylinder(2.4, y, 0, 1.15, 1.05, y + 0.9, shade(sup, 0.9), MAT.HULL, { seg: 14 });
     b.block({ x0: 1.2, x1: 3.5, hw: 0.95, y0: y + 0.9, y1: 7.75, tx0: 1.5, tx1: 3.4, thw: 0.8 }, grey, MAT.HULL);
@@ -306,6 +307,7 @@ function forecastle(c) {
 function aftDeck(c) {
   const { b, X, Y, hull, MAT, shade, rgb, pal, DT, PT, model } = c, sup = rgb(pal.sup), dark = rgb('#26292d'), steel = shade(rgb(pal.mast), 0.9), grey = shade(sup, 0.84), white = rgb('#d9dcdc');
   const xc = -45.8, y1 = 6.0;
+  model.missileMounts.push({ kind: 'sam', x: -46.0, y: 7.05, z: 0, arcC: 0, arcH: Math.PI });                                                  // the Tartar missiles leave the tips of the two arms
   // the drum (the magazine's barbette) with the hatches round its rim, the turntable, the central block and its arms
   b.cylinder(xc, 2.9, 0, 2.5, 2.47, y1, shade(sup, 0.9), MAT.HULL, { seg: 16 });
   b.cylinder(xc, y1, 0, 2.5, 2.4, y1 + 0.1, shade(sup, 0.8), MAT.HULL, { seg: 16 });
@@ -316,7 +318,7 @@ function aftDeck(c) {
   b.rodZ(-45.05, 8.05, -2.65, 2.65, 0.3, 0.3, shade(sup, 0.78), MAT.HULL, { seg: 10 });                                  // the pivot of the arms
   for (const sg of [-1, 1]) {
     b.block({ x0: -47.0, x1: -44.1, hw: 0.3, zc: sg * 1.65, y0: y1 + 0.35, y1: 7.75, tx0: -46.4, tx1: -44.3, thw: 0.25 }, grey, MAT.HULL);   // an arm
-    b.rod(-48.3, -44.1, 7.05, sg * 1.65, 0.19, 0.19, white, MAT.HULL, { seg: 10 });                                          // its missile (not simulated)
+    b.rod(-48.3, -44.1, 7.05, sg * 1.65, 0.19, 0.19, white, MAT.HULL, { seg: 10 });                                          // its missile
     b.rod(-48.85, -48.3, 7.05, sg * 1.65, 0.01, 0.19, shade(white, 0.9), MAT.HULL, { seg: 10 });
     for (const f of [[0, 1], [0, -1], [1, 0], [-1, 0]]) b.block({ x0: -44.7, x1: -44.05, hw: 0.015, zc: sg * 1.65 + f[0] * 0.32, y0: 7.05 + f[1] * 0.3 - 0.015, y1: 7.05 + f[1] * 0.3 + 0.015 }, white, MAT.HULL);
   }
