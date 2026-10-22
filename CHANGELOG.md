@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased — the Yamato's gun houses and barrels read on the reference model
+
+- **Gun houses redrawn from cross-sections** (`model/mountdata.js`, `measuredHouse` in `mounts.js`): the 46 cm turret, the 15.5 cm triple and the 12.7 cm cupola are chains of outlines read every 0.15-0.2 m on the model in the mount's own frame (`solids.py --local --box --hull=1 --skin=N`: convex outlines, resampled to the same number of points, thinned to what a straight line cannot give back) and lofted one to the next; the cupola is the round dome with its sloped hood.
+- **Numbers read on the model** (`tools/refs/mountfit.py`, `mountaxis.py`): the 46 cm barrels are 2.94 m apart (3.52 was a guess), 1.7 m over the house base, 21.4 m from the training axis to the muzzle, 0.50 m radius at the port and 0.26 m at the muzzle; the 15.5 cm barrels 1.51 m apart, 0.95 m over the base, radius 0.21 at the port; the gun house of the 15.5 cm is 7.8 m long and 6 m wide.
+- **Training axes from the barbette rings** (circles cut under the houses): the 15.5 cm turrets stand at 0.4411 and 0.6768 of the length (they were 3.4 and 1.6 m off) and 15.45 and 13.75 m over the waterline (the house base: they stood 1-2 m too high), turret C at 0.7357, B at 0.3883. The model has no gun house on the forward 15.5 cm (only its ring and a barrel): it gets the aft one.
+- `solids.py` gains `--local` / `--box` (the frame of a mount), `--hull`, `--skin` (chains of outlines, `--chain`, `--gapk`), `--loft`; `gltf.mjs export`.
+
 ## Unreleased — modelling from a reference model with exact cross-sections
 
 - **`tools/refs/solids.py`** (Python: `numpy`, `scipy`, `trimesh`, `shapely`, installed with `pip install --user`; the repository itself stays dependency free): cuts the reference model by a plane every 0.25 m, closes the cut lines (gaps up to 0.24 m), fills what they enclose, drops what is thinner than 1.2 m (rails, wires, masts, barrels), keeps what is above the deck and outside the mounts the game draws itself, and follows each blob from one slice to the next: a run with the same outline is one extrusion, a slow drift (a taper, a lean) is one loft between its first and last outline resampled to 40 points. It replaces the grid reading of `footprints.mjs`: round gun tubs, the oval raked funnel, the rounded tower with its wings come out as they are instead of in 0.4 m steps. `gltf.mjs export` writes the model in the game frame as a PLY for it.

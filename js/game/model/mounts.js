@@ -7,6 +7,7 @@
 // families, drawn after photographs (see tools/refs in the repository notes): the US Mk 7 16"/50 triple turret, the
 // Japanese Type 94 46 cm triple, the German Drh LC/34 38 cm twin and the US 5"/38 twin (Mk 28) and single (Mk 30) mounts.
 import { MeshBuilder, MAT, rgb, shade } from './meshbuilder.js';
+import { HOUSE_DATA } from './mountdata.js';
 
 const cache = new Map();
 
@@ -23,9 +24,9 @@ const FAMILY = {
   // Yamato 1945 profile and plan (Commons, Alexpl, after the Kure museum photographs; heights scaled to the builders' freeboards):
   // 18.5 m long, 14.4 m wide without the rangefinder arms, 3.9 m high (the profile is drawn 10 % flat: heights read at its own vertical
   // scale; roofs 11.7 and 15.1 m above the waterline), barrels 13.3 m clear of the ports, turret 2 2.7 m above turret 1
-  type94: { kind: 'turret', cal: 460, n: 3, spacing: 3.52, trunX: 3.6, trunY: 2.4, face: 5.4, port: 4.5, fwd: 16.1, back: 2.9, rB: 0.70, rP: 0.60, rM: 0.35, bagR: 1.05, bagLen: 1.3, recoil: 1.3, lift: 2.7, h: 3.9, barbR: 6.6, barb: 0.1 },
+  type94: { kind: 'turret', cal: 460, n: 3, spacing: 2.94, trunX: 3.6, trunY: 1.68, face: 8.3, port: 7.6, fwd: 17.84, back: 2.9, rB: 0.70, rP: 0.50, rM: 0.262, bagR: 1.05, bagLen: 1.3, recoil: 1.3, lift: 2.7, h: 3.9, barbR: 6.6, barb: 0.1 },
   // Yamato's 15.5 cm/60 triple (ex-Mogami): 8.6 m long, 3.4 m high, barrels 5.9 m clear of the face, on a 7.3-7.9 m barbette
-  type3_155: { kind: 'turret', cal: 155, n: 3, spacing: 1.5, trunX: 1.2, trunY: 1.1, face: 3.5, port: 3.1, fwd: 8.1, back: 1.2, rB: 0.26, rP: 0.2, rM: 0.11, bagR: 0.33, bagLen: 0.5, recoil: 0.6, lift: 2.6, h: 2.6, barbR: 3.0 },
+  type3_155: { kind: 'turret', cal: 155, n: 3, spacing: 1.51, trunX: 1.2, trunY: 0.95, face: 3.0, port: 2.7, fwd: 8.2, back: 1.2, rB: 0.26, rP: 0.21, rM: 0.115, bagR: 0.33, bagLen: 0.5, recoil: 0.6, lift: 2.6, h: 3.0, barbR: 2.5 },
   // Bismarck profile (Commons, CC0) and Bundesarchiv photographs: 13.3 m long, 3.5 m high, barrels 13.5 m clear of the face, on a
   // 1.2 m barbette; the superfiring turrets 3.4 m higher
   drh34: { kind: 'turret', cal: 380, n: 2, spacing: 4.6, trunX: 2.6, trunY: 1.6, face: 5.8, port: 5.2, fwd: 16.1, back: 2.6, rB: 0.58, rP: 0.49, rM: 0.29, bagR: 0.85, bagLen: 1.1, recoil: 1.15, lift: 3.4, h: 3.5, barbR: 5.3, barb: 1.2 },
@@ -428,7 +429,25 @@ function houseDop105(hb, col, dark, f) {
   }
 }
 
-const HOUSES = { dop105: houseDop105, de150_1: houseMpl28, type89c: houseType89c, drh28_283: houseDrhLC28, it120o: houseIt120o, type3c_127: houseType3C, mk42: houseMk42, type3_120: houseType3_120, de37: houseFlak37, mk7: houseMk7, type94: houseType94, type3_155: houseType3, drh28_150: houseDrh28, lit381: houseLit381, lit152: houseLit152, rich380: houseRich380, fr152: houseFr152, it152: houseIt152, us152: houseUs152, brit152: houseBrit152, it120: houseIt120, de150_2: houseDe150_2, fr138: houseMk30, brit120: houseBrit120, type3_127: houseType3_127, brit203: houseBrit203, type41_152: houseType41_152, us203: houseUs203, fr203: houseFr203, fr152_30: houseFr152_30, zara203: houseZara203, type3_203: houseType3_203, drh203: houseDrh203, drh34: houseDrh34, mk28: houseMk28, mk30: houseMk30 };
+/**
+ * A gun house drawn from the cross-sections read on the reference model (mountdata.js): each solid is an extrusion or a loft between two outlines, the gun ports are dark plates in the face.
+ * o: { port: [half width, half height] of the ports }
+ */
+function measuredHouse(key, o = {}) {
+  return (hb, col, dark, f) => {
+    HOUSE_DATA[key].forEach(({ skin }, k) => {
+      const c = shade(col, 0.96 + 0.06 * (k % 2));
+      for (let i = 0; i + 1 < skin.length; i++) hb.loft(skin[i][1], skin[i][0], skin[i + 1][1], skin[i + 1][0], c, MAT.HULL, { top: i + 2 === skin.length, bottom: i === 0 });
+    });
+    for (let i = 0; i < f.n; i++) {
+      const z = (i - (f.n - 1) / 2) * f.spacing;
+      const px = f.port ?? f.face - 0.3;
+      hb.block({ x0: px - 0.3, x1: px + 0.3, hw: o.hw ?? 0.7, zc: z, y0: f.trunY - (o.hh ?? 0.7), y1: f.trunY + (o.hh ?? 0.7) }, dark, MAT.DARK);
+    }
+  };
+}
+
+const HOUSES = { dop105: houseDop105, de150_1: houseMpl28, type89c: measuredHouse('type89c', { hw: 0.3, hh: 0.3 }), drh28_283: houseDrhLC28, it120o: houseIt120o, type3c_127: houseType3C, mk42: houseMk42, type3_120: houseType3_120, de37: houseFlak37, mk7: houseMk7, type94: measuredHouse('type94', { hw: 1.0, hh: 0.9 }), type3_155: measuredHouse('type3_155', { hw: 0.4, hh: 0.4 }), drh28_150: houseDrh28, lit381: houseLit381, lit152: houseLit152, rich380: houseRich380, fr152: houseFr152, it152: houseIt152, us152: houseUs152, brit152: houseBrit152, it120: houseIt120, de150_2: houseDe150_2, fr138: houseMk30, brit120: houseBrit120, type3_127: houseType3_127, brit203: houseBrit203, type41_152: houseType41_152, us203: houseUs203, fr203: houseFr203, fr152_30: houseFr152_30, zara203: houseZara203, type3_203: houseType3_203, drh203: houseDrh203, drh34: houseDrh34, mk28: houseMk28, mk30: houseMk30 };
 
 /**
  * Paint the flat roof of a gun house: `top.col` recolours it (Kriegsmarine turret tops were dark grey); `top.bands` = [stripe, ground]

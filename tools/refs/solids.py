@@ -23,9 +23,15 @@ fl = dict((x[2:].split('=') + ['1'])[:2] for x in a if x.startswith('--'))
 ply = pos[0]
 X0, X1, Y0, Y1 = float(fl.get('x0', -1e9)), float(fl.get('x1', 1e9)), float(fl.get('y0', 0)), float(fl.get('y1', 50))
 GAP = float(fl.get('gap', 0.12))
+HULL = int(fl.get('hull', 0))
+SKIN = int(fl.get('skin', 0))                                                       # --skin=N: every blob is a chain of outlines resampled to N points, one per slice (thinned to what a straight line between the kept ones cannot give back), to be lofted one to the next
 LOFT = int(fl.get('loft', 0))                                                       # --loft=48: a run whose outline drifts slowly (a taper) is one loft between its first and last outline, resampled to 48 points
 LOFTMAX = float(fl.get('loftmax', 0.6))
+if int(fl.get('skin', 0)):
+    LOFT = int(fl['skin'])
 STEP, MINA, OPEN, TOL, IOU = float(fl.get('step', 0.25)), float(fl.get('min', 0.8)), float(fl.get('open', 0.5)), float(fl.get('tol', 0.12)), float(fl.get('iou', 0.9))
+LOCAL = [float(v) for v in fl['local'].split(',')] if 'local' in fl else None            # --local=cx,cz,yaw: the outlines in the frame of a mount (u forward, w starboard, from its training axis; yaw 0 = ahead, 90 = starboard)
+BOX = [float(v) for v in fl['box'].split(',')] if 'box' in fl else None                  # --box=u0,u1,w: keep only u0 < u < u1, |w| < w (in the local frame)
 floor = json.load(open(fl['floor'])) if 'floor' in fl else None
 masks = json.load(open(fl['mask'])) if 'mask' in fl else []
 
@@ -34,6 +40,9 @@ V, F = np.asarray(mesh.vertices), np.asarray(mesh.faces)
 print(f'{len(V)} vertices, {len(F)} triangles', file=sys.stderr)
 # keep the triangles in the window: their vertices' x and y ranges
 tri = V[F]
+if LOCAL and BOX:                                                           # the window of the mount, widened to hold it whatever its yaw
+    R = max(abs(BOX[0]), abs(BOX[1]), BOX[2]) * 1.5
+    X0, X1 = LOCAL[0] - R, LOCAL[0] + R
 keep = (tri[:, :, 0].max(1) >= X0 - 1) & (tri[:, :, 0].min(1) <= X1 + 1) & (tri[:, :, 1].max(1) >= Y0 - 0.5) & (tri[:, :, 1].min(1) <= Y1 + 0.5)
 tri = tri[keep]
 print(f'{len(tri)} triangles in the window', file=sys.stderr)
@@ -94,14 +103,21 @@ def clean(g, h):
             for r0, r1 in runs:
                 g = g.difference(box(r0 - 0.25, -60, r1 + 0.25, 60))
     g = g.intersection(box(X0, -60, X1, 60))
+    if LOCAL:
+        from shapely import affinity
+        g = affinity.translate(affinity.rotate(g, -LOCAL[2], origin=(LOCAL[0], LOCAL[1])), -LOCAL[0], -LOCAL[1])
+        if BOX:
+            g = g.intersection(box(BOX[0], -BOX[2], BOX[1], BOX[2]))
     for m in masks:
         if h >= m['y']:
             g = g.difference(Point(m['x'], m['z']).buffer(m['r']))
     if g.is_empty:
         return None
     g = g.buffer(-OPEN).buffer(OPEN) if OPEN > 0 else g          # the opening drops what is thinner than twice OPEN
-    g = g.simplify(TOL, preserve_topology=True)
     parts = [p for p in (g.geoms if isinstance(g, MultiPolygon) else [g]) if isinstance(p, Polygon) and p.area >= MINA]
+    if HULL:
+        parts = [p.convex_hull for p in parts]                                       # a gun house is convex: the hull of a slice drops the notches of its rails and ladders
+    parts = [p.simplify(TOL, preserve_topology=True) for p in parts]
     return parts or None
 
 
@@ -161,6 +177,69 @@ def resample(c):
 def ring(c):
     return [[round(x, 2), round(z, 2)] for x, z in list(c.coords)[:-1]]
 
+
+if SKIN:
+    chains, open_c = [], []
+    GAPK = int(fl.get('gapk', 4))                                                    # a chain survives that many empty slices (a dome whose cut is open at one height)
+    for k, parts in enumerate(slices):
+        y = Y0 + (k + 0.5) * STEP
+        nxt, used = [], set()
+        for p in parts or []:
+            best, bi = None, 0.0
+            for c in open_c:
+                if id(c) in used:
+                    continue
+                v = iou(c['last'], p)
+                if v > bi:
+                    best, bi = c, v
+            if best is not None and bi >= float(fl.get('chain', 0.7)):
+                best['rings'].append((y, p)); best['last'] = p; used.add(id(best)); nxt.append(best)
+            else:
+                c = {'rings': [(y, p)], 'last': p, 'age': 0}; chains.append(c); nxt.append(c)
+        for c in open_c:
+            if id(c) not in used:
+                c['age'] = c.get('age', 0) + 1
+                if c['age'] <= GAPK:
+                    nxt.append(c)
+            else:
+                c['age'] = 0
+        open_c = nxt
+    out = []
+    for c in chains:
+        if len(c['rings']) < 2 and c['rings'][0][1].area < 3:
+            continue
+        pts = []
+        for y, p in c['rings']:
+            rs = resample(p.exterior)
+            if pts:
+                prev = pts[-1][1]
+                best = min(range(SKIN), key=lambda k: sum((prev[i][0] - rs[(i + k) % SKIN][0]) ** 2 + (prev[i][1] - rs[(i + k) % SKIN][1]) ** 2 for i in range(SKIN)))
+                rs = rs[best:] + rs[:best]
+            pts.append((y, rs))
+        # thin the chain: drop a ring when the straight line between its neighbours gives it back within 0.08 m
+        keep = [0]
+        i = 1
+        while i < len(pts) - 1:
+            j = i
+            while j + 1 < len(pts):
+                j += 1
+                ok = True
+                for m in range(keep[-1] + 1, j):
+                    t = (pts[m][0] - pts[keep[-1]][0]) / (pts[j][0] - pts[keep[-1]][0])
+                    err = max(((pts[m][1][q][0] - (pts[keep[-1]][1][q][0] * (1 - t) + pts[j][1][q][0] * t)) ** 2 + (pts[m][1][q][1] - (pts[keep[-1]][1][q][1] * (1 - t) + pts[j][1][q][1] * t)) ** 2) ** 0.5 for q in range(SKIN))
+                    if err > float(fl.get('skintol', 0.1)):
+                        ok = False
+                        break
+                if not ok:
+                    j -= 1
+                    break
+            keep.append(max(j, keep[-1] + 1)); i = keep[-1] + 1
+        if keep[-1] != len(pts) - 1:
+            keep.append(len(pts) - 1)
+        out.append({'y0': round(pts[0][0], 2), 'y1': round(pts[-1][0], 2), 'chain': [[round(pts[k][0], 2), pts[k][1]] for k in keep]})
+    print(f'{len(out)} skins, {sum(len(o["chain"]) for o in out)} rings', file=sys.stderr)
+    json.dump(out, sys.stdout)
+    sys.exit(0)
 
 out = []
 for r in runs:
