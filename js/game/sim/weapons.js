@@ -170,7 +170,7 @@ function fireMount(world, ship, m, target, s) {
   const ch = shellChoice(ship, m, target, s);
   let type = ch.type;
   if (m.loaded && m.loaded !== type && m.ammo[m.loaded] > 0 && ch.values[m.loaded] >= ch.values[type] * 0.7) type = m.loaded;
-  if (m.loaded && m.loaded !== type) { m.loaded = type; m.reload = gun.reload * 1.25; return; }
+  if (m.loaded && m.loaded !== type) { m.loaded = type; m.reload = m.reloadMax = gun.reload * 1.25; return; }
   m.loaded = type;
   // the barrels that still have a round; a mount out of both kinds is dead weight
   const left = m.ammo[type];
@@ -208,7 +208,7 @@ function fireMount(world, ship, m, target, s) {
     });
   }
   ship.shotsFired += nFire;
-  m.reload = gun.reload * (0.92 + world.rng() * 0.16) * (1 + (1 - m.hp / m.maxHp) * 0.7);
+  m.reload = m.reloadMax = gun.reload * (0.92 + world.rng() * 0.16) * (1 + (1 - m.hp / m.maxHp) * 0.7);       // reloadMax: the whole time of this reload (the reload gauge of the HUD)
   m.recoil = 0; m.fireT = 0; m.flash = 1;
   // the recoil of the salvo heels the ship away from the side it fires to (a few tenths of a degree for destroyers, about a degree for a full battleship broadside)
   if (ship.sr) {

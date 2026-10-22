@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased — reload gauges, as in the naval HUD of War Thunder
+
+- **The reload of every gun mount is shown** for the ship that is watched (`ui/reloads.js`, key **R** or the "Recharge" button): a ring per turret that fills while the mount reloads, with the seconds left inside and the shell loaded (AP / HE) under it; "PRÊT" in green when it can fire, "ENRAYÉE" for a jammed mount, "VIDE" without ammunition, a cross when it is destroyed. The batteries are grouped by calibre (main, then each secondary calibre), followed by the torpedo tubes (rounds in the tubes, reload of the next set) and the missile systems (stock and the cycle between two salvos). The simulation keeps the whole duration of each reload (`reloadMax`) so that the ring is exact, including the longer reload after a change of shell and a mount that is damaged. Under the team table on the right; hidden on a phone.
+- `test/ui.mjs` checks the cells, the states and the missile stock.
+
 ## Unreleased — the missiles of the USS Adams now fire (a rule for every new ship)
 
 - **The owner's acceptance rules** for every ship added (`CLAUDE.md`, `tools/refs/WORKFLOW.md`): as faithful as the reference allows; **every weapon works in the game whatever the era** (a launcher that is only drawn is a bug); skin, firing arcs and visuals checked.

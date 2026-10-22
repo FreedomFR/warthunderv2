@@ -151,7 +151,7 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 - `shipdata.js` (115) Gameplay statistics derived from the real-ship spec sheets. [makeStats, cleanName, shipNames, pickName] ← 5
 - `terrain.js` (363) The islands. A few procedural islands sit in the sea, of every size and height: a rock a hundred metres wide, a hilly island, a mountain range ten kilometres long, a… [padWeight, Island, Terrain] ← 11
 - `weapons.js` (350) Gunnery (fire control, turret slewing, salvos) and torpedo launching. [recoilCurve, mountSolution, updateGunnery, shellChoice, interceptTime, torpedoSolution, updateTorpedoes] ← 7
-- `world.js` (430) The simulation world: ships, shells, torpedoes, aircraft, teams, events, victory. [TEAM_COLORS, World] ← 37
+- `world.js` (430) The simulation world: ships, shells, torpedoes, aircraft, teams, events, victory. [TEAM_COLORS, World] ← 38
 
 ## js/game/sim/controllers/
 
@@ -169,12 +169,13 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 - `minimap.js` (172) The map in the corner: the islands, the bases, every ship (an arrow in the colour of her team, pointing where she goes), the aircraft in the air, the selected ship… [niceLength, mapExtent, createMinimap] ← 2
 - `mobile.js` (136) The touch interface: a compact top bar and a menu in place of the desktop buttons, panels that open on demand, a virtual stick for the free camera and the map, full… [joyKeys, initMobile] ← 2
 - `mobileStyle.js` (78) Style of the touch interface (body.mobile). [MOBILE_CSS] ← 1
-- `ui.js` (889) DOM user interface (French): fleet setup, HUD, labels, kill feed, results, settings. [createUI] ← 1
+- `reloads.js` (75) The reload gauges of the ship that is watched, laid out as in the naval HUD of War Thunder: one ring per gun mount that fills while the mount reloads (with the… [mountState, reloadGroups, createReloadHud] ← 2
+- `ui.js` (895) DOM user interface (French): fleet setup, HUD, labels, kill feed, results, settings. [createUI] ← 1
 
 ## js/viewer/
 
 - `controls.js` (100) Mouse / touch / keyboard control of the viewer camera. [attachControls] ← 1
-- `dom.js` (23) Tiny DOM helper shared by the viewer and the wiki: h('div', { class: 'x', onclick }, child, [children]...). [h, $] ← 6
+- `dom.js` (23) Tiny DOM helper shared by the viewer and the wiki: h('div', { class: 'x', onclick }, child, [children]...). [h, $] ← 7
 - `panel.js` (216) The viewer's interface: subject menu, view / light / render / model options, and the action buttons (screenshot, debug link...). [createPanel] ← 1
 - `scene.js` (220) The viewer's 3D scene: one subject (ship, aircraft or catapult floatplane) at the origin, an orbit camera around a target point, a sun that can follow the camera, and… [createScene] ← 1
 - `state.js` (72) Viewer state and its short URL form (the "debug link": subject, camera, light and model options in the query string). [LIGHTS, DAMAGE, screen, defaults, toQuery, fromQuery] ← 4

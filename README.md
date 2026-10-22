@@ -47,6 +47,7 @@ Si la machine est lente : `H` (Réglages) → « Résolution de rendu ». Le mê
 | `Z Q S D` ou `W A S D`, `Espace`, `Ctrl`, `Maj` | Déplacement en caméra libre (`Maj` = rapide) |
 | `V` | En caméra « Avions » : poursuite, passage devant l'avion, vue depuis le navire visé |
 | `J` | Journal des impacts : type d'obus, angle, blindage, pénétration, résultat |
+| `R` | Jauges de rechargement du navire suivi : un anneau par tourelle (secondes restantes, PRÊT), tubes lance-torpilles, missiles |
 | `Tab` (maintenu) | Tableau de bord du combat, en temps réel |
 | `L`, `M`, `H`, `G`, `F1` | Plaques de nom ; son ; réglages de l'océan, du ciel et de la qualité ; cacher l'interface ; aide |
 
