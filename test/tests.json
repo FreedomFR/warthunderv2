@@ -165,10 +165,6 @@
    ]
   },
   {
-   "file": "baked.mjs",
-   "args": []
-  },
-  {
    "file": "planehit.mjs",
    "args": []
   },

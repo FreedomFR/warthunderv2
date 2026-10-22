@@ -2,7 +2,7 @@
 // Everything above the main deck except the turrets, the 12.7 cm cupolas and the 25 mm mounts (the builder's, placed from the spec sheet) is drawn here in metres (x along the ship, bow +;
 // y over the waterline; z to starboard): MASSES are the solid volumes of the model read as stacked footprints (tools/refs/footprints.mjs: a height band at a time, the thin things opened
 // away, runs of bands with the same outline taken as one prism), redrawn as prisms; the masts, the stays and the small fittings are drawn by hand.
-import * as BAKED_MODEL from './yamato_baked.js';
+import { kit } from './kit.js';
 
 // [y0, y1, [outline, hole, ...]]: a solid between two heights over the waterline, each ring a list of [x, z]
 const MASSES = [
@@ -183,7 +183,7 @@ const MASSES = [
 ];
 
 function yamatoExtras({ b, hull, X, Y, pal, model, MAT, rgb, shade, part, PT, DT, note }) {
-  const sup = rgb(pal.sup), dark = rgb(pal.dark), func = rgb(pal.funnel);
+  const sup = rgb(pal.sup), dark = rgb(pal.dark), func = rgb(pal.funnel), capc = rgb(pal.cap), grey = rgb('#8d9296');
   const cen = (poly) => [poly.reduce((s, q) => s + q[0], 0) / poly.length, poly.reduce((s, q) => s + q[1], 0) / poly.length];
   const span = (poly, k) => Math.max(...poly.map((q) => q[k])) - Math.min(...poly.map((q) => q[k]));
   const solid = (m, col) => (m[3] ? b.loft(m[2][0], m[0], m[3], m[1], col, MAT.HULL) : b.slab(m[2], m[0], m[1], col, MAT.HULL));
@@ -192,10 +192,10 @@ function yamatoExtras({ b, hull, X, Y, pal, model, MAT, rgb, shade, part, PT, DT
     const [cx, cz] = cen(m[2][0]);
     if (m[0] >= 18 && cx > -8 && cx < 16) tower.push(m);
     else if (m[0] >= 14 && cx > -33 && cx < -12 && Math.abs(cz) < 2 && span(m[2][0], 0) < 17 && span(m[2][0], 1) < 9.5) funnel.push(m);
-    else b.ghost(() => solid(m, sup));                                                       // the procedural masses only give the solids (arcs, clearances); the baked mesh is what is drawn (bakedship.js)
+    else solid(m, shade(sup, 0.9 + 0.1 * ((m[0] * 7) % 3) / 2));
     note(m[1]);
   }
-  part('tower', 'bridge', 'Passerelle', () => { for (const m of tower) solid(m, sup); },
+  part('tower', 'bridge', 'Passerelle', () => { for (const m of tower) solid(m, shade(sup, 0.94 + 0.08 * ((m[0] * 5) % 3) / 2)); },
     () => b.prism([[-2, -3], [6, -3], [6, 3], [-2, 3]], 18, 24, shade(dark, 1.1), MAT.DARK));
   const ellipse = (poly) => {                                                                  // the stack is an oval: each slice is the ellipse of its measured extent
     const xs = poly.map((q) => q[0]), zs = poly.map((q) => q[1]), cx = (Math.min(...xs) + Math.max(...xs)) / 2, cz = (Math.min(...zs) + Math.max(...zs)) / 2;
@@ -204,17 +204,34 @@ function yamatoExtras({ b, hull, X, Y, pal, model, MAT, rgb, shade, part, PT, DT
   };
   part('funnel0', 'funnel', 'Cheminée 1', () => {
     for (const m of funnel) b.loft(ellipse(m[2][0]), m[0], ellipse(m[3] || m[2][0]), m[1], func, MAT.HULL);
+    const top = funnel.reduce((a, m) => (m[1] > a[1] ? m : a), funnel[0]);
+    b.prism(ellipse(top[3] || top[2][0]).map(([x, z]) => [x * 0.98 + 0.0, z * 0.9]), top[1], top[1] + 0.2, capc, MAT.DARK);
   },
     () => PT.funnelRuin(b, { x: -22, y0: 14, h: 8, lx: 9, lz: 5, topLx: 8, topLz: 4, rake: 0, cap: 0.4, pipes: false, trunk: true }, pal));
   // ---- the masts and the stays, measured on the model ----
-  const sc = rgb(pal.dark);
+  const mc = rgb(pal.mast), sc = rgb(pal.dark);
   const apex = [-40.3, 37.7, 0];
-  b.group('fine', () => {                                                                     // the great stays (the model's own are mostly too thin to survive its simplification)
-    for (const sg of [-1, 1]) DT.stay(b, [-9.0, 35.5, sg * 1.5], apex.map((v, i) => (i === 2 ? sg * 1.5 : v)), sc, 0.1);   // from the top of the tower to the after mast
-    for (const sg of [-1, 1]) DT.stay(b, [3.0, 36.5, sg * 1.3], [X(0.045), Y(X(0.045)) + 1.2, sg * 0.8], sc, 0.1);          // to the bow
-    for (const sg of [-1, 1]) DT.stay(b, apex.map((v, i) => (i === 2 ? sg * 1.0 : v)), [X(0.955), Y(X(0.955)) + 1.0, sg * 1.0], sc, 0.1);   // and to the stern
-    DT.lifelines(b, hull, X(0.985), X(0.2), pal, { base: 0.1, h: 0.95, step: 2.5 });          // the rails along the deck edge (too thin for the baked mesh)
+  part('mast0', 'mast', 'Mât avant', () => PT.poleMast(b, { x: -2.8, y0: 40.2, h: 4.4, r: 0.2, z: 0, yards: [[0.45, 4.5]] }, pal), () => b.cylinder(-2.8, 40.2, 0, 0.4, 0.2, 42, shade(dark, 1.1), MAT.DARK, { seg: 6 }));
+  part('mast1', 'mast', 'Mât arrière', () => {
+    for (const sg of [-1, 1]) {
+      b.beam([-47.3, 20.3, sg * 5.5], apex, 0.55, 0.55, mc, MAT.HULL);                                  // the legs of the after mast: a tripod each side
+      b.beam([-34.5, 22.0, sg * 5.5], apex, 0.55, 0.55, mc, MAT.HULL);
+    }
+    b.beam([-40.6, 22.0, 0], apex, 0.6, 0.6, mc, MAT.HULL);
+    b.beam([-37.5, 25.0, 0], [-35.0, 41.5, 0], 0.3, 0.3, mc, MAT.HULL);                                  // the leaning pole with the aerials
+    b.rodZ(-35.6, 38.5, -2.5, 2.5, 0.08, 0.05, mc, MAT.HULL, { seg: 5 });
+  }, () => b.cylinder(-40.5, 22, 0, 0.6, 0.3, 27, shade(dark, 1.1), MAT.DARK, { seg: 6 }), {
+    fine: () => {
+      for (const sg of [-1, 1]) DT.stay(b, [-9.0, 35.5, sg * 1.5], apex.map((v, i) => (i === 2 ? sg * 1.5 : v)), sc, 0.1);   // from the top of the tower to the after mast
+      for (const sg of [-1, 1]) DT.stay(b, [3.0, 36.5, sg * 1.3], [X(0.045), Y(X(0.045)) + 1.2, sg * 0.8], sc, 0.1);          // the great stays to the bow
+      for (const sg of [-1, 1]) DT.stay(b, apex.map((v, i) => (i === 2 ? sg * 1.0 : v)), [X(0.955), Y(X(0.955)) + 1.0, sg * 1.0], sc, 0.1);   // and to the stern
+    },
+  });
+  b.group('fine', () => {                                                                     // the rails along the deck edge, the anchor and the jackstaff
+    DT.lifelines(b, hull, X(0.985), X(0.2), pal, { base: 0.1, h: 0.95, step: 2.5 });
     DT.lifelines(b, hull, X(0.19), X(0.02), pal, { base: 0.1, h: 0.95, step: 2.5 });
+    DT.anchorAndHawse(b, hull, X(0.06), 8.0, pal);
+    b.cylinder(X(0.008), 9.2, 0, 0.06, 0.05, 13.0, grey, MAT.HULL, { seg: 5 });
   });
   model.bridge = { x: 7.6, y: 39.99, z: 2.5, towerX: 2.63 };
   model.superBox = { x0: -42.2, x1: 43.4, hw: 15.45, y1: 39.99 };
@@ -222,7 +239,7 @@ function yamatoExtras({ b, hull, X, Y, pal, model, MAT, rgb, shade, part, PT, DT
 }
 
 export const YAMATO = {
-  own: true, bakedHull: true, noCat: true, extra: yamatoExtras, baked: BAKED_MODEL,
+  own: true, extra: yamatoExtras,
     mainVariant: 'type94', secVariant: ['type3_155', 'type89c'], dirKind: 'drum', houseH: 4.33, noFittings: true,
     // the upper deck runs aft to 87 % of the length, then steps down to the quarterdeck
     fb: [[0, 10.0], [0.03, 9.2], [0.09, 8.3], [0.18, 7.5], [0.27, 7.3], [0.4, 8.2], [0.5, 8.6], [0.7, 8.6], [0.87, 8.7], [0.903, 8.65], [0.907, 5.85], [1, 5.85]],
@@ -275,4 +292,6 @@ export const YAMATO = {
     ],
     // ship's boats stowed in the recesses of the hull sides aft
     boats: [{ f0: 0.80, f1: 0.83, z: 15.5, y: -4.2, cabin: true }, { f0: 0.835, f1: 0.865, z: 15.5, y: -4.2 }],
+    // the catapults lie fore and aft at the quarterdeck edges, with their turntables
+    cat: { f: 0.931, z: 9.5, yaw: 0.23, len: 19.3, y: 4.4, craneF: 0.99, craneH: 6, craneLen: 20, craneDir: 1, craneAng: 0.05, craneSide: 0, craneW: 1.0 },
   };
