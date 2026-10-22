@@ -8,6 +8,7 @@
 //   extra(ctx): free-hand additions with the MeshBuilder (ctx.b) and the parts library (ctx.PT)
 
 import { KAGERO } from './ships/kagero.js';
+import { GRAF_SPEE } from './ships/graf_spee.js';
 import { TADE } from './ships/tade.js';
 import { GIOBERTI } from './ships/gioberti.js';
 import { ADAMS } from './ships/adams.js';
@@ -117,6 +118,7 @@ function s30Extras({ b, hull, X, Y, pal, model, MAT, rgb, shade, part, PT, note,
 
 export const TWEAKS = {
   // the ships measured on reference models have a file each (ships/): they are refined one at a time
+  graf_spee: GRAF_SPEE,
   tade: TADE, gioberti: GIOBERTI, adams: ADAMS,
   // S-30 class Schnellboot, measured in metres on orthographic views (side, plan, front, stern, sections every metre) of a reference model of the boat ("S30 S61 (War Thunder) Ninth Wave", KojfDiscord,
   // CC BY 4.0; used to measure only, nothing of it is in the repository): the hull 32.77 m from the stem to the transom, 4.9 m at the waterline and 5.2 m at the deck, a keel 1.5 m below the waterline

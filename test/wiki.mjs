@@ -14,7 +14,7 @@ let fail = 0;
 const ok = (c, m) => { if (!c) { fail++; process.exitCode = 1; console.log('FAIL', m); } };
 
 // ---- data ----
-ok(SHIPS.length === ALL_SHIPS.length && SHIPS.length === 34, 'one record per ship');
+ok(SHIPS.length === ALL_SHIPS.length && SHIPS.length === 35, 'one record per ship');
 ok(fr(48880, 0) === '48 880' && fr(2.5, 1) === '2,5', 'French number format: ' + fr(48880, 0));
 ok(tierOf(1927).n === 1 && tierOf(1940).n === 4 && tierOf(1943).n === 6 && tierOf(1999).n === 6, 'tier boundaries');
 for (let i = 1; i < TIERS.length; i++) ok(TIERS[i].from === TIERS[i - 1].to + 1, 'tiers are contiguous: ' + TIERS[i].roman);
@@ -66,7 +66,7 @@ for (const compact of [true, false]) {
 }
 
 // ---- viewer link ----
-ok(ALL_KEYS.length === 34 + 30, 'viewer subjects: ' + ALL_KEYS.length);
+ok(ALL_KEYS.length === 35 + 30, 'viewer subjects: ' + ALL_KEYS.length);
 for (const k of ALL_KEYS) ok(isSubject(k) && framing(k).dist > 0, `${k}: subject and framing`);
 const st = defaults('yamato');
 Object.assign(st, { az: 123.4, el: -10.2, dist: 456.7, tx: 12, light: 'coucher', ocean: false, damage: 'ruin', train: 35, parked: 3 });

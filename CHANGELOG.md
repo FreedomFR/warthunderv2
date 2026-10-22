@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased — the Admiral Graf Spee, a 35th ship, from a model given as an OBJ
+
+- **The Admiral Graf Spee** (Deutschland class, 1936, German CA): six 28 cm SK C/28 in two triple turrets (a new `drh28_283` house measured on the model), eight 15 cm singles, three twin 10.5 cm, four twin 3.7 cm and fourteen 2 cm, two quadruple 53.3 cm tube banks at the stern, an Ar 196 on the catapult. Hull lines, the tall tapered tower, the hexagonal funnel, the deckhouses, the boats and the positions of every gun measured on the reference model (`js/game/model/ships/graf_spee.js`, the sheet in `specs/germany.js`). The model names its parts (`main_caliber_turret`, `auxiliary_caliber_turret`, `aa_turret`, `tt`...), which gave the position of each mount to +-0.1 m.
+- **Tools**: `gltf.mjs` reads a Wavefront OBJ (`loadObj`); `tools/refs/gcrop.sh` / `gcrop.py` draw the model on a window with a grid in game metres to read positions (side or top view). The hull of this ship needs `--bow=1` (the bow-end heuristic of `upright` picks the wrong end).
+- **Credits**: the archive holds no licence file, the author and the licence of this model are to be confirmed (`docs/CREDITS.md`).
+
 ## Unreleased — three new destroyers measured on reference models, and a way to look at a model from every side
 
 - **Three ships** (34 now): the Japanese **Tade** (Momi class, 1922: three 12 cm/45 Type 3 singles, two twin 53.3 cm mounts with the 6th Year Type torpedo, 203 kg of Shimose), the Italian **Vincenzo Gioberti** (Oriani class, 1937: four 120/50 OTO 1936 in two twin turrets, two triple 533 mm banks with the W 270 torpedo, a single large funnel) and the **USS Adams** (Charles F. Adams class, 1960, a guided-missile destroyer: two 5"/54 Mk 42, a Mk 11 Tartar launcher, an ASROC box, Mk 32 tubes with Mk 46 torpedoes; the **missiles are not simulated**, it fights with its guns and its tubes; it is a post-war ship in a WWII game, at the top of the tech tree). Spec sheets researched on NavWeaps, Wikipedia, Navypedia, Combinedfleet (sources and doubts in each sheet's `estimated` and `sources`).
