@@ -194,11 +194,11 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 - `aircraft.js` (35) "Aviation": the carrier aircraft of every nation, the catapult floatplanes of cruisers and battleships and the land-based bombers of the island airfields. [renderAircraft] ← 1
 - `card.js` (120) The detail card (drawer) of a ship or an aircraft: embedded 3D viewer, key figures as bars, the statistic sections from the spec sheet, the estimated values and the… [createCard] ← 1
 - `compare.js` (54) "Comparatif": the 30 ships in one sortable, filterable table. [renderCompare] ← 1
-- `data.js` (251) Data adapter of the wiki: reads the same spec sheets as the game (js/game/data, js/game/model/planes.js) and turns them into display records (French labels, number… [fr, SHIPS, SHIP, nationShips, nationInfo, nationBySlug, MAXIMA, bars, describeMounts, … +13] ← 7
+- `data.js` (251) Data adapter of the wiki: reads the same spec sheets as the game (js/game/data, js/game/model/planes.js) and turns them into display records (French labels, number… [fr, SHIPS, SHIP, nationShips, nationInfo, nationBySlug, MAXIMA, bars, describeMounts, … +13] ← 8
 - `flags.js` (21) Small national flags (simplified drawings, 3:2) and the accent colour of each nation's tree. [ACCENTS, flagSVG, slug] ← 5
 - `layout.js` (68) Tech-tree layout of one nation (pure functions, no DOM): tiers in columns (left = oldest), the five ship types in rows (lanes), a ship in the cell of its tier and its… [G, layoutNation] ← 2
-- `profile.js` (154) Little silhouettes drawn from the spec sheets: the side profile of a ship (hull length, funnels, masts, turrets, island, flight deck at their measured positions, in… [iconScale, shipPicture, shipProfile, aircraftTop, lighten, darken] ← 4
-- `styles.js` (203) Styles of the wiki, injected by js/wiki.js (kept in a module so the page is a plain shell and the whole wiki lives in js/wiki/). [CSS, injectStyles] ← 1
+- `profile.js` (172) Little silhouettes drawn from the spec sheets: the side profile of a ship (hull length, funnels, masts, turrets, island, flight deck at their measured positions, in… [iconScale, shipPicture, aircraftPicture, shipProfile, aircraftTop, lighten, darken] ← 4
+- `styles.js` (207) Styles of the wiki, injected by js/wiki.js (kept in a module so the page is a plain shell and the whole wiki lives in js/wiki/). [CSS, injectStyles] ← 1
 - `tiers.js` (14) Tiers of the tech tree: six eras, cut by the year the class entered service. [TIERS, tierOf] ← 4
 - `tree.js` (68) Renders the tech tree of one nation: columns = tiers, rows = ship types, nodes = ships, lines = successions. [shipNode, renderTree] ← 1
 
@@ -243,6 +243,7 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 - `uishots.mjs` Pictures of the interface in a running battle, to judge it: node tools/uishots.mjs <outDir> [width] [height] GPU=hardware WSLENV=GPU "/mnt/c/Program…
 - `unused.mjs` Exports that nothing imports: node tools/unused.mjs (the candidates for dead code: check each before removing it;
 - `wgslcheck.mjs` Compile the WGSL shaders with a real WebGPU device (headless Chromium) and print the compiler messages.
+- `wikiplanes.mjs` The 3D picture of each aircraft of the wiki (wiki/aircraft/<key>.webp, the key with ':' as '_'): the model seen from the front, to the right and a little above, on a…
 - `wikishots.mjs` The side view of each ship's model, for the wiki (wiki/ships/<id>.webp): every ship is rendered twice from the starboard beam, on a black and on a white background,…
 
 ## Tests (liste et durées : node tools/runtests.mjs --list)

@@ -27,6 +27,24 @@ export function shipPicture(spec, opts = {}) {
   return wrap;
 }
 
+/**
+ * The picture of an aircraft for the wiki: its 3D model seen from the front, to the right and a little above (wiki/aircraft/<key>.webp, made by tools/wikiplanes.mjs), or, when
+ * the file is missing, the top view drawn from the spec sheet. A DOM element.
+ */
+export function aircraftPicture(a) {
+  const wrap = document.createElement('span');
+  wrap.className = 'plane-pic';
+  const img = new Image();
+  img.alt = `${a.name}, vue 3D`;
+  img.decoding = 'async';
+  img.loading = 'lazy';
+  img.draggable = false;
+  img.onerror = () => { wrap.innerHTML = aircraftTop(a.spec); };
+  img.src = `wiki/aircraft/${a.key.replace(':', '_')}.webp`;
+  wrap.append(img);
+  return wrap;
+}
+
 /** SVG markup of the side profile (bow to the right). `opts.full`: fill the width of the picture (the big profile of a card). */
 export function shipProfile(spec, opts = {}) {
   const L = spec.loa, cv = spec.type === 'CV';

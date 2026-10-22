@@ -2,7 +2,7 @@
 import { h } from '../viewer/dom.js';
 import { AIRCRAFT, NATIONS, ROLE_NAMES, fr } from './data.js';
 import { flagSVG, ACCENTS } from './flags.js';
-import { aircraftTop } from './profile.js';
+import { aircraftPicture } from './profile.js';
 
 const NB = ' ';
 
@@ -22,7 +22,7 @@ export function renderAircraft({ onOpen }) {
     for (const c of [...chipsN.children, ...chipsR.children]) c.classList.toggle('on', state[c.dataset.key] === c.dataset.id);
     const list = AIRCRAFT.filter((a) => (!state.nation || a.nation === state.nation) && (!state.role || a.role === state.role));
     grid.replaceChildren(...list.map((a) => h('button', { class: 'acard', type: 'button', style: `--acc:${ACCENTS[a.nation]}`, onclick: () => onOpen(a) },
-      h('span', { class: 'pic', html: aircraftTop(a.spec) }),
+      h('span', { class: 'pic' }, aircraftPicture(a)),
       h('b', {}, a.name),
       h('small', {}, h('span', { html: flagSVG(a.nation, 18) }), a.roleName),
       h('span', { class: 'st' }, `${fr(a.spec.L, 1)}${NB}m · envergure ${fr(a.spec.span, 1)}${NB}m`))));

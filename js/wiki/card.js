@@ -4,7 +4,7 @@
 import { h } from '../viewer/dom.js';
 import { nationInfo, typeName, bars, shipSections, aircraftSections, sheetNotes, sourcesOf, SHIPS } from './data.js';
 import { flagSVG, ACCENTS, slug } from './flags.js';
-import { shipPicture, aircraftTop } from './profile.js';
+import { shipPicture, aircraftPicture } from './profile.js';
 
 const NB = ' ';
 
@@ -75,7 +75,7 @@ export function createCard({ onClose, onOpenShip, onStep }) {
   function planeBody(a) {
     const kids = [
       ...viewer(a.key),
-      h('div', { class: 'profile-big', html: aircraftTop(a.spec) }),
+      h('div', { class: 'profile-big' }, aircraftPicture(a)),
       ...aircraftSections(a).map((sec) => section(sec, true)),
     ];
     if (a.users.length) kids.push(h('div', { class: 'chips' }, a.users.map((r) => h('a', { class: 'chip', href: `#/${slug(r.nation)}/${r.id}`, onclick: (e) => { e.preventDefault(); onOpenShip(r); } }, '⚓ ' + r.name))));

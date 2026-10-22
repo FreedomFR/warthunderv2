@@ -34,6 +34,7 @@ ok(describeMounts([{ guns: 3 }, { guns: 3 }, { guns: 3 }]) === '3 affûts tripl
 ok(AIRCRAFT.length === 18 + 6 + 6, 'aircraft records (18 carrier types, 6 land-based bombers, 6 floatplanes): ' + AIRCRAFT.length);
 for (const a of AIRCRAFT) {
   ok(aircraftSections(a)[0].rows.length >= 5, `${a.key}: rows`);
+  ok(fs.existsSync(new URL(`../wiki/aircraft/${a.key.replace(':', '_')}.webp`, import.meta.url)), `${a.key}: the 3D picture (wiki/aircraft/, node tools/wikiplanes.mjs then python3 tools/wikishots.py out/wiki wiki/aircraft --planes)`);
   ok(!/NaN|undefined/.test(aircraftTop(a.spec)), `${a.key}: top view`);
   ok(isSubject(a.key), `${a.key}: viewer subject`);
 }

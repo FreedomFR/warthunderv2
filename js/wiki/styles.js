@@ -102,6 +102,8 @@ h1 { font-size: 26px; margin: 6px 0 2px; letter-spacing: .2px; }
 .profile-big { margin: 12px 0 6px; padding: 8px 10px; background: linear-gradient(180deg, #16293b, #0d1722); border: 1px solid var(--line); border-radius: 12px; }
 .profile-big svg { width: 100%; height: auto; max-height: 120px; }
 .profile-big .ship-pic { display: block; }
+.profile-big .plane-pic { display: block; text-align: center; }
+.profile-big .plane-pic img { display: inline-block; max-height: 240px; width: auto; max-width: 100%; }
 .profile-big img { display: block; height: auto; max-height: 190px; object-fit: contain; margin: 0 auto; }
 .bars { display: grid; gap: 7px; margin: 12px 0 14px; }
 .bar { display: grid; grid-template-columns: 138px 1fr 92px; gap: 10px; align-items: center; font-size: 13px; }
@@ -151,6 +153,8 @@ table.cmp th:first-child { background: #151d27; z-index: 1; }
 .acard:hover { transform: translateY(-3px); border-color: var(--acc); }
 .acard .pic { height: 108px; display: flex; align-items: center; justify-content: center; background: linear-gradient(180deg, #16293b, #0d1722); border-radius: 8px; margin-bottom: 6px; }
 .acard .pic svg { height: 100%; width: 100%; padding: 6px; }
+.acard .pic .plane-pic { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; }
+.acard .pic img { max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; padding: 4px; box-sizing: border-box; }
 .acard b { font-size: 15px; line-height: 1.2; }
 .acard small { color: var(--dim); display: flex; gap: 6px; align-items: center; }
 .acard .st { font-size: 12.5px; color: var(--dim); }
