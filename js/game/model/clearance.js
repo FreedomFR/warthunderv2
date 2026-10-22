@@ -71,6 +71,7 @@ function houseRadius(rec) {
 export function computeClearance(model, solids, hull, opts = {}) {
   // a mount that a structure built after it has swallowed (a platform, a director tower) stands on that structure instead: up to 2.4 m higher
   const settle = (rec) => {
+    if (rec.look) return;                                  // copied from a reference model: it stands where the model has it
     let top = -1;
     for (const s of solids) if (s[2] < rec.y - 0.2 && s[3] > rec.y + 0.2 && s[3] - rec.y <= 2.4 && inFoot(s, rec.x, rec.z, -0.1)) top = Math.max(top, s[3]);
     if (top > 0) { rec.y = top; rec.settled = true; }

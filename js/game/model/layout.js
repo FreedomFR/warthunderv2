@@ -85,6 +85,7 @@ export function clearHouses(model, solids, hull, supportBelow, o = {}) {
   const obs = obstacles(solids);
   let moved = 0;
   for (const rec of model.mounts) {
+    if (rec.look) continue;                              // copied from a reference model: it stands where the model has it
     const box = houseBox(model, rec, false), cur = buriedIn(model, rec, false, obs, hull, { box, carrier: o.carrier });
     if (cur.depth < 0.3) continue;
     const out = rec.z < 0 ? -1 : 1;

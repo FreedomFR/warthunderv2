@@ -10,6 +10,7 @@ import { MeshBuilder, MAT, rgb, shade } from './meshbuilder.js';
 import { HOUSE_DATA } from './mountdata.js';
 import { decodeBaked } from './bakedmesh.js';
 import { ELEMENTS } from './elements.js';
+import { paintInto, reference } from './v4ship.js';
 
 const cache = new Map();
 
@@ -526,9 +527,12 @@ function makeMount(s) {
   const [ship] = s.look.split('/'), el = ELEMENTS[ship], k = elementKind(s.look);
   if (!k || !k.house) return mm;
   const hb = new MeshBuilder(), gb = new MeshBuilder();
-  let d = decodeBaked(k.house, el.MOUNT_SCALE); hb.raw(d.pos, d.nrm, d.col, d.idx, MAT.HULL);
+  // the texture colours of the model only give the lights and darks: the paint is the game's (the colour of the ship's structure), so that the copies belong to their ship and keep its livery
+  const pal = { hull: s.col || '#6b7076', deck: '#6b6258', sup: s.col || '#6b7076' };
+  const ref = reference([k.house], el.MOUNT_SCALE);
+  paintInto(hb, k.house, el.MOUNT_SCALE, pal, 'part', ref);
   let guns = mm.guns;
-  if (k.guns) { d = decodeBaked(k.guns, el.MOUNT_SCALE); gb.raw(d.pos, d.nrm, d.col, d.idx, MAT.HULL); guns = gb.build(); }
+  if (k.guns) { paintInto(gb, k.guns, el.MOUNT_SCALE, pal, 'part', ref); guns = gb.build(); }
   else if (k.type === 't25') guns = gb.build();                 // a light mount whose guns are part of the copied object: no separate barrels
   return { ...mm, house: hb.build(), guns, ...(k.trunnion ? { trunnion: k.trunnion.slice(), muzzleX: k.muzzle, barrelLen: k.muzzle } : {}) };
 }

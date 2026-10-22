@@ -108,6 +108,7 @@ export function load(dir) {
   };
   const scene = g.scenes[g.scene || 0];
   for (const r of scene.nodes) walk(r, ident(), '');
+  if (process.env.GLTF_DROP) { const re = new RegExp(process.env.GLTF_DROP); return { g, parts: parts.filter((p) => !re.test(p.path) && !(g.materials[p.mat]?.name && re.test(g.materials[p.mat].name))) }; }       // GLTF_DROP=regex: leave out the nodes / materials that match (a turntable, an ocean plane)
   return { g, parts };
 }
 

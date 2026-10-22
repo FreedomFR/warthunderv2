@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased — the Yamato built from the groups of the v4 model
+
+- On the owner's proposal (the hand-made hull of the first model no longer matched the mounts copied from v4: floating triples, white blocks), **the whole Yamato is drawn from the v4 model**: `tools/refs/shipgroups.py` makes `ships/yamato_v4.js` (147k triangles: hull, structure 74k, fine detail 33k, 15 destroyable parts) and `model/v4ship.js` applies it after the procedural build: the hull with the game's boot-topping bands, the decks as planking where the texture is wood, the structures in the livery's colour with the texture's lights and darks. Parts: tower and funnel (cut out of the big central house), the 15 m and 10 m directors and four 4.5 m rangefinders (they follow the guns), four radars (they turn), two catapults, the crane, a cutter; wrecks are the charred lower third of each. The mounts copied from the same model are repainted the same way and stand at the model's own places (no more alignment).
+- The hit volumes, the solids and the arcs still come from the procedural build; the mounts that stand where the model has them are no longer moved or settled by it (`clearHouses`, `settle`), no free-arc fallback needed beyond the half circle.
+- The two other models given (`Yamatov3`, a failed extraction with normals instead of positions; the 1M triangle Maya scene) are not used.
+- Not done: the other ships; the mounts' colours of the other models; the Yamato's picture in the wiki (`tools/wikishots.mjs`, to run with all the ships).
+
 ## Unreleased — the Yamato's mounts copied from a model whose groups are its elements
 
 - With the Yamato model whose groups are the ship's own elements (`yamatoV4`, the parts named after the original assets): **`tools/refs/catalog.py`** lists them (3 turrets of 46 cm, 2 of 15.5 cm, 12 of 12.7 cm, 24 shields and 22 open triples of 25 mm, directors, radars, cutters, crane...) and **`tools/refs/groupmounts.py`** copies the mounts: the guns (barrels and their cradles) are separate from the house, with the trunnion measured, so that they elevate and recoil about the right point; every copy is placed at the position and the rest direction the model has (the secondary mounts are broadside as in the model). In the game: 46 cm A, B, C (A and B identical, C turned aft), 15.5 cm, the 6 open and 6 cupola 12.7 cm, 46 light triples of 25 mm (24 shielded and 22 open); the earlier copies found by shape are replaced.
