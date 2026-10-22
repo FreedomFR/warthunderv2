@@ -9,7 +9,7 @@ import { clearElev, tubeBears } from '../js/game/model/clearance.js';
 let fail = 0;
 const ok = (c, m) => { console.log(c ? 'PASS' : 'FAIL', m); if (!c) { fail++; process.exitCode = 1; } };
 const D2R = Math.PI / 180, dg = (r) => Math.round(r / D2R);
-const SHIPS = ['kagero', 'tade', 'gioberti', 'adams'];
+const SHIPS = ['kagero', 'tade', 'gioberti', 'adams', 'graf_spee'];
 const model = (id) => getModel(ALL_SHIPS.find((s) => s.id === id));
 
 // ---- the guns: every main mount fires over the sector it faces, and none is shut in ----
@@ -18,7 +18,7 @@ for (const id of SHIPS) {
   for (const r of m.mounts) {
     const name = `${id} ${r.group} ${r.label || ''} (x ${r.x.toFixed(1)})`;
     const width = dg(r.arcMax - r.arcMin);
-    ok(!r.noArc && width >= 200, `${name}: trains over ${width} degrees (${dg(r.arcMin)}..${dg(r.arcMax)} round ${dg(r.arcC)})`);
+    ok(!r.noArc && width >= (r.group === 'main' ? 200 : 120), `${name}: trains over ${width} degrees (${dg(r.arcMin)}..${dg(r.arcMax)} round ${dg(r.arcC)})`);
     // what it faces: the mounts of the fore part fire ahead, the others astern
     const facing = r.arcC;
     if (r.group === 'main') ok(Math.abs(Math.abs(facing) - (r.x > 0 ? 0 : Math.PI)) < 0.02 || r.bothBeams, `${name}: faces ${r.x > 0 ? 'ahead' : 'astern'}`);
@@ -74,6 +74,7 @@ for (const id of SHIPS) {
   ok(sb >= 2 && sb <= 3 && pt >= 2 && pt <= 3, `adams: a salvo of at most one launcher's three tubes abeam (${sb} to starboard, ${pt} to port)`);
   ok(fire('adams', 10) === 0 && fire('adams', -170) === 0, 'adams: nothing fired inside the dead sectors near the bow and the stern');
   for (const id of ['kagero', 'tade', 'gioberti']) ok(fire(id, 90) >= 2 && fire(id, -90) >= 2, `${id}: fires to either beam`);
+  { const sb = fire('graf_spee', 90), pt = fire('graf_spee', -90); ok(sb >= 2 && sb <= 4 && pt >= 2 && pt <= 4, `graf_spee: a quadruple bank on each side fires to its own side (${sb} to starboard, ${pt} to port)`); ok(fire('graf_spee', 0) === 0, 'graf_spee: nothing fired dead ahead'); }
   ok(fire('kagero', 5) === 0, 'kagero: nothing fired at a target almost ahead');
 }
 

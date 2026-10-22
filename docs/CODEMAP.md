@@ -95,7 +95,7 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 
 - `adams.js` (564) adams: the tweaks of the adams model (see ../shipbuilder.js for the options and ../tweaks.js for the others); [ADAMS] ← 1
 - `gioberti.js` (506) gioberti: the tweaks of the gioberti model (see ../shipbuilder.js for the options and ../tweaks.js for the others); [GIOBERTI] ← 1
-- `graf_spee.js` (152) graf_spee: the tweaks of the Admiral Graf Spee model (see ../shipbuilder.js for the options and ../tweaks.js for the others); [GRAF_SPEE] ← 1
+- `graf_spee.js` (159) graf_spee: the tweaks of the Admiral Graf Spee model (see ../shipbuilder.js for the options and ../tweaks.js for the others); [GRAF_SPEE] ← 1
 - `kagero.js` (163) kagero: the tweaks of the Kagero model (see ../shipbuilder.js for the options and ../tweaks.js for the others); [KAGERO] ← 1
 - `kit.js` (35) The drawing helpers shared by the ships that are drawn bespoke from a reference model (ships/<id>.js): plans from half-widths, thin walls, railings round a platform,… [cutter, kit] ← 3
 - `tade.js` (162) tade: the tweaks of the tade model (see ../shipbuilder.js for the options and ../tweaks.js for the others); [TADE] ← 1

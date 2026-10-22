@@ -20,6 +20,8 @@ function grafSpeeExtras({ b, hull, X, Y, pal, model, MAT, rgb, shade, part, PT, 
 
   // ---- the long deckhouses: the forward block (bridge, funnel, boats) and the after block (hangar under the catapult) ----
   b.prism(half([[-1.16, 5.0], [11.87, 5.0], [11.87, 3.39], [23.95, 3.39], [23.95, 4.92], [28.93, 4.92], [29.43, 3.65], [39.25, 3.65], [42.03, 1.96]]), D, R, shade(sup, 0.96), MAT.HULL);
+  b.prism(half([[35.79, 2.26], [35.79, 3.66], [38.19, 4.17], [42.03, 1.95]]), R, 10.0, shade(sup, 0.98), MAT.HULL);                                   // the forward bridge house
+  b.prism(half([[25.8, 2.25], [27.3, 2.25], [27.8, 1.7], [30.4, 1.77], [30.5, 0]]), R, 10.0, shade(sup, 1.0), MAT.HULL);                                   // the block in front of the tower
   b.prism(half([[-32.45, 2.35], [-26.74, 5.9], [-16.72, 5.9], [-15.2, 4.05], [-8.69, 4.05]]), D, R + 0.2, shade(sup, 0.94), MAT.HULL);
   for (const sg of [-1, 1]) {
     b.prism([[5.4, sg * 7.5], [11.9, sg * 7.5], [11.9, sg * 10.67], [5.4, sg * 10.67]], D - 0.2, 8.0, shade(sup, 0.9), MAT.HULL);       // the platforms of the 10.5 cm twins
@@ -55,7 +57,7 @@ function grafSpeeExtras({ b, hull, X, Y, pal, model, MAT, rgb, shade, part, PT, 
     for (const sg of [-1, 1]) b.box(23.45, 25.1, sg * 3.35, 0.9, 0.7, 0.7, shade(dark, 1.3), MAT.DARK);
   }, () => b.prism(half([[20.85, 2.0], [25.8, 2.0]]), D, 14.0, shade(dark, 1.15), MAT.DARK));
   b.group('fine', () => {
-    for (let y = 9; y < 22; y += 2.2) for (const sg of [-1, 1]) wall([21.2, sg * (at(HW, y) + 0.02)], [25.4, sg * (at(HW, y) + 0.02)], y + 0.3, y + 1.1, 0.04, shade(glass, 0.8));
+    for (let y = 9; y < 22; y += 1.7) for (const sg of [-1, 1]) for (let k = 0; k < 4; k++) { const x0 = 21.1 + k * 1.1; wall([x0, sg * (at(HW, y) + 0.02)], [x0 + 0.6, sg * (at(HW, y) + 0.02)], y + 0.35, y + 0.85, 0.04, shade(glass, 0.8)); }
     ring(23.45, 0, 3.0, 24.2, 0.9, grey, 18);
     DT.ladder(b, 25.85, R, 23.2, 0.0, grey);
     PT.searchlight(b, 22.0, 24.2, 3.0, 0.45, pal); PT.searchlight(b, 22.0, 24.2, -3.0, 0.45, pal);
@@ -98,6 +100,11 @@ function grafSpeeExtras({ b, hull, X, Y, pal, model, MAT, rgb, shade, part, PT, 
       DT.stay(b, top, [17.6, 31.0, 0], sc, 0.05); DT.stay(b, top, [X(0.97), Y(X(0.97)) + 1.2, 0], sc, 0.05);
       for (const sg of [-1, 1]) { DT.stay(b, [1.8, 27, 0], [-6.0, R + 0.2, sg * 5.5], sc, 0.04); DT.stay(b, [1.8, 27, 0], [8.0, R, sg * 4.6], sc, 0.04); }
     },
+  });
+  b.group('fine', () => {                                                                                              // the stays of the derrick mast (the builder's crane: see `cat`)
+    const sc = rgb(pal.dark);
+    DT.stay(b, [-20.4, 24.5, 0], [1.8, 30.5, 0], sc, 0.05);
+    for (const sg of [-1, 1]) DT.stay(b, [-20.4, 23.0, 0], [-24.0, R + 0.2, sg * 4.5], sc, 0.04);
   });
   note(33.5);
 
@@ -145,7 +152,7 @@ export const GRAF_SPEE = {
     { k: 'f20', f: 0.443, z: 1.5, y: 11.4, noTub: true }, { k: 'f20', f: 0.4731, z: 4.0, y: 11.4, noTub: true }, { k: 'f20', f: 0.6575, z: 8.1, y: 0.5 },
     { k: 'f20', f: 0.7957, z: 3.1, y: 0.8 }, { k: 'f20', f: 0.9065, z: 0, y: 0, one: true },
   ],
-  cat: { f: 0.5629, y: 5.2, len: 13.8, craneF: 0.6, craneY: 2.0 },
+  cat: { f: 0.5629, y: 5.2, len: 13.8, craneF: 0.6097, craneY: 2.9, craneH: 16.5, craneLen: 11 },
   props: [{ f: 0.908, z: 3.8, depth: 4.95, d: 4.5, blades: 3, toF: 0.8, strutF: 0.885 }],
   rudders: [{ f: 0.9237, z: 0, top: 2.3, bottom: 6.3, chord: 6.0, t: 0.45, stock: 1.0 }],
   extra: grafSpeeExtras,
