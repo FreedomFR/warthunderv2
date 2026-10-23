@@ -1,7 +1,7 @@
 // Assemble the files of the published site into _site/:
 //   node tools/site.mjs                                  this checkout, at the root of the site
 //   node tools/site.mjs --main <dir> --dev <dir> [--out <dir>]   two checkouts: `main` at the root, `dev` in /dev/ (what the Pages workflow does)
-// Each version is: index.html (the game as one minified page, naval.html, built and committed with the code), wiki.html and viewer.html when the
+// Each version is: index.html (the game as one minified page, naval.html, built by `npm run build`; not committed, the Pages workflow builds it), wiki.html and viewer.html when the
 // checkout has them, and js/ for the wiki and the viewer. The simulation and the rendering run in the visitor's browser: no server is needed.
 import fs from 'node:fs';
 import path from 'node:path';
@@ -14,7 +14,7 @@ const BADGE = '<div style="position:fixed;left:8px;bottom:8px;z-index:99999;back
 
 /** Copy one version of the project into `dest`; `badge` marks the pages as the development version. */
 function assemble(src, dest, badge) {
-  if (!fs.existsSync(path.join(src, 'naval.html'))) throw new Error(src + '/naval.html is missing (run npm run build there)');
+  if (!fs.existsSync(path.join(src, 'naval.html'))) throw new Error(src + '/naval.html is missing (run npm install and npm run build there)');
   fs.mkdirSync(dest, { recursive: true });
   const page = (from, to) => {
     let html = fs.readFileSync(path.join(src, from), 'utf8');
