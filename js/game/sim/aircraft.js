@@ -749,7 +749,7 @@ function stepPlane(world, p, dt) {
         p.tdX = wires[Math.min(k, wires.length - 1)] - 2.2 + back + (world.rng() - 0.5) * 2; p.tdPick = true;
       }
       const behind = p.tdX - lx;                              // metres astern of the touchdown point
-      // (no closer than 350 m astern of the aircraft ahead on the final: it eases off to keep the distance, and goes round when it would close up under 170 m)
+      // (no closer than 650 m astern of the aircraft ahead on the final (about 15 s): it eases off to keep the distance, and goes round when it would close up under 330 m)
       let gapAhead = Infinity, ahead = null;
       for (const q of deckOf(ship).landing) {
         if (q === p || q.phase !== 'final' || q.dying || q.tdX == null) continue;
@@ -764,8 +764,8 @@ function stepPlane(world, p, dt) {
       const wantY = deckY + gy + 0.18 + clamp(behind, 0, 1900) * 0.062;
       gam = clamp(-0.062 * vrel / Math.max(p.speed, 30) + (wantY - p.y) / 70, -0.1, 0.07);
       spd = Math.max(pf.va, ship.speed + 9) - clamp(1 - behind / 300, 0, 1) * 1.5;
-      if (ahead && gapAhead < 350) spd = Math.max(stallSpeed(p, true) * 1.12, Math.min(spd, ahead.speed - 3 - (350 - gapAhead) * 0.03));
-      if (ahead && gapAhead < 170 && behind > 260) { p.phase = 'waveoff'; p.t = 0; break; }
+      if (ahead && gapAhead < 650) spd = Math.max(stallSpeed(p, true) * 1.12, Math.min(spd, ahead.speed - 3 - (650 - gapAhead) * 0.02));
+      if (ahead && gapAhead < 330 && behind > 260) { p.phase = 'waveoff'; p.t = 0; break; }
       o = { bankMax: 24 * D2R };
       p.gearDown = true;
       // the landing signal officer waves the aircraft off when the deck is not clear or the approach is bad
