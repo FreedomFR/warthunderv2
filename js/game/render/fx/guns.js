@@ -253,12 +253,12 @@ export class GunFx {
     const col = this.tint(e.ship || e.base), n = Math.min(e.n || 1, cal >= 37 ? 2 : 2);
     // the scatter of the guns: wider for a light mount and for an aircraft that is jinking
     const spread = (cal >= 37 ? 0.005 : 0.008) * (1 + (pl.harass || 0) * 0.3);
-    for (let i = 0; i < n; i++) {
+    for (let i = 0; i < n && !e.flak; i++) {      // (a heavy flak shell is set to burst: no tracer to follow, the burst is the `flak` event)
       const o = (i - (n - 1) / 2) * 0.6;
       this.round(e.x + o * Math.cos(pl.heading || 0), e.y, e.z + o * Math.sin(pl.heading || 0), ax / al, ay / al, az / al, v0, cal, col, null, { spread });
     }
     if (d < 7000) {
-      this.p.add({ kind: K.FLASH, x: e.x, y: e.y + 0.6, z: e.z, s0: cal >= 30 ? 2.4 : 1.6, s1: cal >= 30 ? 4.5 : 2.8, life: 0.06, r: 1, g: 0.75, b: 0.42, a0: 3.2, a1: 0 });
+      this.p.add({ kind: K.FLASH, x: e.x, y: e.y + 0.6, z: e.z, s0: cal >= 60 ? 4.2 : cal >= 30 ? 2.4 : 1.6, s1: cal >= 60 ? 8 : cal >= 30 ? 4.5 : 2.8, life: cal >= 60 ? 0.09 : 0.06, r: 1, g: 0.75, b: 0.42, a0: 3.2, a1: 0 });
       if (d < 2500 && rnd() < 0.35) this.p.add({ kind: K.SMOKE, x: e.x, y: e.y + 0.5, z: e.z, vy: 1.5, s0: 0.8, s1: 3.4, life: 1.6, r: 0.7, g: 0.68, b: 0.64, a0: 0.3, a1: 0, wind: 1, drag: 1 });
     }
   }

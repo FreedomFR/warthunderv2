@@ -7,4 +7,6 @@ export const AA = {
   bofors: { range: 4200, rps: 1.9, dps: 0.0105, hit: 0.9, turn: 55, elevMax: 88, vb: 880, sig: 24 },
   breda37: { range: 4000, rps: 2.0, dps: 0.0092, hit: 0.85, turn: 50, elevMax: 90, vb: 800, sig: 24 },      // the twin 37/54 of the Italian destroyers: 120 rounds a minute a barrel, a little less hitting than the 40 mm
 };
+// The heavy flak of the bases: the 8.8 cm Flak 36 (15 to 20 rounds a minute, a ceiling of 8 000 m): it bursts its shells near the aircraft, like the dual-purpose guns of the ships (`flak`)
+AA.flak88 = { range: 8000, rps: 0.3, dps: 0.02, hit: 1.0, turn: 22, elevMax: 85, vb: 820, sig: 30, flak: true, ceiling: 8000, burst: 3.2 };
 export const FLAK_RANGE = 7500;

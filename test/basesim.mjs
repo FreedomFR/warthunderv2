@@ -6,9 +6,8 @@ import { damageBase } from '../js/game/sim/baseops.js';
 
 const T0 = Date.now();
 const ok = (c, m) => { console.log(c ? "PASS" : "FAIL", m, `[${((Date.now() - T0) / 1000).toFixed(0)}s]`); if (!c) process.exitCode = 1; };
-const NAT = ['USA', 'Japan'];
 
-function arena(seed, level = 1, sep = 12000) {
+function arena(seed, level = 1, sep = 12000, NAT = ['USA', 'Japan']) {
   const w = new World(seed); w.addTeam(0); w.addTeam(1);
   const starts = [teamStart(0, 2, sep), teamStart(1, 2, sep)].map((q, i) => ({ ...q, nation: NAT[i] }));
   w.terrain = Terrain.generate(seed, 2, starts.map((q) => ({ x: q.x, z: q.z, r: 4800 })), [starts[0].x, starts[0].z, starts[1].x, starts[1].z], Math.min(21000, sep * 0.9 + 5000), { bases: level, starts });
@@ -201,6 +200,27 @@ const run = (w, secs, on) => { const t1 = w.time + secs; while (w.time < t1) { w
   ok(aa > 0, `the anti-aircraft guns of a base fire at enemy aircraft over it (${aa} bursts)`);
   ok(hits > 0, `and hit them (${hits} hits)`);
   void kills0;
+}
+
+// the heavy flak of the German bases (the 8.8 cm Flak 36) bursts its shells round an aircraft that is out of the reach of the light guns
+{
+  const { w } = arena(3, 1, 12000, ['Germany', 'USA']);
+  const af = w.bases.find((b) => b.layout.kind === 'airfield' && b.team === 0), L = af.layout;
+  const heavy = af.guns.filter((g) => g.kind === 'aa' && g.cal >= 80);
+  const foe = w.bases.find((b) => b.layout.kind === 'airfield' && b.team === 1);
+  const q = foe.parked.find(Boolean);
+  w.addShip('iowa', 1, L.x + 30000, L.z, 0);
+  let bursts = 0, light = 0, hits = 0;
+  for (let i = 0; i < 400; i++) {
+    // an enemy bomber held at 5 500 m, 1.8 km from the field: above the reach of the 20 and 37 mm guns, inside the ceiling of the 8.8 cm
+    q.ground = false; q.phase = 'assemble'; q.wave = null; q.speed = 70; q.x = L.x + 1800; q.z = L.z + 100; q.y = L.y + 5500; q.vx = 0; q.vz = 0; q.vy = 0; q.invulnerable = true;
+    w.update(0.1);
+    for (const e of w.drainEvents()) { if (e.type === 'flak' && e.base === af) bursts++; if (e.type === 'aaFire' && e.base === af && !e.flak) light++; if (e.type === 'planeHit' && e.ship === af.owner) hits++; }
+  }
+  ok(heavy.length > 0, `a German airfield has 8.8 cm guns (${heavy.length})`);
+  ok(bursts > 5, `they burst their shells round an aircraft at 5 500 m (${bursts} bursts)`);
+  ok(light === 0, `which the light guns cannot reach (${light} light bursts)`);
+  ok(hits > 0, `and the flak hurts it (${hits} hits)`);
 }
 
 // ---- determinism ----

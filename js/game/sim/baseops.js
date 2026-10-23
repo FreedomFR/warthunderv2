@@ -6,7 +6,7 @@ import { BY_ID } from '../data/ships.js';
 import { makeStats } from './shipdata.js';
 import { gunBallistics, solve } from './ballistics.js';
 import { AA } from './aadata.js';
-import { lightAAHitRate } from './airhit.js';
+import { lightAAHitRate, extentToward } from './airhit.js';
 import { recoilCurve } from './weapons.js';
 import { spawnScrap } from './debris.js';
 import { hitPlane } from './planedamage.js';
@@ -15,8 +15,8 @@ import { genericBomb, fillerTNT, aircraftRadii, killChance } from '../data/ordna
 import { initAirfield, stepAirfield, killGroundPlane } from './airfield.js';
 
 /** The heavy cruiser whose main gun the coastal batteries of a nation use (the same guns, taken off the ships and put in a concrete emplacement). */
-const COASTAL_GUN = { USA: 'baltimore', Japan: 'takao', UK: 'norfolk', Germany: 'admiral_hipper', Italy: 'zara', France: 'algerie' };
-const AA_VARIANT = { 40: 'bofors', 37: 'bofors', 25: 'iijn25', 20: 'oerlikon' };
+const COASTAL_GUN = { USA: 'baltimore', Japan: 'takao', UK: 'norfolk', Germany: 'bismarck', Italy: 'zara', France: 'algerie' };
+const AA_VARIANT = { 88: 'flak88', 40: 'bofors', 37: 'bofors', 25: 'iijn25', 20: 'oerlikon' };
 const gunCache = new Map();
 
 /** The gun of the coastal batteries of a nation (the stats of the main gun of one of its heavy cruisers). */
@@ -198,7 +198,7 @@ function stepAA(world, base, g, dt, planes, active) {
     for (const p of planes) {
       if (p.team === base.team || p.ground || p.gone) continue;
       const d = Math.hypot(p.x - g.x, p.z - g.z);
-      if (d > cfg.range * 1.05) continue;
+      if (d > cfg.range * 1.05 || (cfg.ceiling && p.y > cfg.ceiling)) continue;
       const s = d * (p.dying ? 2.5 : 1);
       if (s < bs) { bs = s; g.target = p; }
     }
@@ -213,6 +213,7 @@ function stepAA(world, base, g, dt, planes, active) {
   g.elev += clamp(clamp(elevWant, 0, cfg.elevMax * D2R) - g.elev, -turn, turn);
   if (dist > cfg.range || elevWant > cfg.elevMax * D2R || Math.abs(wrapPi(want - g.heading - g.train)) > 0.12) return;
   const w = [g.x, g.y + 1.2, g.z];
+  if (cfg.flak) return stepFlak(world, base, g, dt, p, cfg, w, dist);
   const fall = Math.pow(1 - dist / cfg.range, 1.5);
   // a mount that does not move, on ground that does not roll; the crew counts (the barracks)
   const hitRate = lightAAHitRate(STILL, g, p, cfg, w, dist) * crewOf(base);
@@ -223,6 +224,27 @@ function stepAA(world, base, g, dt, planes, active) {
     world.events.push({ type: 'aaFire', ship: null, base, mount: g, plane: p, x: w[0], y: w[1], z: w[2], cal: g.cal, n: g.n, variant: g.variant });
   }
   p.harass = Math.min(2, p.harass + dt * 0.1 * fall);
+}
+
+/**
+ * A heavy flak gun of a base: one shell every few seconds (the rate of the gun, the crew counts), set to burst where the aircraft will be; the fuze setting is the less exact the
+ * further the aircraft and the more it jinks, and the burst hurts what is within about 20 m of it (the same law as the dual-purpose guns of the ships, sim/planeaa.js).
+ */
+function stepFlak(world, base, g, dt, p, cfg, w, dist) {
+  const rng = world.rng;
+  g.burstLeft -= dt;
+  if (g.burstLeft > 0) return;
+  g.burstLeft = (1 / cfg.rps) * (0.9 + rng() * 0.25) / Math.max(0.4, crewOf(base));
+  g.flash = 1; g.recoil = 1;
+  const sig = 12 + dist * 0.016 + 14 * p.harass;
+  const ox = rng.normal() * sig, oy = rng.normal() * sig, oz = rng.normal() * sig, off = Math.hypot(ox, oy, oz);
+  const offHull = Math.max(0, off - extentToward(p, ox / (off || 1), oy / (off || 1), oz / (off || 1)) * 0.45);
+  const bx = p.x + p.vx * 0.2 + ox, by = p.y + oy, bz = p.z + p.vz * 0.2 + oz;
+  world.events.push({ type: 'flak', ship: null, base, mount: g, x: bx, y: by, z: bz, cal: g.cal, mx: w[0], my: w[1], mz: w[2], n: g.n });
+  world.events.push({ type: 'aaFire', ship: null, base, mount: g, plane: p, x: w[0], y: w[1], z: w[2], cal: g.cal, n: g.n, variant: g.variant, flak: true });
+  p.harass = Math.min(2, p.harass + 0.25 * clamp(1 - off / 90, 0, 1));
+  const lethal = 22 + g.cal * 0.12;
+  if (offHull < lethal * 1.5) hitPlane(world, base.owner, p, 1.6 * clamp(1 - offHull / (lethal * 1.5), 0.2, 1) * g.n * 0.7, g.cal);
 }
 
 // ---- damage ------------------------------------------------------------------------------------------------------------------------------------------

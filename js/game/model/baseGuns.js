@@ -15,10 +15,12 @@ const COASTAL_FAMILY = { Japan: 'type3_203', Germany: 'drh203', Italy: 'zara203'
 export function gunMountSpec(g, pal) {
   if (g.kind === 'aa') {
     const big = g.cal >= 37;
-    // the quadruple 20 mm is the Flakvierling of the reference model (model/elements.js, `flak`)
-    const quad = g.cal === 20 && g.n >= 4;
-    return { kind: 'aa', cal: g.cal, n: g.n, bore: g.cal >= 40 ? 56 : g.cal >= 37 ? 63 : 60, col: pal.roof2, variant: big ? 'bofors' : 'iijn25', ...(quad ? { look: 'flak/flak4' } : {}) };
+    // the quadruple 20 mm is the Flakvierling and the 8.8 cm the Flak 36 of the reference models (model/elements.js, `flak`)
+    const quad = g.cal === 20 && g.n >= 4, heavy = g.cal >= 80;
+    return { kind: 'aa', cal: g.cal, n: g.n, bore: heavy ? 56 : g.cal >= 40 ? 56 : g.cal >= 37 ? 63 : 60, col: pal.roof2, variant: big ? 'bofors' : 'iijn25', ...(quad ? { look: 'flak/flak4' } : heavy ? { look: 'flak/flak88' } : {}) };
   }
+  // the 38 cm twin turrets of the German batteries (Batterie Todt) are the turret of the reference model (model/elements.js, `flak`)
+  if (g.cal >= 350) return { kind: 'turret', cal: g.cal, n: g.n, bore: 52, col: pal.roof2, look: 'flak/t380' };
   const variant = COASTAL_FAMILY[g.nation || ''] ;
   return { kind: 'turret', cal: g.cal, n: g.n, bore: 45, col: pal.roof2, variant };
 }
@@ -42,7 +44,7 @@ export function buildEmplacement(g, pal, seed) {
   const b = new MeshBuilder();
   const conc = C(pal.conc), earth = C(pal.earth);
   if (g.kind === 'aa') {
-    const R = 3.1, sand = C('#8c8160'), quad = g.cal === 20 && g.n >= 4;
+    const heavy = g.cal >= 80, R = heavy ? 4.6 : 3.1, sand = C('#8c8160'), quad = g.cal === 20 && g.n >= 4;      // (the cross of the 8.8 cm lies on the ground in a wide pit)
     b.group('body', () => {
       // the Flakvierling stands on a low round platform in its pit (its carriage is wide and low: on the ground the sandbags would hide it)
       if (quad) b.cyl(0, 0.05, 0, 2.1, 2.1, 2.0, 2.0, 0.85, shade(C(pal.conc), 0.95), MAT.CANVAS, { seg: 16, capTop: true, topCol: shade(C(pal.conc), 1.1) });
@@ -64,8 +66,9 @@ export function buildEmplacement(g, pal, seed) {
     return { mesh: b.build(), mountY: quad ? 0.9 : 0.1, radius: R + 2 };
   }
   // heavy gun
-  const d = mountDims({ kind: 'turret', cal: g.cal, n: g.n, bore: 45, variant: COASTAL_FAMILY[g.nation || ''] });
-  const bR = Math.max(d.barbR || 0, 0.3 + g.cal / 1000 * 11), py = 2.3, R0 = bR + 4.3;
+  const own = g.cal >= 350;      // (the turret of the model has its own barbette: it stands on a low foundation)
+  const d = mountDims(own ? { kind: 'turret', cal: g.cal, n: g.n, bore: 52, look: 'flak/t380' } : { kind: 'turret', cal: g.cal, n: g.n, bore: 45, variant: COASTAL_FAMILY[g.nation || ''] });
+  const bR = Math.max(d.barbR || 0, own ? 5.4 : 0.3 + g.cal / 1000 * 11), py = own ? 0.3 : 2.3, R0 = bR + (own ? 3.2 : 4.3);
   b.group('body', () => {
     // foundation and the sloped bank of earth outside the parapet
     b.cyl(0, -1.5, 0, R0 + 3.2, R0 + 3.2, R0 + 3.1, R0 + 3.1, 0.3, shade(conc, 0.9), MAT.CANVAS, { seg: 24 });
