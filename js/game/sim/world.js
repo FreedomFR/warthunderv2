@@ -40,6 +40,7 @@ export class World {
     this.ships = [];
     this.shells = [];
     this.torpedoes = [];
+    this.airOpts = {};         // options of the air strikes (tools/airtest.mjs compares ways of attacking)
     this.missiles = [];          // guided missiles and ASROC rockets in flight (sim/missiles.js)
     this.planes = [];
     this.bombs = [];

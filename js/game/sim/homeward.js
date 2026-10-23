@@ -2,7 +2,7 @@
 // the enemy's anti-aircraft guns are (the ships' and the bases' batteries, sim/routing.js) and keeps out of their reach, bending its course round them; and the aircraft of a
 // section, scattered by the attack, close up again behind one of them (the one that came out first) and come home in formation, the leader slower if the others are far behind.
 import { clamp, wrapPi } from '../math.js';
-import { aaSources, exposure } from './routing.js';
+import { aaSources, exposureArcs } from './routing.js';
 
 const STEP = 700, LOOK = 12000, FAN = 7, DA = 0.24;       // the look-ahead: 12 km, in 700 m steps, over headings from -1.7 to +1.7 rad round the direct one
 
@@ -19,7 +19,7 @@ export function safeHeading(world, p, hx, hz, now) {
   for (let k = -FAN; k <= FAN; k++) {
     const a = direct + k * DA;
     let fire = 0;
-    for (let d = STEP; d <= L; d += STEP) fire += exposure(srcs, p.x + Math.sin(a) * d, p.z - Math.cos(a) * d, low) * STEP / 1000;
+    for (let d = STEP; d <= L; d += STEP) fire += exposureArcs(srcs, p.x + Math.sin(a) * d, p.z - Math.cos(a) * d, low) * STEP / 1000;
     if (k === 0) directRisk = fire;
     const ex = p.x + Math.sin(a) * L, ez = p.z - Math.cos(a) * L, extra = Math.max(0, Math.hypot(hx - ex, hz - ez) - (dHome - L));
     const cost = fire + 0.35 * Math.abs(k) * DA / 0.3 + extra / 1000 * 0.2;

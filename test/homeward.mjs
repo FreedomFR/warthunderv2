@@ -13,8 +13,9 @@ const ok = (c, m) => { console.log(c ? 'PASS' : 'FAIL', m); if (!c) { fail++; pr
 
 // ---- a gun between the aircraft and its home: the course bends round it ----
 {
-  const mount = { alive: true, ammo: 100, rec: { variant: 'bofors', n: 4 } };
-  const world = { ships: [{ team: 1, alive: true, x: 6000, z: 0, vx: 0, vz: 0, aaMounts: Array(24).fill(mount), mounts: [] }] };
+  const mount = { alive: true, ammo: 100, rec: { variant: 'bofors', n: 4, x: 0, z: 0 } };
+  const gunship = { team: 1, alive: true, x: 6000, z: 0, vx: 0, vz: 0, heading: 0, aaMounts: Array(24).fill(mount), mounts: [], toWorld(x, y, z, o) { o[0] = this.x + x; o[1] = y; o[2] = this.z + z; } };
+  const world = { ships: [gunship] };
   const p = { team: 0, x: 0, z: 0, y: 300 };
   const e = safeHeading(world, p, 20000, 0, 0);       // heading 90 deg = towards +x
   ok(e.direct > e.risk, `the direct course is under fire (${e.direct.toFixed(2)}), the one chosen less (${e.risk.toFixed(2)})`);

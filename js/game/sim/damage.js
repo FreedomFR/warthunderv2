@@ -563,7 +563,7 @@ export function resolveTorpedoHit(world, ship, torp, wx, wz) {
   ship.engine = Math.max(0.2, ship.engine - 0.15 * rng());
   const P = torp.warhead * 1.6 * st.torpFactor * r;
   const killed = blast(world, ship, lx, -2.0, clamp(lz, -st.B / 2, st.B / 2), P, 'under', torp.owner, 'torpedo');
-  world.events.push({ type: 'impact', kind: 'torpedo', x: wx, y: 0, z: wz, cal: 600, ship, lx, ly: -1.5, lz, killed: killed.length });
+  world.events.push({ type: 'impact', kind: 'torpedo', x: wx, y: 0, z: wz, cal: 600, ship, lx, ly: -1.5, lz, killed: killed.length, asp: torp.asp, drop: torp.drop });
   // a destroyer hit amidships by a torpedo usually breaks her back
   // (the hole a destroyer's torpedo hit leaves is a fraction of what the blow to her structure says: she takes on water over a minute rather than in seconds)
   hullHit(ship, { lx, ly: -1.8, lz, energy: dmg, cause: 'torpedo', attacker: torp.owner, holeScale: st.type === 'DD' ? 0.18 : 1 });

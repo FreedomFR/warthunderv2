@@ -4,6 +4,7 @@
 // than one in the middle of the screen.
 import { wrapPi } from '../math.js';
 import { AA } from './aadata.js';
+import { inArcRel } from '../model/clearance.js';
 
 const R_LIGHT = 3200, R_HEAVY = 7000;
 
@@ -13,9 +14,10 @@ export function aaSources(world, team, ahead = 20, own = false) {
   for (const s of world.ships) {
     if ((s.team === team) !== own || !s.alive) continue;
     let light = 0, heavy = 0;
-    for (const a of s.aaMounts) if (a.alive && a.ammo > 0) { const c = AA[a.rec.variant]; if (c) light += c.dps / c.hit * a.rec.n * 0.5; }
-    for (const m of s.mounts) if (m.group === 'sec' && m.alive && m.gun.cal <= 140 && m.gun.maxElevDeg >= 55 && !m.noAmmo) heavy += m.n * 0.12;
-    out.push({ ship: s, x: s.x + s.vx * ahead, z: s.z + s.vz * ahead, light, heavy });
+    const lm = [], hm = [], sx = s.vx * ahead, sz = s.vz * ahead, w0 = [0, 0, 0];
+    for (const a of s.aaMounts) if (a.alive && a.ammo > 0) { const c = AA[a.rec.variant]; if (c) { const w = c.dps / c.hit * a.rec.n * 0.5; light += w; s.toWorld(a.rec.x, 0, a.rec.z, w0); lm.push({ x: w0[0] + sx, z: w0[2] + sz, w, rec: a.rec }); } }
+    for (const m of s.mounts) if (m.group === 'sec' && m.alive && m.gun.cal <= 140 && m.gun.maxElevDeg >= 55 && !m.noAmmo) { const w = m.n * 0.12; heavy += w; s.toWorld(m.rec.x, 0, m.rec.z, w0); hm.push({ x: w0[0] + sx, z: w0[2] + sz, w, rec: m.rec }); }
+    out.push({ ship: s, x: s.x + s.vx * ahead, z: s.z + s.vz * ahead, light, heavy, lm, hm, heading: s.heading });
   }
   // the batteries of the island bases are anti-aircraft too: one source at the centre of the guns that are still alive and have their own fire
   if (!own && world.bases) {
@@ -37,6 +39,33 @@ export function exposure(srcs, x, z, low = true, skip = null) {
     const d = Math.hypot(q.x - x, q.z - z);
     if (low && d < R_LIGHT) e += q.light * Math.pow(1 - d / R_LIGHT, 1.3);
     if (d < R_HEAVY) e += q.heavy * (1 - d / R_HEAVY) * 0.5;
+  }
+  return e;
+}
+
+/**
+ * The same, mount by mount: a gun counts only where its arc reaches (a ship is blind where her own superstructure and the other mounts are in the way: the sector over
+ * the bow of a cruiser with her light guns on the beams, the stern of a ship with her guns forward). The sources without mounts (the batteries of a base) count as before.
+ */
+export function exposureArcs(srcs, x, z, low = true, skip = null) {
+  let e = 0;
+  for (const q of srcs) {
+    if (q.ship === skip) continue;
+    if (!q.lm) { const d = Math.hypot(q.x - x, q.z - z); if (low && d < R_LIGHT) e += q.light * Math.pow(1 - d / R_LIGHT, 1.3); if (d < R_HEAVY) e += q.heavy * (1 - d / R_HEAVY) * 0.5; continue; }
+    if (low) for (const m of q.lm) {
+      const dx = x - m.x, dz = z - m.z, d = Math.hypot(dx, dz);
+      if (d >= R_LIGHT) continue;
+      const rec = m.rec, rel = inArcRel(rec, wrapPi(Math.atan2(dx, -dz) - q.heading - rec.yaw0));
+      if (rec.noArc || rel < rec.arcMin || rel > rec.arcMax) continue;
+      e += m.w * Math.pow(1 - d / R_LIGHT, 1.3);
+    }
+    for (const m of q.hm) {
+      const dx = x - m.x, dz = z - m.z, d = Math.hypot(dx, dz);
+      if (d >= R_HEAVY) continue;
+      const rec = m.rec, rel = inArcRel(rec, wrapPi(Math.atan2(dx, -dz) - q.heading - rec.arcC));
+      if (rec.noArc || rel < rec.arcMin || rel > rec.arcMax) continue;
+      e += m.w * (1 - d / R_HEAVY) * 0.5;
+    }
   }
   return e;
 }
@@ -66,7 +95,7 @@ export function chooseApproach(world, team, from, target, kind, taken = []) {
       for (let i = 0; i <= n; i++) {
         const u = i / n, x = x0 + (x1 - x0) * u, z = z0 + (z1 - z0) * u;
         const low = kind === 'torp' || Math.hypot(x - tx, z - tz) < 4500 || lowFrom;
-        cost += exposure(srcs, x, z, low, target) * (L / n) / 1000;
+        cost += exposureArcs(srcs, x, z, low, target) * (L / n) / 1000;
       }
     };
     seg(from.x, from.z, wx, wz, false);
