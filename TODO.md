@@ -112,6 +112,16 @@ Lot 2 (cuirassés et porte-avions des autres nations) : **fait, avec des réserv
 - [ ] **Bases : pistes à améliorer** : les bombardiers attaquent seulement les navires (pas les bases ennemies) ; les chasseurs ne mitraillent pas les avions au sol ; pas de cratères sur la piste (une piste ne se détruit pas) ; les avions détruits ne sont jamais remplacés.
 - [ ] **Bases : les porte-avions n'attaquent pas les bases**, et les navires ne bombardent une base que si elle est à portée de leur artillerie principale (pas de manœuvre pour s'en approcher).
 
+## 5 ter. Dégâts sans points de vie : ce qui reste
+
+Fait : navires perdus par flottabilité / structure / équipage (`sim/hull.js`), un navire qui coule continue de tirer, avions faits de pièces (`sim/planedamage.js`), interface en indicateurs d'état (CHANGELOG « nothing has hit points any more »).
+- [ ] **Équilibrage à affiner** sur plus de graines et par classe : les duels de `tools/damagecheck.mjs` et `damagecheck.mjs torp` sont proches de l'ancien équilibre, pas identiques (les destroyers durent un peu plus, les croiseurs et porte-avions coulent un peu plus vite à la torpille).
+- [ ] **L'équipage n'est pas dessiné** : pas de matelots qui quittent le pont, pas de canots à l'eau quand un navire est abandonné ; les pertes ne se voient que dans le panneau, le plan des dégâts et la cadence de tir.
+- [ ] **Le naufrage reste une animation choisie au moment de la perte** (roulis, avant, arrière, à plat, brûlé, sabordé) : sa vitesse ne suit pas encore le débit des voies d'eau.
+- [ ] **Les bases** gardent leurs bâtiments et la somme de leurs points ; les avions au sol une tolérance simple (pas de pièces).
+- [ ] **L'IA ne connaît pas l'équipage** : elle juge un navire par `condition` (flottabilité et équipage) ; un navire sans équipage tire peu mais n'est pas évité ni recherché comme proie facile.
+- [ ] **Les modules gardent leurs propres points** (machines, soutes, tourelles...) : ce sont l'état de chaque pièce, pas la vie du navire.
+
 ## 6. Outils et tests
 
 - [x] **Outils de références** rangés dans `tools/refs/` (téléchargement Wikimedia, vues standard, captures, planches ; voir son README) et `CLAUDE.md` pour reprendre le travail depuis un autre poste.

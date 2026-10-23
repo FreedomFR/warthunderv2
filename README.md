@@ -62,7 +62,7 @@ Le bouton **Test de performance** (écran de départ, ou *Réglages*) lance une 
 ## Régler les dégâts
 
 Les dégâts reçus se règlent sans toucher au code, par des multiplicateurs (1 = normal, 2 = deux fois plus, 0 = aucun) :
-- **Le fichier `config/balance.json`** : navires (obus, torpilles, bombes, incendies, voies d'eau, explosions voisines, feux de tourelle, collisions, modules), avions (DCA, chasseurs, mitrailleurs), bases. Le jeu le lit au démarrage ; après une modification, `npm run build` le met dans `naval.html` et sur le site.
+- **Le fichier `config/balance.json`** : navires (obus, torpilles, bombes, incendies, voies d'eau, pertes d'équipage, explosions voisines, feux de tourelle, collisions, modules), avions (DCA, chasseurs, mitrailleurs), bases. Le jeu le lit au démarrage ; après une modification, `npm run build` le met dans `naval.html` et sur le site.
 - **Dans le jeu** : *Réglages → Dégâts (équilibrage)*. Les changements s'appliquent tout de suite, au combat en cours, et restent dans le navigateur. *Exporter* télécharge un `balance.json` à mettre dans `config/` pour les garder pour tout le monde ; *Valeurs du fichier* revient au fichier.
 
 ## Ce que contient le jeu
