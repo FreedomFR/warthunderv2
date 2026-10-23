@@ -11,6 +11,7 @@ import { recoilCurve } from './weapons.js';
 import { spawnScrap } from './debris.js';
 import { hitPlane } from './planedamage.js';
 import { BALANCE } from '../data/balance.js';
+import { genericBomb, fillerTNT, aircraftRadii, killChance } from '../data/ordnance.js';
 import { initAirfield, stepAirfield, killGroundPlane } from './airfield.js';
 
 /** The heavy cruiser whose main gun the coastal batteries of a nation use (the same guns, taken off the ships and put in a concrete emplacement). */
@@ -256,7 +257,7 @@ function partDestroyed(world, base, i, attacker) {
  * An explosion at (x, y, z): `power` hit points at the centre, falling off to nothing at `radius` metres. Wrecks buildings and guns, kills parked aircraft.
  * `skip`: a part that must not be hit again (the one that is blowing up).
  */
-export function damageBase(world, base, x, y, z, radius, power, attacker, cause, skip = -1) {
+export function damageBase(world, base, x, y, z, radius, power, attacker, cause, skip = -1, noPlanes = false) {
   const L = base.layout;
   if (Math.hypot(x - L.x, z - L.z) > base.reach + radius) return 0;
   power *= BALANCE.bases.all;       // the multiplier of data/balance.js
@@ -289,7 +290,7 @@ export function damageBase(world, base, x, y, z, radius, power, attacker, cause,
       spawnScrap(world, g.x, g.y + 2, g.z, g.kind === 'coastal' ? 7 : 4, 12, 0, 0, 0.8);
     }
   });
-  for (const p of base.groundPlanes()) {
+  if (!noPlanes) for (const p of base.groundPlanes()) {
     const d = Math.hypot(x - p.x, z - p.z);
     if (d > radius + 12) continue;
     const dmg = power * 0.08 * Math.pow(Math.max(0, 1 - (d - 12) / radius), 1.2);
@@ -343,6 +344,23 @@ function burst(world, base, s, x, y, z, k) {
 }
 
 /** A bomb falls on the base. Returns true when it bursts (on the ground or the roof of a building). */
+/**
+ * The aircraft parked on the apron round a bomb that bursts: each one at a distance where the blast of the bomb would destroy an aircraft in the open (data/ordnance.js, killChance) may be
+ * lost, and the ones scorched by the splinters further out are damaged (a part of what their airframe can take); a fuelled aircraft that burns sets its neighbours on fire.
+ */
+function bombGroundPlanes(world, base, x, z, o, attacker) {
+  const R = aircraftRadii(o);
+  for (const p of base.groundPlanes()) {
+    const d = Math.hypot(x - p.x, z - p.z);
+    if (d > R.light) continue;
+    if (d <= R.hurt) { if (world.rng() < killChance(d, R)) { killGroundPlane(world, base, p, attacker, 'bomb'); continue; } }
+    // scorched: the nearer, the more of the airframe is gone (an aircraft that has taken it all is wrecked)
+    const part = d <= R.hurt ? 0.6 : 0.3 * (1 - (d - R.hurt) / Math.max(1, R.light - R.hurt));
+    p.groundHp = (p.groundHp ?? p.spec.hp) - p.spec.hp * part;
+    if (p.groundHp <= 0) killGroundPlane(world, base, p, attacker, 'bomb');
+  }
+}
+
 export function bombHitsBase(world, b) {
   for (const base of world.bases) {
     if (base.inert || base.team === b.team) continue;
@@ -352,10 +370,12 @@ export function bombHitsBase(world, b) {
     let top = gh;
     for (let i = 0; i < L.parts.length; i++) if (base.partState[i] < 2 && inPart(L.parts[i], b.x, b.y, b.z, 1.5)) top = Math.max(top, L.parts[i].y + L.parts[i].h * 0.5);
     if (b.y > top + 0.5) continue;
-    const R = 7 + Math.sqrt(b.kg) * 0.85, pw = b.kg * 0.95;
+    // what the bomb is: the filler wrecks buildings and guns within a radius that grows with its cube root; the blast and the splinters decide what becomes of the aircraft parked in the open
+    const o = b.ord || genericBomb(b.kg), W = fillerTNT(o), R = 4 + 3.2 * Math.cbrt(Math.max(W, 1)), pw = 1.9 * W;
     world.events.push({ type: 'landImpact', x: b.x, y: top, z: b.z, cal: 130 + Math.sqrt(b.kg) * 7, shell: 'HE', dx: b.vx, dz: b.vz, bomb: true });
     world.events.push({ type: 'explosion', stage: 'air', x: b.x, y: top + 1, z: b.z, size: clamp(b.kg / 900, 0.3, 0.9), base });
-    damageBase(world, base, b.x, top, b.z, R, pw, b.owner, 'bomb');
+    damageBase(world, base, b.x, top, b.z, R, pw, b.owner, 'bomb', -1, true);
+    bombGroundPlanes(world, base, b.x, b.z, o, b.owner);
     return true;
   }
   return false;

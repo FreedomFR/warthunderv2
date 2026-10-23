@@ -10,11 +10,13 @@
 import { clamp, wrapPi, approach, D2R, G } from '../math.js';
 import { planeTypeFor, PLANES, groundY, GROUND_PITCH } from '../model/planes.js';
 import { perfOf } from './airperf.js';
-import { fighterFields, fighterSteer } from './fighters.js';
+import { fighterFields, fighterSteer, rearm } from './fighters.js';
 import { safeHeading, homeCourse } from './homeward.js';
-import { planeId, bombId, FIGHT_CTX } from './aircraft.js';
-import { guide, setVel } from './flight.js';
+import { planeId, bombId, FIGHT_CTX, arm, dropTorpedo } from './aircraft.js';
+import { guide, setVel, stallSpeed } from './flight.js';
 import { repairPlane } from './planedamage.js';
+import { chooseSite, divert } from './landing.js';
+import { genericBomb } from '../data/ordnance.js';
 
 const GROUND_STATES = new Set(['parked', 'taxiOut', 'holdshort', 'lineup', 'groundRun', 'lroll', 'taxiBack', 'park']);
 const AIR_BOMBER = new Set(['assemble', 'cruise', 'run', 'egress']);
@@ -66,7 +68,7 @@ function makePlane(world, base, slot, role) {
     t0Air: 0, cruiseAlt: 0, relAlt: 0, fuel: heavy ? 5200 + world.rng() * 600 : 1700 + world.rng() * 400, aimErr: [world.rng.normal(), world.rng.normal()], diveAng: 0, group: 0,
     svc: 0, rs: 0, rt: 0, path: null, pi: 0, hold: 0,
   };
-  if (!heavy) Object.assign(p, fighterFields(spec));
+  if (!heavy) Object.assign(p, fighterFields(spec, typeKey));
   else { p.stick = 0; p.stickT = 0; p.fighter = false; }
   base.parked[slot] = p;
   world.planes.push(p);
@@ -76,7 +78,7 @@ function makePlane(world, base, slot, role) {
 /** The air group of an airfield at the start of the battle: bombers in the row nearest the taxiway, fighters in the second row. */
 export function initAirfield(world, base) {
   const L = base.layout, n = L.slots.length, rich = L.guns.length > 8;
-  const nb = Math.min(n >> 1, rich ? 6 : 4), nf = Math.min(n >> 1, rich ? 6 : 4);
+  const nb = Math.min(n >> 1, rich ? 10 : 7), nf = Math.min(n >> 1, rich ? 10 : 7);      // (the apron holds 36: the rest of the places are for the aircraft that come in)
   base.air = { cd: 50 + world.rng() * 60, capCd: 20, chk: 1, queue: [], relT: 0, rwy: null, waveN: 0, nextClimb: 0, lastRoll: -99, launches: 0, bombers: nb, fighters: nf };
   if (base.inert) return;
   const half = n >> 1;
@@ -87,7 +89,7 @@ export function initAirfield(world, base) {
 // ---- losses on the ground -----------------------------------------------------------------------------------------------------------------------------------
 
 /** A parked or taxiing aircraft is destroyed by a bomb or a shell. */
-export function killGroundPlane(world, base, p, attacker, cause) {
+export function killGroundPlane(world, base, p, attacker, cause, chain = false) {
   if (p.gone || p.dead) return;
   p.dead = true; p.gone = true; p.dying = true; p.cond = 0;
   if (base.parked[p.slot] === p) base.parked[p.slot] = null;
@@ -100,11 +102,13 @@ export function killGroundPlane(world, base, p, attacker, cause) {
   world.events.push({ type: 'planeDown', plane: p, mode: 'explode', x: p.x, y: p.y, z: p.z, cause: cause || 'bomb', hasOrdnance: p.ordnance, attacker: attacker || null, ground: true });
   base.fires.push({ x: p.x, y: base.layout.y + 0.4, z: p.z, r: 3.5, t: 45 + world.rng() * 40, life: 85, power: 1 });
   if (base.fires.length > 14) base.fires.shift();
+  // a fuelled aircraft that goes up sets the ones next to it on fire (the wings of the next row are 8 to 12 m away)
+  if (!chain) for (const q of base.groundPlanes()) if (q !== p && !q.gone && Math.hypot(q.x - p.x, q.z - p.z) < 11 && world.rng() < (p.ordnance ? 0.45 : 0.3)) killGroundPlane(world, base, q, attacker, cause, true);
 }
 
 // ---- the decisions of the airfield ---------------------------------------------------------------------------------------------------------------------------
 
-const ready = (p, kind) => p && !p.gone && !p.dying && p.phase === 'parked' && p.svc <= 0 && p.fuel > 600 && (kind === 'fighter' ? p.fighter : !p.fighter);
+const ready = (p, kind) => p && !p.gone && !p.dying && p.phase === 'parked' && p.svc <= 0 && p.fuel > 600 && (kind === 'fighter' ? p.fighter : !!p.spec.engines);
 
 /** The enemy ships worth bombing, best first: valuable, near, hurt. */
 function bestTargets(world, base, n) {
@@ -114,6 +118,14 @@ function bestTargets(world, base, n) {
     const d = Math.hypot(sh.x - base.layout.x, sh.z - base.layout.z);
     if (d > 80000) continue;
     out.push({ sh, sc: sh.stats.score * 6000 - d + (sh.condition < 0.6 ? 3000 : 0) + world.rng() * 2500 });
+  }
+  // the enemy bases too: an airfield for the aircraft on its apron and its fuel, a battery for the guns that shoot at the ships (a heavy bomber's load wrecks both)
+  for (const b of world.bases || []) {
+    if (b.team === base.team || b.inert || !b.alive) continue;
+    const d = Math.hypot(b.layout.x - base.layout.x, b.layout.z - base.layout.z);
+    if (d > 80000) continue;
+    const planes = b.layout.kind === 'airfield' ? b.groundPlanes().length : 0;
+    out.push({ sh: b.target, sc: (b.layout.kind === 'airfield' ? 1.1 + 0.09 * planes : 0.9) * 6000 - d + world.rng() * 2500 });
   }
   out.sort((a, b) => b.sc - a.sc);
   return out.slice(0, n).map((q) => q.sh);
@@ -147,13 +159,15 @@ function decide(world, base) {
   if (bs.length < Math.min(3, base.air.bombers)) return;
   const targets = bestTargets(world, base, 2);
   if (!targets.length) { air.cd = 25; return; }
-  const n = Math.min(bs.length, 6);
+  const n = Math.min(bs.length, base.air.bombers > 7 ? 8 : 6);
   const wave = { base, id: ++air.waveN, t0: world.time, planes: [], n, launched: 0, assessed: false, aborted: false, sections: [], target: targets[0], asmGo: false };
   bs.sort((a, b) => a.slot - b.slot);
   for (let i = 0; i < n; i++) {
     const p = bs[i];
     p.wave = wave; p.target = targets[i >= 3 && targets[1] ? 1 : 0]; p.group = i;
     p.cruiseAlt = base.layout.y + Math.min(perfOf(p).bombAlt ?? 2800, 3500) - 600 + world.rng() * 600; p.role = 'level';
+    arm(p, p.target);      // (a torpedo load for the ships: the bomber goes in low)
+    if (p.loadout && p.loadout.stores.some((st) => st.torp)) p.cruiseAlt = base.layout.y + 70;
     wave.planes.push(p); air.queue.push(p);
   }
   const fs = base.parked.filter((p) => ready(p, 'fighter'));
@@ -227,9 +241,9 @@ function alongFinal(F, q) { const T0 = F.toW(F.sThr, 0); return -((q.x - T0[0]) 
 
 // Traffic in a stream, as in the war: the aircraft of a wave come back one behind the other, a landing every 20-35 seconds, and the next one is landing as the one before
 // is rolling out (not when it has left the runway); the next one takes off while the one before is still rolling, once it is far enough ahead.
-const SEP_LAND = (p) => (p.fighter ? 26 : 36);        // seconds between two touchdowns on the final (the arrival is predicted to within about 10 s)
-const GAP_ROLL = (p) => (p.fighter ? 240 : 380);      // metres ahead on the runway that the aircraft before must be when the next begins its take-off roll
-const GAP_ROLLOUT = 420;                              // and the one that has landed, when the next touches down
+const SEP_LAND = (p) => (p.fighter ? 18 : 24);        // seconds between two touchdowns on the final (the arrival is predicted to within about 10 s)
+const GAP_ROLL = (p) => (p.fighter ? 70 : 90);        // metres ahead on the runway that the aircraft before must be when the next begins its take-off roll (full throttle at once: the one behind never closes up, see groundRun)
+const GAP_ROLLOUT = 300;                              // and the one that has landed, when the next touches down
 
 /** The time to fly `base` metres of base leg and `fin` metres of final at the speeds of the type (circuit speed on the base leg, approach speed on the final, 8 s for the turn). */
 const flyTime = (pf, base, fin) => base / (pf.vp * 0.95) + fin / pf.va + 8;
@@ -293,7 +307,7 @@ function takeRunway(base, p, landing = false) {
   if (!h || h === p || h.gone || h.dying) { air.rwy = p; return true; }
   if (h.phase === 'lroll' || h.phase === 'groundRun') {
     const F = fieldOf(base), ahead = F.D * (F.sOf(h.x, h.z) - F.sOf(p.x, p.z)), start = landing ? 0 : F.D * (F.sOf(h.x, h.z) - F.sStart);
-    if (landing ? ahead > GAP_ROLLOUT : start > 30 && h.speed > 4) { air.rwy = p; return true; }
+    if (landing ? ahead > GAP_ROLLOUT : start > 8 && h.speed > 2) { air.rwy = p; return true; }
   }
   return false;
 }
@@ -306,11 +320,11 @@ function releaseNext(world, base, dt) {
   // no more than three aircraft between the apron and the runway at a time
   let on = 0;
   for (const q of world.planes) if (q.base === base && (q.phase === 'taxiOut' || q.phase === 'holdshort' || q.phase === 'lineup')) on++;
-  if (on >= 3) return;
+  if (on >= 4) return;
   const p = air.queue.shift();
   if (p.gone || p.dying || p.phase !== 'parked') return;
   p.path = taxiPath(base, p, true); p.pi = 0; p.phase = 'taxiOut'; p.eng = 0.3; p.t = 0;
-  air.relT = p.fighter ? 8 : 16;
+  air.relT = p.fighter ? 4 : 7;
 }
 
 /** One tick of the aircraft of a base. Returns false when the aircraft is gone. */
@@ -339,14 +353,16 @@ export function stepBasePlane(world, p, dt) {
         if (q.base !== base || q.dying || q.gone) continue;
         if ((q.phase === 'lfinal' && etaToLand(F, q) < need) || (q.phase === 'goaround' && alongFinal(F, q) < 1500) || (q.phase === 'lroll' && F.D * (F.sOf(q.x, q.z) - F.sStart) < 160)) { inbound = true; break; }
       }
-      if (!inbound && world.state === 'running' && world.time - base.air.lastRoll > (p.fighter ? 6 : 9) && takeRunway(base, p)) {
+      if (!inbound && world.state === 'running' && world.time - base.air.lastRoll > (p.fighter ? 3 : 4) && takeRunway(base, p)) {
         p.phase = 'lineup'; p.path = [F.toW(F.sHold, 0), F.toW(F.sStart, 0)]; p.pi = 0;
       }
       return true;
     }
     case 'lineup': {
       p.eng = 0.5; onGround(base, p);
-      if (drive(world, base, p, dt, TAXI * 1.15)) {
+      // (a rolling start: the run begins as the aircraft comes onto the last leg of the line-up, nose to the runway, without stopping at the head of it)
+      const lined = drive(world, base, p, dt, TAXI * 1.6), rolling = !lined && p.pi >= 1 && Math.abs(wrapPi(F.rwHdg - p.heading)) < 0.1;
+      if (lined || rolling) {
         p.heading += clamp(wrapPi(F.rwHdg - p.heading), -0.8 * dt, 0.8 * dt);
         // the run begins when the aircraft before has gone far enough down the runway (or is airborne ahead), and nobody is about to land
         let gap = 1e9;
@@ -358,7 +374,7 @@ export function stepBasePlane(world, p, dt) {
         let landing = false;
         for (const q of world.planes) if (q.base === base && !q.dying && !q.gone && q.phase === 'lfinal' && etaToLand(F, q) < (p.fighter ? 26 : 34)) { landing = true; break; }
         if (Math.abs(wrapPi(F.rwHdg - p.heading)) < 0.04 && gap >= GAP_ROLL(p) && !landing) {
-          p.phase = 'groundRun'; p.rs = F.sOf(p.x, p.z); p.rt = F.tOf(p.x, p.z); p.u = 0; p.speed = 0; p.t = 0; base.air.lastRoll = world.time;
+          p.phase = 'groundRun'; p.rs = F.sOf(p.x, p.z); p.rt = F.tOf(p.x, p.z); p.u = 0; p.speed = rolling ? Math.min(p.speed, 8) : 0; p.t = 0; base.air.lastRoll = world.time;
           p.runLen = Math.abs(F.D * F.len / 2 - p.rs);
           world.events.push({ type: 'planeLaunch', plane: p, ship: base.owner });
         }
@@ -369,7 +385,14 @@ export function stepBasePlane(world, p, dt) {
       // the run: the speed builds so as to be airborne after 60 to 70 per cent of the runway; the tail comes up, then the nose
       p.eng = 1;
       const vto = pf.vto ?? 38, L = clamp(Math.min(pf.runLen ?? p.runLen * 0.58, p.runLen * 0.85), 250, 2000), a = vto * vto / (2 * L);
-      p.speed += a * dt;
+      // (full throttle at once, but never closing up on the aircraft rolling ahead: it holds its speed when it comes within 45 m + 3 s of the closing speed)
+      let hold = false;
+      for (const q of world.planes) {
+        if (q === p || q.base !== base || q.dying || q.gone || !(q.phase === 'groundRun' || (q.phase === 'climb' && q.y - F.y < 25))) continue;
+        const ahead = F.D * (F.sOf(q.x, q.z) - F.sOf(p.x, p.z));
+        if (ahead > 0 && ahead < 45 + Math.max(0, p.speed - q.speed) * 3) { hold = true; break; }
+      }
+      if (!hold) p.speed += a * dt;
       p.rs += F.D * p.speed * dt; p.rt += (0 - p.rt) * Math.min(1, dt * 1.5);
       const w = F.toW(p.rs, p.rt); p.x = w[0]; p.z = w[1];
       p.heading = F.rwHdg;
@@ -393,7 +416,8 @@ export function stepBasePlane(world, p, dt) {
       // straight ahead, climbing, the gear coming up
       // a few seconds low over the runway gathering speed, then the climb; the nose comes down as the speed builds
       const alt = p.y - F.y, tA = p.age - p.t0Air, slow = p.speed < pf.vto * 1.2;
-      p.gearDown = p.age < p.t0Air + 6;
+      // (the gear and the flaps stay out until the speed is well above the clean stall: a heavy bomber that drew them in at 45 m/s lost its lift and settled back on the runway)
+      p.gearDown = p.age < p.t0Air + 6 || (p.speed < stallSpeed(p, false) * 1.3 && p.age < p.t0Air + 25);
       guide(p, dt, F.rwHdg, slow && tA < 10 ? 0.025 : alt < 40 ? 0.06 : 0.09, pf.vcl, { bankMax: 6 * D2R, accMax: p.fighter ? 3 : 1.8, pitchRate: 0.1 });
       p.aoa += (clamp((pf.vcl - p.speed) / pf.vcl * 0.6, 0, 0.1) - p.aoa) * Math.min(1, dt * 1.5);
       advance(p, dt);
@@ -419,7 +443,9 @@ export function stepBasePlane(world, p, dt) {
 }
 
 function servicePlane(p) {
-  p.fuel = p.fighter ? 1700 + 300 : 5400; p.ordnance = !p.fighter; if (p.fighter) p.ammo = 520;
+  const heavy = !!p.spec.engines;
+  p.fuel = heavy ? 5400 : 1700 + 300; p.ordnance = heavy; if (p.fighter) rearm(p);
+  p.landedAt = true;      // (a visitor is one of the field's aircraft now)
   repairPlane(p); p.smoke = 0; p.fire = 0; p.wave = null; p.target = null; p.prey = null; p.hunted = 0; p.stick = 0;
   p.ground = true; p.gearDown = true;
 }
@@ -534,6 +560,19 @@ function stepAir(world, p, dt, base, F, pf, T) {
     case 'run': {
       const tgt = p.target;
       if (!tgt || !tgt.alive) { p.phase = p.ordnance ? 'cruise' : 'egress'; p.t = 0; break; }
+      const nTorp = p.loadout ? p.loadout.stores.reduce((a, st) => a + (st.torp || 0), 0) : 0;
+      if (nTorp && p.ordnance) {
+        // the torpedo run of a land-based bomber: low, straight at the ship, the torpedoes let go at about a kilometre, then away at once
+        const rng0 = Math.hypot(tgt.x - p.x, tgt.z - p.z), tof = rng0 / 26;
+        const lx = tgt.x + tgt.vx * tof, lz = tgt.z + tgt.vz * tof;
+        hdg = atan2h(lx - p.x, lz - p.z);
+        gam = clamp((60 - p.y) / 260, -0.07, 0.05);
+        spd = Math.min(pf.vc, 80);
+        o = { bankMax: 20 * D2R };
+        if (rng0 < 1100 && p.y < 120 && (Math.abs(wrapPi(hdg - p.heading)) < 0.07 || rng0 < 700)) { dropTorpedo(world, p, tgt, rng0, nTorp); p.phase = 'egress'; p.t = 0; }
+        if (rng0 > 25000 || p.t > 180) { p.phase = 'egress'; p.t = 0; }
+        break;
+      }
       // the bomb sight: the fall of a bomb from here (how long, how far it carries) gives the point to be over, with the target's own motion allowed for
       if (!p._fs || world.time - p._fs.at > 0.5) p._fs = { at: world.time, ...bombFall(p) };
       const fs = p._fs, H = p.y;
@@ -545,7 +584,7 @@ function stepAir(world, p, dt, base, F, pf, T) {
       spd = pf.bombSpeed ?? pf.vc;
       o = { bankMax: (range > 3500 ? 28 : 12) * D2R };
       // the stick: released so that it is centred on the aim point, one bomb after the other
-      const aligned = Math.abs(wrapPi(hdg - p.heading)) < 0.05, vh = Math.hypot(p.vx, p.vz), stickLen = 0.2 * Math.max(0, (p.spec.bombKg || 1000) / 260 - 1) * vh;
+      const aligned = Math.abs(wrapPi(hdg - p.heading)) < 0.05, vh = Math.hypot(p.vx, p.vz), stickLen = 0.2 * Math.max(0, (p.ords ? p.ords.length : 4) - 1) * vh;
       if (p.ordnance && p.stick === 0 && range < fs.d + stickLen * 0.5 + 6 && range > fs.d - 400 && aligned && p.y > 600) beginStick(p);
       if (p.stick > 0) {
         p.stickT -= dt;
@@ -570,6 +609,15 @@ function stepAir(world, p, dt, base, F, pf, T) {
       break;
     }
     case 'return': case 'hold': {
+      // (it lands wherever it can: its own field if it is still there, else a nearer carrier (a carrier aircraft), or the nearest field that has room for it)
+      if (p.phase === 'return' && (!p.leg || p.leg === 'join')) {
+        p.siteT = (p.siteT ?? 0) - dt;
+        if (p.siteT <= 0) {
+          p.siteT = 4;
+          const site = chooseSite(world, p);
+          if (site && (site.kind === 'ship' || site.base !== base) && divert(world, p, site)) return true;
+        }
+      }
       // the circuit of the field, all turns to the left: the downwind leg beside the runway the other way, a base leg across, and the turn onto a final of about 3 km.
       // An aircraft that comes in already lined up goes straight in; one that has to wait goes round a circle beside the downwind leg and joins it again.
       p.gearDown = false;
@@ -740,16 +788,17 @@ function bombFall(p) {
 }
 
 function beginStick(p) {
-  const spec = p.spec;
-  p.stick = clamp(Math.round((spec.bombKg || 1000) / 260), 2, 12);
-  p.stickKg = (spec.bombKg || 1000) / p.stick;
+  // the stick: every bomb of the load, one after the other (the aircraft that has no load of its own is given one by its spec)
+  if (!p.ords || !p.ords.length) p.ords = Array.from({ length: clamp(Math.round((p.spec.bombKg || 1000) / 260), 2, 12) }, () => genericBomb((p.spec.bombKg || 1000) / clamp(Math.round((p.spec.bombKg || 1000) / 260), 2, 12)));
+  p.stick = p.ords.length;
+  p.stickI = 0;
   p.stickT = 0;
 }
 
 function dropOne(world, p, tgt) {
-  const kg = p.stickKg;
+  const ord = p.ords[p.stickI++] || p.ords[p.ords.length - 1], kg = ord.kg;
   const b = {
-    id: bombId(), owner: p.owner, team: p.team, kg, x: p.x, y: p.y - 2.2, z: p.z, vx: p.vx, vy: p.vy - 0.5, vz: p.vz, age: 0, mesh: kg >= 400 ? 'bomb500' : 'bomb250', target: tgt, plane: p,
+    id: bombId(), owner: p.owner, team: p.team, kg, ord, x: p.x, y: p.y - 2.2, z: p.z, vx: p.vx, vy: p.vy - 0.5, vz: p.vz, age: 0, mesh: kg >= 400 ? 'bomb500' : 'bomb250', target: tgt, plane: p,
   };
   world.bombs.push(b);
   world.events.push({ type: 'bombDrop', plane: p, bomb: b, x: b.x, y: b.y, z: b.z });

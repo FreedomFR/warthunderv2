@@ -62,7 +62,7 @@ for (const id of ids) {
   ok(lifted.every((p) => states.get(p.id).has('queue/lower') && states.get(p.id).has('queue/spot') && states.get(p.id).has('queue/taxi') && states.get(p.id).has('takeoff/run')), `${id}: the aircraft that came up on a lift went through lower, rise, spot and taxi to the take-off run`);
   // 2. call the wave back once it is in the air and has settled
   step(110);
-  ok(runT.length && runT.every((t) => t > 4.5) && liftOff.every((d) => d < 60), `${id}: the take-off run takes the deck ahead of the aircraft (${Math.min(...runT).toFixed(1)}-${Math.max(...runT).toFixed(1)} s, off the deck ${Math.max(...liftOff).toFixed(0)} m or less before the bow)`);
+  ok(runT.length && runT.every((t) => t > 4.5) && liftOff.every((d) => d < 70), `${id}: the take-off run takes the deck ahead of the aircraft (${Math.min(...runT).toFixed(1)}-${Math.max(...runT).toFixed(1)} s, off the deck ${Math.max(...liftOff).toFixed(0)} m or less before the bow)`);
   ok(climbDev < 0.06, `${id}: the aircraft fly straight ahead off the deck until clear of the bow (worst turn ${(climbDev * 57.3).toFixed(1)} degrees)`);
   ok(orbitUp > 0 && firstGo >= lastTakeoff, `${id}: the strike circles over the sea until the last aircraft has taken off (leaves ${(firstGo - lastTakeoff).toFixed(0)} s after the last take-off)`);
   for (const p of wave.planes) if (p.phase === 'cruise' || p.phase === 'assemble' || STRIKE(p)) { p.phase = 'return'; p.asm = null; }

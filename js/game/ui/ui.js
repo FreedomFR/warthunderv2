@@ -736,9 +736,15 @@ export function createUI(game) {
         h('span', {}, 'Vitesse'), h('b', {}, `${kmh} km/h`),
         h('span', {}, p.base ? 'Base' : 'Porte-avions'), h('b', {}, p.base ? `${p.base.name} (${t.name})` : p.owner ? p.owner.name : '—'),
         h('span', {}, 'Cible'), h('b', {}, p.target && p.target.alive ? p.target.name : '—'),
-        h('span', {}, 'Armement'), h('b', {}, p.kind === 'fighter' ? 'mitrailleuses et canons' : p.ordnance ? (p.kind === 'torp' ? 'torpille' : `bombe${p.kind === 'level' ? 's' : ''} de ${p.spec.bombKg} kg`) : 'largué'),
+        h('span', {}, 'Armement'), h('b', {}, p.kind === 'fighter' ? armamentText(p) : p.ordnance ? (p.loadout ? p.loadout.label : p.kind === 'torp' ? 'torpille' : `bombe${p.kind === 'level' ? 's' : ''} de ${p.spec.bombKg} kg`) : 'largué'),
         h('span', {}, 'Vue (V)'), h('b', {}, view || '—')),
     );
+  }
+
+  /** The guns of a fighter and what is left in them: "6 x 12,7 mm (74 %)", the cannons of a Zero that have run dry are shown as such. */
+  function armamentText(p) {
+    if (!p.guns || !p.guns.length) return 'mitrailleuses et canons';
+    return p.guns.map((g) => { const left = Math.max(0, Math.min(1, g.left / g.rpg)); return `${g.n} × ${String(g.cal).replace('.', ',')} mm ${left > 0 ? `(${Math.round(left * 100)} %)` : '(vide)'}`; }).join(' + ');
   }
 
   function updateShipInfo() {

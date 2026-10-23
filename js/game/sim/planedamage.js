@@ -61,7 +61,7 @@ function pickPart(world, p, shooter) {
 }
 
 /** The AA shot connects: it hits a part of the aircraft, which may be lost, and with it the aircraft. */
-export function hitPlane(world, ship, p, dmg, cal, cause = 'aa') {
+export function hitPlane(world, ship, p, dmg, cal, cause = 'aa', ammo = null) {
   if (p.dying || p.phase === 'floating') return;
   dmg *= planeDmg(cause);          // the multiplier of data/balance.js
   if (dmg <= 0) return;
@@ -69,11 +69,11 @@ export function hitPlane(world, ship, p, dmg, cal, cause = 'aa') {
   world.events.push({ type: 'planeHit', plane: p, ship, x: p.x, y: p.y, z: p.z, cal, dmg });
   if (p.invulnerable) return;
   if (ship) p.lastShooter = ship;
-  hitPlanePart(world, ship, p, pickPart(world, p, ship), dmg, cause);
+  hitPlanePart(world, ship, p, pickPart(world, p, ship), dmg, cause, -1, ammo);
 }
 
 /** A hit on a named part ('wingL', 'wingR', 'tail', 'eng', 'pilot', 'fuel', 'ctl', 'body'): what it does to that part and to the ones behind it, and what comes of it. */
-export function hitPlanePart(world, ship, p, key, dmg, cause = 'aa', engine = -1) {
+export function hitPlanePart(world, ship, p, key, dmg, cause = 'aa', engine = -1, ammo = null) {
   if (p.dying || p.phase === 'floating') return;
   const P = planeParts(p);
   const k = key === 'eng' ? (engine >= 0 ? engine : Math.floor(world.rng() * P.eng.length)) : 0;
@@ -94,6 +94,18 @@ export function hitPlanePart(world, ship, p, key, dmg, cause = 'aa', engine = -1
       if (world.rng() < 0.2) note(give(P.pilot, dmg * 0.6, 'pilot'));
       if (world.rng() < 0.4) note(give(P.fuel, dmg * 0.6, 'fuel'));
       if (world.rng() < 0.3) note(give(P.ctl, dmg * 0.7, 'ctl'));
+  }
+  // what the round was (data/airguns.js): the filler of a high-explosive round hurts the parts next to the one it hit, and an incendiary or high-explosive round that lands in the fuel
+  // (the tank, the roots of the wings, the feed of the engine) may set it alight: the chance of its kind, half as much with the self-sealing tanks of the American, British and
+  // German aircraft, which close on the hole
+  if (ammo && p.parts) {
+    if (ammo.blast > 0) {
+      const near = [P.body, P.fuel, P.ctl, P.wingL, P.wingR, P.tail][Math.floor(world.rng() * 6)];
+      if (near && near.hp > 0) { near.hp -= ammo.blast * 0.012; if (near.hp <= 0 && near === P.body) lost.push('body'); }
+    }
+    const tank = key === 'fuel' ? 1 : key === 'wingL' || key === 'wingR' ? 0.3 : key === 'eng' ? 0.35 : key === 'body' ? 0.2 : 0;
+    const sealed = p.spec.nation === 'USA' || p.spec.nation === 'UK' || p.spec.nation === 'Germany' ? 0.5 : 1;
+    if (tank && !p.fire && !p.fireOut && world.rng() < ammo.fire * tank * sealed) ignite(world, p);
   }
   setFlightDamage(p);
   // where it smokes and where it burns: an engine, or the root of a wing (the fuel); the smoke and the flames of the picture come from there (render/fx/air.js)

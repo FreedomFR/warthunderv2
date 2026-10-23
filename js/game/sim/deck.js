@@ -47,6 +47,7 @@ const SERVICE_TIME = 300;           // seconds a landed aircraft spends being re
 
 /** An aircraft that has come down to the hangar is serviced (refuelled, rearmed, a crew rested) before it counts as ready. */
 function recover(world, ship, p) {
+  p.landedAt = true;      // (a visitor from another ship or a field is one of this ship's aircraft now)
   ship.air.servicing.push({ at: world.time + SERVICE_TIME * (0.8 + 0.4 * world.rng()), fighter: !!p.fighter });
 }
 
@@ -365,8 +366,12 @@ function stepDeckInner(world, p, dt) {
         // the lift is free again once the aircraft has rolled clear of it
         if (p.lift && lx > p.lift.x + p.lift.hl + 6) { p.lift.user = null; p.lift = null; }
         p.ds = Math.abs(p.u) < 0.2 && Math.abs(lx - startX) < 2 ? 'hold' : 'taxi';
-        if (p.ds === 'hold' && p.group === p.wave.launched && p.ts >= 0 && world.time - (p.wave.lastLaunch ?? -99) > 3.4 && p.eng > 0.35) {
-          p.phase = 'takeoff'; p.ds = 'run'; p.t = 0; p.u = 0; p.wave.launched++; p.wave.lastLaunch = world.time;
+        // the run begins as soon as the aircraft before is far enough ahead on the deck (it is at full throttle too, and accelerates as fast or faster: the second does not wait for the first to be airborne)
+        let gapAhead = Infinity;
+        for (const q of world.planes) if (q !== p && q.owner === ship && q.phase === 'takeoff' && q.lx > p.lx - 4) gapAhead = Math.min(gapAhead, q.lx - p.lx);
+        // (a rolling start: it does not stop at the head of the run, the run begins as it comes up to it)
+        if ((p.ds === 'hold' || (p.ds === 'taxi' && startX - lx < 9 && p.u > 0.3)) && p.group === p.wave.launched && p.ts >= 0 && world.time - (p.wave.lastLaunch ?? -99) > 2.2 && gapAhead > 34 && p.eng > 0.35) {
+          p.phase = 'takeoff'; p.u = p.ds === 'hold' ? 0 : p.u; p.ds = 'run'; p.t = 0; p.wave.launched++; p.wave.lastLaunch = world.time;
           world.events.push({ type: 'planeLaunch', plane: p, ship });
         }
         return true;
@@ -382,7 +387,10 @@ function stepDeckInner(world, p, dt) {
     const uL = p.uLift ?? (p.uLift = clamp(pf.vto - ship.speed, 14, 30));
     // (an acceleration that brings it to its lift-off speed at the bow: without a catapult the run takes the whole of the deck ahead of it, 6 to 10 s)
     const acc = p.runAcc ?? (p.runAcc = clamp(uL * uL / (2 * Math.max(30, dp.x1 - 3 - p.lx)), 1.6, RUN_ACC));
-    p.u += acc * dt;
+    // (full throttle, but never closing up on the aircraft rolling ahead: it holds its speed when it comes within 24 m + 2.5 s of the closing speed)
+    let hold = false;
+    for (const q of world.planes) if (q !== p && q.owner === ship && q.phase === 'takeoff' && q.lx > p.lx) { const g = q.lx - p.lx; if (g < 24 + Math.max(0, p.u - q.u) * 2.5) { hold = true; break; } }
+    if (!hold) p.u += acc * dt;
     idleSpin(p, dt, 1);
     const lx = p.lx + p.u * dt;
     // the tail comes up as the speed builds, then the nose
