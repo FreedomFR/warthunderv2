@@ -159,8 +159,8 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 ## js/game/sim/
 
 - `aadata.js` (10) Anti-aircraft data shared by the guns (sim/aircraft.js) and the aircraft that plan their way past them (sim/routing.js). [AA, FLAK_RANGE] ← 5
-- `aircraft.js` (801) Carrier aircraft. A wave of dive bombers and torpedo bombers takes off from the flight deck, flies to the enemy, attacks (bombs are dropped from a steep dive,… [planeId, bombId, resetAirIds, updateAir, FIGHT_CTX] ← 2
-- `airfield.js` (766) Air operations from the airfields of the islands. [initAirfield, killGroundPlane, stepBasePlane, stepAirfield] ← 3
+- `aircraft.js` (852) Carrier aircraft. A wave of dive bombers and torpedo bombers takes off from the flight deck, flies to the enemy, attacks (bombs are dropped from a steep dive,… [planeId, bombId, resetAirIds, updateAir, FIGHT_CTX] ← 2
+- `airfield.js` (775) Air operations from the airfields of the islands. [initAirfield, killGroundPlane, stepBasePlane, stepAirfield] ← 3
 - `airhit.js` (80) The hit volume of an aircraft. An aircraft is a body (an ellipsoid the size of its fuselage), the planes of its wings (a biplane has two) and its tail: what a gun… [airframe, axes, presentedArea, extentToward, roundHitChance, lightAAHitRate] ← 5
 - `airperf.js` (119) How fast each aircraft flies. Speeds in m/s (airspeed), from the published performance of each type (CHANGELOG 0.1.2 has the table and the sources): vmax top speed… [PERF, perfOf, aeroOf, dragAcc, thrustAcc, turnPerf] ← 11
 - `ballistics.js` (104) Exterior ballistics: point-mass shells with altitude-dependent air drag. [gunBallistics, solve, stepShell] ← 6
@@ -173,7 +173,7 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 - `fighters.js` (396) Carrier fighters. A wave of bombers is escorted by a section of fighters; [FIGHT_PHASES, fighterSteer, fighterFields, bomberDefense, markHunted] ← 3
 - `fleet.js` (138) The captain of a fleet. Before, every ship fought alone: it picked its own target, circled at its own range in a random direction and went where it liked. [stationPlan, FleetCommand] ← 3
 - `flight.js` (98) The flight dynamics of an aircraft, one step: heading, flight-path angle and speed towards the commanded values, with the thrust, the drag, the lift, the stall and… [setVel, stallSpeed, guide] ← 5
-- `formation.js` (42) Fleet placement: the ships start in the order of battle of sim/fleet.js (destroyers screening ahead, the line in column behind the flagship, carriers at the back),… [spawnFleet, teamStart] ← 32
+- `formation.js` (42) Fleet placement: the ships start in the order of battle of sim/fleet.js (destroyers screening ahead, the line in column behind the flagship, carriers at the back),… [spawnFleet, teamStart] ← 35
 - `homeward.js` (77) The way home after the attack. An aircraft that has dropped its bomb or its torpedo does not fly straight home over the guns it has just run the gauntlet of: it looks… [safeHeading, homeLeader, formOn, straggle, homeCourse] ← 3
 - `hull.js` (238) What keeps a ship afloat and fighting: holes in the hull that let the water in once they are under the waterline, the structure of each compartment, and the crew at… [SINK_FILL, MIN_CREW, initHull, crewOf, blastCasualties, compAt, hullHit, updateHoles, updateCrew, … +1] ← 13
 - `missiles.js` (196) The guided missiles of the ships (the spec sheet's `missiles`): a surface-to-air missile (RIM-24 Tartar) that is fired at aircraft and steers itself on them, and a… [initMissiles, missileStats, updateMissileLaunchers, stepMissiles] ← 3
@@ -184,9 +184,9 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 - `routing.js` (123) The way in to the target. A strike does not fly straight at the enemy: it looks at where his anti-aircraft guns are (the light mounts and the dual-purpose guns of… [aaSources, exposure, exposureArcs, density, chooseApproach, refugeShip] ← 5
 - `ship.js` (704) A ship in the simulation: kinematics, wave response, damage state and weapon mounts. [makeCommand, Ship] ← 1
 - `shipdata.js` (116) Gameplay statistics derived from the real-ship spec sheets. [makeStats, cleanName, shipNames, pickName] ← 5
-- `terrain.js` (363) The islands. A few procedural islands sit in the sea, of every size and height: a rock a hundred metres wide, a hilly island, a mountain range ten kilometres long, a… [padWeight, Island, Terrain] ← 11
+- `terrain.js` (363) The islands. A few procedural islands sit in the sea, of every size and height: a rock a hundred metres wide, a hilly island, a mountain range ten kilometres long, a… [padWeight, Island, Terrain] ← 13
 - `weapons.js` (351) Gunnery (fire control, turret slewing, salvos) and torpedo launching. [recoilCurve, mountSolution, updateGunnery, shellChoice, interceptTime, torpedoSolution, updateTorpedoes] ← 7
-- `world.js` (434) The simulation world: ships, shells, torpedoes, aircraft, teams, events, victory. [TEAM_COLORS, World] ← 45
+- `world.js` (434) The simulation world: ships, shells, torpedoes, aircraft, teams, events, victory. [TEAM_COLORS, World] ← 48
 
 ## js/game/sim/controllers/
 
@@ -257,6 +257,7 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 - `cockpitshots.mjs` Pictures of every aircraft from the pilot's seat (ahead, to each side, behind over the shoulder, down at the floor) and from outside close to the cockpit:…
 - `codemap.mjs` The map of the code, generated: docs/CODEMAP.md lists every file of js/ (what it is, how long, what it exports, how many files use it) and the scripts of tools/ and…
 - `damagecheck.mjs` Balance check of the damage model: node tools/damagecheck.mjs [seconds] [seeds] [filter] Runs a set of duels and small fleet battles headless and reports, per…
+- `deckrate.mjs` Launch and landing intervals on a carrier, and the closest two aircraft got on the deck or just behind it: node tools/deckrate.mjs [carrier=essex] [secs=1500] [seeds=3]
 - `decktrace.mjs` The take-off and the landing of carrier aircraft, step by step: node tools/decktrace.mjs [seed] [seconds] For the first aircraft of each kind: every quarter of a…
 - `directorlog.mjs` Watches the automatic camera in a running battle and keeps a picture of each kind of shot: node tools/directorlog.mjs "<url>" <outDir> [seconds] GPU=hardware…
 - `dogfight.mjs` One-on-one (or n-on-n) fights between the fighters of two carriers, to judge the air combat: node tools/dogfight.mjs <carrier A> <carrier B> [N=40] [secs=90] [--n=1]…
@@ -284,6 +285,7 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 - `site.mjs` Assemble the files of the published site into _site/: node tools/site.mjs this checkout, at the root of the site node tools/site.mjs --main <dir> --dev <dir> [--out…
 - `skyshots.mjs` Pictures of the sky and the clouds: node tools/skyshots.mjs <outDir> [extra url parameters] GPU=hardware WSLENV=GPU "/mnt/c/Program Files/nodejs/node.exe"…
 - `smoke.mjs` Browser smoke test: start a battle in headless Chromium (software WebGPU when there is no GPU), switch through the cameras and the quality presets and fail on any…
+- `traffic.mjs` The traffic of the runways of the island airfields: intervals between two take-offs and two landings, the closest two aircraft got, go-arounds.
 - `assemble.mjs` Edit and encode the trailer from the frames written by record.mjs.
 - `compare.mjs` Side-by-side comparison of a published trailer with the same edit re-recorded by the current game.
 - `music.mjs` Render the trailer score to <out>/music.wav with the browser's OfflineAudioContext.
@@ -346,6 +348,7 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 - `preload.mjs` What is built while the first screen plays: node test/preload.mjs
 - `preset.mjs` Run a preset scenario headless: node test/preset.mjs <presetId> [seconds] [seed]
 - `realism.mjs` The historical behaviour of the damage model: node test/realism.mjs Penetration against the published tables, plates struck at an angle, fuzes (arming, delay, duds),…
+- `runways.mjs` The traffic of the runways and the decks: node test/runways.mjs An island airfield sends its aircraft down the runway one behind the other (a rolling start, the next…
 - `spin.mjs` What turns on a ship: node test/spin.mjs — the screws and the rudders, the radars, the directors, and the matrix they are drawn with.
 - `takeoff.mjs` Take-off from a carrier: an aircraft that leaves the bow must not sink towards the sea (it sagged 12-15 m and skimmed the waves when it went down to build the speed…
 - `torpedoes.mjs` Torpedoes: the real power of each warhead (TNT equivalent), the damage that follows from it, the fixed bow tubes of a motor torpedo boat.

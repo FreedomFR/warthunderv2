@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased — traffic, ordnance, ammunition (in progress)
+
+- **Take-offs and landings follow one another closely, without running into each other.** Island airfields: the aircraft are sent to the runway every 7 s (bombers) / 4 s (fighters) instead of 16 / 8, up to four at a time between the apron and the runway; one lines up and rolls as soon as the one before is 90 m (70 for a fighter) down the runway instead of 380 / 240 m, without stopping at the head of the runway (a rolling start, 14 m/s); full throttle at once, but an aircraft that comes within 45 m (+ 3 s of the closing speed) of the one rolling ahead holds its speed, so it can never close up on it. Landings: 24 s (18 for a fighter) between two touchdowns instead of 36 / 26, and the next one touches down when the one before is 300 m down the runway instead of 420 (`tools/traffic.mjs` measures the intervals and the closest approach: take-offs every 26.5 s -> 17.7 s, closest 69 m). Carriers: the aircraft that waits seven minutes in the holding circle no longer turns in without looking (two came onto the final 9 m apart, and the second one had the same landing slot), the aircraft in the final keep 350 m behind the one ahead (they ease off, and go round under 170 m), the circuit keeps 450 m between aircraft (the one behind eases off), and the aircraft that climb away and assemble do not run up on a slower one (`tools/deckrate.mjs`; test `runways`).
+
 ## Unreleased — HD clip on the first screen
 
 - The first screen plays the **1080p** clip (`docs/loading-hd.mp4`, 13 MB, the first 40 s of the trailer, no sound, faststart so that it starts while it downloads) on a big screen (1280 px or more) with a good connection; a phone, a slow link (not 4g, or an estimate under 1 Mbit/s) and the browsers that ask to save data keep the light 540p clip (2.5 MB) or just the poster. The page picks one file, so only one is fetched. `tools/site.mjs` publishes it.

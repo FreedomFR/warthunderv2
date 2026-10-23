@@ -227,9 +227,9 @@ function alongFinal(F, q) { const T0 = F.toW(F.sThr, 0); return -((q.x - T0[0]) 
 
 // Traffic in a stream, as in the war: the aircraft of a wave come back one behind the other, a landing every 20-35 seconds, and the next one is landing as the one before
 // is rolling out (not when it has left the runway); the next one takes off while the one before is still rolling, once it is far enough ahead.
-const SEP_LAND = (p) => (p.fighter ? 26 : 36);        // seconds between two touchdowns on the final (the arrival is predicted to within about 10 s)
-const GAP_ROLL = (p) => (p.fighter ? 240 : 380);      // metres ahead on the runway that the aircraft before must be when the next begins its take-off roll
-const GAP_ROLLOUT = 420;                              // and the one that has landed, when the next touches down
+const SEP_LAND = (p) => (p.fighter ? 18 : 24);        // seconds between two touchdowns on the final (the arrival is predicted to within about 10 s)
+const GAP_ROLL = (p) => (p.fighter ? 70 : 90);        // metres ahead on the runway that the aircraft before must be when the next begins its take-off roll (full throttle at once: the one behind never closes up, see groundRun)
+const GAP_ROLLOUT = 300;                              // and the one that has landed, when the next touches down
 
 /** The time to fly `base` metres of base leg and `fin` metres of final at the speeds of the type (circuit speed on the base leg, approach speed on the final, 8 s for the turn). */
 const flyTime = (pf, base, fin) => base / (pf.vp * 0.95) + fin / pf.va + 8;
@@ -293,7 +293,7 @@ function takeRunway(base, p, landing = false) {
   if (!h || h === p || h.gone || h.dying) { air.rwy = p; return true; }
   if (h.phase === 'lroll' || h.phase === 'groundRun') {
     const F = fieldOf(base), ahead = F.D * (F.sOf(h.x, h.z) - F.sOf(p.x, p.z)), start = landing ? 0 : F.D * (F.sOf(h.x, h.z) - F.sStart);
-    if (landing ? ahead > GAP_ROLLOUT : start > 30 && h.speed > 4) { air.rwy = p; return true; }
+    if (landing ? ahead > GAP_ROLLOUT : start > 8 && h.speed > 2) { air.rwy = p; return true; }
   }
   return false;
 }
@@ -306,11 +306,11 @@ function releaseNext(world, base, dt) {
   // no more than three aircraft between the apron and the runway at a time
   let on = 0;
   for (const q of world.planes) if (q.base === base && (q.phase === 'taxiOut' || q.phase === 'holdshort' || q.phase === 'lineup')) on++;
-  if (on >= 3) return;
+  if (on >= 4) return;
   const p = air.queue.shift();
   if (p.gone || p.dying || p.phase !== 'parked') return;
   p.path = taxiPath(base, p, true); p.pi = 0; p.phase = 'taxiOut'; p.eng = 0.3; p.t = 0;
-  air.relT = p.fighter ? 8 : 16;
+  air.relT = p.fighter ? 4 : 7;
 }
 
 /** One tick of the aircraft of a base. Returns false when the aircraft is gone. */
@@ -339,14 +339,16 @@ export function stepBasePlane(world, p, dt) {
         if (q.base !== base || q.dying || q.gone) continue;
         if ((q.phase === 'lfinal' && etaToLand(F, q) < need) || (q.phase === 'goaround' && alongFinal(F, q) < 1500) || (q.phase === 'lroll' && F.D * (F.sOf(q.x, q.z) - F.sStart) < 160)) { inbound = true; break; }
       }
-      if (!inbound && world.state === 'running' && world.time - base.air.lastRoll > (p.fighter ? 6 : 9) && takeRunway(base, p)) {
+      if (!inbound && world.state === 'running' && world.time - base.air.lastRoll > (p.fighter ? 3 : 4) && takeRunway(base, p)) {
         p.phase = 'lineup'; p.path = [F.toW(F.sHold, 0), F.toW(F.sStart, 0)]; p.pi = 0;
       }
       return true;
     }
     case 'lineup': {
       p.eng = 0.5; onGround(base, p);
-      if (drive(world, base, p, dt, TAXI * 1.15)) {
+      // (a rolling start: the run begins as the aircraft comes onto the last leg of the line-up, nose to the runway, without stopping at the head of it)
+      const lined = drive(world, base, p, dt, TAXI * 1.6), rolling = !lined && p.pi >= 1 && Math.abs(wrapPi(F.rwHdg - p.heading)) < 0.1;
+      if (lined || rolling) {
         p.heading += clamp(wrapPi(F.rwHdg - p.heading), -0.8 * dt, 0.8 * dt);
         // the run begins when the aircraft before has gone far enough down the runway (or is airborne ahead), and nobody is about to land
         let gap = 1e9;
@@ -358,7 +360,7 @@ export function stepBasePlane(world, p, dt) {
         let landing = false;
         for (const q of world.planes) if (q.base === base && !q.dying && !q.gone && q.phase === 'lfinal' && etaToLand(F, q) < (p.fighter ? 26 : 34)) { landing = true; break; }
         if (Math.abs(wrapPi(F.rwHdg - p.heading)) < 0.04 && gap >= GAP_ROLL(p) && !landing) {
-          p.phase = 'groundRun'; p.rs = F.sOf(p.x, p.z); p.rt = F.tOf(p.x, p.z); p.u = 0; p.speed = 0; p.t = 0; base.air.lastRoll = world.time;
+          p.phase = 'groundRun'; p.rs = F.sOf(p.x, p.z); p.rt = F.tOf(p.x, p.z); p.u = 0; p.speed = rolling ? Math.min(p.speed, 8) : 0; p.t = 0; base.air.lastRoll = world.time;
           p.runLen = Math.abs(F.D * F.len / 2 - p.rs);
           world.events.push({ type: 'planeLaunch', plane: p, ship: base.owner });
         }
@@ -369,7 +371,14 @@ export function stepBasePlane(world, p, dt) {
       // the run: the speed builds so as to be airborne after 60 to 70 per cent of the runway; the tail comes up, then the nose
       p.eng = 1;
       const vto = pf.vto ?? 38, L = clamp(Math.min(pf.runLen ?? p.runLen * 0.58, p.runLen * 0.85), 250, 2000), a = vto * vto / (2 * L);
-      p.speed += a * dt;
+      // (full throttle at once, but never closing up on the aircraft rolling ahead: it holds its speed when it comes within 45 m + 3 s of the closing speed)
+      let hold = false;
+      for (const q of world.planes) {
+        if (q === p || q.base !== base || q.dying || q.gone || !(q.phase === 'groundRun' || (q.phase === 'climb' && q.y - F.y < 25))) continue;
+        const ahead = F.D * (F.sOf(q.x, q.z) - F.sOf(p.x, p.z));
+        if (ahead > 0 && ahead < 45 + Math.max(0, p.speed - q.speed) * 3) { hold = true; break; }
+      }
+      if (!hold) p.speed += a * dt;
       p.rs += F.D * p.speed * dt; p.rt += (0 - p.rt) * Math.min(1, dt * 1.5);
       const w = F.toW(p.rs, p.rt); p.x = w[0]; p.z = w[1];
       p.heading = F.rwHdg;

@@ -225,6 +225,11 @@
   {
    "file": "dogfight.mjs",
    "args": []
+  },
+  {
+   "file": "runways.mjs",
+   "args": [],
+   "slow": true
   }
  ],
  "tools": [

@@ -46,10 +46,46 @@ function circuit(ship, p) {
     point() { return ship.toWorld(dp.x1 + 800, 0, zDown, [0, 0, 0]); },
   };
 }
+/** In the circuit of a carrier an aircraft keeps clear of the one ahead of it: the speed factor (1 down to 0.8) for the one that has another less than 450 m ahead (or beside it and older). */
+function circuitGap(world, ship, p) {
+  let f = 1;
+  const fx = Math.sin(p.heading), fz = -Math.cos(p.heading);
+  for (const q of world.planes) {
+    if (q === p || q.owner !== ship || q.phase !== 'pattern' || q.dying) continue;
+    const dx = q.x - p.x, dz = q.z - p.z, dy = q.y - p.y, d = Math.hypot(dx, dz);
+    if (d > 450 || Math.abs(dy) > 60) continue;
+    const ahead = (dx * fx + dz * fz) / Math.max(d, 1);
+    if (ahead < -0.2 || (ahead < 0.3 && q.id > p.id)) continue;       // (the one behind gives way; side by side, the newer)
+    f = Math.min(f, 0.8 + 0.2 * clamp((d - 120) / 330, 0, 1));
+  }
+  return f;
+}
+/** Climbing away from the deck and circling to assemble, an aircraft keeps clear of the one ahead of it: the speed it may not exceed (m/s; Infinity when nobody is in the way). */
+function assembleGap(world, ship, p) {
+  let cap = Infinity;
+  const fx = Math.sin(p.heading), fz = -Math.cos(p.heading), floor = stallSpeed(p, false) * 1.15;
+  for (const q of world.planes) {
+    if (q === p || q.owner !== ship || q.phase !== 'assemble' || q.dying) continue;
+    const dx = q.x - p.x, dz = q.z - p.z, d = Math.hypot(dx, dz);
+    if (d > 240 || Math.abs(q.y - p.y) > 45) continue;
+    const ahead = (dx * fx + dz * fz) / Math.max(d, 1);
+    if (ahead < -0.2 || (ahead < 0.5 && q.id > p.id)) continue;
+    cap = Math.min(cap, Math.max(floor, q.speed * (0.9 + 0.1 * clamp((d - 60) / 180, 0, 1))));
+  }
+  return cap;
+}
+/** Two aircraft of a wave that come within 160 m of each other at about the same height while assembling: the younger climbs out of the way (extra climb angle). */
+function assembleLift(world, ship, p) {
+  for (const q of world.planes) {
+    if (q === p || q.id > p.id || q.owner !== ship || q.phase !== 'assemble' || q.dying) continue;
+    if (Math.hypot(q.x - p.x, q.z - p.z) < 160 && Math.abs(q.y - p.y) < 32) return 0.07;
+  }
+  return 0;
+}
 /** May this aircraft turn in for the final approach: the deck is not launching or being cleared, and the aircraft ahead of it is well down its approach (or down)? */
-function mayTurnIn(world, ship, p) {
+function mayTurnIn(world, ship, p, force = false) {
   const D = deckOf(ship);
-  if (D.striking || launching(world, ship)) return false;
+  if (!force && (D.striking || launching(world, ship))) return false;
   const q = D.landing.length ? D.landing[D.landing.length - 1] : null;
   if (!q || q === p) return true;
   if (q.phase === 'rollout' || q.phase === 'taxiIn') return true;
@@ -343,7 +379,9 @@ function stepPlane(world, p, dt) {
         // off the bow just above the stall: the aircraft sinks a little, gathers speed low over the water, then climbs away
         const tA = p.age - p.t0Air, slow = p.speed < pf.vto * 1.25;
         hdg = ship.heading; spd = pf.vcl; o = { bankMax: 5 * D2R, accMax: p.fighter ? 3 : 2.4, pitchRate: 0.12 };
-        gam = tA < 1.5 ? -0.015 : slow && tA < 9 ? 0.025 : 0.1;
+        gam = (tA < 1.5 ? -0.015 : slow && tA < 9 ? 0.025 : 0.1) + (tA > 4 ? assembleLift(world, ship, p) : 0);
+        const cap = assembleGap(world, ship, p);
+        spd = Math.min(spd, cap);
         if (lx > dp.x1 + 150 && p.y > deckY + 60) {
           if (w.cap || !carrierOk) { p.phase = p.role || 'cap'; p.t = 0; break; }
           p.asm = 'orbit'; p.holdAng = 0; p.holdPrev = null; p.orbT = 0;
@@ -368,10 +406,11 @@ function stepPlane(world, p, dt) {
       const k = clamp((R - rl) / R * 2.2, -1.2, 1.2);
       let vx = cc.side * rz / rl + rx / rl * k, vz = -cc.side * rx / rl + rz / rl * k;
       const vl = Math.hypot(vx, vz) || 1;
-      vx = vx / vl * vc + ship.speed; vz = vz / vl * vc;
+      const ag = Math.min(1, assembleGap(world, ship, p) / vc);
+      vx = vx / vl * vc * ag + ship.speed; vz = vz / vl * vc * ag;
       hdg = relHeading(ship, vx, vz);
       spd = Math.hypot(vx, vz);
-      gam = clamp((deckY + pf.asm + (p.group % 4) * 40 - p.y) / 420, -0.05, 0.14);
+      gam = clamp((deckY + pf.asm + (p.group % 4) * 40 - p.y) / 420 + assembleLift(world, ship, p), -0.05, 0.16);
       o = { bankMax: 30 * D2R };
       break;
     }
@@ -608,12 +647,13 @@ function stepPlane(world, p, dt) {
         // (onto the downwind leg the way of the circuit, as in the break over the ship: never a long turn the other way)
         if (wrapPi(hdg - p.heading) * cc.turn < -2.3) hdg = p.heading + cc.turn * 1.2;
         gam = clamp((ship.y + cc.altDown - p.y) / 500, -0.05, 0.05);
-        spd = pf.vp;
+        spd = pf.vp * circuitGap(world, ship, p);
         o = { bankMax: 28 * D2R };
         // abeam the turning point: turn in if the groove is free, else hold in a circle away from the ship
         // (on the opposite course and near the downwind line, or it would roll out of the turn far from the centre line)
         if (lx < cc.turnX && Math.abs(wrapPi(p.heading - (ship.heading + Math.PI))) < 0.45 && Math.abs(lz - cc.zDown) < 450) {
-          if (mayTurnIn(world, ship, p) || p.holdT > 420) { p.leg = 2; p.t = 0; clearToLand(world, ship, p); }
+          // (one that has waited seven minutes comes in even if the deck is busy, but never into the aircraft ahead of it)
+          if (mayTurnIn(world, ship, p, p.holdT > 420)) { p.leg = 2; p.t = 0; clearToLand(world, ship, p); }
           else { p.leg = 3; p.holdAng = 0; p.holdPrev = null; }
         }
       } else if (p.leg === 3) {
@@ -624,7 +664,8 @@ function stepPlane(world, p, dt) {
         const k = clamp((R - rl) / R * 2.2, -1.2, 1.2);
         let vx = cc.side * rz / rl + rx / rl * k, vz = -cc.side * rx / rl + rz / rl * k;
         const vl = Math.hypot(vx, vz) || 1;
-        vx = vx / vl * vc + ship.speed; vz = vz / vl * vc;
+        const cg = circuitGap(world, ship, p);
+        vx = vx / vl * vc * cg + ship.speed; vz = vz / vl * vc * cg;
         hdg = relHeading(ship, vx, vz);
         spd = Math.hypot(vx, vz);
         gam = clamp((ship.y + cc.altDown - p.y) / 500, -0.05, 0.05);
@@ -640,7 +681,7 @@ function stepPlane(world, p, dt) {
         hdg = relHeading(ship, clamp(behind * 0.35, 250, 700), -lz);
         if (wrapPi(hdg - p.heading) * cc.turn < -1.75) hdg = p.heading + cc.turn * 1.2;
         gam = clamp((ship.y + cc.altTurn - p.y) / 400, -0.06, 0.03);
-        spd = pf.vp * 0.9;
+        spd = pf.vp * 0.9 * circuitGap(world, ship, p);
         o = { bankMax: 28 * D2R };
         if (Math.abs(wrapPi(p.heading - ship.heading)) < 0.3 && Math.abs(lz) < 350 + Math.max(0, behind) * 0.1) {
           // rolled out well off the centre line (or ahead of the ship): round the circuit again
@@ -662,6 +703,14 @@ function stepPlane(world, p, dt) {
         p.tdX = wires[Math.min(k, wires.length - 1)] - 2.2 + back + (world.rng() - 0.5) * 2; p.tdPick = true;
       }
       const behind = p.tdX - lx;                              // metres astern of the touchdown point
+      // (no closer than 350 m astern of the aircraft ahead on the final: it eases off to keep the distance, and goes round when it would close up under 170 m)
+      let gapAhead = Infinity, ahead = null;
+      for (const q of deckOf(ship).landing) {
+        if (q === p || q.phase !== 'final' || q.dying || q.tdX == null) continue;
+        ship.toLocal(q.x, q.y, q.z, _l3);
+        const g = behind - (q.tdX - _l3[0]);
+        if (g > -60 && Math.abs(_l3[2] - lz) < 60 && g < gapAhead) { gapAhead = g; ahead = q; }
+      }
       const deckY = ship.y + ship.model.fdY;
       const vrel = Math.max(12, p.speed - ship.speed);
       // line up on the centre line: steer at a point on it ahead of the aircraft, nearer as the deck comes up
@@ -669,6 +718,8 @@ function stepPlane(world, p, dt) {
       const wantY = deckY + gy + 0.18 + clamp(behind, 0, 1900) * 0.062;
       gam = clamp(-0.062 * vrel / Math.max(p.speed, 30) + (wantY - p.y) / 70, -0.1, 0.07);
       spd = Math.max(pf.va, ship.speed + 9) - clamp(1 - behind / 300, 0, 1) * 1.5;
+      if (ahead && gapAhead < 350) spd = Math.max(stallSpeed(p, true) * 1.12, Math.min(spd, ahead.speed - 3 - (350 - gapAhead) * 0.03));
+      if (ahead && gapAhead < 170 && behind > 260) { p.phase = 'waveoff'; p.t = 0; break; }
       o = { bankMax: 24 * D2R };
       p.gearDown = true;
       // the landing signal officer waves the aircraft off when the deck is not clear or the approach is bad
