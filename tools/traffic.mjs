@@ -2,7 +2,7 @@
 import { World } from '../js/game/sim/world.js';
 import { Terrain } from '../js/game/sim/terrain.js';
 import { teamStart } from '../js/game/sim/formation.js';
-const NAT = ['USA', 'Japan'], SEEDS = +(process.argv[2] || 4), SECS = +(process.argv[3] || 1800);
+const NAT = process.env.JP ? ['Japan', 'USA'] : ['USA', 'Japan'], SEEDS = +(process.argv[2] || 4), SECS = +(process.argv[3] || 1800);
 const T = { takeoffs: [], landings: [], minD: [], goArounds: 0, crashes: 0, planes: 0, landed: 0 };
 const S0 = +(process.argv[4] || 1);
 for (let seed = S0; seed < S0 + SEEDS; seed++) {

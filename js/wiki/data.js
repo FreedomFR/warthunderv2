@@ -5,7 +5,9 @@ import { PLANES, floatplaneSpec, planeTypeFor } from '../game/model/planes.js';
 import { PERF } from '../game/sim/airperf.js';
 import { shipName, ROLE_NAMES } from '../viewer/subjects.js';
 import { tierOf } from './tiers.js';
-import { tntEquivalent } from '../game/data/explosives.js';
+import { tntEquivalent, AIR_TORPEDO } from '../game/data/explosives.js';
+import { BOMBS, aircraftRadii, FILL } from '../game/data/ordnance.js';
+import { loadoutsOf, bombsIn, loadKg } from '../game/data/loadouts.js';
 
 const EXPLOSIVE_NAMES = { tnt: 'TNT', hexanite: 'hexanite', hbx: 'HBX', torpex: 'Torpex' };
 
@@ -259,5 +261,28 @@ export function aircraftSections(a) {
     s.siren ? ['Particularité', 'sirène « trompettes de Jéricho » en piqué'] : null,
     a.users.length ? [s.role === 'float' ? 'Embarqué sur' : 'Porte-avions', a.users.map((r) => r.name).join(', ')] : null,
   ].filter(Boolean);
-  return [{ id: 'air', title: 'Caractéristiques', rows: rows.map(([k, v]) => ({ k, v, est: false })) }];
+  const out = [{ id: 'air', title: 'Caractéristiques', rows: rows.map(([k, v]) => ({ k, v, est: false })) }];
+  const key = a.key.startsWith('plane:') ? a.key.slice(6) : null, loads = key ? loadoutsOf(key) : [];
+  if (loads.length) {
+    const ROLE = { ship: 'navires', armor: 'navires cuirassés', base: 'bases', alt: 'autre usage' };
+    out.push({ id: 'loads', title: 'Charges possibles (bombes et torpilles)', rows: loads.map((l) => {
+      const kg = loadKg(l, s.nation), t = l.stores.reduce((x, st) => x + (st.torp || 0), 0);
+      const use = l.roles.map((r) => ROLE[r]).filter(Boolean).join(', ');
+      return { k: l.label, v: `${fr(kg, 0)}${NB}kg au total · pour ${use}${t ? ' · torpille ' + torpName(s.nation) : ''}`, est: false };
+    }) });
+    // the bombs themselves: what is in them and what they do
+    const seen = new Set(), rowsB = [];
+    for (const l of loads) for (const b of bombsIn(l)) {
+      if (seen.has(b.id)) continue;
+      seen.add(b.id);
+      const R = aircraftRadii(b), nmax = Math.max(...loads.map((q) => q.stores.reduce((x, st) => x + (st.ord === b.id ? st.n : 0), 0)));
+      rowsB.push({ k: b.name, v: `${fr(b.kg, 0)}${NB}kg dont ${fr(b.filler, b.filler < 10 ? 1 : 0)}${NB}kg d'explosif (${FILL_NAME[b.fill] || b.fill}) · fusée ${b.delay ? fr(b.delay * 1000, 0) + NB + 'ms de retard' : 'instantanée'} · perce ${fr(b.pen, 0)}${NB}mm de pont (en piqué) · détruit un avion au sol à ${fr(R.dead, 0)}${NB}m · jusqu'à ${nmax} par avion`, est: !!b.est });
+    }
+    if (rowsB.length) out.push({ id: 'bombs', title: 'Bombes', rows: rowsB });
+  }
+  return out;
 }
+
+const FILL_NAME = { tnt: 'TNT', amatol: 'amatol', shimose: 'shimose', type91: 'type 91', explosiveD: 'explosif D', trialen: 'trialen', compB: 'composition B', torpex: 'torpex' };
+const TORP_NAME = { USA: 'Mk 13', Japan: 'Type 91', UK: 'Mk XII', Germany: 'LT F5b', France: 'aérienne de 400 mm', Italy: 'W 200/450' };
+const torpName = (nation) => `${TORP_NAME[nation] || ''} (${fr(AIR_TORPEDO[nation] ? AIR_TORPEDO[nation].kg : 200, 0)}${NB}kg d'explosif)`;

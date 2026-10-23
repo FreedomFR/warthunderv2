@@ -107,7 +107,7 @@ function layoutAirfield(site, id, island, nation, level, rng) {
   b.taxi.push({ x0: t0[0], z0: t0[1], x1: t1[0], z1: t1[1], w: 14 });
   for (const e of [-1, 1]) { const a = put(e * (len / 2 - 30), hw + 35), c = put(e * (len / 2 - 30), 0); b.taxi.push({ x0: a[0], z0: a[1], x1: c[0], z1: c[1], w: 14 }); }
   const ap = put(0, hw + 100);
-  b.aprons.push({ x: ap[0], z: ap[1], ang: b.ang, hl: 260, hw: 46 });
+  b.aprons.push({ x: ap[0], z: ap[1], ang: b.ang, hl: 270, hw: 62 });
   let n = 0;
   const part = (kind, label, s, t, w, l, h, extra = {}) => {
     const p = put(s, t);
@@ -121,10 +121,10 @@ function layoutAirfield(site, id, island, nation, level, rng) {
   for (let i = 0; i < 6; i++) part('barracks', 'Casernement', 200 + (i % 3) * 34, hw + 230 + Math.floor(i / 3) * 18, 28, 10, 6, { hp: 60 });
   part('radar', 'Radar', len / 2 - 140, hw + 150, 8, 8, 14, { hp: 40 });
   part('depot', 'Dépôt de munitions', -len / 2 + 190, hw + 265, 22, 14, 6, { hp: 80 });
-  // the aircraft park on the apron, nose to the runway side, in two rows
-  const cols = 10;
-  for (let row = 0; row < 2; row++) for (let i = 0; i < cols; i++) {
-    const p = put((i - (cols - 1) / 2) * 44, hw + 82 + row * 36);
+  // the aircraft park on the apron, nose to the runway side, in three rows: a field takes in many more aircraft than a carrier's hangar (36 places)
+  const cols = 12;
+  for (let row = 0; row < 3; row++) for (let i = 0; i < cols; i++) {
+    const p = put((i - (cols - 1) / 2) * 44, hw + 82 + row * 30);
     b.slots.push({ x: p[0], y: site.y, z: p[1], heading: b.heading - Math.PI / 2 });
   }
   // light AA: round the apron, at the ends of the runway and by the fuel

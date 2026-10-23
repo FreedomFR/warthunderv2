@@ -230,6 +230,16 @@
    "file": "runways.mjs",
    "args": [],
    "slow": true
+  },
+  {
+   "file": "landing.mjs",
+   "args": [],
+   "slow": true
+  },
+  {
+   "file": "ordnance.mjs",
+   "args": [],
+   "slow": true
   }
  ],
  "tools": [

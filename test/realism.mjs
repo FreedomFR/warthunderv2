@@ -167,7 +167,7 @@ function hitsToKill(id, shooter, type, range, maxHits = 600) {
 
 // ---- carriers: unarmoured and armoured flight decks, aviation fuel ----
 {
-  const bomb = (id, kg, vy = -140) => { const { w, s } = mk(id, 7); const lx = s.stats.L * 0.1; resolveBombHit(w, s, { kg, vx: 0, vy, vz: 0, owner: null }, { part: 'deck', lx, ly: s.model.hull.deckY(lx), lz: 2 }); return w.events.find((e) => e.type === 'impact').kind; };
+  const bomb = (id, kg, vy = -200) => { const { w, s } = mk(id, 7); const lx = s.stats.L * 0.1; resolveBombHit(w, s, { kg, vx: 0, vy, vz: 0, owner: null }, { part: 'deck', lx, ly: s.model.hull.deckY(lx), lz: 2 }); return w.events.find((e) => e.type === 'impact').kind; };
   ok(bomb('essex', 250) === 'penetrate' && bomb('shokaku', 250) === 'penetrate', 'a 250 kg bomb goes through the thin flight deck of an Essex or a Shokaku and bursts in the hangar');
   ok(bomb('illustrious', 250) === 'explode' && bomb('illustrious', 454) === 'explode', 'the 76 mm armoured flight deck of the Illustrious keeps 250 and 454 kg bombs out');
   // vapour from a holed fuel store: purged by the American system more often than by the Japanese

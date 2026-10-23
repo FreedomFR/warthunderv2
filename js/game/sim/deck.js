@@ -47,6 +47,7 @@ const SERVICE_TIME = 300;           // seconds a landed aircraft spends being re
 
 /** An aircraft that has come down to the hangar is serviced (refuelled, rearmed, a crew rested) before it counts as ready. */
 function recover(world, ship, p) {
+  p.landedAt = true;      // (a visitor from another ship or a field is one of this ship's aircraft now)
   ship.air.servicing.push({ at: world.time + SERVICE_TIME * (0.8 + 0.4 * world.rng()), fighter: !!p.fighter });
 }
 

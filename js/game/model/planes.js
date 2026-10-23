@@ -8,6 +8,7 @@
 // The land-based bombers (spec.engines: several engines) are built by heavy.js from the sheets of bomberdata.js with the same groups, plus
 //   prop (one propeller, hub at the origin; propsOf(spec) gives the place of each one)   engN (the nacelle of engine N)   burnN (the same, charred and glowing)
 //   cabin (single-engine: the fuselage seen from the pilot's seat, open over the cockpit)   bay (the open bomb doors)   hull (the fuselage from just behind the pilot, drawn instead of the nose and the flight deck when the view is from the pilot's seat)
+import { loadoutsOf, bombsIn } from '../data/loadouts.js';
 import { cockpitEye } from './cockpit.js';
 import { MeshBuilder, MAT, rgb, shade } from './meshbuilder.js';
 import { drawHeavy, propMounts, bayPivot } from './heavy.js';
@@ -539,7 +540,15 @@ export function drawPlane(b, s, { part = 'whole' } = {}) {
   // ----- ordnance -----
   if (part === 'ordnance') {
     if (s.ordnance === 'torp') drawTorpedo(b, 0, -(ry0 + 0.36), 0, 1);
-    else if (s.ordnance === 'bomb') drawBomb(b, 0.2, -(ry0 + 0.32), 0, s.bombKg || 250);
+    else if (s.ordnance === 'bomb') {
+      // the usual load of the type (data/loadouts.js): the big bomb under the fuselage, the small ones under the wings, in pairs
+      const key = Object.keys(PLANES).find((k) => PLANES[k] === s), ords = key ? bombsIn(loadoutsOf(key)[0]) : [];
+      if (!ords.length) drawBomb(b, 0.2, -(ry0 + 0.32), 0, s.bombKg || 250);
+      else ords.slice(0, 5).forEach((o, i) => {
+        if (i === 0) drawBomb(b, 0.2, -(ry0 + 0.32), 0, o.kg);
+        else drawBomb(b, s.wing.x + 0.2, s.wing.y - 0.42, (i % 2 ? -1 : 1) * (s.span * 0.2 + 0.55 * Math.floor((i - 1) / 2)), o.kg);
+      });
+    }
   }
 }
 

@@ -9,6 +9,7 @@ import { hullHit, compAt } from './hull.js';
 import { inFoot } from '../model/clearance.js';
 import { getMountModel } from '../model/mounts.js';
 import { hitNormalAt } from '../model/v4hit.js';
+import { genericBomb, fillerTNT, aircraftRadii, killChance, shockMPa } from '../data/ordnance.js';
 
 const _l = [0, 0, 0];
 
@@ -457,11 +458,15 @@ export function resolveShellHit(world, ship, shell, hit) {
   }
 }
 
-/** A bomb hit: GP bomb, penetrates light decks and bursts below. */
+/**
+ * A bomb hit. What the bomb is decides everything (data/ordnance.js): its mass and its explosive, the thickness of its case (a thin-case general-purpose bomb throws most of its
+ * filler into blast, an armour-piercing one keeps most of its mass in the case), its fuze delay and the deck it goes through at the speed it strikes with (`pen`, scaling with the
+ * square of the speed). A bomb that goes through the deck bursts where its delay puts it, inside the ship; one that does not bursts on the deck and wrecks what is above it.
+ */
 export function resolveBombHit(world, ship, bomb, hit) {
   const st = ship.stats, rng = world.rng;
+  const o = bomb.ord || genericBomb(bomb.kg);
   const speed = Math.hypot(bomb.vx, bomb.vy, bomb.vz);
-  const kg = bomb.kg;
   const owner = bomb.owner;
   const sh = Math.sin(ship.heading), ch = Math.cos(ship.heading);
   const ldx = (bomb.vx * sh - bomb.vz * ch) / speed, ldy = bomb.vy / speed, ldz = (bomb.vx * ch + bomb.vz * sh) / speed;
@@ -477,50 +482,91 @@ export function resolveBombHit(world, ship, bomb, hit) {
   }
   if (hit.part === 'mount') armor = hit.mount.rec.kind === 'turret' ? a.roof : 20;
   if (hit.part === 'hull') armor = Math.max(a.belt * 0.2, a.skin);
-  const pen = 2.2 * Math.sqrt(kg) * Math.pow(speed / 120, 1.3);
+  const pen = o.pen * Math.pow(speed / 220, 2) * (0.92 + 0.16 * rng());
   const nrm = hitNormal(ship, hit);
+  const kg = o.kg, W = fillerTNT(o);
   let dmg, kind;
   let px = lx, py = ly, pz = lz, inside = false;
-  if (pen > armor && hit.part !== 'aa') {
-    // fuze delay: the bomb bursts a few metres below the deck, inside the ship
-    const vres = speed * 0.7;
-    const d = 0.06 * vres;
+  if (pen > armor && hit.part !== 'aa' && o.delay > 0) {
+    // the fuze runs on: the bomb bursts that far below the deck (a general-purpose bomb 1 to 6 m, an armour-piercing one 10 m or more)
+    const vres = speed * (0.55 + 0.35 * clamp((pen - armor) / Math.max(pen, 1), 0, 1));
+    const d = o.delay * vres;
     px = lx + ldx * d; py = ly + ldy * d; pz = lz + ldz * d;
     inside = insideHull(ship, px, py, pz) || hit.part === 'mount';
     if (!inside) { px = lx + ldx * 2; py = ly + ldy * 2; pz = lz + ldz * 2; inside = insideHull(ship, px, py, pz); }
   }
+  // what the burst is worth: inside the hull the whole filler counts and the splinters of a thick case add to it; on the deck the case takes its share, and half of what is left goes upwards
+  const Pin = W * 1.8 + Math.max(0, kg - o.filler) * 0.12, Pout = W * o.caseK * 1.6;
   if (inside) {
-    dmg = kg * 1.15 * st.softness * (0.8 + 0.4 * rng()) * (st.type === 'CV' ? 1.15 : 1);
+    dmg = Pin * 1.28 * st.softness * (0.8 + 0.4 * rng()) * (st.type === 'CV' ? 1.15 : 1);
     kind = 'penetrate';
-    if (rng() < 0.7) addFireAt(ship, px, py, pz, 1.0, inCitadel);
-    if (hit.part === 'mount') damageMount(world, ship, hit.mount, kg * 0.9, owner, true);
-    detonate(world, ship, px, py, pz, kg * 0.9, 'inside', owner, 'bomb', 'penetrate', 250, hit);
+    if (rng() < 0.45 + 0.4 * clamp(W / 120, 0, 1)) addFireAt(ship, px, py, pz, 1.0, inCitadel);
+    if (hit.part === 'mount') damageMount(world, ship, hit.mount, Pin * 1.0, owner, true);
+    detonate(world, ship, px, py, pz, Pin, 'inside', owner, 'bomb', 'penetrate', 250, hit);
   } else {
-    dmg = kg * 0.35 * st.softness * (0.8 + 0.4 * rng());
+    dmg = Pout * 0.78 * st.softness * (0.8 + 0.4 * rng());
     kind = 'explode';
-    if (rng() < 0.5) addFireAt(ship, lx, Math.max(ly, 1), lz, 0.7);
-    if (hit.part === 'mount') damageMount(world, ship, hit.mount, kg * 0.5, owner, false);
-    detonate(world, ship, lx, ly, lz, kg * 0.45, 'outside', owner, 'bomb', 'explode', 250, hit);
+    if (rng() < 0.3 + 0.3 * clamp(W / 120, 0, 1)) addFireAt(ship, lx, Math.max(ly, 1), lz, 0.7);
+    if (hit.part === 'mount') damageMount(world, ship, hit.mount, Pout * 1.1, owner, false);
+    detonate(world, ship, lx, ly, lz, Pout, 'outside', owner, 'bomb', 'explode', 250, hit);
   }
-  ship.addScar(lx, ly, lz, nrm[0], nrm[1], nrm[2], 1.1 + kg / 400, inside ? 1 : 2);
+  // an aircraft parked on the deck where it burst is lost, and the ones near it (the aircraft of the park are a count; the deck slots give the places)
+  if (st.type === 'CV' && (hit.part === 'deck' || inside)) blastDeckPlanes(world, ship, lx, lz, o, owner);
+  ship.addScar(lx, ly, lz, nrm[0], nrm[1], nrm[2], 1.1 + o.kg / 400, inside ? 1 : 2);
   if (owner) { owner.damageDealt += dmg; owner.shotsHit++; }
   hullHit(ship, { lx: px, ly: py, lz: pz, energy: dmg, cause: 'bomb', attacker: owner, holeScale: inside ? 1 : 0.5 });
 }
 
-/** A bomb that missed but burst in the water against the hull: shock and flooding. */
+/**
+ * The aircraft parked on a flight deck near a burst: each one inside the radius of destruction of the bomb is lost, with the chance the blast gives at its distance (the places of the
+ * deck park are `deckSlots`); the aircraft are the count `ship.parked` of the park and `ship.air.ready` of the air group.
+ */
+function blastDeckPlanes(world, ship, lx, lz, o, owner) {
+  const slots = ship.model.deckSlots;
+  if (!slots || !slots.length || !ship.air || ship.parked <= 0) return;
+  const R = aircraftRadii(o);
+  let lost = 0;
+  const n = Math.min(ship.parked, slots.length);
+  for (let i = 0; i < n; i++) {
+    const d = Math.hypot(slots[i].x - lx, slots[i].z - lz);
+    if (d < R.hurt && world.rng() < killChance(d, R)) lost++;
+  }
+  if (!lost) return;
+  ship.parked = Math.max(0, ship.parked - lost);
+  ship.air.ready = Math.max(0, ship.air.ready - lost);
+  ship.lostPlanes = (ship.lostPlanes || 0) + lost;
+  if (owner) owner.planeKills = (owner.planeKills || 0) + lost;
+  world.events.push({ type: 'deckPlanesLost', ship, count: lost });
+}
+
+/** A bomb that missed but burst in the water against the hull: the shock (Cole's law), the seams that open, the plating that holes, the water that comes in. */
 export function resolveNearMiss(world, ship, bomb, wx, wz) {
-  const st = ship.stats;
+  const st = ship.stats, o = bomb.ord || genericBomb(bomb.kg);
   ship.toLocal(wx, 0, wz, _l);
   const lx = _l[0], lz = _l[2];
-  const side = Math.abs(lz) - ship.model.hull.halfBeamWL(clamp(lx, -st.L / 2, st.L / 2));
-  if (side > 14 || Math.abs(lx) > st.L / 2 + 14) return;
-  const k = 1 - clamp(side / 14, 0, 1);
-  const P = bomb.kg * 0.8 * k * st.torpFactor * 0.5;
-  if (P < 8) return;
-  blast(world, ship, lx, -1.5, clamp(lz, -st.B / 2, st.B / 2), P, 'under', bomb.owner, 'bomb');
-  ship.flood(lx, lz, bomb.kg * 0.02 * k);
-  if (bomb.owner) bomb.owner.damageDealt += P * 0.2;
-  hullHit(ship, { lx, ly: -1.5, lz: clamp(lz, -st.B / 2, st.B / 2), energy: P * 0.25, cause: 'bomb', attacker: bomb.owner, holeScale: 0.5 });
+  const side = Math.max(0, Math.abs(lz) - ship.model.hull.halfBeamWL(clamp(lx, -st.L / 2, st.L / 2)));
+  if (side > 60 || Math.abs(lx) > st.L / 2 + 60) return;
+  // the bomb goes into the water and bursts when its fuze runs out: a few metres down (the water takes most of its speed in the first metre)
+  const speed = Math.hypot(bomb.vx, bomb.vy, bomb.vz), depth = clamp(o.delay * speed * 0.3, 0.3, 9);
+  const W = fillerTNT(o) * (depth > 1 ? 1 : 0.6);
+  const draft = (st.D || 6) * 0.5;
+  const R = Math.hypot(side, Math.max(0, depth - draft * 0.3) + 0.6);
+  const P = shockMPa(W, R);
+  // armour belts and blisters make the plating stiffer (the thresholds are for the unarmoured sides of a destroyer or a carrier)
+  const k = 1 + clamp((st.armor ? st.armor.belt : 0) / 150, 0, 2.5);
+  const seams = 20 * k, holing = 40 * k;
+  if (P < seams * 0.3) return;
+  const lzc = clamp(lz, -st.B / 2, st.B / 2);
+  // the shock goes through the hull and shakes the machinery, the mounts and the people (the blast of a burst under water is felt far, and falls off fast)
+  const Pw = W * clamp((P - 5) / 35, 0, 2.5) * st.torpFactor * 0.5;
+  if (Pw >= 2) blast(world, ship, lx, -1.5, lzc, Pw, 'under', bomb.owner, 'bomb');
+  let energy = W * clamp((P - seams * 0.75) / 30, 0, 3) * 0.35 * st.torpFactor;
+  // the gas bubble under the keel lifts the middle of the ship and lets it fall: the hull girder is strained when the shock factor sqrt(W lb) / R ft passes 1
+  const K = Math.sqrt(W * 2.2046) / (R * 3.281);
+  if (K > 1) energy += W * (K - 1) * 0.5;
+  if (P >= seams) ship.flood(lx, lz, W * 0.05 * clamp(P / holing, 0.4, 2) * st.torpFactor);
+  if (energy > 0) hullHit(ship, { lx, ly: -1.5, lz: lzc, energy, cause: 'bomb', attacker: bomb.owner, holeScale: P >= holing ? 1 : 0.4 });
+  if (bomb.owner) bomb.owner.damageDealt += energy * 0.3;
 }
 
 /** A crashing aircraft slams into the ship. */
