@@ -94,8 +94,14 @@ if fl.get('probe'):
 cen = Q[I].mean(1)
 tmat = VM[I[:, 0]]
 part = np.full(len(I), '', dtype=object)
+clear = np.zeros(len(I), bool)
+_n = np.cross(Q[I[:, 1]] - Q[I[:, 0]], Q[I[:, 2]] - Q[I[:, 0]]); absnz = np.abs(_n[:, 2]) / (np.linalg.norm(_n, axis=1) + 1e-12)
+if AL is not None and cfg.get('alpha', True):
+    ta = (AL[I].min(1) if cfg.get('alpha_mode', 'min') == 'min' else AL[I].mean(1)) / 255.0; clear = ta < cfg.get('alpha_min', 0.8)      # (a card of a wire is opaque only on its line: a triangle that has a clear corner is not kept)
 for r in cfg.get('rules', []):
     m = np.ones(len(I), bool)
+    if 'absnz' in r: m &= absnz >= r['absnz']      # (a rule on the triangles that face sideways: a flat card standing in the middle plane of the model)
+    if 'clear' in r: m &= clear == bool(r['clear'])      # (a rule on the transparent triangles only, or on the opaque ones: the glass of a model that has one material)
     if 'material' in r: m &= sel_mats(r['material'])[tmat]
     if 'box' in r:
         b = r['box']
@@ -107,9 +113,8 @@ for r in cfg.get('rules', []):
         part[m] = r['part']
 dm = dropm[tmat]
 if AL is not None and cfg.get('alpha', True):
-    ta = (AL[I].min(1) if cfg.get('alpha_mode', 'min') == 'min' else AL[I].mean(1)) / 255.0; clear = ta < cfg.get('alpha_min', 0.8)      # (a card of a wire is opaque only on its line: a triangle that has a clear corner is not kept)
     print('transparent triangles dropped:', int((clear & (part == '')).sum()))
-    part[clear & (part == '')] = 'drop'
+    if cfg.get('alpha_drop', True): part[clear & (part == '')] = 'drop'      # ("alpha_drop": false keeps the clear triangles that no rule took, with the model's colour)
 part[dm & (part == '')] = 'drop'
 wz, tx = cfg.get('wing_z', 1e9), cfg.get('tail_x', -1e9)
 rest = part == ''
@@ -164,17 +169,18 @@ if fl.get('measures') or fl.get('probe2'): measures()
 def pack(a):
     return base64.b64encode(a.tobytes()).decode()
 
-def decimate(V, Ci, T, budget):
+def decimate(V, Ci, T, budget, bw=None, weld=0.002):
+    bw = cfg.get('boundary', 40.0) if bw is None else bw
     if budget <= 0 or len(T) <= budget:
         return V, Ci, T
     m = o3d.geometry.TriangleMesh()
     m.vertices = o3d.utility.Vector3dVector(V); m.triangles = o3d.utility.Vector3iVector(T.astype(np.int32)); m.vertex_colors = o3d.utility.Vector3dVector(Ci / 255.0)
-    m.merge_close_vertices(0.002); m.remove_degenerate_triangles(); m.remove_duplicated_triangles()
-    m = m.simplify_quadric_decimation(target_number_of_triangles=int(budget), boundary_weight=float(cfg.get('boundary', 40.0)))
+    m.merge_close_vertices(weld); m.remove_degenerate_triangles(); m.remove_duplicated_triangles()
+    m = m.simplify_quadric_decimation(target_number_of_triangles=int(budget), boundary_weight=float(bw))
     m.remove_degenerate_triangles(); m.remove_unreferenced_vertices()
     return np.asarray(m.vertices), np.clip(np.asarray(m.vertex_colors) * 255, 0, 255), np.asarray(m.triangles)
 
-def refine(V, T, tree, C0, maxedge, minedge, thr):
+def refine(V, T, tree, C0, maxedge, minedge, thr, fine=None):
     # a triangle is cut in four where the paint changes under it (the colour of the model at its middle is not the mean of the colours at its corners: a roundel, a stripe, a panel edge), as long as
     # its longest edge is above `minedge`; and whatever the paint, one longer than `maxedge`. The colours are read at the vertices from the full-resolution mesh.
     V = np.asarray(V); T = np.asarray(T, dtype=np.int64)
@@ -182,9 +188,14 @@ def refine(V, T, tree, C0, maxedge, minedge, thr):
         _, kv = tree.query(V); Cv = C0[kv].astype(np.float64)
         cen = V[T].mean(1); _, kc = tree.query(cen); Cc2 = C0[kc].astype(np.float64)
         diff = np.abs(Cc2 - Cv[T].mean(1)).max(axis=1)
+        # (and the middle of each edge: a long thin triangle has its paint change along its length, which its centre does not show)
+        for a_, b_ in ((0, 1), (1, 2), (2, 0)):
+            mid = (V[T[:, a_]] + V[T[:, b_]]) / 2; _, km = tree.query(mid)
+            diff = np.maximum(diff, np.abs(C0[km].astype(np.float64) - (Cv[T[:, a_]] + Cv[T[:, b_]]) / 2).max(axis=1))
         e = np.stack([np.linalg.norm(V[T[:, 1]] - V[T[:, 0]], axis=1), np.linalg.norm(V[T[:, 2]] - V[T[:, 1]], axis=1), np.linalg.norm(V[T[:, 0]] - V[T[:, 2]], axis=1)], axis=1)
         em = e.max(axis=1)
         big = ((diff > thr) & (em > minedge)) | (em > maxedge)
+        if fine: big |= (diff > fine[0]) & (em > fine[1])      # `fine`: [difference, edge]: a sharp edge of paint (a roundel against the camouflage) is followed down to a finer mesh than the soft mottling
         if not big.any(): break
         keep, tb = T[~big], T[big]
         k = len(tb); n0 = len(V)
@@ -213,10 +224,10 @@ for name in sorted(set(part) - {'drop'}):
     used = np.unique(I[t]); remap = -np.ones(nv, dtype=np.int64); remap[used] = np.arange(len(used))
     V, Cc, T = Q[used], C[used].astype(np.float64), remap[I[t]]
     V0, C0 = V, Cc
-    V, Cc, T = decimate(V, Cc, T, budget.get(name, 0))
+    V, Cc, T = decimate(V, Cc, T, budget.get(name, 0), cfg.get('boundary_by_piece', {}).get(name), cfg.get('weld_by_piece', {}).get(name, 0.002))
     if cfg.get('refine') and name not in cfg.get('norefine', []):      # (the colour is then read again, at every vertex, from the full-resolution mesh)
         tree = cKDTree(V0)
-        V, T = refine(V, T, tree, C0, cfg['refine'], cfg.get('minedge', 0.1), cfg.get('colthr', 28))
+        V, T = refine(V, T, tree, C0, cfg['refine'], cfg.get('minedge', 0.1), cfg.get('colthr', 28), cfg.get('fine'))
         d, k = tree.query(V); Cc = C0[k]
     kept[name] = (V, Cc, T)
     make_piece(name, V, Cc, T)
@@ -243,6 +254,59 @@ if fl.get('picture'):
         if 0 <= a < img.width and 0 <= b < img.height: px[a, b] = tuple(c)
     os.makedirs(os.path.dirname(fl['picture']) or '.', exist_ok=True)
     img.save(fl['picture']); print('picture', fl['picture'])
+
+if fl.get('views'):
+    # three orthographic views (top, side, front) of the pieces, each coloured by its piece, the dropped triangles in yellow: --views=out/planes/<key>_views.png [--vpx=900]
+    from PIL import Image
+    cols = {'body': (160, 160, 160), 'tail': (80, 160, 220), 'wingL': (230, 130, 60), 'wingR': (60, 200, 90), 'prop': (230, 60, 60), 'gear': (200, 60, 200), 'glass': (60, 220, 230), 'canopy': (240, 200, 60), 'drop': (255, 255, 0)}
+    for i in range(8): cols.setdefault(f'eng{i}', (90 + 20 * i, 120, 255 - 25 * i)); cols.setdefault(f'burn{i}', (120, 70, 40)); cols.setdefault('bay', (255, 120, 200))
+    Wv = int(fl['vpx']) if isinstance(fl.get('vpx'), str) else 900
+    ci = np.array([cols.get(p, (255, 255, 255)) for p in part], dtype=np.uint8)
+    ctr = Q[I].mean(1); lo3, hi3 = ctr.min(0), ctr.max(0)
+    if fl.get('vbox'):      # --vbox=x0,x1,y0,y1,z0,z1: only what is in this box (game frame), to look closer
+        vb = [float(x) for x in fl['vbox'].split(',')]; lo3, hi3 = np.array(vb[0::2]), np.array(vb[1::2])
+        inb = ((ctr >= lo3) & (ctr <= hi3)).all(1); ctr = ctr[inb]; ci = ci[inb]
+    panels = []
+    for (u, v, dep, sg) in ((0, 2, 1, 1), (0, 1, 2, 1), (2, 1, 0, 1)):
+        ext_u, ext_v = hi3[u] - lo3[u] + 0.4, hi3[v] - lo3[v] + 0.4; s = min((Wv - 20) / ext_u, (Wv * 0.7 - 20) / ext_v)
+        Hh = int(ext_v * s) + 20; im = np.full((Hh, Wv, 3), 34, np.uint8)
+        order = np.argsort(ctr[:, dep])      # far to near: the top view looks down, the side view from starboard, the front view from the nose
+        X = ((ctr[order, u] - lo3[u] + 0.2) * s + 10).astype(int); Y = ((hi3[v] - ctr[order, v] + 0.2) * s + 10).astype(int)
+        okp = (X >= 1) & (X < Wv - 1) & (Y >= 1) & (Y < Hh - 1)
+        X, Y, Cc = X[okp], Y[okp], ci[order][okp]
+        for dx in (0, 1):
+            for dy in (0, 1): im[Y + dy - 0, X + dx - 0] = Cc
+        panels.append(im)
+    Hmax = max(p.shape[0] for p in panels)
+    out = np.concatenate([np.pad(p, ((0, Hmax - p.shape[0]), (0, 0), (0, 0)), constant_values=34) for p in panels], axis=0)
+    os.makedirs(os.path.dirname(fl['views']) or '.', exist_ok=True)
+    Image.fromarray(out).save(fl['views']); print('views', fl['views'], out.shape)
+
+if fl.get('pic'):      # a picture of the pieces in three views (side and top on the left, front on the right), at --pscale px/m: --pic=out.png [--pview=body,tail] [--pzoom=x0,x1] [--pmat=regex] [--pclip=x0,x1,y0,y1,z0,z1]
+    from PIL import Image
+    cols = {'body': (170, 170, 170), 'tail': (80, 160, 220), 'wingL': (240, 130, 60), 'wingR': (60, 210, 90), 'prop': (240, 60, 60), 'gear': (210, 60, 210), 'glass': (60, 230, 240), 'canopy': (250, 210, 60), 'drop': (255, 255, 0)}
+    show = fl['pview'].split(',') if fl.get('pview') else [k for k in cols if k != 'drop']
+    sel = np.isin(part, show)
+    if fl.get('pmat'): sel &= sel_mats(fl['pmat'])[tmat]
+    if fl.get('pclip'):      # --pclip=x0,x1,y0,y1,z0,z1 (game frame)
+        c = [float(v) for v in fl['pclip'].split(',')]
+        sel &= (cen[:, 0] >= c[0]) & (cen[:, 0] <= c[1]) & (cen[:, 1] >= c[2]) & (cen[:, 1] <= c[3]) & (cen[:, 2] >= c[4]) & (cen[:, 2] <= c[5])
+    cc = cen[sel]; pp = part[sel]
+    ci = np.array([cols.get(p, (255, 255, 255)) for p in pp])
+    x0, x1 = (float(v) for v in fl['pzoom'].split(',')) if fl.get('pzoom') else (cc[:, 0].min() - 0.3, cc[:, 0].max() + 0.3)
+    s = float(fl.get('pscale', 70))
+    y0, y1 = cc[:, 1].min() - 0.2, cc[:, 1].max() + 0.2
+    zr = max(abs(cc[:, 2].min()), abs(cc[:, 2].max()), 1) + 0.3
+    Wl = int((x1 - x0) * s) + 40; Hs = int((y1 - y0) * s) + 40; Ht = int(2 * zr * s) + 40; Wf = int(2 * zr * s) + 40
+    img = Image.new('RGB', (Wl + Wf, max(Hs + Ht, Ht)), (30, 32, 36)); px = img.load()
+    def dot(a, b, c):
+        if 0 <= a < img.width - 1 and 0 <= b < img.height - 1: px[a, b] = px[a + 1, b] = px[a, b + 1] = px[a + 1, b + 1] = tuple(c)
+    X = ((cc[:, 0] - x0) * s + 20).astype(int)
+    for a, b, c in zip(X, ((y1 - cc[:, 1]) * s + 20).astype(int), ci): dot(a, b, c)
+    for a, b, c in zip(X, ((cc[:, 2] + zr) * s + Hs + 20).astype(int), ci): dot(a, b, c)
+    for a, b, c in zip(((cc[:, 2] + zr) * s + Wl + 20).astype(int), ((y1 - cc[:, 1]) * s + 20).astype(int), ci): dot(a, b, c)
+    d = Image.new('RGB', (1, 1)); os.makedirs(os.path.dirname(fl['pic']) or '.', exist_ok=True)
+    img.save(fl['pic']); print('picture', fl['pic'], img.size, 'scale', s, 'px/m  (x0', round(x0, 2), 'y1', round(y1, 2), 'zr', round(zr, 2), ')')
 
 if outf:
     keys = [k for k in ('body', 'tail', 'wingL', 'wingR', 'prop', 'gear', 'glass', 'canopy') if k in pieces]

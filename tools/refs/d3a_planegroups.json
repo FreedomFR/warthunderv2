@@ -81,20 +81,20 @@
  "wing_z": 0.55,
  "tail_x": -3.0,
  "budget": {
-  "body": 9000,
-  "tail": 3000,
-  "wingL": 3500,
-  "wingR": 3500,
+  "body": 7000,
+  "tail": 2200,
+  "wingL": 2600,
+  "wingR": 2600,
   "prop": 1800,
-  "glass": 900
+  "glass": 700
  },
  "refine": 1.2,
  "norefine": [
   "prop",
   "glass"
  ],
- "minedge": 0.1,
- "colthr": 40,
+ "minedge": 0.12,
+ "colthr": 45,
  "recolor": {
   "prop": [
    48,
@@ -102,5 +102,9 @@
    34
   ]
  },
- "hub_depth": 0.12
+ "hub_depth": 0.12,
+ "fine": [
+  75,
+  0.03
+ ]
 }

@@ -9,6 +9,17 @@
   {
    "part": "drop",
    "box": [
+    -5.3,
+    -2.5,
+    1.6,
+    3,
+    -0.6,
+    0.6
+   ]
+  },
+  {
+   "part": "drop",
+   "box": [
     -2.7,
     -1.25,
     1.09,
@@ -76,16 +87,16 @@
  "wing_z": 0.6,
  "tail_x": -2.7,
  "budget": {
-  "body": 9000,
-  "tail": 3000,
-  "wingL": 3500,
-  "wingR": 3500,
+  "body": 16000,
+  "tail": 10000,
+  "wingL": 4500,
+  "wingR": 4500,
   "prop": 1800,
-  "canopy": 1500
+  "canopy": 3000
  },
  "refine": 1.2,
- "minedge": 0.1,
- "colthr": 40,
+ "minedge": 0.12,
+ "colthr": 45,
  "norefine": [
   "prop"
  ],
@@ -98,5 +109,9 @@
  },
  "drop_wires": true,
  "mirror_wings": "L",
- "hub_depth": 0.12
+ "hub_depth": 0.12,
+ "fine": [
+  75,
+  0.03
+ ]
 }
