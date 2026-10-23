@@ -80,6 +80,14 @@
    "args": []
   },
   {
+   "file": "hull.mjs",
+   "args": []
+  },
+  {
+   "file": "planeparts.mjs",
+   "args": []
+  },
+  {
    "file": "realism.mjs",
    "args": []
   },

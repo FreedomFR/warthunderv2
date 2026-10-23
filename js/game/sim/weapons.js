@@ -1,4 +1,5 @@
 // Gunnery (fire control, turret slewing, salvos) and torpedo launching.
+import { crewOf } from './hull.js';
 import { clamp, wrapPi, approach, D2R } from '../math.js';
 import { gunBallistics, solve } from './ballistics.js';
 import { V_EXP, effectiveThickness, spacedPlates, fuzeThickness } from './penetration.js';
@@ -108,7 +109,7 @@ function pickAlt(world, ship, m) {
   let best = null, bs = 0;
   for (const e of world.enemiesOf(ship).concat(world.baseTargetsOf(ship))) {
     if (!feasible(ship, m, e, _alt)) continue;
-    const s = TYPE_VALUE[e.stats.type] * (1 + (e.isBase ? 0 : (1 - e.hpFrac) * 0.9)) / (0.35 + _alt.range / (m.gun.maxRange * 0.93));
+    const s = TYPE_VALUE[e.stats.type] * (1 + (e.isBase ? 0 : (1 - e.condition) * 0.9)) / (0.35 + _alt.range / (m.gun.maxRange * 0.93));
     if (s > bs) { bs = s; best = e; }
   }
   return best;
@@ -122,7 +123,7 @@ export function updateGunnery(ship, world, dt) {
     m.recoil = recoilCurve(m.fireT);
     m.flash = Math.max(0, m.flash - dt * 5);
     if (m.jam > 0) m.jam = Math.max(0, m.jam - dt);
-    if (!m.alive || !ship.alive) continue;
+    if (!m.alive || !ship.canFire || !ship.mountUsable(m)) continue;
     // dual-purpose guns firing at aircraft are handled by the anti-aircraft step
     if (m.busyAir) { m.busyAir = false; continue; }
     if (m.noAmmo || m.jam > 0) { neutral(m, dt); m.aimOk = false; continue; }
@@ -208,7 +209,7 @@ function fireMount(world, ship, m, target, s) {
     });
   }
   ship.shotsFired += nFire;
-  m.reload = m.reloadMax = gun.reload * (0.92 + world.rng() * 0.16) * (1 + (1 - m.hp / m.maxHp) * 0.7);       // reloadMax: the whole time of this reload (the reload gauge of the HUD)
+  m.reload = m.reloadMax = gun.reload * (0.92 + world.rng() * 0.16) * (1 + (1 - m.hp / m.maxHp) * 0.7) * (1 + (1 - crewOf(m)) * 1.8);       // reloadMax: the whole time of this reload (the reload gauge of the HUD)
   m.recoil = 0; m.fireT = 0; m.flash = 1;
   // the recoil of the salvo heels the ship away from the side it fires to (a few tenths of a degree for destroyers, about a degree for a full battleship broadside)
   if (ship.sr) {
@@ -303,7 +304,7 @@ const BOW_ARC = 4 * D2R;
 
 export function updateTorpedoes(ship, world, dt) {
   const tp = ship.stats.torpedo;
-  if (!tp || !ship.alive) return;
+  if (!tp || !ship.alive || ship.crewFrac < 0.25) return;
   if (ship.torpLeft <= 0 && ship.torpReload > 0 && (ship.torpSpare === null || ship.torpSpare > 0)) {
     ship.torpReload -= dt;
     if (ship.torpReload <= 0) {

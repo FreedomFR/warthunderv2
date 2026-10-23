@@ -1,5 +1,8 @@
 // The damage multipliers: node test/balance.mjs — config/balance.json is complete and valid, the layers (neutral, file, browser) stack, and each multiplier changes
 // the damage of its cause only.
+import { hullHit } from '../js/game/sim/hull.js';
+import { planeParts } from '../js/game/sim/planedamage.js';
+import { PLANES } from '../js/game/model/planes.js';
 import fs from 'node:fs';
 import { BALANCE, BALANCE_FIELDS, setBalance, setBalanceFile, balanceDiff, balanceNeutral } from '../js/game/data/balance.js';
 import { World } from '../js/game/sim/world.js';
@@ -29,15 +32,21 @@ setBalanceFile(null);
 // the multipliers act on their own cause
 const w = new World(3); w.addTeam(0); w.addTeam(1);
 spawnFleet(w, 0, [{ id: 'baltimore', count: 1 }], 0, 0, 0);
-const s = w.ships[0], dmgOf = (cause, amount = 500) => { const h0 = s.hp; s.applyDamage(amount, null, cause); const d = h0 - s.hp; s.hp = h0; return d; };
-ok(dmgOf('shell') === 500, 'neutral: a ship takes the damage as computed');
+const s = w.ships[0];
+// (the blow to the hull, as the strength of the structure it takes: the structure of the compartment it lands in, in hull strengths)
+const dmgOf = (cause, amount = 500) => { const c = s.comps[0]; const was = c.struct; hullHit(s, { lx: s.stats.L / 2 - 1, ly: -1, lz: 0, energy: amount, cause, attacker: null }); const d = (c.struct - was) * s.stats.maxHp * 0.5; c.struct = was; c.leaks = 0; s.holes.length = 0; return d; };
+const near = (a, b) => Math.abs(a - b) < 1e-6 * Math.max(1, b);
+ok(near(dmgOf('shell'), 500), 'neutral: a ship takes the damage as computed');
 setBalance({ ships: { shell: 2, torpedo: 0 } });
-ok(dmgOf('shell') === 1000 && dmgOf('torpedo') === 0 && dmgOf('bomb') === 500, `shell x2 doubles the damage of shells (${dmgOf('shell')}), torpedo x0 makes torpedoes harmless, bombs unchanged`);
-const p = { hp: 4, maxHp: 4, phase: 'cruise', lost: {}, smoke: 0, fire: 0, x: 0, y: 500, z: 0 };
+ok(near(dmgOf('shell'), 1000) && dmgOf('torpedo') === 0 && near(dmgOf('bomb'), 500), `shell x2 doubles the damage of shells (${dmgOf('shell').toFixed(0)}), torpedo x0 makes torpedoes harmless, bombs unchanged`);
+// an aircraft tough enough that no part is lost: the damage is what its parts have lost
+const p = { spec: { ...PLANES.sbd, hp: 1000 }, typeKey: 'sbd', cond: 1, phase: 'cruise', lost: {}, smoke: 0, fire: 0, x: 0, y: 500, z: 0, heading: 0, pitch: 0, speed: 50, vx: 0, vy: 0, vz: -50 };
+const total = () => { const P = planeParts(p); return [P.wingL, P.wingR, P.tail, P.body, P.fuel, P.pilot, P.ctl, ...P.eng].reduce((a, q) => a + q.hp, 0); };
+const t0 = total();
 setBalance({ planes: { gun: 0, aa: 2 } });
 hitPlane(w, null, p, 0.5, 12.7, 'gun');
-ok(p.hp === 4, 'fighter guns x0: the aircraft is not touched');
+ok(total() === t0, 'fighter guns x0: the aircraft is not touched');
 hitPlane(w, null, p, 0.5, 40, 'aa');
-ok(Math.abs(p.hp - 3) < 1e-9, 'AA x2: a hit of 0.5 takes 1');
+ok(t0 - total() >= 0.999, `AA x2: a hit of 0.5 takes 1 off the part it lands on (${(t0 - total()).toFixed(2)} off the aircraft with what it passes on)`);
 setBalance(null);
 ok(JSON.stringify(balanceNeutral()) === JSON.stringify(BALANCE), 'back to neutral');

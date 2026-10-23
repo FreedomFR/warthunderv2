@@ -69,7 +69,7 @@ const run = (w, secs, f) => { const n = Math.round(secs / 0.1); for (let i = 0; 
       // once the whole wave has left the deck, shoot down all but `survivors` of it
       if (wave && !done && wave.launched >= wave.n && w.planes.filter((q) => q.wave === wave && q.phase === 'cruise').length >= wave.n - 2) {
         done = true;
-        w.planes.filter((q) => q.wave === wave).slice(survivors).forEach((q) => { q.hp = 0; q.dying = true; });
+        w.planes.filter((q) => q.wave === wave).slice(survivors).forEach((q) => { q.cond = 0; q.dying = true; });
       }
     });
     return { wave, events };

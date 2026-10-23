@@ -45,7 +45,8 @@ export function makeStats(spec) {
     L, B: spec.beam, D: spec.draft, dispFull,
     maxSpeed, accel: maxSpeed / ACCEL_SECONDS[t], decel: maxSpeed / (ACCEL_SECONDS[t] * 0.6),
     turnRadius: TURN_FACTOR[t] * L, rudderRate: t === 'DD' ? 0.22 : t === 'BB' || t === 'CV' ? 0.1 : 0.14,
-    maxHp: Math.round(dispFull * HP_FACTOR[t]),
+    maxHp: Math.round(dispFull * HP_FACTOR[t]),      // the strength of the hull, a scale for blows and holes (there are no hit points: see sim/hull.js)
+    crew: Math.round(spec.crew || { DD: 250, CL: 750, CA: 1000, BB: 1900, CV: 1800 }[t]),
     armor: {
       belt: arm.beltMm ?? (t === 'DD' ? 5 : 20), deck: arm.deckMm ?? (t === 'DD' ? 6 : 25),
       turretFace: arm.turretFaceMm ?? (t === 'DD' ? 12 : t === 'CV' ? 20 : 40), turretSide: arm.turretSideMm ?? (arm.turretFaceMm ? arm.turretFaceMm * 0.5 : 20),

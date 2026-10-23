@@ -22,7 +22,9 @@ export function guide(p, dt, hdgT, gamT, spdT, o = {}) {
   const flaps = !!p.gearDown;
   const vs = stallSpeed(p, flaps);
   const nLift = (v / vs) * (v / vs);
-  const nAvail = Math.max(1.02, Math.min(A.nmax, nLift * 0.9));
+  const fd = p.fd;      // what the damage has done to the flying (sim/planedamage.js): less lift, slower roll and pitch, a wing that drops
+  const nAvail = Math.max(1.02, Math.min(A.nmax * (fd ? fd.lift : 1), nLift * 0.9));
+  const rollRate = A.roll * (fd ? fd.roll : 1);
   // the climb the engine can hold: the excess of thrust over drag; above the climb speed the aircraft may zoom (trade its speed for height), below it it cannot
   const power = (p.lost && p.lost.engine ? 0 : p.lost && p.lost.engines ? 1 - p.lost.engines.filter(Boolean).length / p.lost.engines.length : 1) * (o.powerMax ?? 1);
   const cosG = Math.cos(p.pitch);
@@ -39,13 +41,13 @@ export function guide(p, dt, hdgT, gamT, spdT, o = {}) {
   const gamMax = Math.asin(clamp(excess / G, -0.5, 0.6)) + clamp((v - vKeep) / v * 1.2, -0.25, 0.35);
   const climbLimited = gamT > gamMax;
   const gamW = Math.min(gamT, Math.max(gamMax, -1.5));
-  const pr = o.pitchRate ?? pf.pr;
+  const pr = (o.pitchRate ?? pf.pr) * (fd ? fd.pitch : 1);
   const bankPilot = Math.min(o.bankMax ?? pf.bank * D2R, pf.bank * D2R);
   const err = wrapPi(hdgT - p.heading);
   let yr, n;
   if (o.bankOverride != null) {
     // a manoeuvre flown by attitude (the roll-in of a dive bomber, the wings held level in the dive): the bank as told, the nose moved at the pilot's rate
-    p.bank += clamp(o.bankOverride - p.bank, -A.roll * 1.5 * dt, A.roll * 1.5 * dt);
+    p.bank += clamp(o.bankOverride - p.bank, -rollRate * 1.5 * dt, rollRate * 1.5 * dt);
     yr = clamp(err * 1.7, -G * Math.tan(Math.min(bankPilot, 1.4)) / v, G * Math.tan(Math.min(bankPilot, 1.4)) / v);
     p.heading += yr * dt;
     const upMax = Math.max(0.02, (nAvail - cosG) * G / v), downMax = (cosG + 1) * G / v;
@@ -68,7 +70,7 @@ export function guide(p, dt, hdgT, gamT, spdT, o = {}) {
     const neg = nv < -0.05;
     const nw = Math.hypot(nv, nh) * (neg ? -1 : 1);
     const bankW = Math.abs(nw) > 0.05 ? (neg ? Math.atan2(-nh, -nv) : Math.atan2(nh, nv)) : 0;
-    p.bank += clamp(wrapPi(bankW - p.bank), -A.roll * dt, A.roll * dt);
+    p.bank += clamp(wrapPi(bankW - p.bank), -rollRate * dt, rollRate * dt) + (fd ? fd.bias * dt : 0);
     // the lift actually flown: as much as wanted, along the bank the aircraft has (rolled part of the way, the pull is eased in proportion)
     const align = Math.max(0, Math.cos(wrapPi(bankW - p.bank)));
     // (while it rolls the pilot pulls what holds the path he wants: the vertical part of the lift, along the bank it has)

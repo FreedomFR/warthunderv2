@@ -86,8 +86,8 @@
   .srow.dead { opacity: .35; text-decoration: line-through; }
   .srow .ty { opacity: .6; font-size: 10.5px; font-weight: 700; }
   .srow .sn { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .hpbar { display: block; height: 6px; background: #ffffff22; border-radius: 3px; overflow: hidden; }
-  .hpbar i { display: block; height: 100%; width: 100%; background: #5ec26a; transition: width .2s; }
+  .hpbar { display: flex; flex-direction: column; gap: 1px; height: 7px; }
+  .hpbar i { display: block; height: 3px; width: 100%; background: #4fb3d9; border-radius: 2px; transition: width .2s; }
   #cambar { position: fixed; bottom: 12px; left: 50%; transform: translateX(-50%); display: flex; gap: 4px; padding: 5px; flex-wrap: nowrap; justify-content: center; max-width: 96vw; white-space: nowrap; }
   .cam { background: #ffffff12; border: 1px solid transparent; border-radius: 6px; padding: 5px 9px; cursor: pointer; }
   .cam b { color: var(--amber); }
@@ -114,8 +114,11 @@
 
   .si-head { display: flex; align-items: baseline; gap: 6px; border-bottom: 2px solid var(--tc); padding-bottom: 3px; }
   .si-head small { opacity: .6; }
-  .si-bar { height: 7px; background: #ffffff22; border-radius: 4px; overflow: hidden; margin: 5px 0; }
-  .si-bar i { display: block; height: 100%; }
+  .si-meters { display: grid; grid-template-columns: auto 1fr; gap: 3px 8px; align-items: center; margin: 5px 0; font-size: 11px; opacity: .9; }
+  .si-meters i { display: block; height: 6px; background: #ffffff22; border-radius: 3px; overflow: hidden; }
+  .si-meters i b { display: block; height: 100%; }
+  .si-meters .m1 b { background: #4fb3d9; }
+  .si-meters .m2 b { background: #d9a35a; }
   .si-grid { display: grid; grid-template-columns: auto 1fr; gap: 1px 10px; font-size: 12px; }
   .si-grid span { opacity: .6; }
   .si-grid b { text-align: right; font-weight: 600; }
@@ -134,8 +137,8 @@
   .lab { position: absolute; left: 0; top: 0; display: flex; align-items: center; gap: 5px; padding: 1px 6px 1px 5px; border-radius: 10px; background: #0b0f14a0; font-size: 11.5px; white-space: nowrap; border: 1px solid transparent; will-change: transform; }
   .lab .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--tc); }
   .lab .ld { opacity: .6; font-size: 10.5px; }
-  .lab .lbar { width: 34px; height: 4px; background: #ffffff30; border-radius: 2px; overflow: hidden; }
-  .lab .lbar i { display: block; height: 100%; background: var(--tc); }
+  .lab .lbar { display: flex; flex-direction: column; gap: 1px; width: 34px; }
+  .lab .lbar i { display: block; height: 2px; background: #4fb3d9; border-radius: 1px; }
   .lab.sel { border-color: var(--amber); background: #0b0f14d8; }
   .lab.far .ln, .lab.far .ld { display: none; }
   .lab.dead { opacity: .4; }

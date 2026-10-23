@@ -391,7 +391,7 @@ export const SCENES = {
     const lead = findPlane(T, incoming), victim = lead && lead.target;
     T.log('dive approach', !!lead, T.now.toFixed(0), lead && lead.y.toFixed(0));
     if (!lead || !victim) return;
-    lead.hp = lead.maxHp = 1e9;          // the flak would otherwise decide what the camera gets to see
+    lead.invulnerable = true;          // the flak would otherwise decide what the camera gets to see
     await T.until(() => lead.phase === 'rollin' || lead.phase === 'dive' || !T.w.planes.includes(lead), { max: 30, dt: 1 / 12 });
     const hd = unit(lead.vx, 0, lead.vz);
     // A: behind the aircraft as it rolls over and falls onto the ship, the flak bursting around
@@ -476,8 +476,8 @@ export const SCENES = {
     const jp = T.fleet(1, [{ id: 'takao' }, { id: 'kagero' }], 1900, 100, 270, { knots: 16 });
     T.go();
     const takao = jp.find((s) => s.stats.id === 'takao');
-    await T.until(() => takao.fires.length >= 2 || takao.hpFrac < 0.55, { max: 420, dt: 1 / 8 });
-    T.log('boom setup', T.now.toFixed(0), takao.hpFrac.toFixed(2), takao.fires.length);
+    await T.until(() => takao.fires.length >= 2 || takao.condition < 0.55, { max: 420, dt: 1 / 8 });
+    T.log('boom setup', T.now.toFixed(0), takao.condition.toFixed(2), takao.fires.length);
     let blew = false;
     const trigger = () => {
       if (blew || !takao.alive) return;

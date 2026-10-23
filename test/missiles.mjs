@@ -57,14 +57,15 @@ for (const spec of ALL_SHIPS) {
   for (let t = 0; t < 60; t += 0.1) { w.update(0.1); for (const ev of w.drainEvents()) if (ev.type === 'missileLaunch' && ev.kind === 'asroc') fired++; }
   ok(fired === 0 && asroc().left === 8, 'no ASROC at a ship inside the minimum range or beyond the maximum one');
   near.x = 6000; near.z = 0; near.vx = near.vz = 0;                                                                // now in the window
-  let h0 = near.hp;
+  const damage = () => near.holes.length * 1000 + near.waterFill * 1e4 + near.comps.reduce((a, c) => a + c.struct, 0) + (near.state === 'afloat' ? 0 : 1e6);
+  let h0 = damage();
   for (let t = 0; t < 140; t += 0.1) {
     w.update(0.1);
     for (const ev of w.drainEvents()) if (ev.type === 'missileLaunch' && ev.kind === 'asroc') fired++;
     if (w.torpedoes.some((q) => q.owner === a)) torps++;
   }
   ok(fired >= 2 && asroc().left === 8 - fired, `at 6 km the Adams fires its ASROC (${fired} fired, ${asroc().left} left of 8)`);
-  ok(torps > 0 && near.hp < h0, `each rocket drops a Mk 46 that runs to the ship: ${near.hp.toFixed(0)} of ${h0.toFixed(0)} points left`);
+  ok(torps > 0 && damage() > h0, `each rocket drops a Mk 46 that runs to the ship: it holes her (${near.holes.length} holes, ${(near.waterFill * 100).toFixed(0)} % of the water she can take)`);
   ok(w.missiles.every((q) => q.owner === a), 'the missiles in flight belong to the Adams');
 }
 

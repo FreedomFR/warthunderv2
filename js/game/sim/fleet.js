@@ -72,7 +72,7 @@ export class FleetCommand {
     if (this.t > 0) return;
     this.t = 1.0;
     // a ship that is crippled (hurt badly or short of power) is left behind: it fights on her own and no longer sets the pace of the fleet
-    const ships = world.ships.filter((s) => s.team === this.team && s.state === 'afloat' && s.hpFrac >= 0.35 && s.engine * s.propulsion >= 0.5);
+    const ships = world.ships.filter((s) => s.team === this.team && s.state === 'afloat' && s.condition >= 0.35 && s.engine * s.propulsion >= 0.5);
     this.members = ships;
     for (const s of world.ships) if (s.team === this.team && !ships.includes(s)) s.station = null;
     const enemies = world.ships.filter((s) => s.team !== this.team && s.alive);
@@ -83,7 +83,7 @@ export class FleetCommand {
     for (const s of ships) { cx += s.x; cz += s.z; }
     cx /= ships.length; cz /= ships.length;
     let ex = 0, ez = 0, ew = 0;
-    for (const e of enemies) { const w = VALUE[e.stats.type] * (0.4 + e.hpFrac); ex += e.x * w; ez += e.z * w; ew += w; }
+    for (const e of enemies) { const w = VALUE[e.stats.type] * (0.4 + e.condition); ex += e.x * w; ez += e.z * w; ew += w; }
     ex /= ew; ez /= ew;
 
     // the order of battle (the flagship is the first of the line, so the plan is stable as long as the ships live)
@@ -116,7 +116,7 @@ export class FleetCommand {
         if (Math.hypot(e.x - s.x, e.z - s.z) < s.stats.main.maxRange * 0.9) reach++;
       }
       if (!n) continue;
-      const sc = (reach / n) * VALUE[e.stats.type] * (1 + (1 - e.hpFrac) * 1.2) * (e === this.focus ? 1.4 : 1);
+      const sc = (reach / n) * VALUE[e.stats.type] * (1 + (1 - e.condition) * 1.2) * (e === this.focus ? 1.4 : 1);
       if (sc > bs) { bs = sc; best = e; }
     }
     this.focus = best;

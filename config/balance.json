@@ -6,6 +6,7 @@
     "bomb": 1,
     "fire": 1,
     "flood": 1,
+    "crew": 1,
     "blast": 1,
     "turret": 1,
     "collision": 1,

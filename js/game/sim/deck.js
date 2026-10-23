@@ -122,7 +122,7 @@ function servicePlane(world, ship, service, slotIdx) {
   const p = {
     id: nextServiceId++, owner: ship, team: ship.team, kind: null, typeKey: key, spec, wave: null, sec: null, service, slotIdx, slotX: slot.x,
     x: ship.x, y: ship.y, z: ship.z, vx: 0, vy: 0, vz: 0, heading: ship.heading, pitch: 0, roll: 0, bank: 0, speed: 0,
-    phase: 'queue', ds: 'pending', t: 0, ts: 0, age: 0, target: null, hp: spec.hp, maxHp: spec.hp, ordnance: false,
+    phase: 'queue', ds: 'pending', t: 0, ts: 0, age: 0, target: null, cond: 1, ordnance: false,
     spin: 0, gearDown: true, lost: { wingL: false, wingR: false, tail: false, engine: false }, dying: false, smoke: 0, fire: 0, harass: 0,
     lx: 0, lz: 0, u: 0, apOff: 0, jitter: 0, fold: 0, hook: 0, eng: 0, aoa: 0, gp: GROUND_PITCH, yaw: 0, hidden: false, lift: null,
     t0Air: 0, cruiseAlt: 0, relAlt: 0, fuel: 1e9, aimErr: [0, 0], diveAng: 0, group: -1, counted: true,

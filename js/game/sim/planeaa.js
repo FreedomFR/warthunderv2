@@ -1,5 +1,6 @@
 // The anti-aircraft fire of the ships at the aircraft in the sky: who can shoot at whom (the arc of each mount, the lead on a fast target, the flak guns' burst), the hits it
 // makes (the damage is resolved in sim/planedamage.js).
+import { crewOf } from './hull.js';
 import { clamp, wrapPi, D2R } from '../math.js';
 import { AA, FLAK_RANGE } from './aadata.js';
 import { clearElev, clearMax, inArcRel } from '../model/clearance.js';
@@ -58,13 +59,13 @@ export function updateAA(world, dt) {
   }
   const rng = world.rng;
   for (const ship of world.ships) {
-    if (ship.state !== 'afloat') continue;
+    if (!ship.canFire) continue;
     const threats = planeThreats(world, ship);
     const lowAmmo = ship.aaAmmo().frac < 0.2;
     // light AA mounts
     for (const a of ship.aaMounts) {
       a.flash = Math.max(0, a.flash - dt * 6); a.recoil = Math.max(0, a.recoil - dt * 4);
-      if (!a.alive) continue;
+      if (!a.alive || !ship.mountUsable(a)) { a.target = null; continue; }
       if (a.ammo <= 0) { a.target = null; continue; }
       const cfg = AA[a.rec.variant];
       a.retarget -= dt;
@@ -108,7 +109,7 @@ export function updateAA(world, dt) {
       const fall = Math.pow(1 - dist / cfg.range, 1.5);
       a.ammo = Math.max(0, a.ammo - cfg.rps * a.rec.n * dt * 0.6);      // every barrel fires at its rate while it has the aircraft in sight
       const hitRate = lightAAHitRate(ship, a, p, cfg, w, dist);       // hits a second
-      if (rng() < hitRate * dt) hitPlane(world, ship, p, cfg.hit * (0.7 + 0.6 * rng()), a.rec.cal);
+      if (rng() < hitRate * dt * (0.3 + 0.7 * crewOf(a))) hitPlane(world, ship, p, cfg.hit * (0.7 + 0.6 * rng()), a.rec.cal);
       // visible fire
       a.burstLeft -= dt;
       if (a.burstLeft <= 0) {
@@ -120,7 +121,7 @@ export function updateAA(world, dt) {
     }
     // heavy dual-purpose guns: flak bursts
     for (const m of ship.mounts) {
-      if (m.group !== 'sec' || !m.alive || m.gun.cal > 140 || m.gun.maxElevDeg < 55 || m.noAmmo || m.jam > 0) continue;
+      if (m.group !== 'sec' || !m.alive || !ship.mountUsable(m) || m.gun.cal > 140 || m.gun.maxElevDeg < 55 || m.noAmmo || m.jam > 0) continue;
       m.airT = (m.airT || 0) - dt;
       if (m.airT <= 0 || !m.airTarget || !world.planes.includes(m.airTarget)) {
         m.airT = 0.8 + rng() * 0.6; m.airTarget = null;

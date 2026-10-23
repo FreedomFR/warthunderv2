@@ -21,7 +21,7 @@ w.start();
 const t0 = performance.now();
 const dt = 0.1;
 let nextReport = 0;
-const typeCount = () => [0, 1].map((t) => w.ships.filter((s) => s.team === t && s.alive).map((s) => `${s.stats.id}:${Math.round(s.hpFrac * 100)}%`).join(' '));
+const typeCount = () => [0, 1].map((t) => w.ships.filter((s) => s.team === t && s.alive).map((s) => `${s.stats.id}:${Math.round(s.condition * 100)}%`).join(' '));
 while (w.time < secs && w.state !== 'finished') {
   w.update(dt);
   w.drainEvents();
@@ -33,4 +33,4 @@ while (w.time < secs && w.state !== 'finished') {
 }
 const ms = performance.now() - t0;
 console.log(`finished state=${w.state} winner=${w.winner} t=${w.time.toFixed(0)}s sim cost ${ms.toFixed(0)} ms (${(ms / w.time).toFixed(2)} ms per sim second)`);
-for (const s of w.ships) console.log(s.team, s.name.padEnd(28), s.state.padEnd(8), 'hp', String(Math.round(s.hp)).padStart(6), '/', s.stats.maxHp, 'shots', String(s.shotsFired).padStart(4), 'hits', String(s.shotsHit).padStart(3), 'kills', s.kills, 'dmg', Math.round(s.damageDealt));
+for (const s of w.ships) console.log(s.team, s.name.padEnd(28), s.state.padEnd(8), 'water', (s.waterFill * 100).toFixed(0).padStart(3), '% crew', (s.crewFrac * 100).toFixed(0).padStart(3), '%', 'shots', String(s.shotsFired).padStart(4), 'hits', String(s.shotsHit).padStart(3), 'kills', s.kills, 'dmg', Math.round(s.damageDealt));

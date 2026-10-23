@@ -195,7 +195,7 @@ ok(offRate < 0.07, `hits more than 6 m from the drawn surface: ${(100 * offRate)
       if (!h) continue;
       // the path in the world: local x is north (-z), local z is east
       const vx = d[2] * 500, vy = d[1] * 500, vz = -d[0] * 500;
-      ship.hp = st.maxHp; ship.state = 'afloat';
+      ship.holes.length = 0; for (const c of ship.comps) { c.water[0] = c.water[1] = 0; c.struct = 0; } ship.state = 'afloat';
       const before = ship.scars.length;
       tried++;
       try { resolveShellHit(w, ship, { gun, type: tried % 2 ? 'AP' : 'HE', vx, vy, vz, owner: null, x: wb[0], y: wb[1], z: wb[2] }, h); } catch (e) { errors++; console.log('   exception', id, e.message); continue; }

@@ -73,7 +73,7 @@ export class BaseSim extends BaseState {
     const base = this;
     this.target = {
       id: this.owner.id, isBase: true, base, team: this.team, x: layout.x, y: layout.y, z: layout.z, vx: 0, vz: 0, speed: 0, heading: 0, yawRate: 0,
-      get alive() { return base.alive && !base.inert; }, get hpFrac() { return base.hpFrac; }, get hp() { return base.hp; }, model: { topY: top + 5, radius: 120 },
+      get alive() { return base.alive && !base.inert; }, get hpFrac() { return base.hpFrac; }, get condition() { return base.hpFrac; }, get hp() { return base.hp; }, model: { topY: top + 5, radius: 120 },
       stats: { type: 'BASE', id: 'base', nation: this.nation, armor: null, L: 300, B: 120, className: this.name, score: 1 }, name: this.name, _d: 0,
     };
     if (layout.kind === 'airfield') initAirfield(world, this);
@@ -167,7 +167,7 @@ function stepCoastal(world, base, g, dt, active) {
       const d = Math.hypot(s.x - g.x, s.z - g.z);
       if (d > base.gun.maxRange) continue;
       if (!solution(base, g, s, _p)) continue;
-      const v = ({ DD: 1.0, CL: 1.3, CA: 1.8, BB: 2.5, CV: 2.3 }[s.stats.type] || 1) * (1 + (1 - s.hpFrac) * 0.9) / (0.35 + d / base.gun.maxRange);
+      const v = ({ DD: 1.0, CL: 1.3, CA: 1.8, BB: 2.5, CV: 2.3 }[s.stats.type] || 1) * (1 + (1 - s.condition) * 0.9) / (0.35 + d / base.gun.maxRange);
       if (v > bs) { bs = v; best = s; }
     }
     g.target = best;
@@ -294,8 +294,8 @@ export function damageBase(world, base, x, y, z, radius, power, attacker, cause,
     if (d > radius + 12) continue;
     const dmg = power * 0.08 * Math.pow(Math.max(0, 1 - (d - 12) / radius), 1.2);
     if (dmg <= 0) continue;
-    p.hp -= dmg;
-    if (p.hp <= 0) killGroundPlane(world, base, p, attacker, cause);
+    p.groundHp = (p.groundHp ?? p.spec.hp) - dmg;      // (an aircraft parked on the ground has no parts to lose: it is wrecked when the blasts that reach it add up to what its airframe takes)
+    if (p.groundHp <= 0) killGroundPlane(world, base, p, attacker, cause);
   }
   base.recount();
   if (attacker && dealt > 0) attacker.damageDealt = (attacker.damageDealt || 0) + dealt;

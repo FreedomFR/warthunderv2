@@ -27,7 +27,7 @@ for (let g = 0; g < N; g++) {
       w.update(0.1); w.drainEvents(); steps++;
       if (steps % 100 === 0) {
         for (const s of w.ships) {
-          if (![s.x, s.z, s.heading, s.speed, s.hp, s.y, s.roll, s.pitch].every(Number.isFinite)) { console.log(`game ${g}: NaN in ${s.name}`); bad++; }
+          if (![s.x, s.z, s.heading, s.speed, s.waterFill, s.crewFrac, s.y, s.roll, s.pitch].every(Number.isFinite)) { console.log(`game ${g}: NaN in ${s.name}`); bad++; }
           if (Math.hypot(s.x, s.z) > 60000) { console.log(`game ${g}: ${s.name} ran away (${Math.hypot(s.x, s.z).toFixed(0)} m)`); bad++; }
         }
         for (const sh of w.shells) if (![sh.x, sh.y, sh.z].every(Number.isFinite)) { console.log(`game ${g}: NaN shell`); bad++; w.shells.length = 0; break; }

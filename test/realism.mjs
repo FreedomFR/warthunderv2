@@ -93,7 +93,7 @@ function hitsToKill(id, shooter, type, range, maxHits = 600) {
     const shell = { owner: o, gun: g, type, vx: -side * Math.cos(lk.fall) * lk.vImpact, vy: -Math.sin(lk.fall) * lk.vImpact, vz: 0, c: 0 };
     const hit = { part: ly > s.model.hull.deckY(lx) - 0.8 ? 'deck' : 'hull', lx, ly, lz: side * (s.model.hull.halfBeamWL(lx) - 0.3) };
     resolveShellHit(w, s, shell, hit);
-    for (let i = 0; i < 5; i++) w.update(0.1);
+    for (let i = 0; i < 40; i++) w.update(0.1);      // (a hit every four seconds: the water has time to come in, the people to be lost)
     w.drainEvents(); n++;
   }
   return { n, s };
@@ -103,7 +103,7 @@ function hitsToKill(id, shooter, type, range, maxHits = 600) {
   ok(a >= 8 && a <= 25, `a destroyer is lost to ${a} hits of 8 in HE`);
   ok(c >= 20 && c <= 70, `and to ${c} hits of 6 in HE (USS Hoel took over forty hits of all sizes)`);
   const bb = hitsToKill('iowa', 'fletcher', 'HE', 8000, 300);
-  ok(bb.s.state === 'afloat' && bb.s.hpFrac > 0.6, `300 hits of 5 in HE leave a battleship afloat with ${(bb.s.hpFrac * 100).toFixed(0)} % of her strength`);
+  ok(bb.s.state === 'afloat' && bb.s.condition > 0.5, `300 hits of 5 in HE leave a battleship afloat with ${(bb.s.condition * 100).toFixed(0)} % fit to go on`);
   const k = hitsToKill('yamato', 'iowa', 'AP', 15000);
   ok(k.n >= 12, `a Yamato takes ${k.n} 16 in hits at 15 km before she is lost`);
 }

@@ -295,7 +295,7 @@ export class Game {
       if (s.state === 'sunk') continue;
       const team = w.teams[s.team];
       const tint = team ? team.rgb : [255, 255, 255];
-      const dmg = clamp((1 - s.hpFrac - 0.1) * 1.25, 0, 1);
+      const dmg = clamp((1 - s.condition - 0.1) * 1.25, 0, 1);
       const fire = s.fireLevel || 0;
       const rnd = (s.id * 0.6180339) % 1;
       const rx = s.x - cam.x, ry = s.y - cam.y, rz = s.z - cam.z;

@@ -161,7 +161,7 @@ export const SCENES_020 = {
     }, { max: 500, dt: 1 / 8 });
     const lead = findPlane(T, incoming);
     if (!lead) return;
-    lead.hp = lead.maxHp = 1e9;
+    lead.invulnerable = true;
     await T.until(() => lead.phase === 'rollin' || lead.phase === 'dive' || !T.w.planes.includes(lead), { max: 30, dt: 1 / 12 });
     const f2 = view(lead);
     await T.shot('cockpit_b', 5.0, () => f2());

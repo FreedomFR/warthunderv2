@@ -19,7 +19,7 @@ while (t < secs && w.state !== 'finished') {
   for (const p of w.planes) if (!isFinite(p.x + p.y + p.z + p.heading + p.pitch + p.bank)) bad++;
   if (Math.abs(t % 100) < 0.05) console.log(Math.round(t), 'planes', w.planes.length, 'bombs', w.bombs.length, 'torp', w.torpedoes.length, 'debris', w.debris.length, JSON.stringify(counts));
 }
-for (const s of w.ships) if (s.air) console.log(s.name, 'air', JSON.stringify(s.air), 'lost', s.lostPlanes, 'state', s.state, 'cause', s.cause, 'hp', Math.round(s.hp), 'parked', s.parked);
+for (const s of w.ships) if (s.air) console.log(s.name, 'air', JSON.stringify(s.air), 'lost', s.lostPlanes, 'state', s.state, 'cause', s.cause, 'water', Math.round(s.waterFill * 100), 'parked', s.parked);
 for (const s of w.ships) if (s.planeKills) console.log(s.name, 'plane kills', s.planeKills);
 for (const k of w.kills) console.log('kill', Math.round(k.t), k.victim.name, 'by', k.killer && k.killer.name, k.cause);
 console.log('max planes in the air', maxPlanes, 'non-finite plane states', bad);

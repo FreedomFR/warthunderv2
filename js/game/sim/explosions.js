@@ -4,6 +4,7 @@ import { clamp } from '../math.js';
 import { blast } from './modules.js';
 import { spawnMountDebris, spawnScrap } from './debris.js';
 import { killPlane } from './planedamage.js';
+import { hullHit } from './hull.js';
 
 /** Size scale of the explosion of a ship (a destroyer is 1, a battleship about 3). */
 export function explosionScale(ship) { return clamp(Math.pow(ship.stats.L / 100, 0.8), 0.6, 3.0); }
@@ -57,9 +58,9 @@ export function magazineExplosion(world, ship, owner, where, mag) {
     const d = Math.hypot(o.x - ship.x, o.z - ship.z);
     if (d < R) {
       const f = 1 - d / R;
-      o.applyDamage(o.stats.maxHp * 0.05 * f * f, owner, 'blast');
       // the blast also scours the topsides facing it
       const loc = o.toLocal(where[0], 0, where[2], [0, 0, 0]);
+      hullHit(o, { lx: clamp(loc[0], -o.stats.L / 2, o.stats.L / 2), ly: 1, lz: clamp(loc[2], -o.stats.B / 2, o.stats.B / 2), energy: o.stats.maxHp * 0.05 * f * f, cause: 'blast', attacker: owner });
       blast(world, o, clamp(loc[0], -o.stats.L / 2, o.stats.L / 2), 6, clamp(loc[2], -o.stats.B / 2, o.stats.B / 2), 40 * f * S, 'outside', owner, 'blast');
     }
   }

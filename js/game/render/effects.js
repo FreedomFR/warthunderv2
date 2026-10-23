@@ -128,7 +128,7 @@ export class Effects {
 
       // ---- funnel smoke ----
       if (d < 26000 && s.state === 'afloat' && s.model.smoke.length) {
-        const rate = (1.2 + 5.5 * speedF) * (1 + (1 - s.hpFrac) * 0.8) * this.emitScale * (d > 8000 ? 0.7 : 1);
+        const rate = (1.2 + 5.5 * speedF) * (1 + (1 - s.condition) * 0.8) * this.emitScale * (d > 8000 ? 0.7 : 1);
         fxs.smoke += rate * dt;
         const dark = 0.075 + 0.1 * (1 - speedF) + (s.engine < 0.6 ? 0 : 0.03);
         while (fxs.smoke >= 1) {
@@ -180,9 +180,23 @@ export class Effects {
         }
       }
 
+      // ---- holes under the waterline: the water boils up along the hull where the air is forced out, a trickle of foam (the bigger the hole, the more) ----
+      if (s.holes && s.holes.length && d < 3500 && s.state === 'afloat') {
+        fxs.leak = (fxs.leak || 0) + dt * this.emitScale;
+        for (const h of s.holes) {
+          if (!(h.head > 0.2)) continue;
+          h.acc = (h.acc || 0) + dt * Math.min(6, 0.6 + h.rate / (st.maxHp * 0.002)) * this.emitScale;
+          while (h.acc >= 1) {
+            h.acc -= 1;
+            const w = s.toWorld(h.x + rr(-0.8, 0.8), 0, h.z + Math.sign(h.z || 1) * rr(0.2, 1.2), this._v);
+            this.p.add({ kind: K.SPRAY, x: w[0], y: 0.3, z: w[2], vx: s.vx * 0.2 + rr(-0.5, 0.5), vy: rr(0.8, 2.4), vz: s.vz * 0.2 + rr(-0.5, 0.5), s0: 0.7, s1: rr(1.8, 3.2), life: rr(0.9, 1.7), r: 0.92, g: 0.95, b: 0.97, a0: 0.45, a1: 0, grav: 4 });
+          }
+        }
+      }
+
       // ---- sinking: steam, bubbles, heavy smoke ----
       if (s.state === 'sinking' && d < 22000) {
-        fxs.steam += dt * ({ burn: 14, roll: 5, level: 6, bow: 8, stern: 8, blast: 7 }[s.sinkMode] ?? (s.exploded ? 7 : 12)) * this.emitScale;   // a capsized or settling ship smokes less than a burning one
+        fxs.steam += dt * ({ burn: 14, roll: 5, level: 6, scuttle: 5, bow: 8, stern: 8, blast: 7 }[s.sinkMode] ?? (s.exploded ? 7 : 12)) * this.emitScale;   // a capsized or settling ship smokes less than a burning one
         while (fxs.steam >= 1) {
           fxs.steam -= 1;
           const lx = rr(-st.L * 0.4, st.L * 0.4), lz = rr(-st.B * 0.3, st.B * 0.3);

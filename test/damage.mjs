@@ -1,5 +1,6 @@
 // Location-based damage: node test/damage.mjs
 // A hit damages what is at the point of impact: modules, flooding side, destroyed parts, bomb penetration, explosions.
+import { SINK_FILL } from '../js/game/sim/hull.js';
 import { World } from '../js/game/sim/world.js';
 import { blast } from '../js/game/sim/modules.js';
 import { resolveShellHit, resolveBombHit, resolveTorpedoHit } from '../js/game/sim/damage.js';
@@ -71,12 +72,16 @@ for (const spec of ALL_SHIPS) {
 for (const id of ['cleveland', 'fletcher', 'iowa']) {
   const { w, s } = mk(id, 5);
   // flooded on the starboard side for a minute (kept alive)
-  for (let i = 0; i < 600; i++) { if (i % 10 === 0) s.flood(20, s.stats.B / 2, s.stats.maxHp * 0.02); s.hp = Math.max(s.hp, s.stats.maxHp * 0.5); s.update(0.1); }
+  for (const c of s.comps) c.water[1] = 0.5 * SINK_FILL[s.stats.type];
+  for (let i = 0; i < 600; i++) s.update(0.1);
+  // (and brought near her limit: one more blow and she goes)
+  for (const c of s.comps) c.water[1] = Math.min(1, 1.7 * SINK_FILL[s.stats.type]);
+  s.update(0.1);
   const before = { roll: s.roll, pitch: s.pitch, y: s.y };
   // finished by a torpedo on the port side
-  s.hp = 1;
   const q = [0, 0, 0]; s.toWorld(20, 0, -s.stats.B / 2, q);
   resolveTorpedoHit(w, s, { warhead: 400, owner: null }, q[0], q[2]);
+  for (let i = 0; i < 300 && s.state === 'afloat'; i++) s.update(0.1);
   ok(s.state === 'sinking' && Math.abs(before.pitch) + Math.abs(before.roll) + Math.abs(s.settleCur) > 0.15, `${id}: sunk by the second torpedo after leaning ${before.roll.toFixed(2)} rad, trimmed ${before.pitch.toFixed(2)} rad and sagging ${s.settleCur.toFixed(1)} m (${s.sinkMode})`);
   let jumpRoll = 0, jumpPitch = 0, jumpY = 0, prev = { roll: before.roll, pitch: before.pitch, y: before.y }, reversed = false;
   const dir = Math.sign(before.roll) || 1;
@@ -199,9 +204,10 @@ for (const id of ['cleveland', 'fletcher', 'iowa']) {
 {
   const { w, s } = mk('iowa', 9);
   for (let i = 0; i < 30; i++) w.update(0.1);
-  for (const c of s.comps) { c.water[0] = c.water[1] = 0.95; }
-  s.hp = s.stats.maxHp * 0.2;
-  for (let i = 0; i < 1200 && !s.split && s.state === 'afloat'; i++) { for (const c of s.comps) { c.water[0] = c.water[1] = 0.95; } w.update(0.1); }
+  // the middle full of water and broken (the ends dry: she is not yet lost to the water)
+  const mid = () => { for (const c of s.comps) { if (Math.abs(c.xc) < s.stats.L * 0.2) { c.water[0] = c.water[1] = 0.95; c.struct = 1.6; } } };
+  mid();
+  for (let i = 0; i < 1200 && !s.split && s.state === 'afloat'; i++) { mid(); w.update(0.1); }
   ok(!!s.split && s.state === 'sinking', 'the flooded, battered hull breaks in two by itself');
 }
 // ---- aircraft models ----

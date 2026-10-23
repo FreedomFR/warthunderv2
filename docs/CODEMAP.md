@@ -20,7 +20,7 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 - `audio.js` (273) Game sound: positional playback of the procedurally synthesised sounds (see audio/synth.js). [GameAudio] ← 2
 - `device.js` (14) What kind of device the game runs on. Shared by the engine (pixel density), the game (quality) and the touch interface. [isMobile, maxPixelRatio] ← 4
 - `game.js` (430) Game orchestrator: ties the simulation world to the ocean engine (hooks), the ship / particle renderers, the camera rig and the UI. [Game] ← 1
-- `math.js` (157) Small math helpers shared by the game code (no allocations in the hot helpers). [D2R, R2D, TAU, KN, G, clamp, lerp, sat, smoothstep, … +11] ← 57
+- `math.js` (157) Small math helpers shared by the game code (no allocations in the hot helpers). [D2R, R2D, TAU, KN, G, clamp, lerp, sat, smoothstep, … +11] ← 59
 - `preload.js` (17) What can be built before the player has done anything, while the first screen plays: the meshes of every ship class (5 s of work in all, one model after another with… [preloadModels] ← 2
 - `scenarios.js` (47) Ready-made fleet compositions for the setup screen. [PRESETS] ← 6
 
@@ -48,7 +48,7 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 
 ## js/game/data/
 
-- `balance.js` (87) Balance: multipliers of the damage done in the battle, so that it can be tuned without touching the code. [BALANCE_FIELDS, BALANCE_MIN, BALANCE, balanceNeutral, balanceOfFile, balanceNow, setBalance, setBalanceFile, balanceDiff, … +2] ← 7
+- `balance.js` (88) Balance: multipliers of the damage done in the battle, so that it can be tuned without touching the code. [BALANCE_FIELDS, BALANCE_MIN, BALANCE, balanceNeutral, balanceOfFile, balanceNow, setBalance, setBalanceFile, balanceDiff, … +2] ← 8
 - `explosives.js` (40) Explosive fillers of torpedoes and their strength against a ship's hull, as kg of TNT per kg of filler. [EXPLOSIVE, tntEquivalent, AIR_TORPEDO, airTorpedoEq] ← 5
 - `protection.js` (72) Protection and survivability data that the spec sheets do not carry: how the armour is laid out (belt inclination, the thin weather deck above the armoured one), the… [NAVY, PROTECTION, protectionOf, navyOf] ← 1
 - `ships.js` (32) Ship roster: the six nations' spec sheets (real-ship data) indexed by id / nation / type. [NATIONS, TYPES, ALL_SHIPS, BY_ID, typeName, nationName, shipsOf] ← 38
@@ -88,7 +88,7 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 - `mounts.js` (667) Articulated gun mounts. Every mount produces two meshes that are drawn as separate instances so they can move independently: house : the rotating gun house / shield /… [mountDims, getMountModel] ← 11
 - `parts.js` (519) Reusable ship parts. All functions draw into a MeshBuilder in model space (+x bow, +y up from the waterline, +z starboard). [OPT, barbette, funnel, funnelRuin, windowBand, tower, poleMast, tripod, cageMast, … +21] ← 2
 - `planeGuns.js` (167) The defensive guns of an aircraft, one entry per gun position: where it pivots, what it can bear on, its calibre and its barrels. [GUN_DIMS, gunDims, GUN_RATE, GUN_DMG, planeGuns, inArc, muzzleOf, drawGunHead] ← 4
-- `planes.js` (755) Procedural WWII carrier aircraft. One generator for monoplanes and biplanes driven by a spec sheet (dimensions of the real aircraft). [PAINT, PLANES, groundY, propsOf, floatplaneSpec, damageSites, planeTypeFor, upperWingY, cockpitHole, … +15] ← 25
+- `planes.js` (755) Procedural WWII carrier aircraft. One generator for monoplanes and biplanes driven by a spec sheet (dimensions of the real aircraft). [PAINT, PLANES, groundY, propsOf, floatplaneSpec, damageSites, planeTypeFor, upperWingY, cockpitHole, … +15] ← 27
 - `screws.js` (25) The screws and the rudder of the ships whose underwater body was not measured on a plan (tweaks.props / tweaks.rudders): drawn from the number of shafts the class… [defaultScrews] ← 1
 - `shipbuilder.js` (976) Spec-driven ship builder. Reads a real-ship spec sheet (dimensions, turret / funnel / mast positions as fractions of the overall length, class, paint) and builds the… [pagodaTiers, buildShipModel] ← 13
 - `treeMeshes.js` (506) The plants as meshes: eight species (oak, fir, palm, tropical canopy tree, acacia, cypress, shrub, boulder), three variants each, at four levels of detail. [FAM, SHAPE, getTemplate, ROCK_TINT, stampPlants] ← 2
@@ -138,7 +138,7 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 
 - `aircraftVisual.js` (341) Draws aircraft (in flight, crashing, parked on a flight deck) and the ordnance in flight. [PlaneVisuals] ← 4
 - `baseVisual.js` (184) What is drawn for the military bases of the islands (sim/bases.js): the flat work of the airfield, the buildings (intact or ruined, scorched when damaged), the radars… [BaseVisuals] ← 2
-- `effects.js` (231) Visual effects driven by simulation events and ship state: muzzle flashes, shell splashes, impacts, fires, funnel smoke, sinking, anti-aircraft fire and wakes (foam… [Effects, addWakeStamps] ← 3
+- `effects.js` (245) Visual effects driven by simulation events and ship state: muzzle flashes, shell splashes, impacts, fires, funnel smoke, sinking, anti-aircraft fire and wakes (foam… [Effects, addWakeStamps] ← 3
 - `islandVisual.js` (36) What is drawn for the islands: one mesh each (built from the height field, model/islandMesh.js), drawn by the ship renderer like any other model. [IslandVisuals] ← 1
 - `particles.js` (243) CPU-simulated particle pool drawn as camera-facing quads (see wgsl/particles.js). [DEFAULT_MAX, K, Particles] ← 9
 - `shadows.js` (31) Sun shadow map light matrix (orthographic, camera-relative coordinates). [lightMatrix] ← 2
@@ -159,33 +159,34 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 ## js/game/sim/
 
 - `aadata.js` (9) Anti-aircraft data shared by the guns (sim/aircraft.js) and the aircraft that plan their way past them (sim/routing.js). [AA, FLAK_RANGE] ← 4
-- `aircraft.js` (789) Carrier aircraft. A wave of dive bombers and torpedo bombers takes off from the flight deck, flies to the enemy, attacks (bombs are dropped from a steep dive,… [planeId, bombId, resetAirIds, updateAir, FIGHT_CTX] ← 2
-- `airfield.js` (765) Air operations from the airfields of the islands. [initAirfield, killGroundPlane, stepBasePlane, stepAirfield] ← 3
+- `aircraft.js` (790) Carrier aircraft. A wave of dive bombers and torpedo bombers takes off from the flight deck, flies to the enemy, attacks (bombs are dropped from a steep dive,… [planeId, bombId, resetAirIds, updateAir, FIGHT_CTX] ← 2
+- `airfield.js` (766) Air operations from the airfields of the islands. [initAirfield, killGroundPlane, stepBasePlane, stepAirfield] ← 3
 - `airhit.js` (80) The hit volume of an aircraft. An aircraft is a body (an ellipsoid the size of its fuselage), the planes of its wings (a biplane has two) and its tail: what a gun… [airframe, axes, presentedArea, extentToward, roundHitChance, lightAAHitRate] ← 5
 - `airperf.js` (94) How fast each aircraft flies. Speeds in m/s (airspeed), from the published performance of each type (CHANGELOG 0.1.2 has the table and the sources): vmax top speed… [PERF, perfOf, aeroOf, dragAcc, thrustAcc] ← 9
 - `ballistics.js` (104) Exterior ballistics: point-mass shells with altitude-dependent air drag. [gunBallistics, solve, stepShell] ← 5
 - `baseops.js` (384) What the bases do during a battle: the coastal batteries shell the enemy ships in range, the anti-aircraft guns fire at the aircraft, the shells and the bombs that… [coastalGunOf, BaseSim, damageBase, shellHitsBase, shellGround, bombHitsBase, buildBases, updateBases] ← 3
 - `bases.js` (247) Military bases on the islands: an airfield (a runway, the apron, hangars, a control tower, fuel tanks, barracks, a radar, anti-aircraft guns and the places where the… [placeBases, BaseState] ← 4
-- `damage.js` (573) Impact resolution against ships: shells, bombs, torpedoes and crashing aircraft. [insideHull, segmentNearShip, segmentHit, resolveShellHit, resolveBombHit, resolveNearMiss, resolveCrashHit, torpedoReach, resolveTorpedoHit] ← 8
+- `damage.js` (574) Impact resolution against ships: shells, bombs, torpedoes and crashing aircraft. [insideHull, segmentNearShip, segmentHit, resolveShellHit, resolveBombHit, resolveNearMiss, resolveCrashHit, torpedoReach, resolveTorpedoHit] ← 8
 - `debris.js` (95) Flying wreckage: funnels, masts, turrets and scrap torn off ships, pieces of broken aircraft. [spawnPartDebris, spawnMountDebris, spawnScrap, spawnPlaneDebris, stepDebris] ← 4
 - `deck.js` (539) Flight-deck operations of an aircraft carrier. [TAKEOFF_RUN, DECK_PHASES, deckOf, launching, settleService, planLaunch, stepDeckShip, beginRecovery, clearToLand, … +5] ← 7
-- `explosions.js` (112) Ship explosions and break-ups: the magazine detonation (primary blast, thrown turrets, secondary explosions running down the hull, the ship breaking in two), boiler… [explosionScale, magazineExplosion, secondaryBlast, breakInTwo, shipGone] ← 2
+- `explosions.js` (113) Ship explosions and break-ups: the magazine detonation (primary blast, thrown turrets, secondary explosions running down the hull, the ship breaking in two), boiler… [explosionScale, magazineExplosion, secondaryBlast, breakInTwo, shipGone] ← 2
 - `fighters.js` (263) Carrier fighters. A wave of bombers is escorted by a section of fighters; [FIGHT_PHASES, fighterSteer, fighterFields, bomberDefense, markHunted] ← 3
 - `fleet.js` (132) The captain of a fleet. Before, every ship fought alone: it picked its own target, circled at its own range in a random direction and went where it liked. [stationPlan, FleetCommand] ← 3
-- `flight.js` (96) The flight dynamics of an aircraft, one step: heading, flight-path angle and speed towards the commanded values, with the thrust, the drag, the lift, the stall and… [setVel, stallSpeed, guide] ← 4
+- `flight.js` (98) The flight dynamics of an aircraft, one step: heading, flight-path angle and speed towards the commanded values, with the thrust, the drag, the lift, the stall and… [setVel, stallSpeed, guide] ← 5
 - `formation.js` (42) Fleet placement: the ships start in the order of battle of sim/fleet.js (destroyers screening ahead, the line in column behind the flagship, carriers at the back),… [spawnFleet, teamStart] ← 26
 - `homeward.js` (77) The way home after the attack. An aircraft that has dropped its bomb or its torpedo does not fly straight home over the guns it has just run the gauntlet of: it looks… [safeHeading, homeLeader, formOn, straggle, homeCourse] ← 3
+- `hull.js` (234) What keeps a ship afloat and fighting: holes in the hull that let the water in once they are under the waterline, the structure of each compartment, and the crew at… [SINK_FILL, MIN_CREW, initHull, crewOf, blastCasualties, compAt, hullHit, updateHoles, updateCrew, … +1] ← 13
 - `missiles.js` (196) The guided missiles of the ships (the spec sheet's `missiles`): a surface-to-air missile (RIM-24 Tartar) that is fired at aircraft and steers itself on them, and a… [initMissiles, missileStats, updateMissileLaunchers, stepMissiles] ← 3
-- `modules.js` (279) Ship damage model: every ship is a set of modules (engine rooms, magazines, steering gear, shafts, bridge, fire-control directors, radar, funnels, masts, torpedo… [AA_ROUNDS, AA_HP, createModules, createCompartments, blastRadius, blast, damageModule, damageMount] ← 4
+- `modules.js` (281) Ship damage model: every ship is a set of modules (engine rooms, magazines, steering gear, shafts, bridge, fire-control directors, radar, funnels, masts, torpedo… [AA_ROUNDS, AA_HP, createModules, createCompartments, blastRadius, blast, damageModule, damageMount] ← 5
 - `penetration.js` (58) Armour penetration by armour-piercing shells: the muzzle figure of each gun from its shell and velocity, the way the plate resists an oblique hit, spaced plates, the… [V_EXP, muzzlePenetration, obliquityExponent, effectiveThickness, spacedPlates, fuzeThickness, residualSpeed] ← 5
-- `planeaa.js` (172) The anti-aircraft fire of the ships at the aircraft in the sky: who can shoot at whom (the arc of each mount, the lead on a fast target, the flak guns' burst), the… [ATTACK_PHASES, updateAA] ← 1
-- `planedamage.js` (199) What happens to an aircraft that is hit and dies: damage and the place it smokes or burns from, the loss of an engine, the death throes (the fall, the pieces that… [hitPlane, killPlane, stepDying, collideShips, ditch, crash, landCrash] ← 7
+- `planeaa.js` (173) The anti-aircraft fire of the ships at the aircraft in the sky: who can shoot at whom (the arc of each mount, the lead on a fast target, the flak guns' burst), the… [ATTACK_PHASES, updateAA] ← 1
+- `planedamage.js` (310) What happens to an aircraft that is hit and dies: damage and the place it smokes or burns from, the loss of an engine, the death throes (the fall, the pieces that… [planeParts, planeCondition, hitPlane, hitPlanePart, tickPlaneDamage, repairPlane, killPlane, stepDying, collideShips, … +3] ← 9
 - `routing.js` (94) The way in to the target. A strike does not fly straight at the enemy: it looks at where his anti-aircraft guns are (the light mounts and the dual-purpose guns of… [aaSources, exposure, density, chooseApproach, refugeShip] ← 5
-- `ship.js` (699) A ship in the simulation: kinematics, wave response, damage state and weapon mounts. [makeCommand, Ship] ← 1
-- `shipdata.js` (115) Gameplay statistics derived from the real-ship spec sheets. [makeStats, cleanName, shipNames, pickName] ← 5
+- `ship.js` (704) A ship in the simulation: kinematics, wave response, damage state and weapon mounts. [makeCommand, Ship] ← 1
+- `shipdata.js` (116) Gameplay statistics derived from the real-ship spec sheets. [makeStats, cleanName, shipNames, pickName] ← 5
 - `terrain.js` (363) The islands. A few procedural islands sit in the sea, of every size and height: a rock a hundred metres wide, a hilly island, a mountain range ten kilometres long, a… [padWeight, Island, Terrain] ← 11
-- `weapons.js` (350) Gunnery (fire control, turret slewing, salvos) and torpedo launching. [recoilCurve, mountSolution, updateGunnery, shellChoice, interceptTime, torpedoSolution, updateTorpedoes] ← 7
-- `world.js` (430) The simulation world: ships, shells, torpedoes, aircraft, teams, events, victory. [TEAM_COLORS, World] ← 38
+- `weapons.js` (351) Gunnery (fire control, turret slewing, salvos) and torpedo launching. [recoilCurve, mountSolution, updateGunnery, shellChoice, interceptTime, torpedoSolution, updateTorpedoes] ← 7
+- `world.js` (433) The simulation world: ships, shells, torpedoes, aircraft, teams, events, victory. [TEAM_COLORS, World] ← 39
 
 ## js/game/sim/controllers/
 
@@ -198,13 +199,14 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 - `benchprobe.js` (106) What the performance test records beyond the frame times (read by bench.js): the CPU time of each part of the frame, the long tasks of the page, a histogram of the… [CpuProbe, LongTasks, HIST_EDGES, histogram, worstFrames, meanPasses, particleCensus, heapMB] ← 2
 - `cameras.js` (975) Camera rig: free-fly, chase, orbit, tactical (top-down), bridge, shell-cam and an automatic "director" that cuts between the action. [CAMERA_MODES, flybyDue, flybyPlace, PLANE_VIEWS, CameraRig] ← 4
 - `caption.js` (57) What the camera is showing, in words: the line under the picture ("Auto · Duel — USS Iowa contre IJN Yamato"), so that the viewer always knows what they are looking… [SHOT_NAMES, captionOf] ← 2
-- `damageView.js` (72) Top-down damage plan of a ship drawn on a small canvas: hull outline, watertight compartments (water level), machinery, magazines, directors, funnels, masts, gun… [drawDamage] ← 1
+- `damageView.js` (90) Top-down damage plan of a ship drawn on a small canvas: hull outline, watertight compartments (water level), machinery, magazines, directors, funnels, masts, gun… [drawDamage] ← 1
 - `director.js` (240) The automatic director: what is worth looking at, and from where. [Director, formations, attacks, dogfights] ← 2
 - `minimap.js` (172) The map in the corner: the islands, the bases, every ship (an arrow in the colour of her team, pointing where she goes), the aircraft in the air, the selected ship… [niceLength, mapExtent, createMinimap] ← 2
 - `mobile.js` (136) The touch interface: a compact top bar and a menu in place of the desktop buttons, panels that open on demand, a virtual stick for the free camera and the map, full… [joyKeys, initMobile] ← 2
 - `mobileStyle.js` (89) Style of the touch interface (body.mobile). [MOBILE_CSS] ← 1
 - `reloads.js` (75) The reload gauges of the ship that is watched, laid out as in the naval HUD of War Thunder: one ring per gun mount that fills while the mount reloads (with the… [mountState, reloadGroups, createReloadHud] ← 2
-- `ui.js` (913) DOM user interface (French): fleet setup, HUD, labels, kill feed, results, settings. [createUI] ← 1
+- `shipstate.js` (56) What the interface says of a ship's state, in place of a health bar (a ship has no hit points: see sim/hull.js): the reserve of buoyancy she has left, the share of… [shipStatus, LEVEL_COLOR, setMeters, planeText, planeLevel] ← 1
+- `ui.js` (911) DOM user interface (French): fleet setup, HUD, labels, kill feed, results, settings. [createUI] ← 1
 
 ## js/viewer/
 
@@ -319,6 +321,7 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 - `gunnery.mjs` Gunnery choices: node test/gunnery.mjs The shell chosen against the target, the magazines (rounds, kinds, changing over), and mounts that engage targets of their own.
 - `hitbox.mjs` Hit volumes against the real geometry: node test/hitbox.mjs [ship ids] [rays per ship] [--dump] Shells are traced through the hit volumes of the simulation…
 - `homeward.mjs` The way home: node test/homeward.mjs Aircraft that have attacked keep out of the reach of the enemy guns (ships' and bases') on the way back, and the aircraft of a…
+- `hull.mjs` What keeps a ship afloat and fighting: node test/hull.mjs There are no hit points.
 - `islands.mjs` The islands: node test/islands.mjs — generation, line of sight, running aground, shells and torpedoes on the shore, the AI going round, battles with islands.
 - `lint.mjs` ESLint over the code (no-undef and the like: names that do not exist in paths the tests do not run): node test/lint.mjs — skipped when eslint is not installed.
 - `machinery.mjs` The machinery rooms of the specs (measured on cut-aways of reference models, or from published arrangements): in order, inside the hull, no overlap, and the damage…
@@ -330,6 +333,7 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 - `overlap.mjs` No gun house is sunk in a structure, a funnel, a mast or another house: node test/overlap.mjs (the audit is tools/audit/overlap.mjs)
 - `particles.mjs` The particle pool: node test/particles.mjs — when it is full, the flashes of a shot take the place of old smoke instead of being lost.
 - `planehit.mjs` The hit volume of aircraft: node test/planehit.mjs An aircraft is hit by what its airframe presents to the line of fire (sim/airhit.js): the type, the aspect and…
+- `planeparts.mjs` Aircraft have no hit points: node test/planeparts.mjs An aircraft is made of parts (wings, tail, fuselage, engines, fuel, pilot, controls);
 - `preload.mjs` What is built while the first screen plays: node test/preload.mjs
 - `preset.mjs` Run a preset scenario headless: node test/preset.mjs <presetId> [seconds] [seed]
 - `realism.mjs` The historical behaviour of the damage model: node test/realism.mjs Penetration against the published tables, plates struck at an angle, fuzes (arming, delay, duds),…

@@ -119,7 +119,7 @@ export class Director {
     else if (sinceWide > 55) W.wide = 2.5;
     if (T && T.islands.length) W.tactical *= 0.6;
     // the bridge is not for a ship that burns or is nearly lost
-    if (subject && (subject.fireLevel > 0.4 || subject.hpFrac < 0.35)) W.bridge = 0;
+    if (subject && (subject.fireLevel > 0.4 || subject.condition < 0.35)) W.bridge = 0;
     const last = this.history[this.history.length - 1], last2 = this.history[this.history.length - 2];
     for (const k in W) { if (last && last.sub === k) W[k] *= 0.15; else if (last2 && last2.sub === k) W[k] *= 0.6; }
     ctx.weights = W;

@@ -70,7 +70,7 @@ export class AIController {
       if (e._d > reach) continue;
       // an island between the two ships hides the enemy: nobody shoots at what he cannot see
       if (T && T.blocks(ship.x, ship.model.topY * 0.6, ship.z, e.x, e.model.topY * 0.45, e.z)) continue;
-      let s = TYPE_VALUE[e.stats.type] * (1 + (1 - e.hpFrac) * 0.9) / (0.35 + e._d / reach);
+      let s = TYPE_VALUE[e.stats.type] * (1 + (1 - e.condition) * 0.9) / (0.35 + e._d / reach);
       if (e === ship.lastAttacker) s *= 1.25;
       if (e === cmd.main.target) s *= 1.35;
       if (fleet && e === fleet.focus && st.type !== 'DD') s *= 1.45;
@@ -123,7 +123,7 @@ export class AIController {
     if (stn && stn.flag && fleet.Rd) Rd = fleet.Rd;
     let want, thr, torpRun = false;
     // a crippled ship withdraws, but only while it is still being shot at
-    const crippled = (ship.hpFrac < 0.28 || (ship.engine * ship.propulsion < 0.4 && ship.hpFrac < 0.5)) && world.time - ship.lastHitT < 90;
+    const crippled = (ship.condition < 0.28 || (ship.engine * ship.propulsion < 0.4 && ship.condition < 0.5)) && world.time - ship.lastHitT < 90;
     if (crippled && st.type !== 'DD') {
       want = bearing + Math.PI + this.circle * 0.35; thr = 1;
     } else if (d > Rd * 1.12) {
@@ -149,7 +149,7 @@ export class AIController {
     // sailing with the fleet: keep the station (a ship breaks formation when it is crippled, in the middle of a torpedo run or too close to the enemy)
     let following = false;
     const fp = stn ? fleet.stationPoint(ship) : null;
-    if (fp && !stn.flag && !crippled && !torpRun && ship.hpFrac > 0.3 && !(st.type !== 'DD' && st.type !== 'CV' && d < Rd * 0.55) && !(st.type === 'CV' && d < Rd * 0.85)) {
+    if (fp && !stn.flag && !crippled && !torpRun && ship.condition > 0.3 && !(st.type !== 'DD' && st.type !== 'CV' && d < Rd * 0.55) && !(st.type === 'CV' && d < Rd * 0.85)) {
       const [sx, sz, fx, fz, rx, rz] = fp, F = fleet.flag;
       const ex = sx - ship.x, ez = sz - ship.z, dist = Math.hypot(ex, ez);
       const ea = ex * fx + ez * fz, el = ex * rx + ez * rz;      // metres short of the station along the course (+) and to starboard of the ship (+)

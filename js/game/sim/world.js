@@ -11,6 +11,7 @@ import { segmentNearShip, segmentHit, resolveShellHit, resolveTorpedoHit } from 
 import { updateAir, resetAirIds } from './aircraft.js';
 import { spawnPartDebris, stepDebris } from './debris.js';
 import { magazineExplosion, shipGone, secondaryBlast, breakInTwo } from './explosions.js';
+import { hullHit } from './hull.js';
 import { FleetCommand } from './fleet.js';
 import { buildBases, updateBases, shellHitsBase, shellGround } from './baseops.js';
 
@@ -29,6 +30,8 @@ export const TEAM_COLORS = [
 ];
 
 let nextShell = 1;
+
+const _lc = [0, 0, 0];
 
 export class World {
   constructor(seed = 1) {
@@ -168,7 +171,7 @@ export class World {
     }
     this.collisions(dt);
     if (this.terrain) this.grounding(dt);
-    if (this.state === 'running') for (const s of this.ships) if (s.alive) { updateGunnery(s, this, dt); updateTorpedoes(s, this, dt); updateMissileLaunchers(s, this, dt); }
+    if (this.state === 'running') for (const s of this.ships) if (s.canFire) { updateGunnery(s, this, dt); updateTorpedoes(s, this, dt); updateMissileLaunchers(s, this, dt); }
     // once the battle is won the guns fall silent but the air goes on: the aircraft in the air go home and land (or ditch), the decks go on working
     if (this.state === 'running' || this.state === 'finished') updateAir(this, dt);
     if (this.state === 'running' || this.state === 'finished') updateBases(this, dt);
@@ -344,8 +347,8 @@ export class World {
           a.speed *= 0.97; b.speed *= 0.97;
           if (rv > 1.5 && (a.alive || b.alive)) {
             const e = rv * rv * 1.6;
-            if (a.alive) a.applyDamage(e * wa * 0.6, null, 'collision');
-            if (b.alive) b.applyDamage(e * wb * 0.6, null, 'collision');
+            const cx = (c.px + c.qx) / 2, cz = (c.pz + c.qz) / 2;
+            for (const [sh, w] of [[a, wa], [b, wb]]) if (sh.alive) { sh.toLocal(cx, 0, cz, _lc); hullHit(sh, { lx: clamp(_lc[0], -sh.stats.L / 2, sh.stats.L / 2), ly: -0.8, lz: clamp(_lc[2], -sh.stats.B / 2, sh.stats.B / 2), energy: e * w * 0.6, cause: 'collision', attacker: null }); }
             this.events.push({ type: 'collision', x: (c.px + c.qx) / 2, z: (c.pz + c.qz) / 2, power: rv });
           }
         }
@@ -374,7 +377,7 @@ export class World {
       if (vn < -1 && (s._groundT ?? 0) <= this.time) {
         s._groundT = this.time + 1.5;
         const e = vn * vn * st.dispFull * 0.012;
-        if (s.alive) s.applyDamage(e, null, 'collision');
+        if (s.alive) { s.toLocal(g.x, 0, g.z, _lc); hullHit(s, { lx: clamp(_lc[0], -st.L / 2, st.L / 2), ly: -st.D * 0.7, lz: clamp(_lc[2], -st.B / 2, st.B / 2), energy: e, cause: 'collision', attacker: null }); }
         this.events.push({ type: 'collision', x: g.x, z: g.z, power: -vn, land: true });
       }
     }
@@ -401,7 +404,7 @@ export class World {
       // by remaining fleet health
       let best = null, bv = -1;
       for (const t of present) {
-        const v = this.ships.filter((s) => s.team === t && s.alive).reduce((a, s) => a + s.hp, 0);
+        const v = this.ships.filter((s) => s.team === t && s.alive).reduce((a, s) => a + s.condition * s.stats.dispFull, 0);
         if (v > bv) { bv = v; best = t; }
       }
       this.winner = best;

@@ -5,6 +5,7 @@
 import { clamp, D2R } from '../math.js';
 import { effectiveThickness, spacedPlates, fuzeThickness, residualSpeed, V_EXP } from './penetration.js';
 import { blast, damageMount, damageModule } from './modules.js';
+import { hullHit, compAt } from './hull.js';
 import { inFoot } from '../model/clearance.js';
 import { getMountModel } from '../model/mounts.js';
 import { hitNormalAt } from '../model/v4hit.js';
@@ -391,7 +392,7 @@ export function resolveShellHit(world, ship, shell, hit) {
           world.events.push({ type: 'impact', kind, x: we[0], y: we[1], z: we[2], cal, ship, lx, ly, lz, part, ...fx, angle, exit: wx });
           report(thickEnough && shell.dud ? 'dud' : 'over', dmg);
           if (owner) { owner.damageDealt += dmg; owner.shotsHit++; }
-          ship.applyDamage(dmg, owner, 'shell');
+          hullHit(ship, { lx, ly, lz, energy: dmg, cause: 'shell', attacker: owner, holeScale: 0.5 });
           return;
         }
         // detonates inside
@@ -412,7 +413,7 @@ export function resolveShellHit(world, ship, shell, hit) {
         ship.addScar(lx, ly, lz, nrm[0], nrm[1], nrm[2], scarR, 1);
         report('pen', dmg);
         if (owner) { owner.damageDealt += dmg; owner.shotsHit++; }
-        ship.applyDamage(dmg, owner, 'shell');
+        hullHit(ship, { lx, ly, lz, energy: dmg, cause: 'shell', attacker: owner });
         return;
       }
       // bounced off the armour: ricochet at a grazing angle, or too thick to pierce
@@ -430,7 +431,7 @@ export function resolveShellHit(world, ship, shell, hit) {
       world.events.push({ type: 'impact', kind, x: w0[0], y: w0[1], z: w0[2], cal, ship, lx, ly, lz, part, ...fx, angle, glance: glance || breakup, rwx: r1[0] - r0[0], rwy: r1[1] - r0[1], rwz: r1[2] - r0[2] });
       report(glance ? 'glance' : 'bounce', dmg);
       if (owner) { owner.damageDealt += dmg; owner.shotsHit++; }
-      ship.applyDamage(dmg, owner, 'shell');
+      hullHit(ship, { lx, ly, lz, energy: dmg, cause: 'shell', attacker: owner, holeScale: 0 });
       return;
     }
 
@@ -451,7 +452,7 @@ export function resolveShellHit(world, ship, shell, hit) {
     ship.addScar(lx, ly, lz, nrm[0], nrm[1], nrm[2], scarR * (kind === 'bounce' ? 0.6 : 1), kind === 'bounce' ? 0 : (rng() < 0.4 ? 2 : 1));
     if (lx < -L * 0.38 && part !== 'super' && rng() < 0.04) ship.rudderJam = (rng() < 0.5 ? -1 : 1) * 0.6;
     if (owner) { owner.damageDealt += dmg; owner.shotsHit++; }
-    ship.applyDamage(dmg, owner, 'shell');
+    hullHit(ship, { lx, ly, lz, energy: dmg, cause: 'shell', attacker: owner, holeScale: thinSkin ? 0.8 : 0.4 });
     return;
   }
 }
@@ -503,7 +504,7 @@ export function resolveBombHit(world, ship, bomb, hit) {
   }
   ship.addScar(lx, ly, lz, nrm[0], nrm[1], nrm[2], 1.1 + kg / 400, inside ? 1 : 2);
   if (owner) { owner.damageDealt += dmg; owner.shotsHit++; }
-  ship.applyDamage(dmg, owner, 'bomb');
+  hullHit(ship, { lx: px, ly: py, lz: pz, energy: dmg, cause: 'bomb', attacker: owner, holeScale: inside ? 1 : 0.5 });
 }
 
 /** A bomb that missed but burst in the water against the hull: shock and flooding. */
@@ -519,7 +520,7 @@ export function resolveNearMiss(world, ship, bomb, wx, wz) {
   blast(world, ship, lx, -1.5, clamp(lz, -st.B / 2, st.B / 2), P, 'under', bomb.owner, 'bomb');
   ship.flood(lx, lz, bomb.kg * 0.02 * k);
   if (bomb.owner) bomb.owner.damageDealt += P * 0.2;
-  ship.applyDamage(P * 0.25, bomb.owner, 'bomb');
+  hullHit(ship, { lx, ly: -1.5, lz: clamp(lz, -st.B / 2, st.B / 2), energy: P * 0.25, cause: 'bomb', attacker: bomb.owner, holeScale: 0.5 });
 }
 
 /** A crashing aircraft slams into the ship. */
@@ -530,7 +531,7 @@ export function resolveCrashHit(world, ship, plane, hit) {
   if (rng() < 0.9) addFireAt(ship, hit.lx, Math.max(hit.ly, 1), hit.lz, 0.9);
   detonate(world, ship, hit.lx, hit.ly, hit.lz, kg * 0.6, 'outside', plane.owner, 'bomb', 'explode', 150, hit);
   ship.addScar(hit.lx, hit.ly, hit.lz, nrm[0], nrm[1], nrm[2], 1.4, 2);
-  ship.applyDamage(kg * 0.12 * st.softness, null, 'fire');
+  hullHit(ship, { lx: hit.lx, ly: hit.ly, lz: hit.lz, energy: kg * 0.12 * st.softness, cause: 'bomb', attacker: plane.owner, holeScale: 0.3 });
 }
 
 /** Share of the torpedo's blow that the underwater protection lets through (0.6 .. 1): a system designed for a warhead of R kg stops a smaller one. */
@@ -557,7 +558,6 @@ export function resolveTorpedoHit(world, ship, torp, wx, wz) {
   const lz = _l[2], lx = _l[0];
   const r = torpedoReach(ship, torp.warhead, lx);
   const dmg = TORP_SHARE[st.type] * Math.pow(torp.warhead / 300, 0.7) * r * st.maxHp * (0.85 + 0.3 * rng());
-  ship.flood(lx, lz, dmg * 0.012);
   if (ship.state === 'afloat') ship.listSide = lz >= 0 ? 1 : -1;
   if (torp.owner) { torp.owner.damageDealt += dmg; torp.owner.torpHits++; torp.owner.shotsHit++; }
   ship.engine = Math.max(0.2, ship.engine - 0.15 * rng());
@@ -565,8 +565,9 @@ export function resolveTorpedoHit(world, ship, torp, wx, wz) {
   const killed = blast(world, ship, lx, -2.0, clamp(lz, -st.B / 2, st.B / 2), P, 'under', torp.owner, 'torpedo');
   world.events.push({ type: 'impact', kind: 'torpedo', x: wx, y: 0, z: wz, cal: 600, ship, lx, ly: -1.5, lz, killed: killed.length });
   // a destroyer hit amidships by a torpedo usually breaks her back
-  const dead = ship.applyDamage(dmg, torp.owner, 'torpedo');
-  if (dead && st.type === 'DD' && ship.state === 'sinking' && !ship.exploded && rng() < 0.55) {
+  hullHit(ship, { lx, ly: -1.8, lz, energy: dmg, cause: 'torpedo', attacker: torp.owner });
+  if (st.type === 'DD' && ship.state === 'afloat' && ship.comps[compAt(ship, lx)].struct >= 1.2 && rng() < 0.55) {
+    ship.destroy(torp.owner, 'torpedo');
     ship.sinkMode = 'split'; ship.sinkStyle = 'split';
     world.breakInTwo(ship, clamp(lx, -st.L * 0.3, st.L * 0.3));
   }
