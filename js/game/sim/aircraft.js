@@ -89,6 +89,10 @@ function slotOffset(kind, pl, k = 1) {
 const TIGHT = 0.55;                     // the spacing of a section that closes up under attack, against the loose one
 const SECTION_SPREAD = 0.72;            // rad between the approach bearings of the torpedo sections
 
+// Dive angle (deg, centre of a +-5 range): measured against a screened fleet, 45 deg put no bomb on a ship, the old 58-70 about 15 %, 72-78 over 30 % and the losses stayed the same
+// (the aircraft is shot in the approach, not in the pull-out); steeper than 80 the dive is too short to correct the aim.
+const DIVE_ANGLE = 74;
+
 function bestTarget(world, team, fromX, fromZ) {
   let best = null, bs = -1e9;
   const srcs = aaSources(world, team);
@@ -232,7 +236,7 @@ function launches(world, dt) {
           spin: 0, gearDown: true, lost: { wingL: false, wingR: false, tail: false, engine: false }, dying: false, smoke: 0, fire: 0, harass: 0,
           lx: 0, lz: 0, u: 0, apOff: 0, jitter: (world.rng() - 0.5) * 2, fold: 1, hook: 0, eng: 0, aoa: 0, gp: GROUND_PITCH, yaw: 0, hidden: true, lift: null,
           t0Air: 0, cruiseAlt: kind === 'dive' ? rn(world, 1500, 2000) : rn(world, 420, 650), relAlt: rn(world, 480, 620), fuel: 1700 + world.rng() * 400,
-          aimErr: [world.rng.normal(), world.rng.normal()], diveAng: rn(world, 58, 70) * D2R, group: i,
+          aimErr: [world.rng.normal(), world.rng.normal()], diveAng: rn(world, (world.airOpts?.dang ?? DIVE_ANGLE) - 5, (world.airOpts?.dang ?? DIVE_ANGLE) + 5) * D2R, group: i,
         };
         p.x = ship.x; p.y = ship.y; p.z = ship.z;
         sec.members.push(p);
@@ -730,12 +734,18 @@ const LAND_BLIND = new Set(['dive', 'rollin', 'pullout', 'ditch', 'floating', 'f
 
 const _prev = [0, 0, 0];
 
+/** The angle (deg, 0..180) between the course of an aircraft and that of its target: 0 coming up astern, 90 across her, 180 head on. */
+function aspectOf(p, tgt) {
+  const th = Math.atan2(tgt.vx, -tgt.vz), a = Math.abs(wrapPi(p.heading - (tgt.speed > 1 ? th : tgt.heading)));
+  return a * 180 / Math.PI;
+}
+
 function dropBomb(world, p, tgt) {
   p.ordnance = false;
   const kg = p.spec.bombKg || 250;
   const b = {
     id: nextBomb++, owner: p.owner, team: p.team, kg, x: p.x + Math.sin(p.heading) * 3, y: p.y - 1.5, z: p.z - Math.cos(p.heading) * 3,
-    vx: p.vx, vy: p.vy, vz: p.vz, age: 0, mesh: kg >= 400 ? 'bomb500' : 'bomb250', target: tgt, plane: p,
+    vx: p.vx, vy: p.vy, vz: p.vz, age: 0, mesh: kg >= 400 ? 'bomb500' : 'bomb250', target: tgt, plane: p, asp: aspectOf(p, tgt), kind: p.kind,
   };
   world.bombs.push(b);
   world.events.push({ type: 'bombDrop', plane: p, bomb: b, x: b.x, y: b.y, z: b.z });
@@ -746,7 +756,7 @@ function dropTorpedo(world, p, tgt, range) {
   const a = p.heading;
   world.spawnTorpedo({
     owner: p.owner, x: p.x + Math.sin(a) * 4, z: p.z - Math.cos(a) * 4, vx: Math.sin(a) * 21.5, vz: -Math.cos(a) * 21.5, speed: 21.5, range: 2600, warhead: airTorpedoEq(p.owner && p.owner.stats && p.owner.stats.nation), team: p.team,
-    air: true, h: Math.max(8, p.y - 3), hv: p.vy, fallSpeed: p.speed * 0.85, fallDir: a,
+    air: true, h: Math.max(8, p.y - 3), hv: p.vy, fallSpeed: p.speed * 0.85, fallDir: a, asp: aspectOf(p, tgt), drop: range,
   });
   world.events.push({ type: 'torpedoDrop', plane: p, x: p.x, y: p.y, z: p.z, bearing: a });
 }
@@ -767,7 +777,7 @@ function stepBombs(world, dt) {
       if (ship.team === b.team || ship.state === 'sunk') continue;
       if (!segmentNearShip(ship, px, py, pz, b.x, b.y, b.z)) continue;
       const hit = segmentHit(ship, px, py, pz, b.x, b.y, b.z);
-      if (hit) { if (ship.state === 'afloat' || ship.sinkDepth < 3) resolveBombHit(world, ship, b, hit); done = true; break; }
+      if (hit) { if (ship.state === 'afloat' || ship.sinkDepth < 3) resolveBombHit(world, ship, b, hit); world.events.push({ type: 'bombResult', hit: true, asp: b.asp, kind: b.kind, plane: b.plane }); done = true; break; }
     }
     // the ground of an island: a base is wrecked by it, bare ground only throws up earth
     if (!done && world.terrain && b.y < 120) {
@@ -782,6 +792,7 @@ function stepBombs(world, dt) {
       const f = py / (py - b.y);
       const wx = px + (b.x - px) * f, wz = pz + (b.z - pz) * f;
       world.events.push({ type: 'splash', x: wx, z: wz, cal: 300, bomb: true });
+      world.events.push({ type: 'bombResult', hit: false, asp: b.asp, kind: b.kind, plane: b.plane });
       for (const ship of world.ships) if (ship.team !== b.team && ship.state === 'afloat') resolveNearMiss(world, ship, b, wx, wz);
       done = true;
     }

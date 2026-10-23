@@ -47,8 +47,8 @@ export function stationPlan(items, side = 1, spread = 1) {
     out[i] = { f: tail - 2600 - 1100 * j, r: side * (2800 + 900 * j) * spread, role: 'carrier', flag: false, tether: 1700 };
   });
   escorts.forEach((i, j) => {
-    const cv = out[cvList[Math.min(cvList.length - 1, j >> 1)]];
-    out[i] = { f: cv.f + 500, r: cv.r + (j % 2 ? 1 : -1) * 1500 * spread, role: 'escort', flag: false, tether: 800 };
+    const ci = cvList[Math.min(cvList.length - 1, j >> 1)], cv = out[ci];
+    out[i] = { f: cv.f + 500, r: cv.r + (j % 2 ? 1 : -1) * 1500 * spread, role: 'escort', flag: false, tether: 800, of: ci, df: 500, dr: (j % 2 ? 1 : -1) * 1500 * spread };
   });
   return out;
 }
@@ -65,6 +65,7 @@ export class FleetCommand {
     this.Rd = 12000;           // the range the line fights at
     this.focus = null;         // the enemy the line shoots at
     this.members = [];
+    this.opts = {};            // options of the captain (tools/aitest.mjs sets them to compare ways of fighting)
   }
 
   update(world, dt) {
@@ -92,7 +93,7 @@ export class FleetCommand {
     if (fi < 0) { for (const s of ships) s.station = null; this.flag = null; return; }
     const flag = ships[fi];
     this.flag = flag;
-    ships.forEach((s, i) => { s.station = plan[i]; });
+    ships.forEach((s, i) => { s.station = plan[i]; if (s.station && s.station.of != null) s.station.cvShip = ships[s.station.of]; });
 
     // pace and range: the line fights at the range of its shortest-ranged ship and sails at the speed of its slowest
     let rd = 1e9, vmax = 1e9;
@@ -126,6 +127,11 @@ export class FleetCommand {
   stationPoint(ship) {
     const st = ship.station, F = this.flag;
     if (!st || !F || !F.alive) return null;
+    // an escort keeps with her carrier, wherever the carrier has gone (when the captain has the option), not with the place of the carrier in the order of battle
+    if ((this.opts.form ?? 1) && st.role === 'escort' && st.cvShip && st.cvShip.alive) {
+      const C = st.cvShip, cx = Math.sin(C.heading), cz = -Math.cos(C.heading);
+      return [C.x + cx * st.df + (-cz) * st.dr, C.z + cz * st.df + cx * st.dr, cx, cz, -cz, cx];
+    }
     const fx = Math.sin(F.heading), fz = -Math.cos(F.heading), rx = -fz, rz = fx;
     return [F.x + fx * st.f + rx * st.r, F.z + fz * st.f + rz * st.r, fx, fz, rx, rz];
   }

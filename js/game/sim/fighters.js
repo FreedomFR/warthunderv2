@@ -1,11 +1,11 @@
 // Carrier fighters. A wave of bombers is escorted by a section of fighters; when enemy aircraft come near the fleet a patrol (CAP) goes up from the
 // carrier. A fighter flies its station (over the bombers it escorts, or in a circle over the fleet), picks the enemy aircraft that threatens most,
-// closes on it with lead pursuit and fires its machine guns in bursts; the rear gunners of the bombers shoot back. When it has no ammunition left,
+// closes on it, lays its guns on where it will be (the turn it is in included) and fires its machine guns in bursts, breaks away from the enemy on its tail; the rear gunners of the bombers shoot back. When it has no ammunition left,
 // is badly hurt or short of fuel it goes home and lands like the others (sim/aircraft.js, sim/deck.js).
 import { clamp, wrapPi, D2R, mat4Ship } from '../math.js';
 import { planeGuns, inArc, muzzleOf, GUN_RATE, GUN_DMG } from '../model/planeGuns.js';
 import { aaSources, exposure } from './routing.js';
-import { perfOf } from './airperf.js';
+import { perfOf, turnPerf } from './airperf.js';
 import { presentedArea, roundHitChance } from './airhit.js';
 
 export const FIGHT_PHASES = new Set(['escort', 'cap', 'engage']);
@@ -25,6 +25,16 @@ function hostiles(world, p) {
   return out;
 }
 
+/** The wingman of a fighter: the other of its pair (fighters of one wave and one role go in pairs, in the order they took off), or null when it has lost him. */
+function mateOf(world, p) {
+  if (p._mateT !== undefined && world.time < p._mateT) return p._mate;
+  p._mateT = world.time + 1 + world.rng();
+  const grp = p.wave ? p.wave.planes.filter((q) => q.fighter && q.role === p.role && !q.dying && !q.gone) : [];
+  const i = grp.indexOf(p), m = i >= 0 ? grp[i ^ 1] : null;
+  p._mate = m && m !== p && !m.hidden && m.y > 40 ? m : null;
+  return p._mate;
+}
+
 /** How much an enemy aircraft is worth attacking now (the fighter p, at distance d from it). */
 function value(world, p, q, d, anchor) {
   let sc = 0;
@@ -33,6 +43,7 @@ function value(world, p, q, d, anchor) {
   if (q.phase === 'ip' || q.phase === 'run' || q.phase === 'rollin' || q.phase === 'dive') sc += 3.2;      // the ones that are about to drop
   if (q.ordnance) sc += 1;
   sc -= d / 3500;
+  if (p.ban === q && world.time < p.banT) sc -= 8;      // the one it could not catch: for a while it looks elsewhere
   if (anchor) sc -= Math.hypot(q.x - anchor.x, q.z - anchor.z) / 9000;
   // an escort's first duty: the enemy that is going for the bombers it covers (a fighter whose prey is one of them), or is already among them
   if (p.role === 'escort' && q.fighter) {
@@ -99,10 +110,14 @@ export function fighterSteer(world, p, dt, ctx) {
     // above and a little ahead of the bombers, weaving so as to stay with them
     const sp = Math.hypot(anchor.vx, anchor.vz) || 80, fx = anchor.vx / sp, fz = anchor.vz / sp;
     const wv = Math.sin(world.time * 0.25 + p.id) * 380;
-    const sx = anchor.x + fx * 250 - fz * wv, sz = anchor.z + fz * 250 + fx * wv, sy = anchor.y + 260 + (p.id % 3) * 50;
+    const ex = anchor.x + fx * 250 - fz * wv, ez = anchor.z + fz * 250 + fx * wv, ey = anchor.y + 260 + (p.id % 3) * 50;
+    // (the wingman keeps to his leader, a little behind and to one side, and looks to the side the leader does not)
+    const mate = mateOf(world, p), wing = mate && p.id > mate.id && mate.phase === 'escort';
+    let sx = ex, sz = ez, sy = ey;
+    if (wing) { const mfx = Math.sin(mate.heading), mfz = -Math.cos(mate.heading), side = p.id & 1 ? 1 : -1; sx = mate.x - mfx * 170 + mfz * -side * 230; sz = mate.z - mfz * 170 + mfx * side * 230; sy = mate.y - 20; }
     const dx = sx - p.x, dz = sz - p.z, d = Math.hypot(dx, dz);
-    out.hdg = d > 160 ? Math.atan2(dx, -dz) : Math.atan2(anchor.vx, -anchor.vz);
-    out.spd = clamp(sp * 1.25 + d * 0.12, pf.vc * 0.8, vC);
+    out.hdg = d > 160 ? Math.atan2(dx, -dz) : wing ? mate.heading : Math.atan2(anchor.vx, -anchor.vz);
+    out.spd = clamp((wing ? mate.speed : sp * 1.25) + d * 0.12, pf.vc * 0.8, vC);
     out.gam = clamp((sy - p.y) / 700, -0.12, 0.14);
     out.o = { bankMax: 42 * D2R, pitchRate: 0.5 };         // station keeping is flown gently (the fighter used to rock from bank to bank at 70 degrees)
     return out;
@@ -112,7 +127,9 @@ export function fighterSteer(world, p, dt, ctx) {
     const R = 3000, ang = Math.atan2(p.x - ship.x, -(p.z - ship.z));
     const dir = (p.id & 1) ? 1 : -1;
     const ta = ang + dir * 0.5;
-    const tx = ship.x + Math.sin(ta) * R, tz = ship.z - Math.cos(ta) * R;
+    let tx = ship.x + Math.sin(ta) * R, tz = ship.z - Math.cos(ta) * R;
+    const mate = mateOf(world, p);
+    if (mate && p.id > mate.id && mate.phase === 'cap') { const mfx = Math.sin(mate.heading), mfz = -Math.cos(mate.heading), side = p.id & 1 ? 1 : -1; tx = mate.x - mfx * 170 + mfz * -side * 230; tz = mate.z - mfz * 170 + mfx * side * 230; }
     out.hdg = Math.atan2(tx - p.x, -(tz - p.z));
     out.spd = vCruiseF;
     out.gam = clamp((1400 - p.y) / 600, -0.1, 0.12);
@@ -124,55 +141,171 @@ export function fighterSteer(world, p, dt, ctx) {
   }
 
   // ---- combat ----
-  const q = p.prey;
-  const dx0 = q.x - p.x, dy0 = q.y - p.y, dz0 = q.z - p.z, d = Math.hypot(dx0, dy0, dz0);
-  const tl = clamp(d / 720, 0, 1.4);
-  const ax = q.x + q.vx * tl - p.vx * 0.0, ay = q.y + q.vy * tl + 0.5 * 9.8 * tl * tl * 0.3, az = q.z + q.vz * tl;
-  const dx = ax - p.x, dy = ay - p.y, dz = az - p.z, dh = Math.hypot(dx, dz);
-  out.hdg = Math.atan2(dx, -dz);
-  out.gam = clamp(Math.atan2(dy, Math.max(dh, 1)), -1.0, 0.9);
-  out.o = { bankMax: 78 * D2R, pitchRate: 0.85 };
-  // speed: close in fast, but not so fast as to overshoot the slow ones
-  const qs = Math.hypot(q.vx, q.vz);
-  out.spd = d > 900 ? vC : clamp(qs * 1.3 + (d - 150) * 0.1, qs * 1.1 + 12, vC);
-  // keep out of the sea
+  return dogfight(world, p, dt, ctx, out, anchor, vC);
+}
+
+// ---- the fight itself ---------------------------------------------------------------------------------------------------------------------------------------------------
+// A fighter flies one of three attitudes: it ATTACKS (closes on its prey, lays its guns on where the prey will be and fires), it DEFENDS (an enemy is on its tail: it turns hard, the
+// ones who can out-turn him into him, so that he overshoots, the others dive away with their speed) or it EXTENDS (draws away from a fight it cannot win by turning, to come back
+// with speed). Which of the two a type does is decided by its flight model (turnPerf): a Zero turns tighter than a Hellcat and the Hellcat is faster, so the Zero stays and turns and the
+// Hellcat goes for the speed.
+const MUZZLE_V = 800;            // m/s, the speed of the rounds along the barrel (the guns are fixed: the pilot lays them by flying the aircraft)
+const _A = [0, 0, 0], _B = [0, 0, 0];
+
+/** The acceleration of an aircraft (m/s2, smoothed), from the change of its velocity: what a pilot reads off the way the other one is turning. */
+function motion(world, q) {
+  const t = world.time;
+  if (q._mT === undefined) { q._mT = t; q._mv = [q.vx, q.vy, q.vz]; q._ma = [0, 0, 0]; return q._ma; }
+  const dt = t - q._mT;
+  if (dt > 0.04) {
+    const k = Math.min(1, dt * 3), ma = q._ma, lv = q._mv;
+    ma[0] += ((q.vx - lv[0]) / dt - ma[0]) * k; ma[1] += ((q.vy - lv[1]) / dt - ma[1]) * k; ma[2] += ((q.vz - lv[2]) / dt - ma[2]) * k;
+    lv[0] = q.vx; lv[1] = q.vy; lv[2] = q.vz; q._mT = t;
+  }
+  return q._ma;
+}
+
+/** The unit vector of the nose. */
+const noseOf = (p, out) => { const cp = Math.cos(p.pitch || 0); out[0] = Math.sin(p.heading) * cp; out[1] = Math.sin(p.pitch || 0); out[2] = -Math.cos(p.heading) * cp; return out; };
+
+/**
+ * Where to point the guns (relative to the shooter: a vector): the rounds leave with the speed of the shooter added to theirs, so the target must be hit where it will be after the time
+ * of flight, with its own motion (and the turn it is in: the acceleration `a`, believed by the pilot to the degree of his skill).
+ */
+function gunSolution(r, vr, a, skill, out) {
+  let t = Math.hypot(r[0], r[1], r[2]) / MUZZLE_V;
+  for (let k = 0; k < 2; k++) {
+    out[0] = r[0] + vr[0] * t + 0.5 * a[0] * t * t * skill; out[1] = r[1] + vr[1] * t + 0.5 * a[1] * t * t * skill - 0.5 * 9.8 * t * t * 0.3; out[2] = r[2] + vr[2] * t + 0.5 * a[2] * t * t * skill;
+    t = Math.hypot(out[0], out[1], out[2]) / MUZZLE_V;
+  }
+  return out;
+}
+
+/** The enemy fighter that has this one in its sights, if any: { f, d, cone }. */
+function foeOf(world, p) {
+  let best = null;
+  for (const f of world.planes) {
+    if (!f.fighter || f.team === p.team || f.dying || f.hidden || f.gone || f.prey !== p) continue;
+    const dx = p.x - f.x, dy = p.y - f.y, dz = p.z - f.z, d = Math.hypot(dx, dy, dz);
+    if (d > 1100) continue;
+    const n = noseOf(f, _A), cone = Math.acos(clamp((n[0] * dx + n[1] * dy + n[2] * dz) / (d || 1), -1, 1));
+    if (cone > 0.6 || (best && d >= best.d)) continue;
+    // (one that is still coming at me from ahead is passed, not turned from: it counts once it is on my side of the beam)
+    const n2 = noseOf(p, _B), back = Math.acos(clamp(-(n2[0] * dx + n2[1] * dy + n2[2] * dz) / (d || 1), -1, 1));
+    if (back < 1.45) continue;
+    best = { f, d, cone };
+  }
+  return best;
+}
+
+function dogfight(world, p, dt, ctx, out, anchor, vC) {
+  const ship = p.owner, q = p.prey, pf = perfOf(p), rng = world.rng;
+  const tp = turnPerf(p.typeKey, p.spec), isF = !!q.fighter, tq = isF ? turnPerf(q.typeKey, q.spec) : null;
+  if (p.skill === undefined) p.skill = 0.7 + 0.3 * rng();
+  const qa = motion(world, q);
+  const rx = q.x - p.x, ry = q.y - p.y, rz = q.z - p.z, d = Math.hypot(rx, ry, rz) || 1, ux = rx / d, uy = ry / d, uz = rz / d;
+  const vrx = q.vx - p.vx, vry = q.vy - p.vy, vrz = q.vz - p.vz, closure = -(ux * vrx + uy * vry + uz * vrz);
+  const n = noseOf(p, [0, 0, 0]), ata = Math.acos(clamp(n[0] * ux + n[1] * uy + n[2] * uz, -1, 1));
+  const qn = noseOf(q, [0, 0, 0]), aspect = Math.acos(clamp(qn[0] * ux + qn[1] * uy + qn[2] * uz, -1, 1));      // 0: I am dead astern of him
+  const qs = Math.hypot(q.vx, q.vz), ps = p.speed;
+  const turner = isF && tp.wTurn >= tq.wTurn * 1.03, outturned = isF && tp.wTurn < tq.wTurn * 0.97;
+
+  // ---- who is on my tail ----
+  p.foeT = (p.foeT ?? 0) - dt;
+  if (p.foeT <= 0) { p.foeT = 0.3; p.foe = foeOf(world, p); }
+  let foe = p.foe && p.foe.f.prey === p && !p.foe.f.dying ? p.foe : null;
+  // he has to be seen first: a pilot looks ahead and about him, and only now and then over his shoulder; rounds past his tail are seen at once
+  if (!foe) p.seen = null;
+  else if (p.seen !== foe.f) {
+    const lookout = foe.f.firing ? 5 : foe.d < 450 ? 0.9 : 0.35;
+    if (rng() < lookout * dt) p.seen = foe.f; else foe = null;
+  }
+  p.tacT = (p.tacT ?? 0) - dt;
+  if (!p.tac) p.tac = 'attack';
+  if (foe && p.tac !== 'defend' && !(ata < 0.35 && d < 450 && aspect < 0.5)) {      // (unless I have him in my own sights)
+    p.tac = 'defend'; p.tacT = 2.5 + 2 * rng();
+    const fx = foe.f.x - p.x, fz = foe.f.z - p.z;
+    p.defSide = Math.sin(Math.atan2(fx, -fz) - p.heading) >= 0 ? 1 : -1 ;      // the side he is on
+    p.defSide = -Math.sign(wrapPi(p.heading - Math.atan2(fx, -fz))) || 1;
+  } else if (p.tac === 'defend' && p.tacT <= 0) { p.tac = foe && foe.d < 480 ? 'defend' : (outturned ? 'extend' : 'attack'); p.tacT = p.tac === 'extend' ? 5 + 3 * rng() : 2 + rng(); }
+  else if (p.tac === 'extend' && (p.tacT <= 0 || d > 2000)) { p.tac = 'attack'; p.tacT = 0; }
+  // a head-on pass with a fighter that out-turns: draw away, do not turn with it
+  if (p.tac === 'attack' && outturned && ps > qs + 12 && ata > 1.3 && d < 900 && aspect > 1.2 && closure < 0) { p.tac = 'extend'; p.tacT = 6 + 3 * rng(); }
+  p.evade = p.tac === 'defend' ? Math.max(p.evade ?? 0, 0.4) : Math.max(0, (p.evade ?? 0) - dt);
+
+  const bank = pf.bank * D2R, pr = pf.pr * 1.1;
+  out.o = { bankMax: bank, pitchRate: pr };
+  p.firing = false;
+  if (p.tac === 'defend') {
+    const fa = Math.atan2(foe ? foe.f.x - p.x : -rx, foe ? -(foe.f.z - p.z) : rz);
+    if (!outturned) {
+      // into him, level, at the speed the wing turns best at: he cannot hold his nose on me round the circle and goes by
+      out.hdg = p.heading + p.defSide * 1.8; out.gam = p.y < 450 ? 0.1 : 0; out.spd = tp.vTurn + 6;
+    } else {
+      // he turns better: down and away with the speed (the Hellcat's answer to a Zero), a jink on the way
+      out.hdg = fa + Math.PI + p.defSide * 0.7; out.gam = p.y > 700 ? -0.45 : 0.02; out.spd = pf.vmax * 0.95;
+    }
+    if (p.y < 25) out.gam = Math.max(out.gam, 0.12);
+    return finishFight(world, p, out, q, d, anchor);
+  }
+  if (p.tac === 'extend') {
+    out.hdg = Math.atan2(-rx, rz) + Math.sin(world.time * 0.7 + p.id) * 0.5;
+    out.gam = ps > pf.vmax * 0.82 && p.y < 3200 ? 0.28 : (p.y > 900 ? -0.08 : 0.04);      // with the speed in hand, up (the zoom): height to come back from
+    out.spd = pf.vmax * 0.95; out.o = { bankMax: 60 * D2R, pitchRate: pr };
+    if (p.y < 25) out.gam = Math.max(out.gam, 0.12);
+    return finishFight(world, p, out, q, d, anchor);
+  }
+
+  // ---- a chase that gains nothing is let go (the faster one is gone; the escort goes back to its bombers, the patrol to its fleet) ----
+  p.chaseT = d > 450 && closure < 3 ? (p.chaseT ?? 0) + dt : 0;
+  if (p.chaseT > 9) { p.chaseT = 0; p.ban = q; p.banT = world.time + 20; p.prey = null; p.tac = 'attack'; p.phase = p.role === 'escort' ? 'escort' : 'cap'; return out; }
+
+  // ---- attack: the guns on where he will be ----
+  const rel = [rx, ry, rz], vrel = [vrx, vry, vrz], aim = gunSolution(rel, vrel, qa, p.skill, [0, 0, 0]);
+  const al = Math.hypot(aim[0], aim[1], aim[2]) || 1;
+  // steering: far off, a course that meets him (the pursuit curve that closes); near, the gun solution itself
+  let sx = aim[0], sy = aim[1], sz = aim[2];
+  if (d > 500) {
+    const k = clamp((d - 500) / 500, 0, 1), tl = clamp(d / Math.max(ps + 60, 80), 0.6, 2.6), hh = 0.5 * tl * tl * p.skill, mx = rx + q.vx * tl + qa[0] * hh - p.vx * tl * 0.1, my = ry + q.vy * tl + qa[1] * hh, mz = rz + q.vz * tl + qa[2] * hh - p.vz * tl * 0.1;
+    sx += (mx - sx) * k; sy += (my - sy) * k; sz += (mz - sz) * k;
+  }
+  out.hdg = Math.atan2(sx, -sz);
+  out.gam = clamp(Math.atan2(sy, Math.max(Math.hypot(sx, sz), 1)), -1.0, 0.9);
+  // speed: close in fast; in the last hundreds of metres match him (a turning fight is flown at the speed the wing turns best at)
+  const hard = isF && (q.load ?? 1) > 2.8;
+  out.spd = d > 1100 ? vC : hard && (turner || !outturned) ? tp.vTurn + 8 : clamp(qs * 1.15 + (d - 250) * 0.06, Math.max(qs * 1.05 + 8, tp.vTurn), vC);
+  // too fast for the range: over the top (the high yo-yo) instead of past him
+  if (closure > 50 && d < 420 && ata < 0.8) { out.gam = Math.max(out.gam, 0.35); out.spd = tp.vTurn + 5; }
   if (p.y < 45 && out.gam < 0.05 && !(q.y < 70)) out.gam = 0.1;
   if (p.y < 25) out.gam = Math.max(out.gam, 0.12);
-  // the angle between the nose and the aiming point
-  const fx = Math.sin(p.heading) * Math.cos(p.pitch), fy = Math.sin(p.pitch), fz = -Math.cos(p.heading) * Math.cos(p.pitch);
-  const al = Math.hypot(dx, dy, dz) || 1;
-  const cone = Math.acos(clamp((fx * dx + fy * dy + fz * dz) / al, -1, 1));
-  p.firing = d < 680 && cone < 0.05 && p.ammo > 0;
+  // the guns
+  const cone = Math.acos(clamp((n[0] * aim[0] + n[1] * aim[1] + n[2] * aim[2]) / al, -1, 1));
+  // (he opens fire when the rounds would hit: the chance that the pattern, laid where the guns point, covers him)
+  if (d < 560 && d > 50 && cone < 0.12 && p.ammo > 0) {
+    const sg = 3.6 * 0.001 * d + 1.0 + 0.003 * d * Math.max(0, (p.load ?? 1) - 3), ar = presentedArea(q, ux, uy, uz);
+    p.firing = MG_ROUNDS * roundHitChance(ar, d * Math.sin(cone), sg) > 1.0;
+  }
   if (p.firing) {
     p.ammo -= BURST_RATE * dt;
-    p.burstT = (p.burstT ?? 0) + dt;
     if (!p.wasFiring) world.events.push({ type: 'mgBurst', plane: p, x: p.x, y: p.y, z: p.z });
-    world.events.push({ type: 'mgFire', plane: p, target: q, x: p.x + fx * 3, y: p.y + fy * 3 - 0.3, z: p.z + fz * 3, dx: dx / al, dy: dy / al, dz: dz / al, range: d });
-    // hits: the rounds fly along the nose and land in a pattern round it (the guns are fixed: the pilot lays them by flying the aircraft); the target is where it will be when
-    // they arrive, so a target that holds its course is hit and one that breaks away is not; what the pattern covers is the area the target shows
-    const tof = d / 800, rx = q.x - p.x + (q.vx - p.vx) * tof, ry = q.y - p.y + (q.vy - p.vy) * tof, rz = q.z - p.z + (q.vz - p.vz) * tof;
-    const rl = Math.hypot(rx, ry, rz) || 1, along = rx * fx + ry * fy + rz * fz;
-    const miss = Math.hypot(rx - fx * along, ry - fy * along, rz - fz * along);
-    // a target that is turning away is not where the straight line puts it
-    const sigma = 3.6 * 0.001 * rl + 1.0 + (q.evade > 0 ? 12 * tof * tof : 0);
-    const area = presentedArea(q, rx / rl, ry / rl, rz / rl);
-    const hits = MG_ROUNDS * dt * roundHitChance(area, miss, sigma);
-    const n = Math.floor(hits + world.rng());
-    if (n > 0) ctx.hit(world, ship, q, MG_DMG * n * (0.8 + 0.4 * world.rng()), 12.7);
+    world.events.push({ type: 'mgFire', plane: p, target: q, x: p.x + n[0] * 3, y: p.y + n[1] * 3 - 0.3, z: p.z + n[2] * 3, dx: aim[0] / al, dy: aim[1] / al, dz: aim[2] / al, range: d });
+    // where the target really is when the rounds arrive (with the turn it is in), against where the guns point: a target that holds its turn is hit by a pilot who read it, one that
+    // changes it is not; the pattern is wider the harder the shooter is pulling, and for a target that is jinking
+    const tof = d / MUZZLE_V, hx = rx + vrx * tof + 0.5 * qa[0] * tof * tof, hy = ry + vry * tof + 0.5 * qa[1] * tof * tof - 0.5 * 9.8 * tof * tof * 0.3, hz = rz + vrz * tof + 0.5 * qa[2] * tof * tof;
+    const rl = Math.hypot(hx, hy, hz) || 1, along = hx * n[0] + hy * n[1] + hz * n[2];
+    const miss = Math.hypot(hx - n[0] * along, hy - n[1] * along, hz - n[2] * along);
+    const sigma = 3.6 * 0.001 * rl + 1.0 + (q.evade > 0 ? 9 * tof * tof : 0) + 0.003 * rl * Math.max(0, (p.load ?? 1) - 3);
+    const area = presentedArea(q, hx / rl, hy / rl, hz / rl);
+    const nh = Math.floor(MG_ROUNDS * dt * roundHitChance(area, miss, sigma) + rng());
+    if (nh > 0) ctx.hit(world, ship, q, MG_DMG * nh * (0.8 + 0.4 * rng()), 12.7);
   }
   p.wasFiring = p.firing;
-  // an enemy fighter on our tail: break away
-  p.evade = Math.max(0, (p.evade ?? 0) - dt);
-  const chaser = q.fighter && q.prey === p && d < 600;
-  if (chaser && p.evade <= 0 && world.rng() < dt * 0.6) { p.evade = 1.5 + world.rng() * 1.5; p.evadeSide = world.rng() < 0.5 ? -1 : 1; }
-  if (p.evade > 0) {
-    out.hdg = p.heading + p.evadeSide * 1.2;
-    out.gam = clamp(-0.25 + (p.y < 400 ? 0.4 : 0), -0.3, 0.3);
-    out.spd = vC;
-    out.o = { bankMax: 80 * D2R, pitchRate: 0.9 };
-  }
-  // a long chase or no way to close: give up and go back to the station (an escort does not leave the bombers it covers alone for long)
-  if (d > 9500 || (p.role === 'escort' && anchor && Math.hypot(p.x - anchor.x, p.z - anchor.z) > 7500)) { p.prey = null; p.phase = p.role === 'escort' ? 'escort' : 'cap'; }
+  return finishFight(world, p, out, q, d, anchor);
+}
+
+/** The end of a tick of the fight: a long chase or no way to close, and the prey is let go. */
+function finishFight(world, p, out, q, d, anchor) {
+  if (d > 9500 || (p.role === 'escort' && anchor && Math.hypot(p.x - anchor.x, p.z - anchor.z) > 7500)) { p.prey = null; p.tac = 'attack'; p.phase = p.role === 'escort' ? 'escort' : 'cap'; }
   return out;
 }
 

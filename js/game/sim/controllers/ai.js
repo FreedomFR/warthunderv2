@@ -2,6 +2,7 @@
 // range and heading, launches torpedoes and air strikes, avoids collisions, withdraws when crippled.
 import { clamp, D2R } from '../../math.js';
 import { torpedoSolution } from '../weapons.js';
+import { chooseOffset } from './posture.js';
 
 const TYPE_VALUE = { DD: 1.0, CL: 1.3, CA: 1.8, BB: 2.5, CV: 2.3, BASE: 1.4 };
 const MAP_RADIUS = 26000;
@@ -133,7 +134,16 @@ export class AIController {
       want = bearing + this.circle * 135 * D2R; thr = 0.9;
     } else {
       const corr = clamp((d - Rd) / Rd, -0.3, 0.3);
-      want = bearing + this.circle * (90 - corr * 120) * D2R; thr = 0.7;
+      // turned to the enemy's fire: the offset from broadside that the exchange favours (controllers/posture.js)
+      let off = 0;
+      const posture = this.opts.posture ?? 1;
+      if (posture > 0 && st.main && ref && !ref.isBase && ref.stats.main) {
+        this.offT = (this.offT || 0) - dt;
+        if (this.offT <= 0) { this.offT = 1.5 + rng(); this.offGoal = chooseOffset(ship, ref, d, this.circle, this.off ?? 0); }
+        this.off = (this.off ?? 0) + ((this.offGoal ?? 0) - (this.off ?? 0)) * 0.3;
+        off = this.off * clamp(posture, 0, 1);
+      }
+      want = bearing + this.circle * (90 - off - corr * 120) * D2R; thr = 0.7;
     }
     // an island on the way to the enemy: go round it (the fan of probes below keeps the ship off the shallows)
     if (T && !crippled) {
@@ -152,8 +162,8 @@ export class AIController {
     const fp = stn ? fleet.stationPoint(ship) : null;
     // a destroyer with her torpedoes still aboard leaves the line to get into range of an enemy that is within reach (it is what a destroyer is for: a carrier or a battleship that
     // keeps its distance is sunk by torpedoes, not by 4.7 in shells)
-    const hunter = !!(tp && ship.torpLeft > 0 && (st.type === 'DD' || tp.bow) && d < 18000 && ship.condition > 0.3);
-    if (fp && !stn.flag && !crippled && !torpRun && !hunter && ship.condition > 0.3 && !(st.type !== 'DD' && st.type !== 'CV' && d < Rd * 0.55) && !(st.type === 'CV' && d < Rd * 0.85)) {
+    const hunter = !!(tp && ship.torpLeft > 0 && (st.type === 'DD' || tp.bow) && d < ((this.opts.form ?? 1) ? 11000 : 18000) && ship.condition > 0.3);
+    if (fp && !stn.flag && !crippled && !torpRun && !hunter && ship.condition > 0.3 && !(st.type !== 'DD' && st.type !== 'CV' && d < Rd * 0.55) && !(st.type === 'CV' && d < Rd * ((this.opts.form ?? 1) ? 0.45 : 0.85))) {
       const [sx, sz, fx, fz, rx, rz] = fp, F = fleet.flag;
       const ex = sx - ship.x, ez = sz - ship.z, dist = Math.hypot(ex, ez);
       const ea = ex * fx + ez * fz, el = ex * rx + ez * rz;      // metres short of the station along the course (+) and to starboard of the ship (+)

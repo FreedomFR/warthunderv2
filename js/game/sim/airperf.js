@@ -92,3 +92,28 @@ export function dragAcc(a, v, n, k0 = 1, brakes = false) {
 
 /** The thrust per unit mass at full throttle (m/s2), the share of the power left (engines lost) included. */
 export const thrustAcc = (a, v, power = 1) => power * a.Pw / Math.max(v, a.vmin);
+
+// ---- how a fighter turns: what the fight is flown with ----------------------------------------------------------------------------------------------------------------
+const turnCache = new Map();
+/**
+ * The turning performance of a type from its flight model: `vTurn` the speed at which it holds the fastest turn for ever (the thrust pays the induced drag; m/s) and `wTurn` that rate
+ * (rad/s); `vCorner` the speed at which the wing and the pilot give the fastest turn there is, for a moment (it loses speed in it) and `wInst` that rate. A light wing (a Zero) turns
+ * faster at a lower speed than a heavy one (a Hellcat) which has the power to keep its speed: the first fights a turning fight, the second goes for the speed.
+ */
+export function turnPerf(typeKey, spec) {
+  let t = turnCache.get(typeKey);
+  if (t) return t;
+  const A = aeroOf(typeKey, spec), rate = (n, v) => G0 * Math.sqrt(Math.max(0, n * n - 1)) / v;
+  let vTurn = 0, wTurn = 0, vCorner = 0, wInst = 0;
+  for (let v = 50; v <= 190; v += 1) {
+    const cap = Math.min(A.nmax, 0.9 * (v / A.vs) ** 2);
+    if (rate(cap, v) > wInst) { wInst = rate(cap, v); vCorner = v; }
+    let lo = 1, hi = cap;
+    if (thrustAcc(A, v) - dragAcc(A, v, 1) < 0) continue;       // cannot hold level flight at this speed
+    for (let i = 0; i < 30; i++) { const m = (lo + hi) / 2; if (thrustAcc(A, v) - dragAcc(A, v, m) > 0) lo = m; else hi = m; }
+    if (rate(lo, v) > wTurn) { wTurn = rate(lo, v); vTurn = v; }
+  }
+  t = { vTurn, wTurn, vCorner, wInst };
+  turnCache.set(typeKey, t);
+  return t;
+}
