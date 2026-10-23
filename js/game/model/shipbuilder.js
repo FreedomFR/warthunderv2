@@ -115,11 +115,15 @@ const AA_TYPES = {
   d25: { v: 'iijn25', n: 2, cal: 25, bore: 60, label: 'Type 96 de 25 mm double' },
   s25: { v: 'oerlikon', n: 1, cal: 25, bore: 60, label: 'Type 96 de 25 mm simple' },
   m13: { v: 'iijn25', n: 2, cal: 13, bore: 76, label: 'Type 93 de 13,2 mm double' },
+  s37: { v: 'bofors', n: 1, cal: 37, bore: 50, label: '37 mm Mle 1925 simple' },
+  f37: { v: 'bofors', n: 2, cal: 37, bore: 50, tub: 1.7, label: '37 mm Mle 1933 double' },
   t37: { v: 'bofors', n: 2, cal: 37, bore: 83, tub: 1.7, label: 'Flak 37 mm double' },
   q20: { v: 'iijn25', n: 4, cal: 20, bore: 65, tub: 1.6, label: 'Flakvierling 20 mm' },
   p40: { v: 'bofors', n: 4, cal: 40, bore: 39, tub: 2.3, label: 'Pom-pom 40 mm octuple' },
   f20: { v: 'oerlikon', n: 1, cal: 20, bore: 65, label: 'Flak 20 mm' },
   i37: { v: 'breda37', n: 2, cal: 37, bore: 54, label: 'Breda 37/54 double' },
+  b20: { v: 'oerlikon', n: 1, cal: 20, bore: 65, label: 'Breda 20/65 single' },
+  b20d: { v: 'iijn25', n: 2, cal: 20, bore: 70, label: 'Scotti 20/70 double' },
 };
 
 /** What turns on a ship (the screws and the rudders are in `model.spinners`): a search radar sweeps round (rad/s, by kind) and a fire-control director follows the guns. */
@@ -823,6 +827,7 @@ export function buildShipModel(spec, tw = {}) {
   // a gun house that is sunk in a deckhouse slides a few tenths of a metre along its deck before the arcs are worked out
   clearHouses(model, b.solids, hull, supportBelow, { carrier });
   computeClearance(model, b.solids, hull, { bothBeams: !!tw.own });
+  if (tw.dropTubesWhere) model.tubes = model.tubes.filter((t) => !tw.dropTubesWhere(t));      // tw.dropTubesWhere: the launchers (records with x, z...) this fit has landed
   if (tw.noTubes) model.tubes.length = 0;      // tw.noTubes: the fit of this variant has no torpedo tubes (the model's own tubes are not drawn either: tw.v4Drop)
   if (tw.ownTubes) computeTubeArcs(model, b.solids, !!(spec.torpedoes && spec.torpedoes.bow));      // the ships drawn from a reference model: the launchers' sectors from what stands round them (the others fire 20-160 degrees off the bow on either beam)
   model.solids = b.solids;                 // kept for the audit (tools/audit.mjs)

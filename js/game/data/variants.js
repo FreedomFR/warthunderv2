@@ -27,6 +27,22 @@ export const VARIANTS = [
       notes: 'Shokaku before the Philippine Sea: 20 triple 25 mm and about 10 single mounts (about 70 barrels), against 18 triples (54 barrels) in the June-October 1942 fit of the base sheet.',
     }),
   },
+  {
+    id: 'gioberti_1940', base: 'gioberti',
+    spec: () => ({
+      className: 'Oriani class: Vincenzo Gioberti, 1940 fit', refShip: 'Vincenzo Gioberti (1939-41 fit)', classShips: ['Vincenzo Gioberti'], commissioned: 1940,
+      notes: 'The 1939-40 modernisation: the four twin 13.2 mm Breda replaced by eight single 20/65 Breda (Italian Wikipedia, naval-encyclopedia; Navypedia has the 13.2 mm kept), the rest as built.',
+    }),
+  },
+  {
+    id: 'gioberti_1942', base: 'gioberti',
+    spec: (b) => ({
+      className: 'Oriani class: Vincenzo Gioberti, 1942-43 fit', refShip: 'Vincenzo Gioberti (1942-43 fit)', classShips: ['Vincenzo Gioberti'], commissioned: 1942,
+      secondary: b.secondary.map((g) => ({ ...g, mounts: 1, positions: g.positions.slice(0, 1) })),      // one 120/15 landed (naval-encyclopedia and Navypedia keep one; Italian Wikipedia says both)
+      torpedoes: { ...b.torpedoes, tubes: 3, fractionFromBow: b.torpedoes.fractionFromBow.slice(0, 1), mounts: 'one triple on the centreline (the after bank landed in 1941-42)' },
+      notes: 'The 1941-42 refit: the after torpedo bank and one 120/15 landed, two twin 37/54 Breda and two twin 20/70 Scotti-Isotta Fraschini added to the eight single 20/65 (Navypedia, naval-encyclopedia; Italian Wikipedia has three twin 20/65), a German echo sounder, two more depth-charge throwers (not simulated).',
+    }),
+  },
 ];
 
 /** The spec sheet of a variant: its base's with the differences, and the id of the base (`baseId`: the lookups by ship that the variant shares: livery, protection, screws, wiki picture). */

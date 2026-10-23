@@ -8,5 +8,9 @@ import * as kagero from './ships/kagero_elements.js';
 import * as tade from './ships/tade_elements.js';
 import * as adams from './ships/adams_elements.js';
 import * as iowa from './ships/iowa_elements.js';
+import * as richelieu from './ships/richelieu_elements.js';
+import * as fletcher from './ships/fletcher_elements.js';
+import * as bearn from './ships/bearn_elements.js';
+import * as la_galissoniere from './ships/la_galissoniere_elements.js';
 
-export const ELEMENTS = { yamato, gioberti, graf_spee, shokaku, kagero, tade, adams, iowa };
+export const ELEMENTS = { yamato, gioberti, graf_spee, shokaku, kagero, tade, adams, iowa, richelieu, fletcher, bearn, la_galissoniere };

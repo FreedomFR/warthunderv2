@@ -12,7 +12,11 @@ import { GRAF_SPEE } from './ships/graf_spee.js';
 import { TADE } from './ships/tade.js';
 import * as SHOKAKU_V4 from './ships/shokaku_v4.js';
 import * as IOWA_V4 from './ships/iowa_v4.js';
-import { TADE_PB39_AA, KAGERO_1944_AA, SHOKAKU_1944_AA } from './ships/variants_aa.js';
+import * as RICHELIEU_V4 from './ships/richelieu_v4.js';
+import * as FLETCHER_V4 from './ships/fletcher_v4.js';
+import * as BEARN_V4 from './ships/bearn_v4.js';
+import * as GALISSONIERE_V4 from './ships/la_galissoniere_v4.js';
+import { TADE_PB39_AA, KAGERO_1944_AA, SHOKAKU_1944_AA, GIOBERTI_1940_AA, GIOBERTI_1942_AA } from './ships/variants_aa.js';
 import { VARIANTS } from '../data/variants.js';
 import { GIOBERTI } from './ships/gioberti.js';
 import { ADAMS } from './ships/adams.js';
@@ -252,6 +256,7 @@ export const TWEAKS = {
   // in front of it, the funnel merged with the aft mast ("mack") at 0.634, the hangar roof 4.8 m above the deck at 0.746-0.845, the
   // catapult at 0.907-0.992; hull widths are estimated (no plan view).
   richelieu: {
+    v4: RICHELIEU_V4, aa: [],      // the light mounts are the model's
     mainVariant: 'rich380', secVariant: ['fr152'], houseH: 4.8, bulwarkF: [0, 0.05],
     fb: [[0, 9.2], [0.05, 8.5], [0.1, 8.0], [0.15, 7.5], [0.2, 7.2], [0.3, 7.0], [0.8, 7.0], [0.85, 6.7], [1, 6.7]],
     keel: [[0, 0.8], [0.05, 0.92], [0.1, 0.97], [0.15, 0.94], [0.85, 0.94], [0.9, 0.82], [0.93, 0.62], [0.96, 0.38], [1, 0.2]],
@@ -456,6 +461,13 @@ export const TWEAKS = {
     funnels: [{ lx: 5.6, lz: 3.6, h: 8.9, rake: 1.2, top: 0.92, pipes: false }, { lx: 5.0, lz: 3.0, h: 6.5, rake: 1.0, top: 0.95, pipes: false }],
     mastY0: { 1: 7.6 },
     cat: { f: 0.775, z: 0, yaw: 0, len: 13.5, y: 5.2, craneF: 0.975, craneY: 0, craneH: 1.5, craneLen: 16, craneDir: 1, craneAng: 0.15, craneSide: 0, craneW: 0.6 },
+    aa: [],      // the light mounts come from the model (4 twin 37 mm, 2 twin 13.2 mm)
+    // the four twin 13.2 mm the model lacks (the class carried six), on free deck: places, not measurements
+    aaAt: [{ k: 'm13', x: -40.25, y: 6.0, z: 6.25 }, { k: 'm13', x: -40.25, y: 6.0, z: -6.25 }, { k: 'm13', x: 46.75, y: 8.5, z: 5.75 }, { k: 'm13', x: 46.75, y: 8.5, z: -5.75 }],
+    v4: GALISSONIERE_V4,
+    // two screws and a rudder where the model has them (its shafts and brackets stay drawn; its own screws and rudder are left out)
+    props: [{ f: 0.89, z: 5.1, depth: 3.3, d: 4.2, blades: 3, toF: 0.8895 }],
+    rudders: [{ f: 0.943, top: 0.3, bottom: 4.6, chord: 5.0, t: 0.4 }],
   },
   // Algerie (ONI sheet of 1942, public domain; profile and plan at one scale, small: 4.7 px per metre, so about +-0.7 m): a flush deck at 7.6 m at the stem, 6.4 m
   // aft of f 0.25; turrets A / B at 0.225 / 0.275 (B 3.5 m above A), X / Y at 0.69 / 0.74; the block tower bridge 0.30-0.372 (platform 21 m, director 35 m, pole 40 m),
@@ -669,10 +681,8 @@ export const TWEAKS = {
     props: [{ f: 0.936, z: 2.9, depth: 3.0, d: 3.6, blades: 4, toF: 0.84, strutF: 0.866 }],
     rudders: [{ f: 0.96, z: 0, top: 0.6, bottom: 4.4, chord: 3.3 }],
     boats: [{ f0: 0.347, f1: 0.41, z: 3.6, y: 2.2, cabin: false, davits: true }],
-    aa: [
-      { k: 't40', f: 0.61, z: 4.1, y: 0 }, { k: 't40', f: 0.717, z: 0, y: 7.4 }, { k: 't40', f: 0.953, z: 0, y: 0.5 },
-      { k: 'o20', f: 0.29, z: 4.7, y: 4.5 }, { k: 'o20', f: 0.345, z: 3.9, y: 4.5 }, { k: 'o20', f: 0.5, z: 4.8, y: 0 },
-    ],
+    aa: [],      // the light mounts come from the model (3 twin 40 mm, 9 single 20 mm)
+    v4: FLETCHER_V4,
   },
   // Cleveland class (Colosseum drawing of USS Cleveland, Measure 12 modified, 1942, with a scale bar and the waterline; plan from the Pit-Road 1/700 sheet; shared by
   // the project owner, measured only: 3.9 px per metre, about +-0.5 m): freeboard 8.8 m at the stem, 7.3 m at f 0.2, 6.8-7.0 m amidships and aft, a 9.6 m hangar roof at
@@ -1002,7 +1012,14 @@ export const TWEAKS = {
   // casemates at 12-14 m), the hangar side rising to the flight deck from f 0.37 aft; the island on a sponson to starboard: a big box (0.505-0.556, top
   // 37.5 m) with the funnel inside, stepped bridge tiers ahead of it (0.445-0.50) and the mast at 0.4635 (top 56 m).
   bearn: {
-    flightDeckY: 19.8, noGallery: true, elevators: [0.22, 0.42, 0.76], sponsonOut: 1.4,
+    // the deck of the model: 16.6 m over the waterline, 26.8 m wide, tapering to a point at both ends (half widths read on the model, stern end 90 m aft of the middle)
+    flightDeckY: 16.6, noGallery: true, elevators: [0.22, 0.42, 0.76], sponsonOut: 1.4,
+    fdPlan: [[0, 3.0], [0.03, 6.0], [0.07, 8.5], [0.12, 9.3], [0.2, 9.3], [0.265, 10.8], [0.33, 12.9], [0.4, 13.1], [0.5, 13.4], [0.76, 13.4], [0.84, 12.6], [0.885, 10.5], [0.93, 9.0], [1, 4.3]],
+    aa: [],      // the light mounts come from the model (6 twin 13.2 mm, 8 single 37 mm)
+    v4: BEARN_V4,
+    // four screws and two rudders where the model has them (the shafts and their brackets are the model's: the game's own shafts are left no length)
+    props: [{ f: 0.918, z: 3.3, depth: 6.1, d: 4.3, blades: 3, toF: 0.9175 }, { f: 0.84, z: 6.8, depth: 6.0, d: 4.5, blades: 3, toF: 0.8395 }],
+    rudders: [{ f: 0.9455, z: 2.9, top: 0.75, bottom: 7.4, chord: 5.1, t: 0.4 }],
     fb: [[0, 10.0], [0.04, 9.8], [0.33, 10.0], [0.37, 18.6], [0.95, 18.6], [1, 18.4]],
     island: {
       z: 10.0, hw: 3.6, funnelTop: 18.4, funnelLx: 11.0, funnelLz: 4.6, mastF: 0.4635, mastY0: 11.0, mastTop: 36.2, radarF: 0.4635, radarY: 28.0, dirF: 0.47, dirY: 9.5,
@@ -1042,5 +1059,7 @@ const VARIANT_TWEAKS = {
   tade_pb39: { noTubes: true, v4Drop: ['tubes0', 'tubes1'], aaAt: TADE_PB39_AA, dropPlacements: ['m2'] },
   kagero_1944: { aaAt: KAGERO_1944_AA, dropPlacements: ['m1'], v4Clean: [{ x: -27.2, z: 0, r: 2.7, y0: 5.6, maxArea: 1.5 }, { x: -27.2, z: 0, r: 4.4, y0: 5.6, maxArea: 0.12 }] },      // the roller path of the X turret
   shokaku_1944: { aaAt: SHOKAKU_1944_AA },
+  gioberti_1940: { aa: [], aaAt: GIOBERTI_1940_AA, dropPlacements: ['13mm_Breda_1931_Twin#0', '13mm_Breda_1931_Twin#1', '13mm_Breda_1931_Twin#2', '13mm_Breda_1931_Twin#3'] },
+  gioberti_1942: { aa: [], aaAt: GIOBERTI_1942_AA, dropPlacements: ['13mm_Breda_1931_Twin#0', '13mm_Breda_1931_Twin#1', '13mm_Breda_1931_Twin#2', '13mm_Breda_1931_Twin#3', '120mm-15_StarShell#0'], v4Drop: ['533mm_Torpedo_Triple#0'], dropTubesWhere: (t) => t.x < -15 },
 };
 for (const v of VARIANTS) TWEAKS[v.id] = { ...TWEAKS[v.base], ...VARIANT_TWEAKS[v.id] };

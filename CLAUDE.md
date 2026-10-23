@@ -1,6 +1,6 @@
 # Naval combat simulation (WWII) — guide for Claude Code
 
-Autonomous WWII naval battle on the Noniv/web-ocean WebGPU engine: 38 ships (6 nations × 5 types, plus the S-30 Schnellboot, the Admiral Graf Spee, the Tade, the Gioberti, the post-war USS Adams, and three other fits of a ship: `data/variants.js`) built procedurally from
+Autonomous WWII naval battle on the Noniv/web-ocean WebGPU engine: 40 ships (6 nations × 5 types, plus the S-30 Schnellboot, the Admiral Graf Spee, the Tade, the Gioberti, the post-war USS Adams, and five other fits of a ship: `data/variants.js`) built procedurally from
 spec sheets, AI-only combat, many cameras, modular damage, procedural sound. No build step is needed to play.
 
 **The owner speaks French: answer in French** (code, comments, commit messages and CHANGELOG are in English; README and TODO in French).

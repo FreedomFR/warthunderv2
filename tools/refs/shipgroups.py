@@ -59,6 +59,34 @@ stats = {}
 static_tris, fine_tris = {}, {}
 part_tris = {}
 cut_ids = {}
+# a rule with `cluster` (gap, m) makes a part of every group of neighbouring pieces it matches (the 14 Bofors directors of a ship, each a part), numbered along the ship
+CL = {}
+if any('cluster' in r for _, _, r in rules):
+    order_ = np.argsort(tp, kind='stable'); st_ = np.searchsorted(tp[order_], np.arange(len(parts))); en_ = np.searchsorted(tp[order_], np.arange(len(parts)), side='right')
+    for ri, (rm, rg, r) in enumerate(rules):
+        if 'cluster' not in r:
+            continue
+        ks = [k for k, p in enumerate(parts) if en_[k] > st_[k] and p['name'] not in skip_g and not any(q.search(mats[p['mat']]['name'] if p['mat'] >= 0 else '') for q in skip_m) and ((rm is not None and rm.search(mats[p['mat']]['name'] if p['mat'] >= 0 else '')) or (rg is not None and rg.search(p['name'])))]
+        if not ks:
+            continue
+        lo_ = np.zeros((len(ks), 3)); hi_ = np.zeros((len(ks), 3))
+        for i, k in enumerate(ks):
+            V = P[I[order_[st_[k]:en_[k]]]].reshape(-1, 3); lo_[i] = V.min(0); hi_[i] = V.max(0)
+        gap = float(r['cluster']); par = list(range(len(ks)))
+        def find(a):
+            while par[a] != a: par[a] = par[par[a]]; a = par[a]
+            return a
+        srt = np.argsort(lo_[:, 0])
+        for a in range(len(ks)):
+            i = srt[a]
+            for b in range(a + 1, len(ks)):
+                j = srt[b]
+                if lo_[j, 0] > hi_[i, 0] + gap: break
+                if np.all(lo_[j] <= hi_[i] + gap) and np.all(hi_[j] >= lo_[i] - gap): par[find(i)] = find(j)
+        groups = {}
+        for i in range(len(ks)): groups.setdefault(find(i), []).append(i)
+        for n, mem in enumerate(sorted(groups.values(), key=lambda m: float(np.mean(lo_[m, 0])))):
+            for i in mem: CL[(ri, ks[i])] = n
 for k, p in enumerate(parts):
     t = np.where(tp == k)[0]
     if len(t) == 0 or p['name'] in skip_g:
@@ -82,15 +110,17 @@ for k, p in enumerate(parts):
             continue
     dest = 'static'; rule = None
     Vp = P[I[t]].reshape(-1, 3); plen = float(Vp[:, 0].max() - Vp[:, 0].min())
-    for rm, rg, r in rules:
+    for ri, (rm, rg, r) in enumerate(rules):
         if 'min_len' in r and plen < r['min_len']:      # a rule for the long pieces only (the hull plating of a model whose materials are merged)
             continue
         if (rm is not None and rm.search(mname)) or (rg is not None and rg.search(p['name'])) or (rm is None and rg is None and 'min_len' in r):
-            dest = r['to']; rule = r; break
+            dest = r['to']; rule = r; rule_i = ri; break
     if dest == 'part':
         pid = rule.get('id', p['name'])
         if rule.get('per_group', True) and 'id' not in rule:
             pid = p['name']
+        if 'cluster' in rule and (rule_i, k) in CL:
+            pid = f"{rule['id']}#{CL[(rule_i, k)]}"
         part_tris.setdefault(pid, {'rule': rule, 'tris': []})['tris'].append(t)
     elif dest == 'fine':
         fine_tris.setdefault('fine', []).append(t)
