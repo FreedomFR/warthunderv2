@@ -10,6 +10,7 @@ import { VegetationVisuals } from './render/vegetationVisual.js';
 import { Terrain } from './sim/terrain.js';
 import { BY_ID } from './data/ships.js';
 import { PlaneVisuals } from './render/aircraftVisual.js';
+import { planeTypeFor } from './model/planes.js';
 import { isMobile } from './device.js';
 import { Particles, K, DEFAULT_MAX } from './render/particles.js';
 import { Effects } from './render/effects.js';
@@ -129,6 +130,19 @@ export class Game {
 
   // ---- setup / lifecycle -------------------------------------------------------------------------------------
   /** Build (or rebuild) the fleets from `config.teams` and put them on the water. */
+  /**
+   * The GPU meshes of the ships and of the aircraft of this battle are made now, while the fleets are being set up, not the first time each one comes into view (the heavy
+   * models, 6 MB of triangles, took 100 to 200 ms: a hitch when the camera turned to a ship it had not yet seen). Models already made are kept.
+   */
+  warmVisuals() {
+    const w = this.world, nations = new Set();
+    for (const s of w.ships) { this.shipVisuals.forModel(s.model); if (s.air) nations.add(s.stats.nation); }
+    for (const b of w.bases) nations.add(b.nation);
+    for (const n of nations) for (const role of ['dive', 'torp', 'fighter', 'level']) { const k = planeTypeFor(n, role); if (k) this.planeVisuals.get(k); }
+    if (nations.size) this.planeVisuals.ordnance();
+    this.vegetation.warm();
+  }
+
   spawn(keepCamera = false) {
     const w = this.world;
     w.clear();
@@ -153,6 +167,7 @@ export class Game {
     }
     this.state = 'ready';
     this.paused = false;
+    this.warmVisuals();
     // show the first fleet from a pleasant angle (unless the player is just editing the fleets)
     if (!keepCamera || !this.camera.target || !w.ships.includes(this.camera.target)) {
       if (!keepCamera) { this.camera.userChoice = false; this.camera.setMode('orbit'); }

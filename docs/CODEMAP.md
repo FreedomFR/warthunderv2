@@ -19,7 +19,7 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 
 - `audio.js` (273) Game sound: positional playback of the procedurally synthesised sounds (see audio/synth.js). [GameAudio] ← 2
 - `device.js` (14) What kind of device the game runs on. Shared by the engine (pixel density), the game (quality) and the touch interface. [isMobile, maxPixelRatio] ← 4
-- `game.js` (430) Game orchestrator: ties the simulation world to the ocean engine (hooks), the ship / particle renderers, the camera rig and the UI. [Game] ← 1
+- `game.js` (445) Game orchestrator: ties the simulation world to the ocean engine (hooks), the ship / particle renderers, the camera rig and the UI. [Game] ← 1
 - `math.js` (157) Small math helpers shared by the game code (no allocations in the hot helpers). [D2R, R2D, TAU, KN, G, clamp, lerp, sat, smoothstep, … +11] ← 59
 - `preload.js` (17) What can be built before the player has done anything, while the first screen plays: the meshes of every ship class (5 s of work in all, one model after another with… [preloadModels] ← 2
 - `scenarios.js` (47) Ready-made fleet compositions for the setup screen. [PRESETS] ← 6
@@ -88,7 +88,7 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 - `mounts.js` (667) Articulated gun mounts. Every mount produces two meshes that are drawn as separate instances so they can move independently: house : the rotating gun house / shield /… [mountDims, getMountModel] ← 11
 - `parts.js` (519) Reusable ship parts. All functions draw into a MeshBuilder in model space (+x bow, +y up from the waterline, +z starboard). [OPT, barbette, funnel, funnelRuin, windowBand, tower, poleMast, tripod, cageMast, … +21] ← 2
 - `planeGuns.js` (167) The defensive guns of an aircraft, one entry per gun position: where it pivots, what it can bear on, its calibre and its barrels. [GUN_DIMS, gunDims, GUN_RATE, GUN_DMG, planeGuns, inArc, muzzleOf, drawGunHead] ← 4
-- `planes.js` (755) Procedural WWII carrier aircraft. One generator for monoplanes and biplanes driven by a spec sheet (dimensions of the real aircraft). [PAINT, PLANES, groundY, propsOf, floatplaneSpec, damageSites, planeTypeFor, upperWingY, cockpitHole, … +15] ← 27
+- `planes.js` (755) Procedural WWII carrier aircraft. One generator for monoplanes and biplanes driven by a spec sheet (dimensions of the real aircraft). [PAINT, PLANES, groundY, propsOf, floatplaneSpec, damageSites, planeTypeFor, upperWingY, cockpitHole, … +15] ← 28
 - `screws.js` (25) The screws and the rudder of the ships whose underwater body was not measured on a plan (tweaks.props / tweaks.rudders): drawn from the number of shafts the class… [defaultScrews] ← 1
 - `shipbuilder.js` (976) Spec-driven ship builder. Reads a real-ship spec sheet (dimensions, turret / funnel / mast positions as fractions of the overall length, class, paint) and builds the… [pagodaTiers, buildShipModel] ← 13
 - `treeMeshes.js` (506) The plants as meshes: eight species (oak, fir, palm, tropical canopy tree, acacia, cypress, shrub, boulder), three variants each, at four levels of detail. [FAM, SHAPE, getTemplate, ROCK_TINT, stampPlants] ← 2
@@ -144,7 +144,7 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 - `shadows.js` (31) Sun shadow map light matrix (orthographic, camera-relative coordinates). [lightMatrix] ← 2
 - `shipRenderer.js` (192) Instanced renderer for the procedurally built ship meshes. [ShipRenderer] ← 3
 - `shipVisual.js` (250) Assembles everything that is drawn for a ship: the hull, the destroyable parts (intact or wrecked), the articulated gun mounts and light AA mounts, the battle scars… [spinAbout, ShipVisuals] ← 5
-- `vegetationVisual.js` (213) What is drawn for the plants of the islands. [VegetationVisuals] ← 1
+- `vegetationVisual.js` (223) What is drawn for the plants of the islands. [VegetationVisuals] ← 1
 
 ## js/game/render/fx/
 
@@ -202,7 +202,7 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 - `damageView.js` (90) Top-down damage plan of a ship drawn on a small canvas: hull outline, watertight compartments (water level), machinery, magazines, directors, funnels, masts, gun… [drawDamage] ← 1
 - `director.js` (240) The automatic director: what is worth looking at, and from where. [Director, formations, attacks, dogfights] ← 2
 - `minimap.js` (172) The map in the corner: the islands, the bases, every ship (an arrow in the colour of her team, pointing where she goes), the aircraft in the air, the selected ship… [niceLength, mapExtent, createMinimap] ← 2
-- `mobile.js` (136) The touch interface: a compact top bar and a menu in place of the desktop buttons, panels that open on demand, a virtual stick for the free camera and the map, full… [joyKeys, initMobile] ← 2
+- `mobile.js` (141) The touch interface: a compact top bar and a menu in place of the desktop buttons, panels that open on demand, a virtual stick for the free camera and the map, full… [joyKeys, initMobile] ← 2
 - `mobileStyle.js` (89) Style of the touch interface (body.mobile). [MOBILE_CSS] ← 1
 - `reloads.js` (75) The reload gauges of the ship that is watched, laid out as in the naval HUD of War Thunder: one ring per gun mount that fills while the mount reloads (with the… [mountState, reloadGroups, createReloadHud] ← 2
 - `shipstate.js` (56) What the interface says of a ship's state, in place of a health bar (a ship has no hit points: see sim/hull.js): the reserve of buoyancy she has left, the share of… [shipStatus, LEVEL_COLOR, setMeters, planeText, planeLevel] ← 1
@@ -287,6 +287,7 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 - `screens.mjs` Records the interfaces for the trailer (the wiki, the 3D viewer, the phone interface) as image sequences that tools/trailer/assemble.mjs reads like any other shot.
 - `uishots.mjs` Pictures of the interface in a running battle, to judge it: node tools/uishots.mjs <outDir> [width] [height] GPU=hardware WSLENV=GPU "/mnt/c/Program…
 - `unused.mjs` Exports that nothing imports: node tools/unused.mjs (the candidates for dead code: check each before removing it;
+- `vegperf.mjs` What the plants cost: node tools/vegperf.mjs [url] A free camera is put in the trees of an island (still, then turning) and the frame time is read with the plants…
 - `wgslcheck.mjs` Compile the WGSL shaders with a real WebGPU device (headless Chromium) and print the compiler messages.
 - `wikiplanes.mjs` The 3D picture of each aircraft of the wiki (wiki/aircraft/<key>.webp, the key with ':' as '_'): the model seen from the front, to the right and a little above, on a…
 - `wikishots.mjs` The side view of each ship's model, for the wiki (wiki/ships/<id>.webp): every ship is rendered twice from the starboard beam, on a black and on a white background,…

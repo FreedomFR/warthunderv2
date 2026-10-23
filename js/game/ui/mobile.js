@@ -52,6 +52,11 @@ export function initMobile(game, ui) {
   item('Équipes', toggleClass('m-teams'), { keep: true });
   item('Impacts', (b) => { press('Impacts'); b.classList.toggle('on'); }, { keep: true });
   item('Noms', () => press('Noms'));
+  // the reload gauges of the ship that is followed: shown at first (in landscape), the menu hides them (and the choice is kept for the next visit)
+  const store = (k, v) => { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; } };
+  const reloadItem = item('Recharge', (b) => { press('Recharge'); const on = b.classList.toggle('on'); store('reloads', on ? '1' : '0'); }, { keep: true });
+  reloadItem.classList.add('on');
+  if (store('reloads') === '0') { press('Recharge'); reloadItem.classList.remove('on'); }
   item('Carte', (b) => { const m = ui.minimap; if (m) { m.setSize(m.visible ? 2 : 0); b.classList.toggle('on', m.visible); } }, { keep: true });
   item('Tableau', () => press('Tableau'));
   const planeView = item('Vue de l\'avion', () => rig.nextPlaneView?.());

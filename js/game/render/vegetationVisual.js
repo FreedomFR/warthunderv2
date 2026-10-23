@@ -4,6 +4,8 @@
 //   < 300 m   one mesh per cell, with the plants stamped at level 1 (trunk and a few lumps of foliage)
 //   < 1000 m  one mesh per cell at level 2 (a trunk and three lumps)
 //   beyond    one mesh per super at level 3 (one lump per plant, a part of them) up to 7 km; farther the colour of the ground tells the forest.
+// The far meshes are thinned the farther they are (a lump of a few pixels costs as much as a big one on the GPU: small triangles are the slow ones): the cells past 550 m keep
+// 45 % of their plants, past 900 m 22 %, the supers keep 55 % up to 1.7 km, 28 % up to 3.2 km, 12 % beyond (their lumps grown to match).
 // Meshes are built when they are first needed (a few milliseconds a frame at most) and released when the camera has gone away.
 import { scatter, SPECIES, SP, climateOf } from '../model/vegetation.js';
 import { getTemplate, stampPlants, ROCK_TINT } from '../model/treeMeshes.js';
@@ -30,7 +32,7 @@ export class VegetationVisuals {
   setQuality(level) {
     const q = [1, 0.9, 0.75, 0.55, 0.4][Math.max(0, Math.min(4, level | 0))];
     this.q = q;
-    this.R0 = 105 * q; this.R1 = 300 * q; this.R3 = 1000 * q;
+    this.R0 = 105 * q; this.R1 = 300 * q; this.R2b = 550 * q; this.R2c = 900 * q; this.R3 = 1000 * q; this.RF = [1700 * q, 3200 * q];
     this.maxNear = level >= 4 ? 0 : level >= 3 ? 1500 : 6000;
   }
 
@@ -49,10 +51,16 @@ export class VegetationVisuals {
     }
   }
 
+  /** Make the plant templates now (a few hundred milliseconds in all, once), not the first time a plant of each kind comes into view (a hitch of 30 ms each). */
+  warm() {
+    if (!this.islands.length) return;
+    for (let sp = 0; sp < SPECIES.length; sp++) for (let v = 0; v < 3; v++) for (let lod = 0; lod < 4; lod++) { getTemplate(sp, v, lod, false); if (sp === SP.SHRUB) getTemplate(sp, v, lod, true); }
+  }
+
   _free(sup) {
-    if (sup.m3) this.r.releaseMesh(sup.m3);
-    sup.m3 = null;
-    if (sup.cells) for (const c of sup.cells) { if (!c) continue; if (c.m1) this.r.releaseMesh(c.m1); if (c.m2) this.r.releaseMesh(c.m2); c.m1 = c.m2 = null; }
+    if (sup.mf) for (const m of sup.mf) if (m) this.r.releaseMesh(m);
+    sup.mf = [null, null, null];
+    if (sup.cells) for (const c of sup.cells) { if (!c) continue; if (c.m1) this.r.releaseMesh(c.m1); for (const m of c.m2t) if (m) this.r.releaseMesh(m); c.m1 = null; c.m2t = [null, null, null]; }
   }
 
   _handle(sp, variant, dry) {
@@ -87,7 +95,7 @@ export class VegetationVisuals {
       const l = lists[cj * NC + ci];
       for (let q = 0; q < 8; q++) l.push(rec[k + q]);
     }
-    sup.cells = lists.map((l, n) => l.length ? { rec: Float32Array.from(l), cx: sup.x0 + ((n % NC) + 0.5) * CELL, cz: sup.z0 + (Math.floor(n / NC) + 0.5) * CELL, m1: null, m2: null, used: 0, x0: sup.x0 + (n % NC) * CELL, z0: sup.z0 + Math.floor(n / NC) * CELL } : null);
+    sup.cells = lists.map((l, n) => l.length ? { rec: Float32Array.from(l), cx: sup.x0 + ((n % NC) + 0.5) * CELL, cz: sup.z0 + (Math.floor(n / NC) + 0.5) * CELL, m1: null, m2t: [null, null, null], used: 0, x0: sup.x0 + (n % NC) * CELL, z0: sup.z0 + Math.floor(n / NC) * CELL } : null);
     return true;
   }
 
@@ -117,7 +125,7 @@ export class VegetationVisuals {
         if (!sup) {
           // a super over open sea is skipped without drawing its plants up when the island does not reach it
           if (x0 + SUPER < is.x - is.R || x0 > is.x + is.R || z0 + SUPER < is.z - is.R || z0 > is.z + is.R) continue;
-          sup = { x0, z0, rec: null, cells: null, empty: false, m3: null, used: 0 };
+          sup = { x0, z0, rec: null, cells: null, empty: false, mf: [null, null, null], used: 0 };
           it.supers.set(key, sup);
         }
         if (!sup.rec) {
@@ -127,11 +135,13 @@ export class VegetationVisuals {
         }
         sup.used = this.frame;
         if (dmin > this.R3) {
-          if (!sup.m3) {
-            if (built >= 2 || !budget()) continue;
-            sup.m3 = r.createMesh(stampPlants(sup.rec, x0, z0, 3, { dry: it.dry, rock: it.rock, keep: 0.55 }), 'plants far'); built++;
+          const tier = dmin > this.RF[1] ? 2 : dmin > this.RF[0] ? 1 : 0;
+          let m = sup.mf[tier];
+          if (!m) {
+            if (built >= 2 || !budget()) { m = sup.mf[tier + 1] || sup.mf[tier - 1] || sup.mf[0]; if (!m) continue; }
+            else { m = r.createMesh(stampPlants(sup.rec, x0, z0, 3, { dry: it.dry, rock: it.rock, keep: [0.55, 0.28, 0.12][tier] }), 'plants far' + tier); built++; sup.mf[tier] = m; }
           }
-          this._queue(sup.m3, x0 - cam.x, -cam.y, z0 - cam.z, false, it.rockBytes);
+          this._queue(m, x0 - cam.x, -cam.y, z0 - cam.z, false, it.rockBytes);
           stats.supers++;
           continue;
         }
@@ -142,13 +152,13 @@ export class VegetationVisuals {
           if (!eng.sphereVisible(c.cx - cam.x, 15 - cam.y, c.cz - cam.z, 62 + 20)) continue;
           if (d < this.R0 && this.maxNear > 0) { near.push(c, d, it); continue; }
           c.used = this.frame;
-          const lod = d < this.R1 ? 1 : 2;
-          let m = lod === 1 ? c.m1 : c.m2;
+          const lod = d < this.R1 ? 1 : 2, tier = lod === 1 ? 0 : d > this.R2c ? 2 : d > this.R2b ? 1 : 0;
+          let m = lod === 1 ? c.m1 : c.m2t[tier];
           if (!m) {
             if (built < 3 && budget()) {
-              m = r.createMesh(stampPlants(c.rec, c.x0, c.z0, lod, { dry: it.dry, rock: it.rock, keep: lod === 2 ? 0.8 : 1 }), 'plants ' + lod); built++;
-              if (lod === 1) c.m1 = m; else c.m2 = m;
-            } else m = c.m1 || c.m2;
+              m = r.createMesh(stampPlants(c.rec, c.x0, c.z0, lod, { dry: it.dry, rock: it.rock, keep: lod === 2 ? [0.8, 0.45, 0.22][tier] : 1 }), 'plants ' + lod + (lod === 2 ? 't' + tier : '')); built++;
+              if (lod === 1) c.m1 = m; else c.m2t[tier] = m;
+            } else m = c.m1 || c.m2t[tier] || c.m2t[tier - 1] || c.m2t[tier + 1] || c.m2t[0];
           }
           if (m) { this._queue(m, c.x0 - cam.x, -cam.y, c.z0 - cam.z, d < 650, it.rockBytes); stats.cells++; }
         }
@@ -202,11 +212,11 @@ export class VegetationVisuals {
   _purge() {
     const old = this.frame - 700;
     for (const it of this.islands) for (const sup of it.supers.values()) {
-      if (sup.m3 && sup.used < old) { this.r.releaseMesh(sup.m3); sup.m3 = null; }
+      if (sup.mf && sup.used < old) for (let t = 0; t < 3; t++) if (sup.mf[t]) { this.r.releaseMesh(sup.mf[t]); sup.mf[t] = null; }
       if (sup.cells) for (const c of sup.cells) {
         if (!c || c.used >= old) continue;
         if (c.m1) { this.r.releaseMesh(c.m1); c.m1 = null; }
-        if (c.m2) { this.r.releaseMesh(c.m2); c.m2 = null; }
+        for (let t = 0; t < 3; t++) if (c.m2t[t]) { this.r.releaseMesh(c.m2t[t]); c.m2t[t] = null; }
       }
     }
   }
