@@ -96,7 +96,7 @@ export function beltMean(belt) {
  */
 export function beltForGun(cal, nation) {
   if (nation === 'USSR') return cal >= 19 ? 'ru23' : cal >= 12.5 ? 'us50' : 'ru762';
-  if (cal >= 19) return nation === 'Japan' ? 'jp20' : nation === 'France' ? 'fr20' : 'de20ff';
+  if (cal >= 19) return nation === 'Japan' ? 'jp20' : nation === 'France' ? 'fr20' : nation === 'USA' ? 'us20' : 'de20ff';
   if (cal >= 12.5 && cal < 14) return cal > 12.9 ? 'mg131' : nation === 'Italy' ? 'it127' : 'us50';
   if (nation === 'USA') return 'us30';
   if (nation === 'UK') return 'uk303';
@@ -104,4 +104,5 @@ export function beltForGun(cal, nation) {
   if (nation === 'France') return 'fr75';
   return 'jp77';
 }
+BELTS.us20 = { hei20hs: 0.7, ap20: 0.3 };         // the 20 mm M2 of the B-29's tail (the Hispano: HE-I and AP)
 BELTS.us30 = { ball303: 0.6, ap303: 0.4 };         // the .30 of the American gunners: ball and AP, like any rifle calibre

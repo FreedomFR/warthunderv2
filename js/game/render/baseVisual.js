@@ -172,7 +172,7 @@ export class BaseVisuals {
           const sl = L.slots[i], sx = sl.x - cam.x, sy = sl.y - cam.y, sz = sl.z - cam.z;
           if (!eng.sphereVisible(sx, sy + 2, sz, 14)) continue;
           const pm = this.planes.get(key);
-          mat4Ship(W64, sx, sy, sz, sl.heading, GROUND_PITCH, 0);
+          mat4Ship(W64, sx, sy, sz, sl.heading, pm.pm.spec?.groundPitch ?? GROUND_PITCH, 0);
           W64[13] = sy + pm.pm.groundY;
           this.planes.addParts(pm, W64, tint, (rnd + i * 0.31) % 1, 0, true);
         }

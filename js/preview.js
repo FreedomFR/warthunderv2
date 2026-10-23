@@ -111,6 +111,7 @@ export async function runPreview(engine, ids, qs) {
     renderer.upload();
   };
   engine.hooks.drawOpaque = (rp) => renderer.draw(rp);
+  engine.hooks.drawGlass = (rp) => renderer.drawPanes(rp);
   window.__preview = {
     items, renderer, planes: pv,
     /** set({dist, az, el (deg), lookY, lookX, lookZ, target, heading (deg), gunaim: [yaw, pitch] (deg) | null}) */

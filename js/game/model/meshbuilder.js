@@ -34,6 +34,8 @@ export const MAT = {
   CONCRETE: 23, // the painted concrete of the buildings of a base: pores, rain streaks, form joints
   SHEET: 24,    // corrugated sheet metal: hangar walls and roofs
   TEAMBAND: 26, // the team colour on the fin of an aircraft: painted like the skin (tint = the team)
+  PANE: 28,     // clear glass of an aircraft canopy: drawn after everything else, blended over what is behind it (the triangles of the material come last in the index buffer)
+  AIRPAINT: 27, // the skin of an aircraft drawn from its model: the shader paints the scheme of the aircraft (model/airpaint.js), red = the scheme number
   GRAVEL: 25,   // packed earth and gravel of the yards, shoulders and roads of a base
 };
 
@@ -561,5 +563,13 @@ function packMesh(P, N, C, IDX) {
     if (x < bb[0]) bb[0] = x; if (y < bb[1]) bb[1] = y; if (z < bb[2]) bb[2] = z;
     if (x > bb[3]) bb[3] = x; if (y > bb[4]) bb[4] = y; if (z > bb[5]) bb[5] = z;
   }
-  return { vertices: buf, indices: new Uint32Array(IDX), vertexCount: vc, indexCount: IDX.length, aabb: bb };
+  // the clear panes go last, so that the renderer draws the opaque part of the mesh first and the panes alone later, blended
+  let idx = IDX, paneStart = IDX.length;
+  const isPane = (v) => C[v * 4 + 3] === MAT.PANE;
+  if (C.length && IDX.some((v, k) => k % 3 === 0 && isPane(v))) {
+    const solid = [], pane = [];
+    for (let t = 0; t < IDX.length; t += 3) (isPane(IDX[t]) ? pane : solid).push(IDX[t], IDX[t + 1], IDX[t + 2]);
+    idx = solid.concat(pane); paneStart = solid.length;
+  }
+  return { vertices: buf, indices: new Uint32Array(idx), vertexCount: vc, indexCount: idx.length, paneStart, aabb: bb };
 }

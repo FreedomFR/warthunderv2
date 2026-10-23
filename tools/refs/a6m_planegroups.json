@@ -73,10 +73,22 @@
    ]
   },
   {
+   "part": "glass",
+   "clear": true,
+   "box": [
+    -1.2,
+    2.1,
+    0.2,
+    3,
+    -0.8,
+    0.8
+   ]
+  },
+  {
    "part": "canopy",
    "box": [
     -1.2,
-    2.0,
+    1.4,
     0.37,
     3,
     -0.75,
@@ -92,14 +104,9 @@
   "wingL": 4500,
   "wingR": 4500,
   "prop": 1800,
-  "canopy": 3000
+  "canopy": 3000,
+  "glass": 700
  },
- "refine": 1.2,
- "minedge": 0.12,
- "colthr": 45,
- "norefine": [
-  "prop"
- ],
  "recolor": {
   "prop": [
    50,
@@ -110,8 +117,10 @@
  "drop_wires": true,
  "mirror_wings": "L",
  "hub_depth": 0.12,
- "fine": [
-  75,
-  0.03
+ "nocolor": [
+  "body",
+  "tail",
+  "wingL",
+  "wingR"
  ]
 }

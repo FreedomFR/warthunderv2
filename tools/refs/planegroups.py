@@ -100,9 +100,14 @@ if AL is not None and cfg.get('alpha', True):
     ta = (AL[I].min(1) if cfg.get('alpha_mode', 'min') == 'min' else AL[I].mean(1)) / 255.0; clear = ta < cfg.get('alpha_min', 0.8)      # (a card of a wire is opaque only on its line: a triangle that has a clear corner is not kept)
 for r in cfg.get('rules', []):
     m = np.ones(len(I), bool)
+    if 'line' in r:      # [x0, y0, z0, x1, y1, z1, radius]: the triangles whose centre is within the radius of this segment (a wire or a stay of the model)
+        l = np.array(r['line'][:6], dtype=float); a0, a1 = l[:3], l[3:]; dv = a1 - a0; tt = np.clip(((cen - a0) @ dv) / (dv @ dv), 0, 1)
+        m &= np.linalg.norm(cen - (a0 + np.outer(tt, dv)), axis=1) < r['line'][6]
     if 'absnz' in r: m &= absnz >= r['absnz']      # (a rule on the triangles that face sideways: a flat card standing in the middle plane of the model)
     if 'clear' in r: m &= clear == bool(r['clear'])      # (a rule on the transparent triangles only, or on the opaque ones: the glass of a model that has one material)
     if 'material' in r: m &= sel_mats(r['material'])[tmat]
+    if 'colour' in r:      # [r0, r1, g0, g1, b0, b1]: the mean colour of the triangle (the red inside of a brake, a stripe)
+        q = r['colour']; mc = C[I].mean(1); m &= (mc[:, 0] >= q[0]) & (mc[:, 0] <= q[1]) & (mc[:, 1] >= q[2]) & (mc[:, 1] <= q[3]) & (mc[:, 2] >= q[4]) & (mc[:, 2] <= q[5])
     if 'box' in r:
         b = r['box']
         m &= (cen[:, 0] >= b[0]) & (cen[:, 0] <= b[1]) & (cen[:, 1] >= b[2]) & (cen[:, 1] <= b[3]) & (cen[:, 2] >= b[4]) & (cen[:, 2] <= b[5])
@@ -122,6 +127,22 @@ part[rest & (cen[:, 0] < tx)] = 'tail'
 rest = part == ''
 part[rest & (cen[:, 2] >= wz)] = 'wingR'; part[rest & (cen[:, 2] <= -wz)] = 'wingL'
 part[part == ''] = 'body'
+
+if cfg.get('wing_envelope'):
+    # the stays that run from the fuselage to the tips of the wings, welded to the wing of the model: along the span, the wing keeps the box (x, y) that the reference side (`side`, the one with the least of
+    # them) fills, widened by `margin`; what lies outside it (a wire, a pole) is dropped on both wings. "wing_envelope": {"side": "R", "margin": [0.04, 0.04], "pct": 1.5, "bin": 0.15}
+    we = cfg['wing_envelope']; ref = 'wing' + we.get('side', 'R'); mg = we.get('margin', [0.04, 0.04]); pc = we.get('pct', 1.5); bw_ = we.get('bin', 0.15)
+    rs = part == ref; az = np.abs(cen[:, 2]); nb = int(np.ceil(az.max() / bw_)) + 1
+    lo = np.full((nb, 2), np.nan); hi = np.full((nb, 2), np.nan)
+    for b_ in range(nb):
+        t = rs & (az >= b_ * bw_) & (az < (b_ + 1) * bw_)
+        if t.sum() > 20:
+            lo[b_] = np.percentile(cen[t][:, :2], pc, axis=0); hi[b_] = np.percentile(cen[t][:, :2], 100 - pc, axis=0)
+            if 'ytop' in we: hi[b_, 1] = np.percentile(cen[t][:, 1], we['ytop'])      # (a wire along the top of the wing is a few per cent of its triangles in every slice: a lower percentile than the tips)
+    for nm in ('wingL', 'wingR'):
+        t = np.where(part == nm)[0]; bi = np.minimum((az[t] / bw_).astype(int), nb - 1)
+        ok = ~np.isnan(lo[bi][:, 0]); out = ok & ((cen[t][:, 0] < lo[bi][:, 0] - mg[0]) | (cen[t][:, 0] > hi[bi][:, 0] + mg[0]) | (cen[t][:, 1] < lo[bi][:, 1] - mg[1]) | (cen[t][:, 1] > hi[bi][:, 1] + mg[1]))
+        part[t[out]] = 'drop'; print(f'{nm}: {int(out.sum())} triangles outside the envelope dropped')
 
 def drop_wires():
     # the aerial wires and stays of a model are thin lines of a few triangles that would float in the game: the connected objects that are long and hair-thin are dropped
@@ -169,13 +190,28 @@ if fl.get('measures') or fl.get('probe2'): measures()
 def pack(a):
     return base64.b64encode(a.tobytes()).decode()
 
-def decimate(V, Ci, T, budget, bw=None, weld=0.002):
+def decimate(V, Ci, T, budget, bw=None, weld=0.002, name=''):
     bw = cfg.get('boundary', 40.0) if bw is None else bw
     if budget <= 0 or len(T) <= budget:
         return V, Ci, T
     m = o3d.geometry.TriangleMesh()
     m.vertices = o3d.utility.Vector3dVector(V); m.triangles = o3d.utility.Vector3iVector(T.astype(np.int32)); m.vertex_colors = o3d.utility.Vector3dVector(Ci / 255.0)
     m.merge_close_vertices(weld); m.remove_degenerate_triangles(); m.remove_duplicated_triangles()
+    if name in cfg.get('cluster', []):
+        # a model made of loose shells (a fuselage with its interior, panels that do not share their edges) that the quadric decimation cannot reduce without eating its ends: the vertices are
+        # gathered in cells of a grid whose size is found so that the triangles come near the budget (thin sheets, the wings, must not use it: the two skins would merge)
+        lo, hi = 0.005, 0.5
+        sc = np.array(cfg.get('cluster_scale', {}).get(name, [1, 1, 1]), dtype=np.float64)      # (`cluster_scale`: [1, 4, 1] makes the cells four times finer in height: a wing is a thin sheet, its two skins must stay apart)
+        m.vertices = o3d.utility.Vector3dVector(np.asarray(m.vertices) * sc)
+        ct = getattr(o3d.geometry.SimplificationContraction, cfg.get('cluster_contraction', 'Average'))      # (Average, Quadric, Center)
+        for _ in range(14):
+            vx = (lo * hi) ** 0.5
+            t = m.simplify_vertex_clustering(vx, contraction=ct)
+            if len(t.triangles) > budget: lo = vx
+            else: hi = vx
+        m = m.simplify_vertex_clustering(hi, contraction=ct)
+        m.remove_degenerate_triangles(); m.remove_unreferenced_vertices()
+        return np.asarray(m.vertices) / sc, np.clip(np.asarray(m.vertex_colors) * 255, 0, 255), np.asarray(m.triangles)
     m = m.simplify_quadric_decimation(target_number_of_triangles=int(budget), boundary_weight=float(bw))
     m.remove_degenerate_triangles(); m.remove_unreferenced_vertices()
     return np.asarray(m.vertices), np.clip(np.asarray(m.vertex_colors) * 255, 0, 255), np.asarray(m.triangles)
@@ -210,10 +246,11 @@ budget = cfg.get('budget', {})
 from scipy.spatial import cKDTree
 def make_piece(name, V, Cc, T):
     if name in cfg.get('recolor', {}): Cc = np.tile(np.array(cfg['recolor'][name], dtype=np.float64), (len(V), 1))      # (a piece the model leaves unpainted: the blades of the propeller)
+    if name in cfg.get('recentre', {}): V = V - np.array(cfg['recentre'][name])      # (a piece that turns or is placed by the game: its own origin, e.g. the hub of the propeller)
     q = np.round(V * SC).astype(np.int16)
     idx = T.astype(np.uint32)
     wide = int(len(V)) > 65535
-    pieces[name] = {'nv': int(len(V)), 'ni': int(idx.size), 'pos': pack(q), 'col': pack(np.round(Cc).astype(np.uint8)), 'idx': pack(idx.astype(np.uint32 if wide else np.uint16)), 'wide': wide,
+    pieces[name] = {'nv': int(len(V)), 'ni': int(idx.size), 'pos': pack(q), 'col': '' if name in cfg.get('nocolor', []) else pack(np.round(Cc).astype(np.uint8)), 'idx': pack(idx.astype(np.uint32 if wide else np.uint16)), 'wide': wide,
                     'bb': [round(float(x), 3) for x in (V.min(0).tolist() + V.max(0).tolist())]}
     print(f'{name:6} -> {len(T):6} triangles  box x {V[:,0].min():.2f}..{V[:,0].max():.2f}  y {V[:,1].min():.2f}..{V[:,1].max():.2f}  z {V[:,2].min():.2f}..{V[:,2].max():.2f}')
 
@@ -221,20 +258,34 @@ kept = {}
 for name in sorted(set(part) - {'drop'}):
     if cfg.get('mirror_wings') and name == ('wingR' if cfg['mirror_wings'] == 'L' else 'wingL'): continue      # (made from the other wing below)
     t = np.where(part == name)[0]
+    if name == 'body' and cfg.get('body_overlap'):      # (the body also carries the first `body_overlap` metres of the wings, so that the cut between the pieces, eroded by the simplification, shows no gap)
+        t = np.concatenate([t, np.where(np.isin(part, ['wingL', 'wingR']) & (np.abs(cen[:, 2]) < wz + cfg['body_overlap']))[0]])
     used = np.unique(I[t]); remap = -np.ones(nv, dtype=np.int64); remap[used] = np.arange(len(used))
     V, Cc, T = Q[used], C[used].astype(np.float64), remap[I[t]]
     V0, C0 = V, Cc
-    V, Cc, T = decimate(V, Cc, T, budget.get(name, 0), cfg.get('boundary_by_piece', {}).get(name), cfg.get('weld_by_piece', {}).get(name, 0.002))
+    V, Cc, T = decimate(V, Cc, T, budget.get(name, 0), cfg.get('boundary_by_piece', {}).get(name), cfg.get('weld_by_piece', {}).get(name, 0.002), name)
     if cfg.get('refine') and name not in cfg.get('norefine', []):      # (the colour is then read again, at every vertex, from the full-resolution mesh)
         tree = cKDTree(V0)
-        V, T = refine(V, T, tree, C0, cfg['refine'], cfg.get('minedge', 0.1), cfg.get('colthr', 28), cfg.get('fine'))
+        ov = cfg.get('refine_by_piece', {}).get(name, {})      # (a piece whose texture is busy, the wings with their rivets, can be given its own thresholds)
+        V, T = refine(V, T, tree, C0, cfg['refine'], ov.get('minedge', cfg.get('minedge', 0.1)), ov.get('colthr', cfg.get('colthr', 28)), ov.get('fine', cfg.get('fine')))
         d, k = tree.query(V); Cc = C0[k]
     kept[name] = (V, Cc, T)
     make_piece(name, V, Cc, T)
 if cfg.get('mirror_wings'):      # an aircraft is symmetrical: the model's other wing may carry what the first does not (a stay, a hatch left open)
     src_n, dst_n = ('wingL', 'wingR') if cfg['mirror_wings'] == 'L' else ('wingR', 'wingL')
     V, Cc, T = kept[src_n]
-    make_piece(dst_n, V * np.array([1.0, 1.0, -1.0]), Cc, T[:, ::-1])
+    kept[dst_n] = (V * np.array([1.0, 1.0, -1.0]), Cc, T[:, ::-1]); make_piece(dst_n, *kept[dst_n])
+
+for nm, c in cfg.get('copies', {}).items():
+    # a piece made from the triangles of another one that lie in a box (game frame): the hull seen from the pilot's seat, the charred nacelle drawn over a burning engine
+    V, Cc, T = kept[c['from']]; b = c['box']; ct = V[T].mean(1)
+    sel = (ct[:, 0] >= b[0]) & (ct[:, 0] <= b[1]) & (ct[:, 1] >= b[2]) & (ct[:, 1] <= b[3]) & (ct[:, 2] >= b[4]) & (ct[:, 2] <= b[5])
+    if c.get('axis'):      # [y, z, x0, r0, x1, r1]: only what lies within a radius of this axis that grows from r0 at x0 to r1 at x1 (a nacelle without the wing it runs through)
+        ay, az, xa, ra, xb, rb = c['axis']; rr = np.hypot(ct[:, 1] - ay, ct[:, 2] - az); lim = ra + (rb - ra) * np.clip((ct[:, 0] - xa) / (xb - xa), 0, 1)
+        sel &= rr <= lim
+    T = T[sel]; used = np.unique(T); remap = -np.ones(len(V), dtype=np.int64); remap[used] = np.arange(len(used)); V, Cc, T = V[used], Cc[used], remap[T]
+    if c.get('budget'): V, Cc, T = decimate(V, Cc, T, c['budget'])
+    kept[nm] = (V, Cc, T); make_piece(nm, V, Cc, T)
 
 if fl.get('picture'):
     from PIL import Image
@@ -309,7 +360,7 @@ if fl.get('pic'):      # a picture of the pieces in three views (side and top on
     img.save(fl['pic']); print('picture', fl['pic'], img.size, 'scale', s, 'px/m  (x0', round(x0, 2), 'y1', round(y1, 2), 'zr', round(zr, 2), ')')
 
 if outf:
-    keys = [k for k in ('body', 'tail', 'wingL', 'wingR', 'prop', 'gear', 'glass', 'canopy') if k in pieces]
+    keys = [k for k in ('body', 'tail', 'wingL', 'wingR', 'prop', 'gear', 'glass', 'canopy') if k in pieces] + sorted(k for k in pieces if k not in ('body', 'tail', 'wingL', 'wingR', 'prop', 'gear', 'glass', 'canopy'))
     head = (f"// The {cfg.get('name', cfg.get('key', 'aircraft'))} built from its reference model (see docs/CREDITS.md; tools/refs/planegroups.py): the pieces the game draws and destroys (model/v4plane.js), in the frame of the game's aircraft\n"
             f"// (+x the nose, +y up, +z starboard; the axis of the engine at y = 0, the origin {0.42 * L:.2f} m behind the nose tip of {L:.2f} m), positions in 2.5 mm steps, the colour of the texture at each vertex.\n"
             f"export const SCALE = {SC};\nexport const MEASURES = {json.dumps({'length': round(float(L), 3), 'span': round(float(zw.max() - zw.min()), 3), 'ground': round(float(-low), 3), 'nose': round(float(0.42 * L), 3)})};\nexport const PLANE = ")

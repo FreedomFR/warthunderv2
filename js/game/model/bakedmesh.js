@@ -3,7 +3,7 @@
 /** One baked piece { pos (int16 x y z), col (u8 r g b), idx (u16 or u32), wide } at the given quantisation scale: typed arrays ready for MeshBuilder.raw. */
 export function decodeBaked(piece, scale) {
   const bytes = (s) => { const bin = atob(s), u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return u; };
-  const q = new Int16Array(bytes(piece.pos).buffer), col = bytes(piece.col), ib = bytes(piece.idx).buffer;
+  const q = new Int16Array(bytes(piece.pos).buffer), col = piece.col ? bytes(piece.col) : new Uint8Array(q.length), ib = bytes(piece.idx).buffer;      // (no colour: a piece that the shader paints)
   const idx = piece.wide ? new Uint32Array(ib) : new Uint16Array(ib);
   const pos = new Float32Array(q.length);
   for (let i = 0; i < q.length; i++) pos[i] = q[i] / scale;

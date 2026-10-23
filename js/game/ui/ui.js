@@ -229,7 +229,7 @@ export function createUI(game) {
   const camBar = h('div', { id: 'cambar', class: 'hud' },
     h('span', { class: 'cgrp', 'data-g': 'Bataille' }, camBtn('auto'), camBtn('tactical'), camBtn('free')),
     h('span', { class: 'cgrp', 'data-g': 'Navire' }, camBtn('follow'), camBtn('orbit'), camBtn('bridge'), camBtn('shell')),
-    h('span', { class: 'cgrp', 'data-g': 'Avions' }, camBtn('plane'), camBtn('cockpit')),
+    h('span', { class: 'cgrp', 'data-g': 'Avions' }, camBtn('plane')),
     subj);
   // what the camera shows, in words, above the camera bar
   const caption = h('div', { id: 'caption' });
@@ -267,7 +267,7 @@ export function createUI(game) {
       h('i', {}, 'Caméras'),
       h('b', {}, '1 · 6 · 7'), h('span', {}, 'La bataille : caméra automatique, vue tactique de dessus, caméra libre'),
       h('b', {}, '2 · 3 · 4 · 5'), h('span', {}, 'Un navire : poursuite, orbite, passerelle, obus'),
-      h('b', {}, '8 · 9  ·  V'), h('span', {}, 'Un avion : poursuite (V change la vue : passage, depuis le navire visé), cockpit'),
+      h('b', {}, '8  ·  V'), h('span', {}, 'Un avion : poursuite (V change la vue : passage, depuis le navire visé)'),
       h('b', {}, 'N / B'), h('span', {}, 'Navire (ou avion) suivant / précédent ; un clic sur un navire, sur son nom à droite ou sur la carte le sélectionne'),
       h('b', {}, 'Glisser / molette'), h('span', {}, 'Tourner autour du navire, zoom (altitude en vue tactique, vitesse en caméra libre)'),
       h('b', {}, 'ZQSD / WASD, Espace, Ctrl, Maj'), h('span', {}, 'Déplacement en caméra libre (Maj = rapide) et en vue tactique'),

@@ -55,16 +55,16 @@ function fieldOf(base) {
 
 /** A new aircraft parked in a slot of the base. role: 'level' (the heavy bomber) or 'fighter'. */
 function makePlane(world, base, slot, role) {
-  const typeKey = planeTypeFor(base.nation, role === 'fighter' ? 'fighter' : 'level') || planeTypeFor(base.nation, 'torp');
+  const typeKey = (role !== 'fighter' && base.nation === 'USA' && base.layout.guns.length > 8 ? 'b29' : planeTypeFor(base.nation, role === 'fighter' ? 'fighter' : 'level')) || planeTypeFor(base.nation, 'torp');      // (an American airfield of the second level flies the B-29, the others the B-17)
   const spec = PLANES[typeKey];
   if (!spec) return null;
   const q = base.layout.slots[slot], heavy = role !== 'fighter';
   const p = {
     id: planeId(), owner: base.owner, team: base.team, base, slot, kind: heavy ? 'level' : 'fighter', typeKey, spec, wave: null, sec: null,
-    x: q.x, y: q.y + groundY(spec), z: q.z, vx: 0, vy: 0, vz: 0, heading: q.heading, pitch: GROUND_PITCH, roll: 0, bank: 0, speed: 0,
+    x: q.x, y: q.y + groundY(spec), z: q.z, vx: 0, vy: 0, vz: 0, heading: q.heading, pitch: spec.groundPitch ?? GROUND_PITCH, roll: 0, bank: 0, speed: 0,
     phase: 'parked', ground: true, ds: null, t: 0, ts: 0, age: 0, target: null, cond: 1, ordnance: heavy,
     spin: world.rng() * 6, gearDown: true, lost: { wingL: false, wingR: false, tail: false, engine: false }, dying: false, smoke: 0, fire: 0, harass: 0,
-    lx: 0, lz: 0, u: 0, apOff: 0, jitter: (world.rng() - 0.5) * 2, fold: 0, hook: 0, eng: 0, aoa: 0, gp: GROUND_PITCH, yaw: 0, hidden: false, lift: null,
+    lx: 0, lz: 0, u: 0, apOff: 0, jitter: (world.rng() - 0.5) * 2, fold: 0, hook: 0, eng: 0, aoa: 0, gp: spec.groundPitch ?? GROUND_PITCH, yaw: 0, hidden: false, lift: null,
     t0Air: 0, cruiseAlt: 0, relAlt: 0, fuel: heavy ? 5200 + world.rng() * 600 : 1700 + world.rng() * 400, aimErr: [world.rng.normal(), world.rng.normal()], diveAng: 0, group: 0,
     svc: 0, rs: 0, rt: 0, path: null, pi: 0, hold: 0,
   };
@@ -397,7 +397,8 @@ export function stepBasePlane(world, p, dt) {
       const w = F.toW(p.rs, p.rt); p.x = w[0]; p.z = w[1];
       p.heading = F.rwHdg;
       const fv = p.speed / vto;
-      p.gp = fv < 0.45 ? GROUND_PITCH : fv < 0.8 ? GROUND_PITCH * (1 - (fv - 0.45) / 0.35) : (fv - 0.8) * 0.5;
+      const gp0 = p.spec.groundPitch ?? GROUND_PITCH;      // (a tricycle undercarriage sits level)
+      p.gp = fv < 0.45 ? gp0 : fv < 0.8 ? gp0 * (1 - (fv - 0.45) / 0.35) : (fv - 0.8) * 0.5;
       p.vx = F.u[0] * p.speed; p.vz = F.u[1] * p.speed; p.vy = 0;
       p.y = F.y + groundY(p.spec) + 0.04 + Math.max(0, fv - 1) * 4;
       p.pitch = p.gp; p.bank = 0; p.roll = 0;
@@ -428,7 +429,7 @@ export function stepBasePlane(world, p, dt) {
       return airborneChecks(world, p, T, F);
     }
     case 'taxiBack': {
-      p.eng = 0.25; onGround(base, p, GROUND_PITCH);
+      p.eng = 0.25; onGround(base, p, p.spec.groundPitch ?? GROUND_PITCH);
       if (p.path && drive(world, base, p, dt, TAXI)) {
         // the last turn on the spot, nose to the runway
         const q = base.layout.slots[p.slot];
@@ -748,7 +749,7 @@ function stepAir(world, p, dt, base, F, pf, T) {
       p.rs += F.D * p.speed * dt; p.rt += (0 - p.rt) * Math.min(1, dt * 1.2);
       const w = F.toW(p.rs, p.rt); p.x = w[0]; p.z = w[1];
       p.heading = F.rwHdg;
-      p.gp = approach(p.gp, GROUND_PITCH, 0.05 * dt);
+      p.gp = approach(p.gp, p.spec.groundPitch ?? GROUND_PITCH, 0.05 * dt);
       p.vx = F.u[0] * p.speed; p.vz = F.u[1] * p.speed; p.vy = 0;
       onGround(base, p);
       const toExit = F.D * (F.sExit - p.rs);
@@ -770,7 +771,7 @@ function stepAir(world, p, dt, base, F, pf, T) {
   guide(p, dt, hdg, gam, spd, o);
   advance(p, dt);
   const flr = p.phase === 'lfinal' ? clamp((groundY(p.spec) + 6 - (p.y - F.y)) / 5, 0, 1) : 0;
-  p.aoa += ((p.phase === 'lfinal' ? 0.1 + (GROUND_PITCH * 0.9 - 0.1) * flr : 0) - p.aoa) * Math.min(1, dt * (flr > 0 ? 3 : 1.8));
+  p.aoa += ((p.phase === 'lfinal' ? 0.1 + ((p.spec.groundPitch ?? GROUND_PITCH) * 0.9 - 0.1) * flr : 0) - p.aoa) * Math.min(1, dt * (flr > 0 ? 3 : 1.8));
   return airborneChecks(world, p, T, F);
 }
 

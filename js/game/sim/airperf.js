@@ -43,6 +43,9 @@ export const PERF = {
   // ---- land-based bombers ----
   // B-17G: 472 km/h at 7 600 m, cruise 293 km/h, ceiling 10 850 m, 4.6 m/s climb (Wikipedia / the pilot's manual); stall 36 m/s with the flaps down; run about 900 m at 24.5 t
   b17: { vmax: 131, vc: 81, vt: 0, vd: 0, vcl: 65, vp: 56, va: 47, vto: 46, vcomb: 0, bank: 35, pr: 0.1, asm: 700, bombAlt: 3500, bombSpeed: 75, vs: 36, climb: 4.6, ceil: 10850, runLen: 900, landRun: 700, roc: 4.6, roll: 0.35, nmax: 2.5, brakes: false },
+  // B-29: 575 km/h (357 mph) at 9 100 m with the turbochargers (about 540 km/h, 150 m/s, at the 3 000-5 000 m of the game), cruise 354 km/h (220 mph), ceiling 9 700 m, about 5.5 m/s (1 000 ft/min) climb at the weight of a sortie; stall 52 m/s with the flaps down at 45 t; a ground run of
+  // about 1 100 m at the weight the airfields' runways allow (the real one, at 61 t, is twice that), landing at 60 m/s
+  b29: { vmax: 150, vc: 98, vt: 0, vd: 0, vcl: 78, vp: 66, va: 60, vto: 58, vcomb: 0, bank: 30, pr: 0.08, asm: 900, bombAlt: 3500, bombSpeed: 95, vs: 52, climb: 5.5, ceil: 9700, runLen: 1100, landRun: 800, roc: 5.5, roll: 0.3, nmax: 2.5, brakes: false },
   // G4M1: 428 km/h at 4 200 m, cruise 315 km/h, stall 120 km/h, 9.17 m/s climb with a light load (about 5.5 m/s loaded), ceiling 8 950 m; a light and short-running aircraft
   g4m: { vmax: 119, vc: 87, vt: 0, vd: 0, vcl: 58, vp: 54, va: 42, vto: 40, vcomb: 0, bank: 40, pr: 0.14, asm: 600, bombAlt: 4000, bombSpeed: 80, vs: 33, climb: 5.5, ceil: 8950, runLen: 650, landRun: 500, roc: 5.5, roll: 0.45, nmax: 2.5, brakes: false },
   // Lancaster B.I: 454 km/h at 4 000 m (282 mph), cruise 322 km/h (200 mph), ceiling 6 520 m (21 400 ft at 28.6 t), 3.7 m/s climb (720 ft/min); needs a long run at 31 t

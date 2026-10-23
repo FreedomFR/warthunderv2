@@ -6,6 +6,7 @@ import { SKY_RENDER_FUNCS } from './sky.js';
 import { CLOUD_SHADOW_FN } from './clouds.js';
 import { PALETTES } from '../game/model/livery.js';
 import { GLYPH_BITS } from '../game/model/glyphs.js';
+import { airPaintWgsl } from '../game/model/airpaint.js';
 
 // camouflage palettes (generated from the livery tables) and the 5x7 hull-number font
 const hexToVec = (h) => { const n = parseInt(h.slice(1), 16); return `vec3f(${((n >> 16) & 255) / 255}, ${((n >> 8) & 255) / 255}, ${(n & 255) / 255})`; };
@@ -28,7 +29,7 @@ export const SHIP = FRAME_WGSL + FLASH_WGSL + ATMO_CORE_WGSL + HAZE_WGSL + SHADO
 @group(0) @binding(7) var shadowSamp: sampler_comparison;
 @group(0) @binding(8) var<uniform> SH: ShadowU;
 @group(0) @binding(9) var cloudShadowTex: texture_2d<f32>;
-` + SHADOW_FUNC_WGSL + SKY_RENDER_FUNCS + CLOUD_SHADOW_FN + PALETTE_WGSL + GLYPH_WGSL + /* wgsl */ `
+` + SHADOW_FUNC_WGSL + SKY_RENDER_FUNCS + CLOUD_SHADOW_FN + PALETTE_WGSL + airPaintWgsl() + GLYPH_WGSL + /* wgsl */ `
 const ENV_MAXMIP: f32 = ${ENV_MIPS - 1}.0;
 
 struct VIn {
@@ -375,13 +376,13 @@ fn gauge(kind: u32, uv: vec2f, ias: f32, alt: f32, hdg: f32, vsi: f32, bank: f32
   if (in.misc.w != 0.0 && (in.local.x - in.misc.z) * in.misc.w < 0.0) { discard; }
   var N = normalize(in.nrm);
   let matId = u32(in.col.a * 255.0 + 0.5);
-  if (!ff && (matId <= 14u || matId == 17u)) { N = -N; }
+  if (!ff && (matId <= 14u || matId == 9u || matId == 17u || matId == 27u || matId == 28u)) { N = -N; }
   let Ng = N;                                              // geometric normal (shadow offset), before any bump
   let dist = length(in.rel);
   let V = -in.rel / dist;
   let Ld = F.sunDir.xyz;
   let mat = u32(in.col.a * 255.0 + 0.5);
-  if ((mat == 2u || mat == 17u) && in.misc.x < 0.0) { discard; }                 // open canopy in the cockpit view
+  if ((mat == 2u || mat == 17u || mat == 28u) && in.misc.x < 0.0) { discard; }                 // open canopy in the cockpit view
   var albedo = srgb2lin(in.col.rgb);
   var rough = 0.74;
   var metal = 0.0;
@@ -392,6 +393,7 @@ fn gauge(kind: u32, uv: vec2f, ias: f32, alt: f32, hdg: f32, vsi: f32, bank: f32
   let lp = in.local;
   let fw = max(fwidth(lp.x) + fwidth(lp.y) + fwidth(lp.z), 1e-4);   // local-space pixel footprint
   let up = abs(in.lnrm.y);
+  let gnl = normalize(cross(dpdx(lp), dpdy(lp)));            // the normal of the triangle in the local frame (the paint of an aircraft must not follow the smoothed normals)
 
   // ---- broad weathering (large scale mottling + vertical rust / water streaks) ----
   let mott = gnoise(vec2f(lp.x * 0.11 + in.misc.y * 13.0, lp.z * 0.11 + lp.y * 0.07));
@@ -499,6 +501,11 @@ fn gauge(kind: u32, uv: vec2f, ias: f32, alt: f32, hdg: f32, vsi: f32, bank: f32
       rough = 0.06;
       f0 = vec3f(0.06);
     }
+    case 28u: {   // clear glass: almost nothing of its own, it reflects the sky and the sun (the blend leaves the rest of the scene showing through)
+      albedo = vec3f(0.006, 0.009, 0.011);
+      rough = 0.04;
+      f0 = vec3f(0.05);
+    }
     case 3u: {   // dark metal: barrels, caps
       metal = 0.5;
       rough = 0.38;
@@ -513,9 +520,10 @@ fn gauge(kind: u32, uv: vec2f, ias: f32, alt: f32, hdg: f32, vsi: f32, bank: f32
       rough = 0.9;
       emissive = albedo * 0.12;
     }
-    case 9u, 26u: {   // aircraft skin: riveted sheet-metal panels (ribs across the wings, frames and stringers on the fuselage), streaked by the airflow (26: the team band on the fin, painted the same way)
+    case 9u, 26u, 27u: {   // aircraft skin: riveted sheet-metal panels (ribs across the wings, frames and stringers on the fuselage), streaked by the airflow (26: the team band on the fin, painted the same way)
       rough = 0.42; f0 = vec3f(0.05);
       if (mat == 26u) { albedo = srgb2lin(in.tint.rgb) * 0.75; }
+      if (mat == 27u) { albedo = srgb2lin(airPaint(u32(in.col.r * 255.0 + 0.5), lp, select(-in.lnrm, in.lnrm, ff), gnl, fw)); rough = 0.8; }
       let onTop = up > 0.6;
       let pa = select(lp.x / 0.8, lp.z / 1.05, onTop);
       let pb = select(lp.y / 0.55, lp.x / 1.7, onTop);
@@ -766,7 +774,7 @@ fn gauge(kind: u32, uv: vec2f, ias: f32, alt: f32, hdg: f32, vsi: f32, bank: f32
   let skyUp = textureSampleLevel(envCube, sampC, vec3f(0.0, 1.0, 0.0), ENV_MAXMIP).rgb;
   let amb = skyN * 0.85 + skyUp * 0.35;
   // (a ship sits low in the water, its decks and its sides are dimmer; an aircraft's local height is nothing of the kind)
-  let heightAO = select(mix(0.72, 1.0, smoothstep(-1.5, 7.0, lp.y)), 1.0, mat == 9u || mat == 26u);
+  let heightAO = select(mix(0.72, 1.0, smoothstep(-1.5, 7.0, lp.y)), 1.0, mat == 9u || mat == 26u || mat == 27u);
   let ao = in.ao * heightAO;
   // the light that bounces about in a crevice: pale paint is not as dark in a corner as black rubber is (multi-bounce occlusion fitted to the albedo)
   let mbA = 2.0404 * albedo - vec3f(0.3324);
@@ -820,6 +828,11 @@ fn gauge(kind: u32, uv: vec2f, ias: f32, alt: f32, hdg: f32, vsi: f32, bank: f32
   let T = exp(-max(F.fogExt.rgb, vec3f(F.fogExt.w)) * dist * hazeAltFactor(F.camPos.y));
   let hz = normalize(vec3f(-V.x, 0.002, -V.z));
   let fogCol = skyAtmo(hz);
+  if (mat == 28u) {
+    // the pane adds only its reflection (already seen through the haze: the scene behind it is fogged on its own) and dims what is behind it a little, more at a grazing angle
+    let paneA = clamp(0.1 + 0.9 * pow(1.0 - nv, 4.0), 0.0, 1.0);
+    return vec4f(sane(col * T), paneA);
+  }
   col = col * T + fogCol * (1.0 - T);
   return vec4f(sane(col), 1.0);
 }

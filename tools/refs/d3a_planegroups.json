@@ -58,7 +58,7 @@
    ]
   },
   {
-   "part": "glass",
+   "part": "drop",
    "material": "^kabina"
   },
   {
@@ -81,20 +81,12 @@
  "wing_z": 0.55,
  "tail_x": -3.0,
  "budget": {
-  "body": 7000,
-  "tail": 2200,
-  "wingL": 2600,
-  "wingR": 2600,
-  "prop": 1800,
-  "glass": 700
+  "body": 10000,
+  "tail": 5000,
+  "wingL": 5500,
+  "wingR": 5500,
+  "prop": 1800
  },
- "refine": 1.2,
- "norefine": [
-  "prop",
-  "glass"
- ],
- "minedge": 0.12,
- "colthr": 45,
  "recolor": {
   "prop": [
    48,
@@ -103,8 +95,10 @@
   ]
  },
  "hub_depth": 0.12,
- "fine": [
-  75,
-  0.03
+ "nocolor": [
+  "body",
+  "tail",
+  "wingL",
+  "wingR"
  ]
 }

@@ -19,10 +19,10 @@ const mkp = (k, h = 0, pitch = 0) => ({ typeKey: k, spec: PLANES[k], heading: h,
     rows.push([k, head, side, top]);
     if (!(head < side && side < top)) bad.push(k + ' ' + [head, side, top].map((v) => v.toFixed(1)).join('/'));
     if (Math.abs(head - tail) > 1e-9) bad.push(k + ' differs front and back');
-    const big = PLANES[k].role === 'level';      // the land-based bombers: four-engined ones show 25-30 m2 head-on and 150-200 from above
-    if (big ? (head < 8 || head > 45 || side < 25 || side > 100 || top < 80 || top > 260) : (head < 1.5 || head > 12 || side < 5 || side > 30 || top < 18 || top > 85)) bad.push(k + ' out of range ' + [head, side, top].map((v) => v.toFixed(1)).join('/'));
+    const big = PLANES[k].role === 'level';      // the land-based bombers: four-engined ones show 25-30 m2 head-on and 150-290 from above
+    if (big ? (head < 8 || head > 45 || side < 25 || side > 100 || top < 80 || top > 300) : (head < 1.5 || head > 12 || side < 5 || side > 30 || top < 18 || top > 85)) bad.push(k + ' out of range ' + [head, side, top].map((v) => v.toFixed(1)).join('/'));
   }
-  ok(bad.length === 0, `every type is smallest head-on, larger from the side and largest from above, and of a believable size (head-on 1.5-12 m2, side 5-30, top 18-85; the bombers 8-45, 25-100, 80-260)${bad.length ? ': ' + bad.join('; ') : ''}`);
+  ok(bad.length === 0, `every type is smallest head-on, larger from the side and largest from above, and of a believable size (head-on 1.5-12 m2, side 5-30, top 18-85; the bombers 8-45, 25-100, 80-300: a B-29 shows 290 from above)${bad.length ? ': ' + bad.join('; ') : ''}`);
   const A = Object.fromEntries(rows.map((r) => [r[0], r]));
   ok(A.tbf[2] > A.sbd[2] * 1.4 && A.tbf[3] > A.sbd[3] * 1.3 && A.sbd[2] > A.a6m[2] && A.swordfish[3] > A.a6m[3] * 1.8 && A.re2001[3] < A.sbd[3] * 0.7, `an Avenger shows ${(A.tbf[2] / A.sbd[2]).toFixed(1)} times the side of a Dauntless, a Swordfish ${(A.swordfish[3] / A.a6m[3]).toFixed(1)} times the top of a Zero, a Re.2001 is small`);
   // the same aircraft, turned: the shooter's view follows the heading and the pitch

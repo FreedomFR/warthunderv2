@@ -124,6 +124,7 @@ export class Game {
     e.hooks.prepare = () => this.prepare();
     e.hooks.preMain = (enc) => { if (this.shadowActive) this.shipRenderer.drawShadow(enc); };
     e.hooks.drawOpaque = (rp) => { if (!this.benchHide?.opaque) this.shipRenderer.draw(rp); };
+    e.hooks.drawGlass = (rp) => { if (!this.benchHide?.opaque) this.shipRenderer.drawPanes(rp); };
     e.hooks.drawOverlay = (rp) => { if (!this.benchHide?.particles) this.particles.draw(rp); };
     e.hooks.onWater = (tag, n) => this.onWater(tag, n);
   }

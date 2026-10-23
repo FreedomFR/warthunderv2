@@ -14,7 +14,7 @@ export const CAMERA_MODES = [
   { id: 'tactical', key: '6', name: 'Tactique', hint: 'Vue de dessus (glisser = déplacer, molette = altitude)' },
   { id: 'free', key: '7', name: 'Libre', hint: 'ZQSD / WASD, Espace/Ctrl, Maj = rapide, glisser = regarder' },
   { id: 'plane', key: '8', name: 'Avions', hint: 'Suit un avion (N / B : avion suivant, V : changer de vue)' },
-  { id: 'cockpit', key: '9', name: 'Cockpit', hint: 'Vue du pilote (glisser = regarder autour)' },
+  { id: 'cockpit', key: '9', name: 'Cockpit', hint: 'Vue du pilote (glisser = regarder autour)', off: true },      // (switched off until the interiors are redone: the glass is clear now)
 ];
 
 /** Aircraft phases worth watching. */
@@ -120,7 +120,7 @@ export class CameraRig {
       if (e.target && /INPUT|SELECT|TEXTAREA/.test(e.target.tagName)) return;
       this.keys[e.code] = true;
       if (e.repeat) return;
-      const m = CAMERA_MODES.find((x) => 'Digit' + x.key === e.code || 'Numpad' + x.key === e.code);
+      const m = CAMERA_MODES.find((x) => !x.off && ('Digit' + x.key === e.code || 'Numpad' + x.key === e.code));
       if (m) this.setMode(m.id, true);
       const planeMode = this.mode === 'plane' || this.mode === 'cockpit';
       if (e.code === 'KeyN' || e.code === 'BracketRight') { if (planeMode) this.pickPlane(e.shiftKey ? -1 : 1); else this.pickTarget(e.shiftKey ? -1 : 1); e.preventDefault(); }

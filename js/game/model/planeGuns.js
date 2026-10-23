@@ -32,10 +32,10 @@ export const GUN_RATE = (cal) => (cal >= 20 ? 9 : cal >= 12 ? 13 : 16);
 // x: the pivot along the fuselage (in the rear of the glazing); open: an open cockpit, the gun on a ring above the coaming. The fields of fire: a flexible gun swings wide but the
 // fuselage and the tail stop it below and astern (lo), the fin right astern and low; a biplane's gunner is hemmed in by the lower wing.
 const SINGLE = {
-  sbd: [{ x: -1.55, cal: 7.62, n: 2, h: 1.25, hi: 1.3, lo: -0.35, fin: true }],                   // twin .30 Browning M2 on a flexible mount
-  tbf: [{ x: -1.8, cal: 12.7, n: 1, turret: true, dome: 0.5, h: PI, hi: 1.45, lo: -0.04, fin: true },  // the Grumman 150SE turret
+  sbd: [{ x: -0.75, cal: 7.62, n: 2, h: 1.25, hi: 1.3, lo: -0.35, fin: true }],                   // twin .30 Browning M2 on a flexible mount
+  tbf: [{ x: -1.3, cal: 12.7, n: 1, turret: true, dome: 0.5, h: PI, hi: 1.45, lo: -0.04, fin: true },  // the Grumman 150SE turret
     { x: -3.1, cal: 7.62, n: 1, belly: true, h: 0.85, hi: -0.12, lo: -1.1 }],                     // the .30 in the tunnel under the tail
-  d3a: [{ x: -1.65, cal: 7.7, n: 1, h: 1.05, hi: 1.2, lo: -0.3, fin: true }],                      // Type 92
+  d3a: [{ x: -0.7, cal: 7.7, n: 1, h: 1.05, hi: 1.2, lo: -0.3, fin: true }],                      // Type 92
   b5n: [{ x: 0.55, cal: 7.7, n: 1, h: 1.1, hi: 1.15, lo: -0.4, fin: true }],
   swordfish: [{ x: -1.8, cal: 7.7, n: 1, open: true, h: 1.5, hi: 1.3, lo: -0.5 }],                 // Vickers K
   il2: [{ x: -0.7, cal: 12.7, n: 1, h: 1.0, hi: 1.25, lo: -0.3, fin: true }],                       // the UBT 12.7 mm of the gunner, in the rear cockpit
@@ -61,6 +61,7 @@ function singleGuns(spec, key) {
 
 /** The calibre of the guns of each position of the land-based bombers, in the order of their sheet's `guns` (bomberdata.js). */
 const HEAVY_CAL = {
+  b29: [12.7, 12.7, 12.7, 12.7, 12.7, 20],                  // four remote turrets and the tail: .50 Browning, the tail also a 20 mm
   b17: [12.7, 12.7, 12.7, 12.7, 12.7, 12.7, 12.7],          // chin, cheek, top, ball, two waist, tail: all .50 Browning
   lancaster: [7.7, 7.7, 7.7],                              // FN5, FN50, FN20: .303 Browning
   g4m: [7.7, 7.7, 7.7, 7.7, 20],                           // nose, dorsal, the two side blisters: Type 92; the tail cone: a Type 99 20 mm cannon
@@ -75,7 +76,7 @@ function heavyGuns(s, key) {
   const out = [];
   (s.guns || []).forEach((g, i) => {
     const d = g.d ?? (g.d0 + g.d1) / 2, x = F.X(d), q = F.at(x), cal = cals[i] || 7.7, side = g.side || 1;
-    const base = { id: i, t: g.t, cal, n: g.n || 1, gap: 0.18, start: 0, dy: 0, turret: false, fin: false, part: d > cut ? 'tail' : 'body' };
+    const base = { id: i, t: g.t, cal, n: g.n || 1, gap: 0.18, start: 0, dy: g.dy || 0, turret: false, fin: false, part: d > cut ? 'tail' : 'body' };
     switch (g.t) {
       case 'dome': {            // dorsal turret: all round, from the horizontal up; the fin is in the way right astern
         const yb = q.yc + q.ry * 0.97;
@@ -119,6 +120,8 @@ function heavyGuns(s, key) {
       }
       default: break;
     }
+    const o = out[out.length - 1];
+    if (o && o.id === i) { if (g.pivot) o.pivot = g.pivot.slice(); if (g.nowin) delete o.win; }      // (a position measured on the model: where the guns come out of its turret, whose housing is the model's)
   });
   return out;
 }
