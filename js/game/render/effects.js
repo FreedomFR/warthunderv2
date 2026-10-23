@@ -185,7 +185,7 @@ export class Effects {
         fxs.leak = (fxs.leak || 0) + dt * this.emitScale;
         for (const h of s.holes) {
           if (!(h.head > 0.2)) continue;
-          h.acc = (h.acc || 0) + dt * Math.min(6, 0.6 + h.rate / (st.maxHp * 0.002)) * this.emitScale;
+          h.acc = (h.acc || 0) + dt * Math.min(6, 0.6 + h.rate / (st.hullStrength * 0.002)) * this.emitScale;
           while (h.acc >= 1) {
             h.acc -= 1;
             const w = s.toWorld(h.x + rr(-0.8, 0.8), 0, h.z + Math.sign(h.z || 1) * rr(0.2, 1.2), this._v);

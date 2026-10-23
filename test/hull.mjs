@@ -19,7 +19,7 @@ const run = (w, secs, f) => { for (let i = 0; i < secs * 10; i++) { w.update(0.1
 // ---- a hole above the waterline lets nothing in until the ship is down to it ----
 {
   const { w, s } = mk('cleveland');
-  hullHit(s, { lx: 0, ly: 6, lz: 3, energy: s.stats.maxHp * 0.01, cause: 'shell', attacker: null });
+  hullHit(s, { lx: 0, ly: 6, lz: 3, energy: s.stats.hullStrength * 0.01, cause: 'shell', attacker: null });
   run(w, 60);
   ok(s.holes.length > 0 && s.waterFill < 0.001, `a shell hole six metres over the waterline of a cruiser lets no water in (${s.holes.length} hole, water ${(s.waterFill * 100).toFixed(2)} %)`);
   // the ship settles (heavy with water elsewhere): the same hole is under the water at last
@@ -32,14 +32,14 @@ const run = (w, secs, f) => { for (let i = 0; i < secs * 10; i++) { w.update(0.1
 {
   const { w, s } = mk('cleveland');
   const lim = SINK_FILL[s.stats.type];
-  for (let i = 0; i < 4; i++) hullHit(s, { lx: -20 + i * 15, ly: -2, lz: 4, energy: s.stats.maxHp * 0.2, cause: 'torpedo', attacker: null });
+  for (let i = 0; i < 4; i++) hullHit(s, { lx: -20 + i * 15, ly: -2, lz: 4, energy: s.stats.hullStrength * 0.2, cause: 'torpedo', attacker: null });
   run(w, 400, () => s.state !== 'afloat');
   ok(s.state === 'sinking' && s.cause === 'flood', `four torpedo holes on one side: she takes ${(lim * 100).toFixed(0)} % of the water she can and goes down (${s.state}, ${s.cause})`);
 }
 // ---- damage control patches a small leak, and she lives ----
 {
   const { w, s } = mk('iowa');
-  hullHit(s, { lx: 0, ly: -2, lz: 4, energy: s.stats.maxHp * 0.01, cause: 'torpedo', attacker: null });
+  hullHit(s, { lx: 0, ly: -2, lz: 4, energy: s.stats.hullStrength * 0.01, cause: 'torpedo', attacker: null });
   run(w, 600);
   ok(s.state === 'afloat' && s.holes.length === 0, `the damage-control parties patch a small hole in a battleship (${s.holes.length} left, water ${(s.waterFill * 100).toFixed(1)} %)`);
 }

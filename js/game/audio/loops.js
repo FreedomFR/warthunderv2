@@ -118,7 +118,7 @@ export const loopMethods = {
       }
       // water in the hull: the jet of an open breach (as loud as the flow), the sloshing of what is already inside, air blown out of the vents,
       // a gush when a new hole opens, and the pump of the damage-control party
-      const fill = s.waterFill || 0, flow = Math.min(1, (s.floodRate || 0) / (s.stats.maxHp * 0.002));
+      const fill = s.waterFill || 0, flow = Math.min(1, (s.floodRate || 0) / (s.stats.hullStrength * 0.002));
       const fm = (this.floodMem ||= new Map()).get(s.id) || { flow: 0, vent: 3 + 4 * rnd() };
       this.floodMem.set(s.id, fm);
       if (flow > fm.flow + 0.12 && d < 1600) {

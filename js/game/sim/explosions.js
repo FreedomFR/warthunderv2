@@ -60,7 +60,7 @@ export function magazineExplosion(world, ship, owner, where, mag) {
       const f = 1 - d / R;
       // the blast also scours the topsides facing it
       const loc = o.toLocal(where[0], 0, where[2], [0, 0, 0]);
-      hullHit(o, { lx: clamp(loc[0], -o.stats.L / 2, o.stats.L / 2), ly: 1, lz: clamp(loc[2], -o.stats.B / 2, o.stats.B / 2), energy: o.stats.maxHp * 0.05 * f * f, cause: 'blast', attacker: owner });
+      hullHit(o, { lx: clamp(loc[0], -o.stats.L / 2, o.stats.L / 2), ly: 1, lz: clamp(loc[2], -o.stats.B / 2, o.stats.B / 2), energy: o.stats.hullStrength * 0.05 * f * f, cause: 'blast', attacker: owner });
       blast(world, o, clamp(loc[0], -o.stats.L / 2, o.stats.L / 2), 6, clamp(loc[2], -o.stats.B / 2, o.stats.B / 2), 40 * f * S, 'outside', owner, 'blast');
     }
   }

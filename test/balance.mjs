@@ -34,7 +34,7 @@ const w = new World(3); w.addTeam(0); w.addTeam(1);
 spawnFleet(w, 0, [{ id: 'baltimore', count: 1 }], 0, 0, 0);
 const s = w.ships[0];
 // (the blow to the hull, as the strength of the structure it takes: the structure of the compartment it lands in, in hull strengths)
-const dmgOf = (cause, amount = 500) => { const c = s.comps[0]; const was = c.struct; hullHit(s, { lx: s.stats.L / 2 - 1, ly: -1, lz: 0, energy: amount, cause, attacker: null }); const d = (c.struct - was) * s.stats.maxHp * 0.5; c.struct = was; c.leaks = 0; s.holes.length = 0; return d; };
+const dmgOf = (cause, amount = 500) => { const c = s.comps[0]; const was = c.struct; hullHit(s, { lx: s.stats.L / 2 - 1, ly: -1, lz: 0, energy: amount, cause, attacker: null }); const d = (c.struct - was) * s.stats.hullStrength * 0.35; c.struct = was; c.leaks = 0; s.holes.length = 0; return d; };
 const near = (a, b) => Math.abs(a - b) < 1e-6 * Math.max(1, b);
 ok(near(dmgOf('shell'), 500), 'neutral: a ship takes the damage as computed');
 setBalance({ ships: { shell: 2, torpedo: 0 } });

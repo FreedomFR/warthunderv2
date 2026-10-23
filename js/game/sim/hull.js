@@ -6,7 +6,7 @@ import { clamp } from '../math.js';
 import { shipDmg } from '../data/balance.js';
 
 /** Share of the hull's volume that the water may take before the ship is lost (her reserve of buoyancy as the game counts it). */
-export const SINK_FILL = { DD: 0.30, CL: 0.45, CA: 0.50, BB: 0.50, CV: 0.50 };
+export const SINK_FILL = { DD: 0.30, CL: 0.52, CA: 0.55, BB: 0.50, CV: 0.56 };
 /** Crew left (share of the complement) under which the ship is given up. */
 const ABANDON_AT = 0.14;
 /** A station with less than this share of its crew cannot work its guns. */
@@ -55,23 +55,23 @@ export function blastCasualties(ship, lx, ly, lz, P, where, reach) {
     const rec = m.rec, d = dist(rec.x, rec.y + 1, rec.z, lx, ly, lz);
     if (d > reach) continue;
     const enclosed = rec.kind === 'turret';
-    kill(m, hit(d, enclosed ? (where === 'inside' ? 260 : 900) : 70));
+    kill(m, hit(d, enclosed ? (where === 'inside' ? 200 : 650) : 55));
   }
   for (const a of ship.aaMounts) {
     const rec = a.rec, d = dist(rec.x, rec.y, rec.z, lx, ly, lz);
     if (d > reach) continue;
-    kill(a, hit(d, 55));
+    kill(a, hit(d, 45));
   }
   for (const m of ship.modules) {
     if (m.crew0 == null) continue;
     const d = Math.max(0, dist(m.x, m.y, m.z, lx, ly, lz) - Math.max(m.hx, m.hz) * 0.5);
     if (d > reach) continue;
-    kill(m, hit(d, where === 'inside' ? 180 : m.kind === 'bridge' ? 140 : 700));
+    kill(m, hit(d, where === 'inside' ? 150 : m.kind === 'bridge' ? 110 : 550));
   }
   for (const c of ship.comps) {
     const d = Math.abs(c.xc - lx) - (c.x1 - c.x0) * 0.4;
     if (d > reach) continue;
-    kill(c, hit(Math.max(0, d), where === 'outside' ? 900 : 220) * (ly < 0 ? 0.6 : 1));
+    kill(c, hit(Math.max(0, d), where === 'outside' ? 650 : 170) * (ly < 0 ? 0.6 : 1));
   }
 }
 
@@ -84,7 +84,7 @@ export function compAt(ship, lx) {
 
 /**
  * A blow to the hull at a local point. `energy` is in the units of the old structural damage (the hit points of the ship: the blow's strength against a hull of
- * `stats.maxHp`), `cause` the kind of blow. It tears the plating of the compartment (its structure), and opens a hole there whose size follows the blow; the hole lets
+ * `stats.hullStrength`), `cause` the kind of blow. It tears the plating of the compartment (its structure), and opens a hole there whose size follows the blow; the hole lets
  * the water in as soon as it is under the waterline (updateHoles).
  */
 export function hullHit(ship, o) {
@@ -95,21 +95,21 @@ export function hullHit(ship, o) {
   if (o.attacker) { ship.lastAttacker = o.attacker; ship.lastHitT = ship.world.time; ship.world.lastCombatT = ship.world.time; }
   const i = compAt(ship, o.lx), c = ship.comps[i];
   // the structure: a compartment takes half the strength of the whole hull to break (a destroyer's torpedo hit, 1.2 times the hull, breaks it twice over)
-  c.struct += energy / (st.maxHp * 0.5);
+  c.struct += energy / (st.hullStrength * 0.35);
   // the hole: bigger for a blow that opens the plating (a torpedo, a shell that went through, a bomb) than for one that scuffs it; none for a pure shock
   // the shock of the blows strains the seams of the compartment: every quarter of a break adds a leak at the waterline, however the blows came (blast, splinters, the whirl of
   // fire) and whatever height they were struck at
   c.leaks = c.leaks || 0;
-  while (c.leaks < Math.floor(c.struct / STRAIN) && ship.holes.length < 60) { c.leaks++; ship.holes.push({ i, x: c.xc, y: -0.6, z: (c.leaks % 2 ? 1 : -1) * 0.3 * st.B, rate: st.maxHp * LEAK }); }
+  while (c.leaks < Math.floor(c.struct / STRAIN) && ship.holes.length < 60) { c.leaks++; ship.holes.push({ i, x: c.xc, y: -0.6, z: (c.leaks % 2 ? 1 : -1) * 0.3 * st.B, rate: st.hullStrength * LEAK }); }
   const k = HOLE[o.cause] ?? 0.004;
   const rate = energy * k * (o.holeScale ?? 1);
   if (rate > 0 && ship.holes.length < 60) ship.holes.push({ i, x: o.lx, y: o.ly, z: o.lz, rate });
-  else if (rate > 0) { let big = ship.holes[0]; for (const h of ship.holes) if (h.rate < big.rate) big = h; big.rate += rate; }
+  else if (rate > 0) { let small = ship.holes[0]; for (const h of ship.holes) if (h.rate < small.rate) small = h; small.rate += rate; }      // (too many holes to keep: the blow widens the smallest)
 }
 /** How much water a hole lets in per unit of the blow's energy, by the kind of blow (rate = energy x this, in the units of flooding). */
 /** Structural damage (in breaks of the compartment) that opens one more leak, and the size of that leak (in hull strengths per second). */
 const STRAIN = 0.25, LEAK = 0.0015;
-const HOLE = { shell: 0.004, torpedo: 0.022, bomb: 0.006, blast: 0.002, collision: 0.012, turret: 0.001, fire: 0, flood: 0 };
+const HOLE = { shell: 0.006, torpedo: 0.014, bomb: 0.006, blast: 0.002, collision: 0.012, turret: 0.001, fire: 0, flood: 0 };
 
 /** The local height of the water at a point of the hull: it rises where the ship is down (settled, by the bow, heeled). */
 function waterAt(ship, lx, lz) {
@@ -132,7 +132,7 @@ export function updateHoles(ship, dt) {
     if (h.head > 0) leaking++;
   }
   const st = ship.stats;
-  const patch = afloat ? st.maxHp * 0.00018 * ship.dcEff * dt / Math.max(1, leaking) : 0;
+  const patch = afloat ? st.hullStrength * 0.00018 * ship.dcEff * dt / Math.max(1, leaking) : 0;
   const flood = shipDmg('flood');
   for (let k = hs.length - 1; k >= 0; k--) {
     const h = hs[k];
@@ -147,12 +147,16 @@ export function updateHoles(ship, dt) {
 
 /** Crew casualties of the fires and of the water, the replacements, and what the loss of crew does to the ship. Called every tick while she is afloat or sinking. */
 export function updateCrew(ship, dt) {
+  // (a few times a second is enough for the people: the work is done on the time that has gone since)
+  ship._crewDt = (ship._crewDt || 0) + dt;
+  if (ship._crewDt < 0.25) return;
+  dt = ship._crewDt; ship._crewDt = 0;
   const afloat = ship.state === 'afloat';
   // fires: the people of the compartment burn, the nearby mounts too (the damage-control parties keep the toll down)
   for (const f of ship.fires) {
     const ci = compAt(ship, f.x), c = ship.comps[ci];
     const fk = shipDmg('fire');
-    kill(c, 0.0025 * f.power * dt * fk * (f.inside ? 1.4 : 1) * (1.2 - 0.5 * ship.stats.navy.dc));
+    kill(c, 0.004 * f.power * dt * fk * (f.inside ? 1.4 : 1) * (1.2 - 0.5 * ship.stats.navy.dc));
     for (const m of ship.mounts) if (dist(m.rec.x, m.rec.y, m.rec.z, f.x, f.y, f.z) < 6) kill(m, 0.004 * f.power * dt * fk);
     for (const m of ship.modules) if (m.crew0 != null && dist(m.x, m.y, m.z, f.x, f.y, f.z) < 7) kill(m, 0.003 * f.power * dt * fk);
   }
@@ -189,10 +193,10 @@ export function updateCrew(ship, dt) {
   tally(ship);
   // a ship that has lost her people is given up: a fire or flooding that goes on for long enough, a hulk with nobody to work her
   if (ship.crewFrac < ABANDON_AT && ship.abandonT == null) ship.abandonT = ship.world.time + 25 + ship.world.rng() * 40;
-  // and one that can no longer do anything (no gun, no torpedo, no aircraft, nowhere to go) is scuttled after a while
-  const helpless = !ship.canStrike() && ship.engine * ship.propulsion < 0.12;
+  // and one that can no longer hurt anyone (no gun that works, no torpedo, no aircraft or missile) is scuttled after a while
+  const helpless = !ship.canStrike();
   ship.disabledT = helpless ? ship.disabledT + dt : 0;
-  if (ship.disabledT > 90 && ship.abandonT == null) ship.abandonT = ship.world.time + 10 + ship.world.rng() * 20;
+  if (ship.disabledT > 120 && ship.abandonT == null) ship.abandonT = ship.world.time + 10 + ship.world.rng() * 20;
   if (ship.abandonT != null && ship.world.time >= ship.abandonT) {
     ship.sinkMode = null;
     ship.destroy(ship.lastAttacker, ship.fires.length >= 2 ? 'fire' : 'abandoned');
