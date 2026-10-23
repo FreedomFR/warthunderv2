@@ -10,6 +10,7 @@ import { inFoot } from '../model/clearance.js';
 import { getMountModel } from '../model/mounts.js';
 import { hitNormalAt } from '../model/v4hit.js';
 import { genericBomb, fillerTNT, aircraftRadii, killChance, shockMPa } from '../data/ordnance.js';
+import { burstFactor } from '../data/shellfill.js';
 
 const _l = [0, 0, 0];
 
@@ -327,6 +328,8 @@ export function resolveShellHit(world, ship, shell, hit) {
   const cal = g.cal;
   const kg = g.shellKg;
   const isAP = shell.type === 'AP';
+  // what is in the shell moves the burst: a US armour-piercing shell holds 1.5 % of its mass in explosive, a Japanese one 2.3 %, a US high-capacity one 8 to 12 %, an Italian one 5.5 % (data/shellfill.js)
+  const kgB = kg * burstFactor(owner && owner.stats ? owner.stats.nation : null, cal, isAP ? 'AP' : 'HE');
   // the world direction and the shell, as the effects need them (a tracer's last leg, the way the burst is thrown)
   const fx = { shell: shell.type, dx: dirx, dy: diry, dz: dirz, speed };
 
@@ -400,7 +403,7 @@ export function resolveShellHit(world, ship, shell, hit) {
         let zone = 0.25;
         if (part === 'hull' || part === 'deck') zone = inCitadel && ly < 3.2 ? 1.0 : 0.38;
         if (part === 'mount') zone = 0.5;
-        dmg = kg * 0.95 * zone * (0.85 + 0.3 * rng());
+        dmg = kgB * 0.95 * zone * (0.85 + 0.3 * rng());
         kind = 'penetrate';
         if (rng() < 0.30) addFireAt(ship, px, py, pz, 0.8, inCitadel && part !== 'super' && part !== 'module');
         // flooding for waterline hits
@@ -409,8 +412,8 @@ export function resolveShellHit(world, ship, shell, hit) {
         if (lx < -L * 0.38 && rng() < 0.12) ship.rudderJam = (rng() < 0.5 ? -1 : 1) * 0.6;
         // the burst: centred where the fuze fired
         const pm = part === 'mount' ? 0.7 : 1.0;
-        if (part === 'mount') damageMount(world, ship, cur.mount, kg * 1.0, owner, true);
-        detonate(world, ship, px, py, pz, kg * pm, 'inside', owner, 'shell', 'penetrate', cal, cur, { ...fx, angle, entry: ship.toWorld(lx, ly, lz, [0, 0, 0]), delay, thin: !armed });
+        if (part === 'mount') damageMount(world, ship, cur.mount, kgB * 1.0, owner, true);
+        detonate(world, ship, px, py, pz, kgB * pm, 'inside', owner, 'shell', 'penetrate', cal, cur, { ...fx, angle, entry: ship.toWorld(lx, ly, lz, [0, 0, 0]), delay, thin: !armed });
         ship.addScar(lx, ly, lz, nrm[0], nrm[1], nrm[2], scarR, 1);
         report('pen', dmg);
         if (owner) { owner.damageDealt += dmg; owner.shotsHit++; }
@@ -440,13 +443,13 @@ export function resolveShellHit(world, ship, shell, hit) {
     let zone = 1.0;
     if (part === 'hull' || part === 'deck') zone = eff > cal * 0.5 ? 0.1 : 0.55;
     if (part === 'mount') zone = 0.3;
-    dmg = kg * 0.2 * st.softness * zone * (0.8 + 0.4 * rng());
+    dmg = kgB * 0.2 * st.softness * zone * (0.8 + 0.4 * rng());
     kind = eff > cal * 0.9 ? 'bounce' : 'explode';
     const fireP = (part === 'super' || part === 'module' || zone > 0.4) ? 0.22 : 0.07;
     if (rng() < fireP) addFireAt(ship, lx, Math.max(ly, 1), lz, 0.55);
     // thin plating: the burst happens just behind the skin
     const thinSkin = (part === 'hull' || part === 'deck' || part === 'super') && eff < cal * 0.45;
-    const P = kg * 0.35;
+    const P = kgB * 0.35;
     if (part === 'mount') damageMount(world, ship, cur.mount, P * 0.6, owner, false);
     detonate(world, ship, lx - (thinSkin ? ldx * 1.2 : 0), ly - (thinSkin ? ldy * 1.2 : 0), lz - (thinSkin ? ldz * 1.2 : 0), P * (thinSkin ? 0.85 : 1), thinSkin ? 'inside' : 'outside', owner, 'shell', kind, cal, cur, { ...fx, angle, thin: thinSkin });
     report(kind === 'bounce' ? 'shatter' : thinSkin ? 'pen' : 'burst', dmg);

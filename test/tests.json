@@ -240,6 +240,10 @@
    "file": "ordnance.mjs",
    "args": [],
    "slow": true
+  },
+  {
+   "file": "airguns.mjs",
+   "args": []
   }
  ],
  "tools": [

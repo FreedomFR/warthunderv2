@@ -105,7 +105,7 @@ export const LOADOUTS = {
 export const loadoutsOf = (typeKey) => LOADOUTS[typeKey] || [];
 
 /** Mass (kg) of the aerial torpedo of each nation (Mk 13, Type 91, Mk XII, LT F5b, the French and the Italian ones). */
-export const TORPEDO_KG = { USA: 1005, Japan: 848, UK: 702, Germany: 765, France: 700, Italy: 876 };
+const TORPEDO_KG = { USA: 1005, Japan: 848, UK: 702, Germany: 765, France: 700, Italy: 876 };
 
 /** Mass (kg) of a load: the bombs and the torpedo of the nation. */
 export function loadKg(load, nation = 'USA') {

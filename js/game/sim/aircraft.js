@@ -133,7 +133,7 @@ const SECTION_SPREAD = 0.72;            // rad between the approach bearings of 
 const DIVE_ANGLE = 74;
 
 /** Does the ship carry thick armour (a deck or a belt a general-purpose bomb cannot go through)? Then the crew hangs armour-piercing bombs, or a torpedo. */
-export function armoredShip(t) {
+function armoredShip(t) {
   const a = t && t.stats && t.stats.armor;
   if (!a) return false;
   // (a carrier with a wooden or thin flight deck over its hangar is hurt by a bomb that bursts in the hangar; one with an armoured flight deck is not)
@@ -229,7 +229,7 @@ function spawnFighters(world, ship, wave, n, role) {
       spin: 0, gearDown: true, lost: { wingL: false, wingR: false, tail: false, engine: false }, dying: false, smoke: 0, fire: 0, harass: 0,
       lx: 0, lz: 0, u: 0, apOff: 0, jitter: (world.rng() - 0.5) * 2, fold: 1, hook: 0, eng: 0, aoa: 0, gp: GROUND_PITCH, yaw: 0, hidden: true, lift: null,
       t0Air: 0, cruiseAlt: 0, relAlt: 0, fuel: 1700 + world.rng() * 400, aimErr: [0, 0], diveAng: 0, group: wave.planes.length,
-      ...fighterFields(spec), role,
+      ...fighterFields(spec, typeKey), role,
     };
     wave.planes.push(p);
     world.planes.push(p);
@@ -328,7 +328,7 @@ function launches(world, dt) {
 }
 const _w = [0, 0, 0];
 const pf0 = (p) => perfOf(p);
-export const FIGHT_CTX = { hit: (world, shooter, target, dmg, cal, cause = 'gun') => hitPlane(world, shooter, target, dmg, cal, cause) };
+export const FIGHT_CTX = { hit: (world, shooter, target, dmg, cal, cause = 'gun', ammo = null) => hitPlane(world, shooter, target, dmg, cal, cause, ammo) };
 
 // ---- flight ------------------------------------------------------------------------------------------------------
 function flight(world, dt) {

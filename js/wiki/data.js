@@ -8,6 +8,8 @@ import { tierOf } from './tiers.js';
 import { tntEquivalent, AIR_TORPEDO } from '../game/data/explosives.js';
 import { BOMBS, aircraftRadii, FILL } from '../game/data/ordnance.js';
 import { loadoutsOf, bombsIn, loadKg } from '../game/data/loadouts.js';
+import { FIGHTER_GUNS, GUNS, BELTS, AMMO, beltMean, beltForGun, UNIT } from '../game/data/airguns.js';
+import { planeGuns } from '../game/model/planeGuns.js';
 
 const EXPLOSIVE_NAMES = { tnt: 'TNT', hexanite: 'hexanite', hbx: 'HBX', torpex: 'Torpex' };
 
@@ -257,12 +259,26 @@ export function aircraftSections(a) {
     level && pf ? ['Plafond pratique', unit(pf.ceil, 'm', 0)] : null,
     level && pf ? ['Roulement au décollage', unit(pf.runLen, 'm', 0)] : null,
     level ? ['Mise en œuvre', 'bases aériennes des îles (piste de 800 à 1 200 m)'] : null,
-    s.role === 'fighter' ? ['Armement', 'mitrailleuses d\'aile et de capot (traçantes)'] : null,
     s.siren ? ['Particularité', 'sirène « trompettes de Jéricho » en piqué'] : null,
     a.users.length ? [s.role === 'float' ? 'Embarqué sur' : 'Porte-avions', a.users.map((r) => r.name).join(', ')] : null,
   ].filter(Boolean);
   const out = [{ id: 'air', title: 'Caractéristiques', rows: rows.map(([k, v]) => ({ k, v, est: false })) }];
   const key = a.key.startsWith('plane:') ? a.key.slice(6) : null, loads = key ? loadoutsOf(key) : [];
+  if (key && FIGHTER_GUNS[key]) {
+    // the guns of a fighter and the rounds of its belts: what one hit does (against the .50 API round) and how often it starts a fire in a tank
+    const beltText = (b) => Object.entries(BELTS[b]).map(([id, w]) => `${AMMO[id].name} ${fr(w * 100, 0)}${NB}%`).join(', ');
+    out.push({ id: 'guns', title: 'Armement', rows: FIGHTER_GUNS[key].map((g) => {
+      const gun = GUNS[g.gun], m = beltMean(g.belt), secs = g.rpg / (gun.rpm / 60);
+      return { k: `${g.n}${NB}×${NB}${gun.name}`, v: `${g.rpg}${NB}coups par arme (${fr(secs, 0)}${NB}s de tir) · ${fr(gun.rpm, 0)}${NB}coups/min · bande : ${beltText(g.belt)} · un coup fait en moyenne ${fr(m.dmg, 1)}${NB}fois un coup de 12,7${NB}mm API, met le feu à un réservoir dans ${fr(m.fire * 100, 0)}${NB}% des cas`, est: false };
+    }) });
+  } else if (key) {
+    const guns = planeGuns(s, key);
+    if (guns.length) {
+      const by = {};
+      for (const g of guns) { const b = beltForGun(g.cal, s.nation), k = `${g.cal}|${b}`; by[k] = by[k] || { cal: g.cal, belt: b, n: 0, pos: 0 }; by[k].n += g.n; by[k].pos++; }
+      out.push({ id: 'guns', title: 'Armement défensif', rows: Object.values(by).map((g) => { const m = beltMean(g.belt); return { k: `${g.n}${NB}×${NB}${fr(g.cal, 1)}${NB}mm`, v: `en ${g.pos}${NB}poste${g.pos > 1 ? 's' : ''} · un coup fait en moyenne ${fr(m.dmg, 2)}${NB}fois un coup de 12,7${NB}mm API`, est: false }; }) });
+    }
+  }
   if (loads.length) {
     const ROLE = { ship: 'navires', armor: 'navires cuirassés', base: 'bases', alt: 'autre usage' };
     out.push({ id: 'loads', title: 'Charges possibles (bombes et torpilles)', rows: loads.map((l) => {

@@ -2,7 +2,6 @@
 // aircraft of an airfield may come down on a carrier that is nearer than the field, a carrier aircraft on a field). A carrier aircraft (a dive bomber, a torpedo bomber, a carrier fighter,
 // with a hook and folding wings) can use a deck or a runway; a land-based bomber, a runway only. A carrier takes no more than its air group, an airfield as many as it has places on
 // its apron. The aircraft that is sent elsewhere becomes part of the air group of the field or the ship that takes it in.
-import { perfOf } from './airperf.js';
 
 /** Can this aircraft land on a carrier (the hook, the folding wings, the strength of a deck landing): the carrier aircraft, not the land-based bombers and the floatplanes. */
 export const carrierCapable = (p) => !!p.spec && !p.spec.engines && p.spec.role !== 'float' && p.spec.role !== 'level';
@@ -25,7 +24,7 @@ function shipHasRoom(world, ship) {
 }
 
 /** The free place on the apron of a field (a slot nobody holds), the one nearest the taxiway first; -1 when it is full. */
-export function freeSlot(base) {
+function freeSlot(base) {
   for (let i = 0; i < base.parked.length; i++) if (!base.parked[i]) return i;
   return -1;
 }
@@ -69,13 +68,6 @@ export function chooseSite(world, p) {
   return best;
 }
 
-/** True when the aircraft's own home can still take it in. */
-export function homeUsable(p) {
-  if (p.base) return p.base.alive && !p.base.inert && !!p.base.air;
-  const s = p.owner;
-  return !!s && s.alive && !s.deckWrecked && !!s.air && !s.isBase;
-}
-
 /**
  * Send the aircraft to the site: it belongs to it from now on (its owner, its field), and goes into its landing procedure (the circuit of the carrier, the circuit of the field).
  * Returns false when the site cannot take it after all (a field with no free place).
@@ -99,6 +91,3 @@ export function divert(world, p, site) {
   p.phase = 'return'; p.leg = null; p.t = 0; p.asm = null; p.gearDown = false; p.siteT = 5;
   return true;
 }
-
-/** The range the aircraft can still fly on its fuel (m): the sites beyond are no use to it. */
-export const rangeLeft = (p) => Math.max(0, p.fuel) * perfOf(p).vc * 0.6;

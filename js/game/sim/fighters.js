@@ -3,17 +3,14 @@
 // closes on it, lays its guns on where it will be (the turn it is in included) and fires its machine guns in bursts, breaks away from the enemy on its tail; the rear gunners of the bombers shoot back. When it has no ammunition left,
 // is badly hurt or short of fuel it goes home and lands like the others (sim/aircraft.js, sim/deck.js).
 import { clamp, wrapPi, D2R, mat4Ship } from '../math.js';
-import { planeGuns, inArc, muzzleOf, GUN_RATE, GUN_DMG } from '../model/planeGuns.js';
+import { planeGuns, inArc, muzzleOf, GUN_RATE } from '../model/planeGuns.js';
 import { aaSources, exposure } from './routing.js';
 import { perfOf, turnPerf } from './airperf.js';
 import { presentedArea, roundHitChance } from './airhit.js';
+import { armamentOf, drawRound, beltMean, beltForGun, UNIT } from '../data/airguns.js';
 
 export const FIGHT_PHASES = new Set(['escort', 'cap', 'engage']);
 const STRIKE = new Set(['assemble', 'cruise', 'ip', 'run', 'rollin', 'dive', 'pullout', 'break', 'egress']);
-const AMMO = 520;                       // bursts of 1/14 s: about 37 s of fire
-const BURST_RATE = 14;
-const MG_ROUNDS = 78;                   // rounds a second of the guns of a fighter (six of 12.7 mm)
-const MG_DMG = 0.17;
 
 /** Enemy aircraft that are flying (not on a deck, not already falling). */
 function hostiles(world, p) {
@@ -281,23 +278,31 @@ function dogfight(world, p, dt, ctx, out, anchor, vC) {
   // the guns
   const cone = Math.acos(clamp((n[0] * aim[0] + n[1] * aim[1] + n[2] * aim[2]) / al, -1, 1));
   // (he opens fire when the rounds would hit: the chance that the pattern, laid where the guns point, covers him)
-  if (d < 560 && d > 50 && cone < 0.12 && p.ammo > 0) {
+  const guns = p.guns || (p.guns = armamentOf(p.typeKey));
+  let rps = 0;
+  for (const g of guns) if (g.left > 0) rps += g.rps;
+  if (d < 560 && d > 50 && cone < 0.12 && rps > 0) {
     const sg = 3.6 * 0.001 * d + 1.0 + 0.003 * d * Math.max(0, (p.load ?? 1) - 3), ar = presentedArea(q, ux, uy, uz);
-    p.firing = MG_ROUNDS * roundHitChance(ar, d * Math.sin(cone), sg) > 1.0;
+    p.firing = rps * roundHitChance(ar, d * Math.sin(cone), sg) > 1.0;
   }
   if (p.firing) {
-    p.ammo -= BURST_RATE * dt;
     if (!p.wasFiring) world.events.push({ type: 'mgBurst', plane: p, x: p.x, y: p.y, z: p.z });
-    world.events.push({ type: 'mgFire', plane: p, target: q, x: p.x + n[0] * 3, y: p.y + n[1] * 3 - 0.3, z: p.z + n[2] * 3, dx: aim[0] / al, dy: aim[1] / al, dz: aim[2] / al, range: d });
     // where the target really is when the rounds arrive (with the turn it is in), against where the guns point: a target that holds its turn is hit by a pilot who read it, one that
     // changes it is not; the pattern is wider the harder the shooter is pulling, and for a target that is jinking
     const tof = d / MUZZLE_V, hx = rx + vrx * tof + 0.5 * qa[0] * tof * tof, hy = ry + vry * tof + 0.5 * qa[1] * tof * tof - 0.5 * 9.8 * tof * tof * 0.3, hz = rz + vrz * tof + 0.5 * qa[2] * tof * tof;
     const rl = Math.hypot(hx, hy, hz) || 1, along = hx * n[0] + hy * n[1] + hz * n[2];
     const miss = Math.hypot(hx - n[0] * along, hy - n[1] * along, hz - n[2] * along);
     const sigma = 3.6 * 0.001 * rl + 1.0 + (q.evade > 0 ? 9 * tof * tof : 0) + 0.003 * rl * Math.max(0, (p.load ?? 1) - 3);
-    const area = presentedArea(q, hx / rl, hy / rl, hz / rl);
-    const nh = Math.floor(MG_ROUNDS * dt * roundHitChance(area, miss, sigma) + rng());
-    if (nh > 0) ctx.hit(world, ship, q, MG_DMG * nh * (0.8 + 0.4 * rng()), 12.7);
+    const area = presentedArea(q, hx / rl, hy / rl, hz / rl), chance = roundHitChance(area, miss, sigma);
+    // every group of guns fires its own rounds (the cannons of a Zero last seven seconds, its machine guns half a minute), each hit is a round of the belt and does what that round does
+    for (const g of guns) {
+      if (g.left <= 0) continue;
+      g.left = Math.max(0, g.left - g.rps / g.n * dt);
+      world.events.push({ type: 'mgFire', plane: p, target: q, cal: g.cal, n: g.n, x: p.x + n[0] * 3, y: p.y + n[1] * 3 - 0.3, z: p.z + n[2] * 3, dx: aim[0] / al, dy: aim[1] / al, dz: aim[2] / al, range: d });
+      const nh = Math.floor(g.rps * dt * chance + rng());
+      for (let k = 0; k < nh; k++) { const a = drawRound(g.belt, rng); ctx.hit(world, ship, q, UNIT * a.dmg * (0.8 + 0.4 * rng()), a.cal, 'gun', a); }
+    }
+    p.ammo = ammoLeft(guns);
   }
   p.wasFiring = p.firing;
   return finishFight(world, p, out, q, d, anchor);
@@ -309,10 +314,17 @@ function finishFight(world, p, out, q, d, anchor) {
   return out;
 }
 
-/** The fields of a fighter (see launches() in sim/aircraft.js). */
-export function fighterFields(spec) {
-  return { fighter: true, role: 'escort', prey: null, preyT: 0, ammo: AMMO, firing: false, evade: 0, ordnance: false };
+/** What is left to fire: the damage of the rounds that remain in the guns (it is 0 when the guns are empty: the fighter goes home). */
+export function ammoLeft(guns) { let t = 0; for (const g of guns) t += g.left * g.n * beltMean(g.belt).dmg; return t; }
+
+/** The fields of a fighter (see launches() in sim/aircraft.js): its guns are those of its type, full. */
+export function fighterFields(spec, typeKey) {
+  const guns = armamentOf(typeKey);
+  return { fighter: true, role: 'escort', prey: null, preyT: 0, guns, ammo: ammoLeft(guns), firing: false, evade: 0, ordnance: false };
 }
+
+/** The guns are filled again (the aircraft is serviced). */
+export function rearm(p) { p.guns = armamentOf(p.typeKey); p.ammo = ammoLeft(p.guns); }
 
 // ---- the bombers defend themselves -----------------------------------------------------------------------------------------------------
 // Every gun position of a bomber (model/planeGuns.js: the turrets, the flexible guns at the windows and in the rear cockpits) is a gunner of its own: he takes the nearest
@@ -379,7 +391,11 @@ export function bomberDefense(world, dt, ctx) {
       const area = presentedArea(f, vx, vy, vz);
       const hits = g.n * GUN_RATE(g.cal) * dt * roundHitChance(area, miss, sigma) * (b.tight && b.phase === 'cruise' ? 1.4 : 1);
       const n = Math.floor(hits + world.rng());
-      if (n > 0) ctx.hit(world, b.owner, f, GUN_DMG(g.cal) * n * (0.8 + 0.4 * world.rng()), g.cal, 'gunner');
+      if (n > 0) {
+        // (what a gunner's round does depends on the gun: a rifle-calibre ball round is a pinprick, a .50 API round a hit, a 20 mm cannon shell three)
+        const belt = beltForGun(g.cal, b.spec.nation);
+        for (let k = 0; k < n; k++) { const a = drawRound(belt, world.rng); ctx.hit(world, b.owner, f, UNIT * a.dmg * (0.8 + 0.4 * world.rng()), g.cal, 'gunner', a); }
+      }
     }
     if (any && !b.gunFiring) world.events.push({ type: 'mgBurst', plane: b, x: b.x, y: b.y, z: b.z });
     b.gunFiring = any;

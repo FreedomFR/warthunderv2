@@ -25,9 +25,8 @@ export const GUN_DIMS = {
 };
 export const gunDims = (cal) => GUN_DIMS[cal] || GUN_DIMS[cal >= 20 ? 20 : cal >= 12 ? 12.7 : 7.7];
 
-/** The rounds a second one gun of a calibre fires, and what one round that hits does to an aircraft (hp: a fighter has 2.4 to 4.2). */
+/** The rounds a second one gun of a calibre fires (what a round that hits does to an aircraft is in data/airguns.js). */
 export const GUN_RATE = (cal) => (cal >= 20 ? 9 : cal >= 12 ? 13 : 16);
-export const GUN_DMG = (cal) => (cal >= 20 ? 0.22 : cal >= 12 ? 0.07 : 0.035);
 
 // ---- the single-engine aircraft with a gunner: a flexible gun in the rear cockpit (the Avenger: a turret and a gun in the tunnel under the tail) ----
 // x: the pivot along the fuselage (in the rear of the glazing); open: an open cockpit, the gun on a ring above the coaming. The fields of fire: a flexible gun swings wide but the

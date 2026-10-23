@@ -10,7 +10,7 @@
 import { clamp, wrapPi, approach, D2R, G } from '../math.js';
 import { planeTypeFor, PLANES, groundY, GROUND_PITCH } from '../model/planes.js';
 import { perfOf } from './airperf.js';
-import { fighterFields, fighterSteer } from './fighters.js';
+import { fighterFields, fighterSteer, rearm } from './fighters.js';
 import { safeHeading, homeCourse } from './homeward.js';
 import { planeId, bombId, FIGHT_CTX, arm, dropTorpedo } from './aircraft.js';
 import { guide, setVel, stallSpeed } from './flight.js';
@@ -68,7 +68,7 @@ function makePlane(world, base, slot, role) {
     t0Air: 0, cruiseAlt: 0, relAlt: 0, fuel: heavy ? 5200 + world.rng() * 600 : 1700 + world.rng() * 400, aimErr: [world.rng.normal(), world.rng.normal()], diveAng: 0, group: 0,
     svc: 0, rs: 0, rt: 0, path: null, pi: 0, hold: 0,
   };
-  if (!heavy) Object.assign(p, fighterFields(spec));
+  if (!heavy) Object.assign(p, fighterFields(spec, typeKey));
   else { p.stick = 0; p.stickT = 0; p.fighter = false; }
   base.parked[slot] = p;
   world.planes.push(p);
@@ -444,7 +444,7 @@ export function stepBasePlane(world, p, dt) {
 
 function servicePlane(p) {
   const heavy = !!p.spec.engines;
-  p.fuel = heavy ? 5400 : 1700 + 300; p.ordnance = heavy; if (p.fighter) p.ammo = 520;
+  p.fuel = heavy ? 5400 : 1700 + 300; p.ordnance = heavy; if (p.fighter) rearm(p);
   p.landedAt = true;      // (a visitor is one of the field's aircraft now)
   repairPlane(p); p.smoke = 0; p.fire = 0; p.wave = null; p.target = null; p.prey = null; p.hunted = 0; p.stick = 0;
   p.ground = true; p.gearDown = true;
