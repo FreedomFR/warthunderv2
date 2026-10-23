@@ -1,0 +1,133 @@
+{
+ "ship": "Algérie",
+ "elements": [
+  {
+   "id": "t203a",
+   "type": "main",
+   "cal": 203,
+   "group": "main",
+   "layout_match": {
+    "name": [
+     "m0"
+    ]
+   },
+   "x_range": [
+    -6.0,
+    9.0
+   ],
+   "z_range": [
+    -4.8,
+    4.8
+   ],
+   "below": 3.4,
+   "above": 1.7,
+   "min_part_tris": 1,
+   "materials": [
+    "203mm"
+   ],
+   "split": true,
+   "barrel_len": 4.0
+  },
+  {
+   "id": "t203",
+   "type": "main",
+   "cal": 203,
+   "group": "main",
+   "layout_match": {
+    "name": [
+     "m3",
+     "m2"
+    ]
+   },
+   "x_range": [
+    -9.8,
+    5.0
+   ],
+   "z_range": [
+    -4.8,
+    4.8
+   ],
+   "below": 3.4,
+   "above": 2.5,
+   "min_part_tris": 1,
+   "materials": [
+    "203mm"
+   ],
+   "split": true,
+   "barrel_len": 4.0
+  },
+  {
+   "id": "t203b",
+   "type": "main",
+   "cal": 203,
+   "group": "main",
+   "layout_match": {
+    "name": [
+     "m1"
+    ]
+   },
+   "x_range": [
+    -6.0,
+    9.5
+   ],
+   "z_range": [
+    -4.8,
+    4.8
+   ],
+   "below": 3.4,
+   "above": 2.5,
+   "min_part_tris": 1,
+   "materials": [
+    "203mm"
+   ],
+   "split": true,
+   "barrel_len": 4.0
+  },
+  {
+   "id": "s100",
+   "type": "sec",
+   "cal": 100,
+   "group": "sec",
+   "materials": [
+    "100mm"
+   ],
+   "cluster": {
+    "gap": 0.3,
+    "min_tris": 2000
+   },
+   "split": true,
+   "barrel_len": 2.0
+  },
+  {
+   "id": "f37",
+   "type": "f37",
+   "cal": 37,
+   "group": "aa",
+   "materials": [
+    "37mm"
+   ],
+   "cluster": {
+    "gap": 0.3,
+    "min_tris": 1500
+   },
+   "facing": "thin",
+   "thin_len": 0.8
+  },
+  {
+   "id": "q13",
+   "type": "q13",
+   "cal": 13,
+   "group": "aa",
+   "materials": [
+    "13mm"
+   ],
+   "cluster": {
+    "gap": 0.3,
+    "min_tris": 1500
+   },
+   "facing": "thin",
+   "thin_len": 0.5
+  }
+ ],
+ "layout": "refs/algerie_v7/layout.json"
+}

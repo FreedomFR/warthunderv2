@@ -24,7 +24,7 @@ ok(radars >= 30 && dirs >= 30, `radars that sweep (${radars}) and directors that
 
 // the damage model does not see the screws that were only drawn: the shafts of a class without a measured underwater body are as before
 {
-  const spec = ALL_SHIPS.find((s) => s.id === 'cleveland'), m = buildShipModel(spec, TWEAKS[spec.id] || {});
+  const spec = ALL_SHIPS.find((s) => s.id === 'norfolk'), m = buildShipModel(spec, TWEAKS[spec.id] || {});
   ok(m.shafts.length === 0 && m.rudders.length === 0 && m.spinners.length >= 5, 'the drawn screws of a class without measured ones are not shafts of the damage model');
 }
 

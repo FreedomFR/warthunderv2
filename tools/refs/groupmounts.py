@@ -243,7 +243,8 @@ for el in cfg['elements']:
             sel.append((ks[0], f"{el['id']}#{n}", np.concatenate([order[st[k]:en[k]] for k in ks])))
     elif 'layout_match' in el:
         R = float(el.get('radius', 4.0)); RX = float(el.get('radius_x', R)); RZ = float(el.get('radius_z', R)); below = float(el.get('below', 1.5)); above = float(el.get('above', 6.0)); mt = int(el.get('min_part_tris', 8))
-        for r in LAYOUT['mounts']:
+        nm = el['layout_match'].get('name')
+        for r in sorted(LAYOUT['mounts'], key=lambda r: nm.index(r['name']) if isinstance(nm, list) and r['name'] in nm else 0):      # (a list of names is taken in its own order: the lower of two turrets that overlap first, so that the upper one only finds what is left)
             if not all((r.get(k) in v) if isinstance(v, list) else r.get(k) == v for k, v in el['layout_match'].items()):
                 continue
             xr = el.get('x_range', [-RX, RX]); zr = el.get('z_range', [-RZ, RZ])      # x_range / z_range: the window relative to the record, when it is not symmetric (a turret's barrels reach far on one side)
@@ -279,7 +280,13 @@ for el in cfg['elements']:
         for gi, mem in enumerate(sorted(groups.values(), key=lambda m: float(np.mean([PBMIN[ids[i], 0] for i in m])))):
             t = np.concatenate([sel[i][2] for i in mem])
             if len(t) >= mt: sel2.append((ids[mem[0]], f"{el['id']}#{gi}", t))
+        if 'x_min' in el or 'x_max' in el:      # only the mounts whose box centre lies within [x_min, x_max] (a kind of mount that stands in two different poses in the model is two elements)
+            sel2 = [(k, nm, t) for k, nm, t in sel2 if float(el.get('x_min', -1e9)) <= float((bbox(t)[0][0] + bbox(t)[1][0]) / 2) <= float(el.get('x_max', 1e9))]
         sel = sel2
+    if sel and (el.get('only_box') or el.get('skip_box')):      # only_box / skip_box [x0, x1, z0, z1]: the groups whose centre lies in (not in) the box (a few mounts of a kind that are posed differently get an element of their own)
+        def in_box(t, bx):
+            c = P[I[t]].reshape(-1, 3).mean(0); return bx[0] <= c[0] <= bx[1] and bx[2] <= c[2] <= bx[3]
+        sel = [q for q in sel if (not el.get('only_box') or in_box(q[2], el['only_box'])) and not (el.get('skip_box') and in_box(q[2], el['skip_box']))]
     if not sel:
         print(f"element {el['id']}: no group with material {el.get('material')}", file=sys.stderr); continue
     # a group that is twice the size of the usual one holds two mounts whose parts touch: split it in two by the middle of its objects along the ship (1-D two-means on the centres of its objects)
@@ -307,6 +314,8 @@ for el in cfg['elements']:
     for gi, (k, name, t) in enumerate(sel):
         comps, info_c, house_k, barrels, yaw = analyse(t, el)
         hlo, hhi = info_c[house_k]
+        if el.get('origin_y') == 'group':      # the mount stands on the lowest thing of its group (a pedestal that is a piece of its own), not on the lowest point of its biggest object
+            hlo = hlo.copy(); hlo[1] = min(float(v[0][1]) for v in info_c.values())
         # the cradles: the objects touching the rear end of a barrel along the way it points
         a = np.radians(yaw); fwd = np.array([np.cos(a), 0, np.sin(a)])
         gun_k = list(barrels)

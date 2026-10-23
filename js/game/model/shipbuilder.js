@@ -115,6 +115,7 @@ const AA_TYPES = {
   d25: { v: 'iijn25', n: 2, cal: 25, bore: 60, label: 'Type 96 de 25 mm double' },
   s25: { v: 'oerlikon', n: 1, cal: 25, bore: 60, label: 'Type 96 de 25 mm simple' },
   m13: { v: 'iijn25', n: 2, cal: 13, bore: 76, label: 'Type 93 de 13,2 mm double' },
+  q13: { v: 'iijn25', n: 4, cal: 13, bore: 76, label: 'Hotchkiss 13,2 mm quadruple' },
   s37: { v: 'bofors', n: 1, cal: 37, bore: 50, label: '37 mm Mle 1925 simple' },
   f37: { v: 'bofors', n: 2, cal: 37, bore: 50, tub: 1.7, label: '37 mm Mle 1933 double' },
   t37: { v: 'bofors', n: 2, cal: 37, bore: 83, tub: 1.7, label: 'Flak 37 mm double' },
@@ -570,11 +571,13 @@ export function buildShipModel(spec, tw = {}) {
     const per = Math.max(1, Math.round(tq.tubes / fr.length));
     if (tq.bow) fr.length = 0;            // fixed tubes in the bow: their doors and the tubes are drawn by the ship's own extra (tweaks.js), which also fills model.tubes
     fr.forEach((f, fi) => {
-      const x = X(f);
+      let x = X(f);
       // two mounts at one station (the sheet lists the station once for each) stand either side of the centre line
       const nth = fr.slice(0, fi).filter((g) => g === f).length, twin = fr.filter((g) => g === f).length > 1;
       let z = twin ? (nth % 2 ? 1 : -1) * 2.4 : 0, y;
       [z, y] = landOn(x, z, Y(x) + (model.house && x < model.house.x1 && x > model.house.x0 ? houseH : 0), 1.7, 2.2, false, 5.5);
+      const at = tw.tubeAt && tw.tubeAt[fi];      // tw.tubeAt: [x, y, z] of each mount where the reference model has it (the sheet's stations are a profile's guesses)
+      if (at) [x, y, z] = at;
       const kind = t === 'DD' ? 1 : 0;
       const to = { x, y, z, n: per, r: (tq.caliberMm || 533) / 2000, len: 4.6 + (tq.caliberMm || 533) / 600 };
       part('tubes' + model.tubes.length, 'tubes', 'Tubes lance-torpilles', () => PT.torpedoTubes(b, to, pal), () => b.box(x, y + 0.3, z, 2.4, 0.6, 1.6, rgb(charred(pal)), MAT.DARK));
@@ -871,7 +874,7 @@ function buildCarrier(b, model, spec, hull, pal, tw, X, Y, fdY, rnd, note, part)
   model.elevators = [];       // the lifts as the deck operations use them: centre, half-length, half-width (the sim moves a platform and the aircraft on it)
   for (const [i, f] of els.entries()) {
     const x = X(f);
-    if (i === els.length - 1 && tw.deckEdge) { b.decal(x, fdY + 0.015, -hw + 5, 8, 7.5, rgb('#524f49'), MAT.HULL); model.elevators.push({ x, z: -hw + 5, hl: 8, hw: 7.5, edge: true }); continue; }
+    if (i === els.length - 1 && tw.deckEdge) { const ed = tw.edgeLift || { z: -hw + 5, hl: 8, hw: 7.5 }; b.decal(x, fdY + 0.015, ed.z, ed.hl, ed.hw, rgb('#524f49'), MAT.HULL); model.elevators.push({ x, z: ed.z, hl: ed.hl, hw: ed.hw, edge: true }); continue; }      // tw.edgeLift: the measured deck-edge lift { z, hl, hw }
     const es = Array.isArray(tw.elevSize?.[0]) ? tw.elevSize[i] : tw.elevSize || [8.5, hw * 0.34];      // measured half-length and half-width of the lifts (one pair for all, or one pair each)
     b.decal(x, fdY + 0.015, tw.elevZ ?? 0, es[0], es[1], rgb('#55524c'), MAT.HULL);
     model.elevators.push({ x, z: tw.elevZ ?? 0, hl: es[0], hw: es[1], edge: false });

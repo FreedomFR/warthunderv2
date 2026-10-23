@@ -11,7 +11,7 @@ const W = Math.round(w * s), H = Math.round(h * s), fov = 4, dist = h / (2 * Mat
 const b = await chromium.launch(launchOptions());
 const p = await b.newPage({ viewport: { width: W, height: H } });
 p.on('pageerror', (e) => console.log('[pageerror] ' + e.message.slice(0, 300)));
-await p.goto(`${F.base || 'http://localhost:8080'}/index.html?preview=${ship}&offscreen=1&w=${W}&h=${H}&parked=6&fov=${fov}&ocean=0&flags=0&matte=1&bg=${bg},${bg},${bg * 1.02}&quality=high${F.elev ? `&elev=${F.elev}` : ""}`);
+await p.goto(`${F.base || 'http://localhost:8080'}/index.html?preview=${ship}&offscreen=1&w=${W}&h=${H}&parked=6&fov=${fov}&ocean=0&flags=0&matte=1&bg=${bg},${bg},${bg * 1.02}&quality=high${F.elev ? `&elev=${F.elev}` : ""}${F.q ? `&${F.q.replace(/~/g, "=")}` : ""}`);
 for (let i = 0; i < 240; i++) { await p.waitForTimeout(500); if ((await p.evaluate(() => (window.__engine ? window.__engine.frameIndex : -1)).catch(() => -1)) >= 6) break; }
 await p.evaluate((o) => { window.__engine.P.sunAzim = o.az + 28; window.__engine.P.sunElev = 42; window.__preview.set({ target: 0, heading: 90, az: o.az, el: o.el, dist: o.dist, lookX: o.cx, lookY: o.cy, lookZ: o.cz }); }, { az, el, dist, cx: +(F.cx || 0), cy: +(F.cy || 0), cz: +(F.cz || 0) });
 await p.waitForTimeout(1500);

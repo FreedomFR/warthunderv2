@@ -1,0 +1,76 @@
+{
+ "ship": "Le Malin",
+ "elements": [
+  {
+   "id": "t138",
+   "type": "main",
+   "cal": 138,
+   "group": "main",
+   "material": "138mm-50",
+   "cluster": {
+    "gap": 0.3,
+    "min_tris": 1500
+   },
+   "unit_tris": 2723,
+   "split": true,
+   "barrel_len": 3.0,
+   "split_key": "min"
+  },
+  {
+   "id": "q40",
+   "type": "q40",
+   "cal": 40,
+   "group": "aa",
+   "material": "40mm_Bofors_Quadruple",
+   "cluster": {
+    "gap": 0.3,
+    "min_tris": 2000
+   },
+   "facing": "thin",
+   "thin_len": 0.9
+  },
+  {
+   "id": "t40",
+   "type": "t40",
+   "cal": 40,
+   "group": "aa",
+   "material": "40mm_Bofors_Twin",
+   "cluster": {
+    "gap": 0.3,
+    "min_tris": 2000
+   },
+   "facing": "thin",
+   "thin_len": 0.9
+  },
+  {
+   "id": "o20",
+   "type": "o20",
+   "cal": 20,
+   "group": "aa",
+   "material": "20mm_Oerlikon",
+   "cluster": {
+    "gap": 0.1,
+    "min_tris": 300
+   },
+   "facing": "thin",
+   "thin_len": 0.6,
+   "origin_y": "group",
+   "x_max": 0
+  },
+  {
+   "id": "o20b",
+   "type": "o20",
+   "cal": 20,
+   "group": "aa",
+   "material": "20mm_Oerlikon",
+   "cluster": {
+    "gap": 0.1,
+    "min_tris": 300
+   },
+   "facing": "thin",
+   "thin_len": 0.6,
+   "origin_y": "group",
+   "x_min": 0
+  }
+ ]
+}

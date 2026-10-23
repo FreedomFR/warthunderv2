@@ -1,0 +1,340 @@
+{
+ "ship": "Baltimore",
+ "use_claimed": true,
+ "skip_material": [
+  "^$"
+ ],
+ "cuts": [
+  {
+   "group": ".*",
+   "gre": true,
+   "id": "spin0",
+   "drop": true,
+   "box": [
+    -85.6,
+    -83.6,
+    -7.1,
+    -2.9,
+    1.5,
+    5.8
+   ]
+  },
+  {
+   "group": ".*",
+   "gre": true,
+   "id": "spin1",
+   "drop": true,
+   "box": [
+    -85.6,
+    -83.6,
+    -7.1,
+    -2.9,
+    -5.8,
+    -1.5
+   ]
+  },
+  {
+   "group": ".*",
+   "gre": true,
+   "id": "spin2",
+   "drop": true,
+   "box": [
+    -70.8,
+    -68.5,
+    -7.0,
+    -2.7,
+    5.3,
+    10.0
+   ]
+  },
+  {
+   "group": ".*",
+   "gre": true,
+   "id": "spin3",
+   "drop": true,
+   "box": [
+    -70.8,
+    -68.5,
+    -7.0,
+    -2.7,
+    -10.0,
+    -5.3
+   ]
+  },
+  {
+   "group": ".*",
+   "gre": true,
+   "id": "spin4",
+   "drop": true,
+   "box": [
+    -94.2,
+    -86.2,
+    -7.8,
+    -2.3,
+    -0.9,
+    0.9
+   ]
+  },
+  {
+   "group": ".*",
+   "gre": true,
+   "id": "crane",
+   "kind": "crane",
+   "label": "Grue",
+   "box": [
+    -103.0,
+    -83.0,
+    8.0,
+    18.5,
+    -2.8,
+    3.0
+   ],
+   "max_ext": 6
+  },
+  {
+   "group": ".*",
+   "gre": true,
+   "id": "cat0",
+   "kind": "catapult",
+   "label": "Catapulte et hydravion",
+   "box": [
+    -90.5,
+    -67.0,
+    7.3,
+    14.2,
+    -13.6,
+    -3.9
+   ],
+   "max_ext": 6
+  },
+  {
+   "group": ".*",
+   "gre": true,
+   "id": "cat1",
+   "kind": "catapult",
+   "label": "Catapulte et hydravion",
+   "box": [
+    -90.5,
+    -67.0,
+    7.3,
+    14.2,
+    3.9,
+    13.6
+   ],
+   "max_ext": 6
+  },
+  {
+   "group": ".*",
+   "gre": true,
+   "id": "radar0",
+   "kind": "radar",
+   "label": "Radar de veille",
+   "box": [
+    -24.3,
+    -21.6,
+    29.0,
+    34.8,
+    -1.5,
+    1.5
+   ],
+   "spin": true
+  },
+  {
+   "group": ".*",
+   "gre": true,
+   "id": "radar1",
+   "kind": "radar",
+   "label": "Radar de conduite de tir",
+   "box": [
+    13.2,
+    16.6,
+    25.3,
+    28.9,
+    -1.8,
+    1.8
+   ],
+   "spin": true
+  },
+  {
+   "group": ".*",
+   "gre": true,
+   "id": "radar2",
+   "kind": "radar",
+   "label": "Radar de conduite de tir",
+   "box": [
+    -27.6,
+    -25.0,
+    21.3,
+    24.2,
+    -1.8,
+    1.8
+   ],
+   "spin": true
+  },
+  {
+   "group": ".*",
+   "gre": true,
+   "id": "director0",
+   "kind": "director",
+   "label": "Directeur de tir avant",
+   "box": [
+    12.8,
+    16.4,
+    20.0,
+    25.4,
+    -2.4,
+    2.4
+   ],
+   "track": true
+  },
+  {
+   "group": ".*",
+   "gre": true,
+   "id": "director1",
+   "kind": "director",
+   "label": "Directeur de tir avant",
+   "box": [
+    20.9,
+    24.4,
+    20.8,
+    24.3,
+    -2.3,
+    2.3
+   ],
+   "track": true
+  },
+  {
+   "group": ".*",
+   "gre": true,
+   "id": "director2",
+   "kind": "director",
+   "label": "Directeur de tir arri\u00e8re",
+   "box": [
+    -28.5,
+    -25.1,
+    16.0,
+    21.4,
+    -2.3,
+    2.3
+   ],
+   "track": true
+  },
+  {
+   "group": ".*",
+   "gre": true,
+   "id": "director3",
+   "kind": "director",
+   "label": "Directeur de tir arri\u00e8re",
+   "box": [
+    -36.0,
+    -32.2,
+    19.0,
+    21.4,
+    -2.3,
+    2.3
+   ],
+   "track": true
+  },
+  {
+   "group": ".*",
+   "gre": true,
+   "id": "mast1",
+   "kind": "mast",
+   "label": "M\u00e2t arri\u00e8re",
+   "box": [
+    -26.5,
+    -17.0,
+    26.5,
+    36.5,
+    -4.5,
+    4.5
+   ]
+  },
+  {
+   "group": ".*",
+   "gre": true,
+   "id": "mast0",
+   "kind": "mast",
+   "label": "M\u00e2t avant",
+   "box": [
+    1.0,
+    13.0,
+    26.7,
+    38.5,
+    -4.5,
+    4.5
+   ]
+  },
+  {
+   "group": ".*",
+   "gre": true,
+   "id": "funnel0",
+   "kind": "funnel",
+   "label": "Chemin\u00e9e 1",
+   "box": [
+    -0.6,
+    10.0,
+    12.6,
+    27.0,
+    -4.4,
+    4.4
+   ]
+  },
+  {
+   "group": ".*",
+   "gre": true,
+   "id": "funnel1",
+   "kind": "funnel",
+   "label": "Chemin\u00e9e 2",
+   "box": [
+    -19.5,
+    -9.0,
+    12.6,
+    25.0,
+    -4.4,
+    4.4
+   ]
+  },
+  {
+   "group": ".*",
+   "gre": true,
+   "id": "tower",
+   "kind": "bridge",
+   "label": "Passerelle",
+   "box": [
+    10.5,
+    29.5,
+    7.4,
+    26.0,
+    -8.6,
+    8.6
+   ],
+   "max_ext": 12
+  }
+ ],
+ "rules": [
+  {
+   "match": "^lifeboat_usa_wood",
+   "to": "part",
+   "id": "canots",
+   "cluster": 1.0,
+   "kind": "structure",
+   "label": "Canot"
+  },
+  {
+   "match": "^(lifeboat_usa_rubber|rifled_barrel|headlight)",
+   "to": "fine"
+  },
+  {
+   "match": ".*",
+   "min_len": 60,
+   "to": "static",
+   "cls": "hull"
+  },
+  {
+   "match": ".*",
+   "to": "static",
+   "cls": "equip"
+  }
+ ]
+}

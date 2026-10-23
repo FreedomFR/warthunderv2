@@ -132,7 +132,8 @@ function layoutAirfield(site, id, island, nation, level, rng) {
   const spots = [[-len / 2 - 25, 70], [len / 2 + 25, 70], [-len / 2 - 25, -50], [len / 2 + 25, -50], [-150, hw + 130], [150, hw + 130], [0, hw + 120], [-len / 2 + 140, hw + 195], [-300, hw + 80], [300, hw + 80], [-200, -45], [200, -45]];
   for (let i = 0; i < aaN; i++) {
     const [s, t] = spots[i], p = put(s, t);
-    b.guns.push({ id: i, kind: 'aa', x: p[0], y: site.y, z: p[1], heading: b.heading, cal, n: cal >= 37 ? 2 : 4 });
+    const gc = nation === 'Germany' && i % 3 === 1 ? 20 : cal;       // (the German fields mix their 37 mm guns with quadruple 20 mm Flakvierlinge)
+    b.guns.push({ id: i, kind: 'aa', x: p[0], y: site.y, z: p[1], heading: b.heading, cal: gc, n: gc >= 37 ? 2 : 4 });
   }
   return b;
 }
@@ -156,7 +157,8 @@ function layoutBattery(site, id, island, nation, level, rng) {
   const acal = AA_CAL[nation] || 40;
   for (let i = 0; i < (level >= 2 ? 4 : 3); i++) {
     const p = put(-5, (i - 1.5) * 38);
-    b.guns.push({ id: nGuns + i, kind: 'aa', x: p[0], y: site.y, z: p[1], heading: b.heading, cal: acal, n: acal >= 37 ? 2 : 4 });
+    const gc = nation === 'Germany' && i % 2 === 1 ? 20 : acal;
+    b.guns.push({ id: nGuns + i, kind: 'aa', x: p[0], y: site.y, z: p[1], heading: b.heading, cal: gc, n: gc >= 37 ? 2 : 4 });
   }
   return b;
 }

@@ -5,6 +5,7 @@ import { BaseState } from '../js/game/sim/bases.js';
 import { teamStart } from '../js/game/sim/formation.js';
 import { buildBaseModel, orientPart, clearBaseCaches } from '../js/game/model/baseMesh.js';
 import { BASE_PAL } from '../js/game/model/baseKit.js';
+import { gunMountSpec } from '../js/game/model/baseGuns.js';
 import { getMountModel } from '../js/game/model/mounts.js';
 import { BaseVisuals } from '../js/game/render/baseVisual.js';
 import { VERTEX_STRIDE } from '../js/game/model/meshbuilder.js';
@@ -41,6 +42,7 @@ const make = (seed, dens, level, nat) => {
 let nBases = 0, nParts = 0, nGuns = 0;
 const bad = [], missing = [], big = [], kinds = new Set();
 let worstBase = 0, worstPart = 0, worstGround = 0, groundHigh = 0, radars = 0, spinning = 0, badAngle = 0, flat = 0;
+let flakGuns = 0, flakBad = 0;
 const t0 = Date.now();
 for (let seed = 1; seed <= 8; seed++) {
   const level = 1 + (seed % 2), nat = [NATIONS[seed % 6], NATIONS[(seed + 3) % 6]];
@@ -57,6 +59,7 @@ for (let seed = 1; seed <= 8; seed++) {
       if (k === 'ground') { worstGround = Math.max(worstGround, r.tris); groundHigh = Math.max(groundHigh, r.bb[4]); if (r.bb[4] > 0.5 || r.bb[1] < 0) flat++; }
     }
     if (M.parts.length !== L.parts.length || M.guns.length !== L.guns.length) missing.push('entries of base ' + L.id);
+    for (const g of L.guns) if (g.kind === 'aa' && g.cal === 20 && g.n >= 4) { flakGuns++; if (!gunMountSpec(g, BASE_PAL[L.nation]).look) flakBad++; }
     L.parts.forEach((p, i) => {
       const e = M.parts[i];
       kinds.add(p.kind);
@@ -88,6 +91,7 @@ for (let seed = 1; seed <= 8; seed++) {
   }
 }
 ok(nBases >= 20 && nParts > 100 && nGuns > 60, `built ${nBases} bases, ${nParts} buildings and ${nGuns} guns of ${NATIONS.length} nations in ${Date.now() - t0} ms`);
+ok(flakGuns > 0 && flakBad === 0, `the quadruple 20 mm guns of the bases (${flakGuns}: the German fields and the Italian ones) are the Flakvierling of the reference model`);
 ok(bad.length === 0, 'every vertex is finite, in range, with a unit normal, and every index is valid' + (bad.length ? ': ' + bad.slice(0, 4).join('; ') : ''));
 ok(missing.length === 0, 'every building has an intact and a ruined mesh, every gun a mount and an emplacement' + (missing.length ? ': ' + missing.slice(0, 4).join('; ') : ''));
 ok(['hangar', 'tower', 'tank', 'barracks', 'radar', 'depot', 'bunker', 'post'].every((k) => kinds.has(k)), 'every kind of building is modelled (' + [...kinds].join(', ') + ')');
