@@ -6,6 +6,7 @@
 // anti-aircraft fire, ...) and, for visible parts, are replaced by their wreck in the 3D model.
 import { clamp } from '../math.js';
 import { shipDmg } from '../data/balance.js';
+import { hullHit, blastCasualties } from './hull.js';
 
 const TYPE_I = { DD: 0, CL: 1, CA: 2, BB: 3, CV: 4 };
 const pick = (t, arr) => arr[TYPE_I[t]];
@@ -148,6 +149,7 @@ export function blast(world, ship, lx, ly, lz, P, where, owner, cause = 'shell')
   const reach = rb * 3.2;
   const killed = [];
   const fx = DEFAULT_PROT;
+  blastCasualties(ship, lx, ly, lz, P * (where === 'under' ? 0.25 : 1), where, reach);
   // box modules
   for (const m of ship.modules) {
     if (m.state === 2) continue;
@@ -180,10 +182,10 @@ export function blast(world, ship, lx, ly, lz, P, where, owner, cause = 'shell')
     if (dmg < 0.5) continue;
     a.hp -= dmg * shipDmg('modules');
     if (a.hp <= 0) {
-      a.alive = false;
+      a.alive = false; a.crew = 0;
       world.events.push({ type: 'moduleKilled', ship, kind: 'aa', label: rec.label, x: rec.x, y: rec.y, z: rec.z });
       if (world.rng() < 0.18) ship.addFire(rec.x, rec.y, rec.z, 0.4);
-      ship.applyDamage(ship.stats.maxHp * 0.0008, owner, cause);
+      hullHit(ship, { lx: rec.x, ly: rec.y, lz: rec.z, energy: ship.stats.hullStrength * 0.0008, cause: 'turret', attacker: owner });
     }
   }
   return killed;
@@ -194,7 +196,7 @@ export function damageModule(world, ship, m, amount, owner, cause) {
   if (m.state === 2) return false;
   m.hp -= amount * shipDmg('modules');
   if (m.hp <= 0) {
-    m.hp = 0; m.state = 2;
+    m.hp = 0; m.state = 2; if (m.crew0 != null) m.crew = 0;
     onModuleDestroyed(world, ship, m, owner, cause);
     return true;
   }
@@ -214,13 +216,13 @@ export function damageMount(world, ship, m, amount, owner, penetrated) {
   // a damaged mount may jam for a while
   if (frac < 0.5 && m.hp > 0 && world.rng() < 0.12 + amount / m.maxHp * 0.6) m.jam = Math.max(m.jam || 0, 15 + world.rng() * 40);
   if (m.hp <= 0) {
-    m.alive = false; m.wrecked = true;
+    m.alive = false; m.wrecked = true; m.crew = 0;
     world.events.push({ type: 'mountKilled', ship, mount: m });
     ship.refreshArmament();
     // ammunition fire in the turret; a fire reaching the magazine below is the classic way to lose a ship
     if (penetrated || world.rng() < 0.3) {
       ship.addFire(m.rec.x, m.rec.y + 1.5, m.rec.z, 1.0, penetrated && m.rec.kind === 'turret');
-      ship.applyDamage(ship.stats.maxHp * (m.rec.group === 'main' ? 0.012 : 0.003), owner, 'turret');
+      hullHit(ship, { lx: m.rec.x, ly: m.rec.y, lz: m.rec.z, energy: ship.stats.hullStrength * (m.rec.group === 'main' ? 0.012 : 0.003), cause: 'turret', attacker: owner });
       if (penetrated && m.rec.kind === 'turret') ship.turretFlash(m, world, owner);
     }
     return true;
@@ -238,7 +240,7 @@ function onModuleDestroyed(world, ship, m, owner, cause) {
     ship.onPartDestroyed(m, world);
   }
   const sd = STRUCT[m.kind] || 0;
-  if (sd) ship.applyDamage(st.maxHp * sd, owner, cause === 'torpedo' ? 'torpedo' : 'turret');
+  if (sd) hullHit(ship, { lx: m.x, ly: m.y, lz: m.z, energy: st.hullStrength * sd, cause: cause === 'torpedo' ? 'torpedo' : 'turret', attacker: owner });
   switch (m.kind) {
     case 'engine':
       ship.updatePropulsion();

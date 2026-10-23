@@ -63,7 +63,7 @@ function fireSam(ship, world, sys, ox, oy, oz) {
   for (const q of world.missiles) if (q.owner === ship && q.kind === 'sam' && q.target) followed.set(q.target, (followed.get(q.target) || 0) + 1);
   let best = null, bs = 1e18;
   for (const p of world.planes) {
-    if (p.team === ship.team || p.dying || p.hp <= 0 || DECK_PHASES.has(p.phase) || p.ground || p.y < 25 || p.y > def.ceiling) continue;
+    if (p.team === ship.team || p.dying || DECK_PHASES.has(p.phase) || p.ground || p.y < 25 || p.y > def.ceiling) continue;
     const d = Math.hypot(p.x - ox, p.y - oy, p.z - oz);
     if (d < def.minRange || d > def.maxRange || !bears(ship, sys, p.x, p.z)) continue;
     const n = followed.get(p) || 0;
@@ -100,7 +100,7 @@ function fireAsroc(ship, world, sys, ox, oy, oz) {
     if (d < def.minRange || d > def.maxRange || d > (ship.stats.visualRange || 1e9) || !bears(ship, sys, e.x, e.z)) continue;
     const T = world.terrain;
     if (T && T.blocks && T.blocks(ship.x, 0.4, ship.z, e.x, 0.4, e.z)) continue;            // an island between: the torpedo would run aground
-    const s = (e.stats.type === 'DD' ? 1.0 : 1.4) * (1 + (1 - e.hpFrac) * 0.6) / (0.4 + d / def.maxRange);
+    const s = (e.stats.type === 'DD' ? 1.0 : 1.4) * (1 + (1 - e.condition) * 0.6) / (0.4 + d / def.maxRange);
     if (s > bs) { bs = s; best = e; }
   }
   if (!best) return;
@@ -138,7 +138,7 @@ function stepSam(world, q, dt) {
   let dx = q.vx, dy = q.vy, dz = q.vz;
   const sp = Math.hypot(dx, dy, dz) || 1;
   dx /= sp; dy /= sp; dz /= sp;
-  const live = tg && !tg.dying && tg.hp > 0 && world.planes.includes(tg);
+  const live = tg && !tg.dying && world.planes.includes(tg);
   if (live && q.age > 0.5) {
     const rx = tg.x - q.x, ry = tg.y - q.y, rz = tg.z - q.z, r = Math.hypot(rx, ry, rz);
     if (r < BURST_RADIUS) return burstSam(world, q, tg, r);

@@ -1,4 +1,5 @@
 // The order of battle of a fleet: node test/fleet.mjs
+import { SINK_FILL } from '../js/game/sim/hull.js';
 import { World } from '../js/game/sim/world.js';
 import { stationPlan } from '../js/game/sim/fleet.js';
 import { spawnFleet, teamStart } from '../js/game/sim/formation.js';
@@ -41,13 +42,13 @@ const ok = (c, m) => { console.log(c ? 'PASS' : 'FAIL', m); if (!c) { fail++; pr
   const fl = w.fleetOf(0);
   ok(fl.flag && fl.flag.stats.id === 'iowa', 'the flagship is the battleship');
   ok(worst < 2.2, `after four minutes every ship is within ${worst.toFixed(1)} tethers of her station`);
-  ok(mine.every((s) => s.hpFrac > 0.99), 'nobody was hurt: no collision in the column');
+  ok(mine.every((s) => s.condition > 0.99), 'nobody was hurt: no collision in the column');
   ok(minGap > 40, `the ships of the fleet stay clear of each other (${minGap.toFixed(0)} m between hulls at the closest)`);
   // the carrier is behind the line, on its side
   const cv = mine.find((s) => s.stats.type === 'CV'), fx = Math.sin(fl.flag.heading), fz = -Math.cos(fl.flag.heading);
   ok((cv.x - fl.flag.x) * fx + (cv.z - fl.flag.z) * fz < -1500, 'the carrier sails astern of the flagship');
   // a ship that is crippled leaves the order of battle
-  const b = mine[1]; b.hp = b.stats.maxHp * 0.2;
+  const b = mine[1]; for (const c of b.comps) c.water[0] = c.water[1] = 0.8 * SINK_FILL[b.stats.type];      // flooded to near her limit
   for (let i = 0; i < 25; i++) { w.update(0.1); w.drainEvents(); }
   ok(!b.station, 'a crippled ship is no longer held to her station');
 }

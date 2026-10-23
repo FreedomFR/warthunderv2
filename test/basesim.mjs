@@ -68,12 +68,12 @@ const run = (w, secs, on) => { const t1 = w.time + secs; while (w.time < t1) { w
   const bt = w.bases.find((b) => b.layout.kind === 'battery' && b.team === 0), L = bt.layout;
   // an enemy cruiser 14 km out to sea from the battery, still: the battery shoots at it
   const s = still(w.addShip('takao', 1, L.x + Math.cos(L.ang) * 14000, L.z + Math.sin(L.ang) * 14000, 0));
-  const hp = s.hp;
+  const hp = s.comps.reduce((a, c) => a + c.struct, 0);
   let fired = 0, landed = 0;
   w.start();
   run(w, 240, (ev) => { for (const e of ev) { if (e.type === 'muzzle' && e.base === bt) fired++; if (e.type === 'splash' || e.type === 'impact') landed++; } });
   ok(fired > 0 || !s.alive, `the battery fires on a ship in range (${fired} salvos)`);
-  ok(s.hp < hp || landed > 0, 'and its shells come down round her');
+  ok(s.comps.reduce((a, c) => a + c.struct, 0) > hp || landed > 0, 'and its shells come down round her');
 }
 {
   const { w } = arena(3);
@@ -99,7 +99,7 @@ const run = (w, secs, on) => { const t1 = w.time + secs; while (w.time < t1) { w
   // only the ship and the base fight: the AI of the ship decides
   run(w, 600, () => { if (s.cmd.main.target && s.cmd.main.target.isBase) aimedAtBase++; });
   ok(aimedAtBase > 0, `a ship in range of a battery takes it for a target (${aimedAtBase} ticks)`);
-  ok(bt.hp < bt.maxHp || !s.alive, `and wrecks it (${(bt.hpFrac * 100).toFixed(0)} % left)`);
+  ok(bt.hp < bt.maxHp || !s.alive, `and wrecks it (${(bt.condition * 100).toFixed(0)} % left)`);
 }
 
 // ---- an airfield sends out a raid and takes the aircraft back ----
@@ -194,7 +194,7 @@ const run = (w, secs, on) => { const t1 = w.time + secs; while (w.time < t1) { w
   let aa = 0, hits = 0;
   for (let i = 0; i < 300; i++) {
     // an enemy bomber held in the sky 800 m from the field, flying slowly across it
-    q.ground = false; q.phase = 'assemble'; q.wave = null; q.speed = 60; q.x = L.x + 700; q.z = L.z + 100; q.y = L.y + 500; q.vx = 0; q.vz = 0; q.vy = 0; q.hp = 1e6; q.maxHp = 1e6;
+    q.ground = false; q.phase = 'assemble'; q.wave = null; q.speed = 60; q.x = L.x + 700; q.z = L.z + 100; q.y = L.y + 500; q.vx = 0; q.vz = 0; q.vy = 0; q.invulnerable = true;
     w.update(0.1);
     for (const e of w.drainEvents()) { if (e.type === 'aaFire' && e.base === af) aa++; if (e.type === 'planeHit' && e.ship === af.owner) hits++; }
   }
@@ -214,7 +214,7 @@ const run = (w, secs, on) => { const t1 = w.time + secs; while (w.time < t1) { w
     w.start();
     let n = 0;
     run(w, 500, (ev) => { n += ev.length; });
-    return [n, w.ships.map((s) => s.hp.toFixed(1)).join(','), w.bases.map((b) => b.hp.toFixed(1)).join(','), w.planes.length].join('|');
+    return [n, w.ships.map((s) => s.waterFill.toFixed(4) + '/' + s.crewFrac.toFixed(3)).join(','), w.bases.map((b) => b.hp.toFixed(1)).join(','), w.planes.length].join('|');
   };
   ok(sig() === sig(), 'a battle with bases gives the same result twice');
 }

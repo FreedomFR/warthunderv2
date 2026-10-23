@@ -11,26 +11,136 @@ import { setVel } from './flight.js';
 
 const _prev = [0, 0, 0];
 
-/** The AA shot connects: damage, smoke, fire, or the aircraft is lost. */
+// How much of the airframe each part is worth, against the type's `hp` (its toughness, as the spec sheets give it): a part is lost when it has taken that much.
+const FRAC = { wing: 0.3, tail: 0.22, body: 0.5, fuel: 0.3, pilot: 0.3, ctl: 0.2, eng: 0.34 };
+
+/**
+ * The parts of an aircraft that can be hit: both wings, the tail, the fuselage, the engines, the fuel, the pilot and the controls, each with what it can take. An aircraft has no
+ * pool of hit points: it falls when a wing or the tail comes off, the pilot is killed, the fuselage breaks up, the controls are gone, or a fire burns on.
+ */
+export function planeParts(p) {
+  if (p.parts) return p.parts;
+  const u = (p.spec.hp || 3) * 1.55, n = p.spec.engines ? p.spec.engines.length : 1, heavy = p.spec.role === 'level' ? 1 : 0;
+  const mk = (f) => ({ hp: u * f, max: u * f });
+  // (a heavy bomber's crew sit in several places, behind armour, and its controls are doubled)
+  return (p.parts = { wingL: mk(FRAC.wing), wingR: mk(FRAC.wing), tail: mk(FRAC.tail * (1 + 0.3 * heavy)), body: mk(FRAC.body), fuel: mk(FRAC.fuel), pilot: mk(FRAC.pilot * (1 + 1.5 * heavy)), ctl: mk(FRAC.ctl * (1 + 0.6 * heavy)), eng: Array.from({ length: n }, () => mk(FRAC.eng * (n > 1 ? 0.8 : 1))) });
+}
+const frac = (q) => Math.max(0, q.hp / q.max);
+
+/** How fit the aircraft is to go on, 0..1 (for the choices of the pilots: a hurt aircraft goes home): the worst of its parts. Not a pool of hit points. */
+export function planeCondition(p) {
+  const P = p.parts;
+  if (!P) return 1;
+  let worst = Math.min(frac(P.body), frac(P.pilot), frac(P.wingL) * 1.15, frac(P.wingR) * 1.15, frac(P.tail) * 1.15, frac(P.ctl) * 1.2);
+  if (p.lost && p.lost.engine) worst = Math.min(worst, 0.4);
+  if (p.fire > 0) worst = Math.min(worst, 0.35);
+  return Math.max(0, Math.min(1, worst));
+}
+
+/** What the damage does to the flying: less lift, slower roll and pitch, a wing that drops. Read by sim/flight.js. */
+function setFlightDamage(p) {
+  const P = p.parts, l = frac(P.wingL), r = frac(P.wingR), t = frac(P.tail), c = frac(P.ctl);
+  p.fd = { lift: 1 - 0.3 * (1 - l) - 0.3 * (1 - r), roll: Math.max(0.25, 1 - 0.55 * (1 - Math.min(l, r)) - 0.5 * (1 - c)), pitch: Math.max(0.3, 1 - 0.6 * (1 - t) - 0.5 * (1 - c)), bias: (r - l) * 0.22 };
+  p.cond = planeCondition(p);
+}
+
+/** Where a round lands on the aircraft, from where it is shot: the nose (engine, pilot) head on, the tail from behind, the wings from the side and below. */
+function pickPart(world, p, shooter) {
+  let w = { wingL: 0.2, wingR: 0.2, body: 0.22, eng: 0.16, tail: 0.1, pilot: 0.02, fuel: 0.05, ctl: 0.04 };
+  if (shooter && shooter.x != null) {
+    const dx = shooter.x - p.x, dz = shooter.z - p.z, d = Math.hypot(dx, dz) || 1;
+    const c = (dx * Math.sin(p.heading) - dz * Math.cos(p.heading)) / d;        // > 0: in front of the aircraft
+    const side = (dx * Math.cos(p.heading) + dz * Math.sin(p.heading)) / d;      // > 0: to starboard
+    if (c > 0.55) w = { wingL: 0.12, wingR: 0.12, body: 0.2, eng: 0.36, tail: 0.04, pilot: 0.05, fuel: 0.05, ctl: 0.04 };
+    else if (c < -0.55) w = { wingL: 0.11, wingR: 0.11, body: 0.3, eng: 0.07, tail: 0.24, pilot: 0.03, fuel: 0.06, ctl: 0.04 };
+    else if (side > 0.3) w.wingR += 0.12; else if (side < -0.3) w.wingL += 0.12;
+  }
+  let r = world.rng() * Object.values(w).reduce((a, b) => a + b, 0);
+  for (const k of Object.keys(w)) { r -= w[k]; if (r <= 0) return k; }
+  return 'body';
+}
+
+/** The AA shot connects: it hits a part of the aircraft, which may be lost, and with it the aircraft. */
 export function hitPlane(world, ship, p, dmg, cal, cause = 'aa') {
   if (p.dying || p.phase === 'floating') return;
   dmg *= planeDmg(cause);          // the multiplier of data/balance.js
   if (dmg <= 0) return;
-  p.hp -= dmg;
+  const P = planeParts(p);
   world.events.push({ type: 'planeHit', plane: p, ship, x: p.x, y: p.y, z: p.z, cal, dmg });
-  const frac = p.hp / p.maxHp;
-  // where it smokes and where it burns: an engine, or the root of a wing (the fuel); the smoke and the flames of the picture come from there (render/fx/air.js)
-  if (frac < 0.65 && p.smoke < 0.4) { p.smoke = 0.4 + world.rng() * 0.3; p.smokeSite = damageSite(world, p, false); }
-  if (frac < 0.4 && p.fire < 0.3) {
-    p.fire = 0.4; p.fireSite = damageSite(world, p, true);
-    // the nacelle that burns is drawn charred and glowing (render/aircraftVisual.js)
-    if (p.fireSite.eng >= 0 && p.spec.engines) { p.engFire = p.engFire || new Array(p.spec.engines.length).fill(0); p.engFire[p.fireSite.eng] = 0.7; }
+  if (p.invulnerable) return;
+  if (ship) p.lastShooter = ship;
+  hitPlanePart(world, ship, p, pickPart(world, p, ship), dmg, cause);
+}
+
+/** A hit on a named part ('wingL', 'wingR', 'tail', 'eng', 'pilot', 'fuel', 'ctl', 'body'): what it does to that part and to the ones behind it, and what comes of it. */
+export function hitPlanePart(world, ship, p, key, dmg, cause = 'aa', engine = -1) {
+  if (p.dying || p.phase === 'floating') return;
+  const P = planeParts(p);
+  const k = key === 'eng' ? (engine >= 0 ? engine : Math.floor(world.rng() * P.eng.length)) : 0;
+  // a burst may touch several parts: the main one takes it all, the others what the airframe passes on (the fuselage to the pilot, the fuel and the controls; the wing to its tank)
+  const give = (q, d, why) => { if (q.hp > 0) { q.hp -= d; return q.hp <= 0 ? why : null; } return null; };
+  const lost = [];
+  const note = (r) => { if (r) lost.push(r); };
+  switch (key) {
+    case 'wingL': note(give(P.wingL, dmg, 'wingL')); note(give(P.fuel, dmg * 0.3 * world.rng(), 'fuel')); note(give(P.ctl, dmg * 0.12, 'ctl')); break;
+    case 'wingR': note(give(P.wingR, dmg, 'wingR')); note(give(P.fuel, dmg * 0.3 * world.rng(), 'fuel')); note(give(P.ctl, dmg * 0.12, 'ctl')); break;
+    case 'tail': note(give(P.tail, dmg, 'tail')); note(give(P.ctl, dmg * 0.4, 'ctl')); break;
+    case 'eng': note(give(P.eng[k], dmg, 'eng' + k)); note(give(P.fuel, dmg * 0.25 * world.rng(), 'fuel')); note(give(P.body, dmg * 0.2, 'body')); break;
+    case 'pilot': note(give(P.pilot, dmg * 1.6, 'pilot')); note(give(P.body, dmg * 0.4, 'body')); break;
+    case 'fuel': note(give(P.fuel, dmg * 1.4, 'fuel')); note(give(P.body, dmg * 0.4, 'body')); break;
+    case 'ctl': note(give(P.ctl, dmg * 1.3, 'ctl')); note(give(P.body, dmg * 0.4, 'body')); break;
+    default:
+      note(give(P.body, dmg, 'body'));
+      if (world.rng() < 0.2) note(give(P.pilot, dmg * 0.6, 'pilot'));
+      if (world.rng() < 0.4) note(give(P.fuel, dmg * 0.6, 'fuel'));
+      if (world.rng() < 0.3) note(give(P.ctl, dmg * 0.7, 'ctl'));
   }
-  if (p.hp <= 0) { if (ship && cause === 'aa') ship.aaKills++; killPlane(world, p, cause, ship); return; }
-  // a lucky hit: engine, pilot, wing
-  const r = world.rng();
-  if (r < 0.06 * dmg + 0.03 * dmg) { loseEngine(world, p); world.events.push({ type: 'planeEngineOut', plane: p }); }
-  else if (r < 0.1 * dmg + 0.02 && dmg > 0.8) killPlane(world, p, cause, ship);
+  setFlightDamage(p);
+  // where it smokes and where it burns: an engine, or the root of a wing (the fuel); the smoke and the flames of the picture come from there (render/fx/air.js)
+  const f = p.cond;
+  if (f < 0.75 && p.smoke < 0.4) { p.smoke = 0.4 + world.rng() * 0.3; p.smokeSite = damageSite(world, p, false); }
+  if (frac(P.fuel) < 0.55 && !p.fire && !p.fireOut && world.rng() < 0.5 + 0.4 * (1 - frac(P.fuel))) ignite(world, p);
+  for (const what of lost) {
+    if (p.dying) break;
+    p.lostTo = what;      // (what brought it down: the part it lost)
+    if (what === 'wingL' || what === 'wingR') { killPlane(world, p, cause, ship, 'wing', what); if (ship && cause === 'aa') ship.aaKills++; }
+    else if (what === 'tail') { breakPiece(world, p, 'tail'); killPlane(world, p, cause, ship, world.rng() < 0.6 ? 'spin' : 'tumble'); if (ship && cause === 'aa') ship.aaKills++; }
+    else if (what === 'body') { killPlane(world, p, cause, ship, 'explode'); if (ship && cause === 'aa') ship.aaKills++; }
+    else if (what === 'pilot') { killPlane(world, p, cause, ship, 'dive'); if (ship && cause === 'aa') ship.aaKills++; }
+    else if (what === 'ctl') { p.ctlOut = p.ctlOut ?? world.rng() * 5 + 1.5; }
+    else if (what === 'fuel') { if (!p.fire && !p.fireOut && world.rng() < 0.6) ignite(world, p); }
+    else if (what.startsWith('eng')) { loseEngine(world, p, +what.slice(3)); world.events.push({ type: 'planeEngineOut', plane: p }); }
+  }
+}
+
+/** A fire starts (the fuel, an engine): it grows, and unless it goes out it brings the aircraft down (see tickPlaneDamage). */
+function ignite(world, p) {
+  p.fire = 0.4; p.fireSite = damageSite(world, p, true); p.fireT = 0;
+  p.fireKill = 14 + world.rng() * 26;                         // seconds the airframe lasts in it
+  p.fireOutT = world.rng() < 0.4 ? 4 + world.rng() * 8 : Infinity;     // a pilot who dives and sideslips may blow it out
+  if (p.fireSite.eng >= 0 && p.spec.engines) { p.engFire = p.engFire || new Array(p.spec.engines.length).fill(0); p.engFire[p.fireSite.eng] = 0.7; }
+}
+
+/** What goes on in a damaged aircraft that is still flying: the fire (it burns out the airframe, or goes out), the controls that fail. */
+export function tickPlaneDamage(world, p, dt) {
+  if (p.dying || !p.parts) return;
+  if (p.fire > 0 && p.fireKill != null) {
+    p.fireT += dt;
+    p.fire = Math.min(1, 0.4 + p.fireT / p.fireKill * 0.6);
+    if (p.fireT > p.fireOutT) { p.fire = 0; p.fireOut = true; p.fireKill = null; if (p.engFire) p.engFire.fill(0); p.smoke = Math.max(p.smoke, 0.6); }
+    else if (p.fireT > p.fireKill) { p.lostTo = 'fire'; killPlane(world, p, 'fire', p.lastShooter || null, world.rng() < 0.5 ? 'explode' : 'spin'); return; }
+  }
+  if (p.ctlOut != null) { p.ctlOut -= dt; if (p.ctlOut <= 0) { p.ctlOut = null; p.lostTo = 'ctl'; killPlane(world, p, 'gun', null, 'spin'); } }
+  // a bomber low on fuel from a holed tank goes home early: the range left falls with the fuel lost
+  if (p.parts.fuel.hp < p.parts.fuel.max * 0.5) p.fuel -= dt * 0.6 * (1 - frac(p.parts.fuel));
+}
+
+/** The aircraft is repaired on the deck or the ground: parts are made good, the fire is out. */
+export function repairPlane(p) {
+  if (!p.parts) return;
+  for (const q of [p.parts.wingL, p.parts.wingR, p.parts.tail, p.parts.body, p.parts.fuel, p.parts.pilot, p.parts.ctl, ...p.parts.eng]) q.hp = Math.max(q.hp, q.max * 0.85);
+  p.fire = 0; p.fireOut = false; p.fireKill = null; p.ctlOut = null; p.lost = { ...p.lost, engine: false, engines: null, tail: false, wingL: false, wingR: false };
+  setFlightDamage(p);
 }
 
 /**
@@ -51,13 +161,13 @@ function damageSite(world, p, fire) {
 }
 
 /** An engine is lost: one of a multi-engine aircraft's (the others go on), the only one of a single-engine aircraft's. Smoke comes from it, and a fire that starts burns it. */
-function loseEngine(world, p) {
+function loseEngine(world, p, which = -1) {
   const D = damageSites(p.spec), n = D.engines.length;
   if (n > 1) {
     p.lost.engines = p.lost.engines || new Array(n).fill(false);
     const free = p.lost.engines.map((v, i) => (v ? -1 : i)).filter((i) => i >= 0);
     if (!free.length) return;
-    const k = free[Math.floor(world.rng() * free.length)];
+    const k = which >= 0 && !p.lost.engines[which] ? which : free[Math.floor(world.rng() * free.length)];
     p.lost.engines[k] = true;
     p.smokeSite = { ...D.engines[k], eng: k };
     if (p.lost.engines.every(Boolean)) p.lost.engine = true;
@@ -66,7 +176,7 @@ function loseEngine(world, p) {
 }
 
 /** Start the death throes of an aircraft: it falls and burns, and the crash is seen to the end. */
-export function killPlane(world, p, cause, attacker) {
+export function killPlane(world, p, cause, attacker, forceMode = null, piece = null) {
   const rng = world.rng;
   if (p.dying) return;
   if (p.ground && p.base) { killGroundPlane(world, p.base, p, attacker, cause); return; }
@@ -76,9 +186,10 @@ export function killPlane(world, p, cause, attacker) {
   if (attacker && attacker !== p.owner) attacker.planeKills = (attacker.planeKills || 0) + 1;
   const r = rng();
   let mode;
-  if (cause === 'blast') mode = r < 0.5 ? 'tumble' : 'explode';
+  if (forceMode) mode = forceMode;
+  else if (cause === 'blast') mode = r < 0.5 ? 'tumble' : 'explode';
   else mode = r < 0.27 ? 'spin' : r < 0.5 ? 'dive' : r < 0.7 ? 'wing' : r < 0.85 ? 'glide' : 'explode';
-  if (mode === 'explode' && !p.ordnance && rng() < 0.5) mode = 'spin';
+  if (mode === 'explode' && !p.ordnance && !forceMode && rng() < 0.5) mode = 'spin';
   p.mode = mode;
   p.smoke = 1; p.fire = mode === 'glide' ? 0.4 : 1;
   p.gearDown = false;
@@ -87,7 +198,7 @@ export function killPlane(world, p, cause, attacker) {
   p.bomb = p.ordnance;
   setVel(p);
   world.events.push({ type: 'planeDown', plane: p, mode, x: p.x, y: p.y, z: p.z, cause, hasOrdnance: p.ordnance, attacker: attacker || null });
-  if (mode === 'wing') { const w = rng() < 0.5 ? 'wingL' : 'wingR'; breakPiece(world, p, w); p.spinRate = (w === 'wingL' ? -1 : 1) * (5 + rng() * 4); }
+  if (mode === 'wing') { const w = piece || (rng() < 0.5 ? 'wingL' : 'wingR'); breakPiece(world, p, w); p.spinRate = (w === 'wingL' ? -1 : 1) * (5 + rng() * 4); }
   if (mode === 'explode') {
     // the aircraft breaks up in the air: tail and wings come off, the burning fuselage falls on
     breakPiece(world, p, 'tail'); breakPiece(world, p, rng() < 0.5 ? 'wingL' : 'wingR');

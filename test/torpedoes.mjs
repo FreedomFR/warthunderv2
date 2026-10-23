@@ -30,7 +30,7 @@ for (const spec of ALL_SHIPS) {
 
 // ---- damage follows the power ----
 {
-  const dmg = (id, W) => { const { w, s } = mk(id, 4); const p = s.toWorld(10, 0, s.stats.B / 2, [0, 0, 0]); const h0 = s.hp; resolveTorpedoHit(w, s, { warhead: W, owner: null }, p[0], p[2]); return h0 - s.hp; };
+  const dmg = (id, W) => { const { w, s } = mk(id, 4); const p = s.toWorld(10, 0, s.stats.B / 2, [0, 0, 0]); resolveTorpedoHit(w, s, { warhead: W, owner: null }, p[0], p[2]); return s.holes.reduce((a, h) => a + h.rate, 0) + s.comps.reduce((a, c) => a + c.struct * 100, 0); };      // (the hole and the broken structure it leaves)
   const avg = (id, W) => { let a = 0; for (let i = 0; i < 1; i++) a += dmg(id, W); return a; };
   const small = avg('iowa', airTorpedoEq('UK')), big = avg('iowa', airTorpedoEq('USA')), t93 = avg('iowa', mk('kagero').s.stats.torpedo.warhead);
   ok(small < big && big < t93 * 1.2, `damage to a battleship: Mk XII ${small.toFixed(0)} < Mk 13 ${big.toFixed(0)}, Type 93 ${t93.toFixed(0)}`);
@@ -81,7 +81,7 @@ for (const spec of ALL_SHIPS) {
   for (let i = 0; i < 10 * 500 && !fired; i++) { w.update(0.1); if (boat.torpFired > 0) fired = true; }
   ok(fired, `the S-30 fires its torpedoes in an automatic battle (after ${w.time.toFixed(0)} s)`);
   for (let i = 0; i < 10 * 400 && boat.torpHits === 0 && enemy.alive; i++) w.update(0.1);
-  ok(boat.torpHits > 0 && enemy.hp < enemy.stats.maxHp, `and one of them hits the target (${enemy.hpFrac.toFixed(2)} of her strength left)`);
+  ok(boat.torpHits > 0 && (enemy.holes.length > 0 || enemy.waterFill > 0 || enemy.state !== 'afloat'), `and one of them hits the target (${enemy.holes.length} holes, ${(enemy.waterFill * 100).toFixed(0)} % of the water she can take)`);
 }
 
 console.log(fail ? `${fail} FAILED` : 'ALL OK');

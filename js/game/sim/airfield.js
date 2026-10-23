@@ -14,6 +14,7 @@ import { fighterFields, fighterSteer } from './fighters.js';
 import { safeHeading, homeCourse } from './homeward.js';
 import { planeId, bombId, FIGHT_CTX } from './aircraft.js';
 import { guide, setVel } from './flight.js';
+import { repairPlane } from './planedamage.js';
 
 const GROUND_STATES = new Set(['parked', 'taxiOut', 'holdshort', 'lineup', 'groundRun', 'lroll', 'taxiBack', 'park']);
 const AIR_BOMBER = new Set(['assemble', 'cruise', 'run', 'egress']);
@@ -59,7 +60,7 @@ function makePlane(world, base, slot, role) {
   const p = {
     id: planeId(), owner: base.owner, team: base.team, base, slot, kind: heavy ? 'level' : 'fighter', typeKey, spec, wave: null, sec: null,
     x: q.x, y: q.y + groundY(spec), z: q.z, vx: 0, vy: 0, vz: 0, heading: q.heading, pitch: GROUND_PITCH, roll: 0, bank: 0, speed: 0,
-    phase: 'parked', ground: true, ds: null, t: 0, ts: 0, age: 0, target: null, hp: spec.hp, maxHp: spec.hp, ordnance: heavy,
+    phase: 'parked', ground: true, ds: null, t: 0, ts: 0, age: 0, target: null, cond: 1, ordnance: heavy,
     spin: world.rng() * 6, gearDown: true, lost: { wingL: false, wingR: false, tail: false, engine: false }, dying: false, smoke: 0, fire: 0, harass: 0,
     lx: 0, lz: 0, u: 0, apOff: 0, jitter: (world.rng() - 0.5) * 2, fold: 0, hook: 0, eng: 0, aoa: 0, gp: GROUND_PITCH, yaw: 0, hidden: false, lift: null,
     t0Air: 0, cruiseAlt: 0, relAlt: 0, fuel: heavy ? 5200 + world.rng() * 600 : 1700 + world.rng() * 400, aimErr: [world.rng.normal(), world.rng.normal()], diveAng: 0, group: 0,
@@ -88,7 +89,7 @@ export function initAirfield(world, base) {
 /** A parked or taxiing aircraft is destroyed by a bomb or a shell. */
 export function killGroundPlane(world, base, p, attacker, cause) {
   if (p.gone || p.dead) return;
-  p.dead = true; p.gone = true; p.dying = true; p.hp = 0;
+  p.dead = true; p.gone = true; p.dying = true; p.cond = 0;
   if (base.parked[p.slot] === p) base.parked[p.slot] = null;
   if (base.air.rwy === p) base.air.rwy = null;
   base.air.queue = base.air.queue.filter((q) => q !== p);
@@ -112,7 +113,7 @@ function bestTargets(world, base, n) {
     if (sh.team === base.team || !sh.alive) continue;
     const d = Math.hypot(sh.x - base.layout.x, sh.z - base.layout.z);
     if (d > 80000) continue;
-    out.push({ sh, sc: sh.stats.score * 6000 - d + (sh.hpFrac < 0.6 ? 3000 : 0) + world.rng() * 2500 });
+    out.push({ sh, sc: sh.stats.score * 6000 - d + (sh.condition < 0.6 ? 3000 : 0) + world.rng() * 2500 });
   }
   out.sort((a, b) => b.sc - a.sc);
   return out.slice(0, n).map((q) => q.sh);
@@ -419,7 +420,7 @@ export function stepBasePlane(world, p, dt) {
 
 function servicePlane(p) {
   p.fuel = p.fighter ? 1700 + 300 : 5400; p.ordnance = !p.fighter; if (p.fighter) p.ammo = 520;
-  p.hp = Math.min(p.maxHp, p.hp + p.maxHp * 0.35); p.smoke = 0; p.fire = 0; p.wave = null; p.target = null; p.prey = null; p.hunted = 0; p.stick = 0;
+  repairPlane(p); p.smoke = 0; p.fire = 0; p.wave = null; p.target = null; p.prey = null; p.hunted = 0; p.stick = 0;
   p.ground = true; p.gearDown = true;
 }
 
@@ -436,7 +437,7 @@ function airborneChecks(world, p, T, F) {
     const lim = onPad ? F.y + groundY(p.spec) - 0.3 : gh + 2.5;
     if (gh > 0 && p.y < lim && !p.ground) {
       if (onPad && FLYING_LOW.has(p.phase)) { p.y = F.y + groundY(p.spec); }
-      else { p.hp = 0; crashLand(world, p, gh); return false; }
+      else { p.cond = 0; crashLand(world, p, gh); return false; }
     }
   }
   if (p.y < 4 && !p.ground && !(T && T.heightAt(p.x, p.z) > 0)) { p.y = 4; if (p.pitch < 0) p.pitch = 0; }

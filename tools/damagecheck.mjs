@@ -112,7 +112,7 @@ for (const [name, a, b] of SCENARIOS) {
     const { w, res, firstHit, recv } = run(name, a, b, seed);
     const lost = w.kills.map((k) => `${k.victim.stats.id}@${k.t.toFixed(0)}s(${k.cause}/${k.victim.split ? 'split' : k.victim.sinkMode}, first hit ${firstHit.has(k.victim) ? (k.t - firstHit.get(k.victim)).toFixed(0) : '-'}s before, ${recv.get(k.victim)?.n ?? 0} hits ${recv.get(k.victim)?.pen ?? 0} pen)`).join('; ');
     const fired = w.ships.reduce((s, x) => s + x.shotsFired, 0), hit = w.ships.reduce((s, x) => s + x.shotsHit, 0);
-    const left = w.ships.filter((s) => s.alive).map((s) => `${s.stats.id} ${Math.round(s.hpFrac * 100)}%`).join(' ');
+    const left = w.ships.filter((s) => s.alive).map((s) => `${s.stats.id} ${Math.round(s.condition * 100)}%`).join(' ');
     console.log(` seed ${seed}: ${w.state} t=${w.time.toFixed(0)}s winner=${w.winner} | shots ${fired} hits ${hit} (${fired ? (hit / fired * 100).toFixed(1) : 0}%) | lost: ${lost || 'none'} | afloat: ${left || 'none'} | ${((performance.now() - t0) / 1000).toFixed(1)} s cpu`);
     console.log('   ' + Object.entries(res).sort().map(([k, v]) => `${k}=${v}`).join(' '));
     for (const k of w.kills) { const key = k.victim.stats.id; (agg[key] ||= []).push({ t: k.t, cause: k.cause, mode: k.victim.split ? 'split' : k.victim.sinkMode }); }

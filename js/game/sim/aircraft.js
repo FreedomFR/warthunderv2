@@ -14,7 +14,7 @@ import { segmentNearShip, segmentHit, resolveBombHit, resolveNearMiss } from './
 import { stepBasePlane } from './airfield.js';
 import { bombHitsBase } from './baseops.js';
 import { updateAA } from './planeaa.js';
-import { hitPlane, stepDying, collideShips, ditch, crash, landCrash } from './planedamage.js';
+import { hitPlane, stepDying, collideShips, ditch, crash, landCrash, tickPlaneDamage } from './planedamage.js';
 import { setVel, guide, stallSpeed } from './flight.js';
 
 let nextPlane = 1;
@@ -97,7 +97,7 @@ function bestTarget(world, team, fromX, fromZ) {
     const d = Math.hypot(s.x - fromX, s.z - fromZ);
     if (d > 90000) continue;
     // prefer valuable ships, then near ones
-    const sc = s.stats.score * 6000 - d + (s.hpFrac < 0.6 ? 3000 : 0) + world.rng() * 2500 - density(srcs, s) * 2200;
+    const sc = s.stats.score * 6000 - d + (s.condition < 0.6 ? 3000 : 0) + world.rng() * 2500 - density(srcs, s) * 2200;
     if (sc > bs) { bs = sc; best = s; }
   }
   return best;
@@ -110,7 +110,7 @@ function bestTargets(world, team, fromX, fromZ, n) {
     if (sh.team === team || !sh.alive) continue;
     const d = Math.hypot(sh.x - fromX, sh.z - fromZ);
     if (d > 90000) continue;
-    out.push({ sh, sc: sh.stats.score * 6000 - d + (sh.hpFrac < 0.6 ? 3000 : 0) + world.rng() * 2500 - density(srcs, sh) * 2200 });
+    out.push({ sh, sc: sh.stats.score * 6000 - d + (sh.condition < 0.6 ? 3000 : 0) + world.rng() * 2500 - density(srcs, sh) * 2200 });
   }
   out.sort((a, b) => b.sc - a.sc);
   return out.slice(0, n).map((q) => q.sh);
@@ -148,7 +148,7 @@ function spawnFighters(world, ship, wave, n, role) {
     const p = {
       id: nextPlane++, owner: ship, team: ship.team, kind: 'fighter', typeKey, spec, wave, sec: null,
       x: ship.x, y: ship.y, z: ship.z, vx: 0, vy: 0, vz: 0, heading: ship.heading, pitch: 0, roll: 0, bank: 0, speed: 0,
-      phase: 'queue', ds: 'pending', t: 0, ts: 0, age: 0, target: null, hp: spec.hp, maxHp: spec.hp, ordnance: false,
+      phase: 'queue', ds: 'pending', t: 0, ts: 0, age: 0, target: null, cond: 1, ordnance: false,
       spin: 0, gearDown: true, lost: { wingL: false, wingR: false, tail: false, engine: false }, dying: false, smoke: 0, fire: 0, harass: 0,
       lx: 0, lz: 0, u: 0, apOff: 0, jitter: (world.rng() - 0.5) * 2, fold: 1, hook: 0, eng: 0, aoa: 0, gp: GROUND_PITCH, yaw: 0, hidden: true, lift: null,
       t0Air: 0, cruiseAlt: 0, relAlt: 0, fuel: 1700 + world.rng() * 400, aimErr: [0, 0], diveAng: 0, group: wave.planes.length,
@@ -228,7 +228,7 @@ function launches(world, dt) {
         const p = {
           id: nextPlane++, owner: ship, team: ship.team, kind, typeKey, spec, wave, sec,
           x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, heading: ship.heading, pitch: 0, roll: 0, bank: 0, speed: 0,
-          phase: 'queue', ds: 'pending', t: 0, ts: 0, age: 0, target: sec.target, hp: spec.hp, maxHp: spec.hp, ordnance: true,
+          phase: 'queue', ds: 'pending', t: 0, ts: 0, age: 0, target: sec.target, cond: 1, ordnance: true,
           spin: 0, gearDown: true, lost: { wingL: false, wingR: false, tail: false, engine: false }, dying: false, smoke: 0, fire: 0, harass: 0,
           lx: 0, lz: 0, u: 0, apOff: 0, jitter: (world.rng() - 0.5) * 2, fold: 1, hook: 0, eng: 0, aoa: 0, gp: GROUND_PITCH, yaw: 0, hidden: true, lift: null,
           t0Air: 0, cruiseAlt: kind === 'dive' ? rn(world, 1500, 2000) : rn(world, 420, 650), relAlt: rn(world, 480, 620), fuel: 1700 + world.rng() * 400,
@@ -262,6 +262,7 @@ function flight(world, dt) {
     // the propeller turns with the engine: slowly while it starts up and idles on deck, at full speed from the take-off run on
     p.spin += dt * (p.lost.engine ? 0 : p.eng != null ? (p.eng < 0.02 ? 0 : 3 + 59 * Math.min(1, p.eng * 1.4)) : 62 + (p.speed - 60) * 0.3);
     p.harass = Math.max(0, p.harass - dt * 0.35);
+    if (!p.dead && !p.dying) tickPlaneDamage(world, p, dt);
     const keep = p.dead ? false : p.dying ? stepDying(world, p, dt) : p.base ? stepBasePlane(world, p, dt) : stepPlane(world, p, dt);
     p.roll = p.bank;
     if (!keep) { p.gone = true; arr.splice(i, 1); }

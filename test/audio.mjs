@@ -210,7 +210,7 @@ ok(loopsMax > 0, `continuous voices followed their sources (up to ${loopsMax})`)
   const ship = w.ships.find((q) => q.state === 'afloat'), c = a.game.engine.cam;
   const mem = a.floodMem; a.floodMem = new Map();
   c.x = ship.x + 120; c.y = 20; c.z = ship.z;
-  ship.floodRate = ship.stats.maxHp * 0.004; ship.waterFill = 0.3;
+  ship.floodRate = ship.stats.hullStrength * 0.004; ship.waterFill = 0.3;
   const calls = [], keep = a.play;
   a.play = (name) => { calls.push(name); return null; };
   a.shipLoops(w, c, 0.1);

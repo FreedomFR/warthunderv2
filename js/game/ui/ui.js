@@ -1,4 +1,5 @@
 // DOM user interface (French): fleet setup, HUD, labels, kill feed, results, settings.
+import { shipStatus, setMeters, LEVEL_COLOR, planeText, planeLevel } from './shipstate.js';
 import { NATIONS, BY_ID, shipsOf, typeName, nationName } from '../data/ships.js';
 import { PRESETS } from '../scenarios.js';
 import { TEAM_COLORS } from '../sim/world.js';
@@ -46,7 +47,7 @@ function describe(spec) {
 /** how a lost ship is described in the ship panel */
 const SINK_LABEL = {
   split: 'NAVIRE BRISÉ EN DEUX', roll: 'NAVIRE CHAVIRÉ', bow: 'COULE PAR L\'AVANT', stern: 'COULE PAR L\'ARRIÈRE', level: 'NAVIRE ENVAHI PAR LES EAUX',
-  burn: 'NAVIRE CONSUMÉ PAR L\'INCENDIE', blast: 'NAVIRE DÉTRUIT PAR EXPLOSION',
+  burn: 'NAVIRE CONSUMÉ PAR L\'INCENDIE', scuttle: 'NAVIRE ABANDONNÉ ET SABORDÉ', blast: 'NAVIRE DÉTRUIT PAR EXPLOSION',
 };
 
 export function createUI(game) {
@@ -582,9 +583,9 @@ export function createUI(game) {
       const ships = world.ships.filter((s) => s.team === ti);
       const head = h('div', { class: 'thud-head', style: `--tc:${css(t.rgb)}` }, h('span', { class: 'sw' }), h('b', {}, t.name), h('span', { class: 'alive' }));
       const rows = ships.map((s) => {
-        const bar = h('i', {});
+        const bar = h('span', { class: 'hpbar' }, h('i', {}), h('i', {}));
         const row = h('div', { class: 'srow', onclick: () => { game.camera.setTarget(s); if (['free', 'tactical'].includes(game.camera.mode)) game.camera.setMode('follow'); } },
-          h('span', { class: 'ty' }, s.stats.type), h('span', { class: 'sn' }, s.name), h('span', { class: 'hpbar' }, bar));
+          h('span', { class: 'ty' }, s.stats.type), h('span', { class: 'sn' }, s.name), bar);
         return { s, row, bar };
       });
       cols.push(h('div', { class: 'tcol' }, head, ...rows.map((r) => r.row)));
@@ -596,7 +597,7 @@ export function createUI(game) {
   // =========================================================================================
   // scoreboard (Tab held, or the "Tableau" button): who sank what, shells fired, hits, damage, in real time
   // =========================================================================================
-  const SINK_WORD = { roll: 'chaviré', bow: 'coulé par l\'avant', stern: 'coulé par l\'arrière', level: 'envahi par les eaux', burn: 'consumé par l\'incendie', blast: 'détruit par explosion', split: 'brisé en deux' };
+  const SINK_WORD = { roll: 'chaviré', bow: 'coulé par l\'avant', stern: 'coulé par l\'arrière', level: 'envahi par les eaux', burn: 'consumé par l\'incendie', scuttle: 'abandonné et sabordé', blast: 'détruit par explosion', split: 'brisé en deux' };
   function refreshScore(force) {
     const on = (state.scoreHold || state.scoreSticky) && (game.state === 'running' || game.state === 'finished' || (force && game.state !== 'setup'));
     score.classList.toggle('hidden', !on);
@@ -615,7 +616,7 @@ export function createUI(game) {
       const row = (cells, cls) => h('tr', cls ? { class: cls } : {}, ...cells.map((c, i) => h('td', i >= 2 && i <= 8 ? { class: 'n' } : {}, c)));
       const tot = [`${t.name} — ${alive}/${ships.length} à flot`, '', num(sum((s) => s.kills)), num(sum((s) => s.planeKills || 0)), num(sum(shells)), num(sum(hits)), sum(shells) ? Math.round(sum(hits) / sum(shells) * 100) + ' %' : '–', `${num(sum((s) => s.torpHits))}/${num(sum((s) => s.torpFired || 0))}`, num(sum((s) => s.damageDealt)), ''];
       const rows = ships.map((s) => {
-        const hp = s.alive ? `${Math.round(s.hpFrac * 100)} %` : (SINK_WORD[s.split ? 'split' : s.sinkMode] || 'coulé');
+        const hp = s.alive ? shipStatus(s).text : (SINK_WORD[s.split ? 'split' : s.sinkMode] || 'coulé');
         const sel = game.camera.target === s ? 'sel' : '';
         return row([s.name, s.stats.type, s.kills || '·', s.planeKills || '·', num(shells(s)), num(hits(s)), shells(s) ? Math.round(hits(s) / shells(s) * 100) + ' %' : '–', s.torpFired ? `${s.torpHits}/${s.torpFired}` : '·', num(s.damageDealt), hp], (s.alive ? '' : 'dead ') + sel);
       });
@@ -656,10 +657,8 @@ export function createUI(game) {
       let alive = 0;
       for (const r of tr.rows) {
         const s = r.s;
-        const f = s.alive ? s.hpFrac : 0;
         if (s.alive) alive++;
-        r.bar.style.width = (f * 100).toFixed(0) + '%';
-        r.bar.style.background = f > 0.55 ? '#5ec26a' : f > 0.25 ? '#e0b43a' : '#d9534f';
+        setMeters(r.bar, s);
         r.row.classList.toggle('dead', !s.alive);
         r.row.classList.toggle('sel', s === game.camera.target);
       }
@@ -727,12 +726,11 @@ export function createUI(game) {
     const alt = Math.max(0, Math.round(p.y)), kmh = Math.round(p.speed * 3.6);
     const role = ROLES[p.kind] || '';
     const phase = p.dying ? 'Abattu : ' + (DEATH[p.mode] || 'en chute') : PHASES[p.phase] || p.phase;
-    const hpf = Math.max(0, p.hp / p.maxHp);
     const view = game.camera.mode === 'plane' ? PLANE_VIEWS.find((v) => v.id === game.camera.planeCam.view)?.name : 'pilote';
     planeInfo.replaceChildren(
       h('div', { class: 'si-head', style: `--tc:${css(t.rgb)}` }, h('span', { class: 'sw' }), h('b', {}, p.spec.name), h('small', {}, ` ${role}`)),
-      h('div', { class: 'si-bar' }, h('i', { style: `width:${(hpf * 100).toFixed(0)}%;background:${hpf > 0.55 ? '#5ec26a' : hpf > 0.25 ? '#e0b43a' : '#d9534f'}` })),
       h('div', { class: 'si-grid' },
+        h('span', {}, 'État'), h('b', { style: `color:${LEVEL_COLOR[planeLevel(p)]}` }, planeText(p)),
         h('span', {}, 'Phase'), h('b', {}, phase),
         h('span', {}, 'Altitude'), h('b', {}, `${alt} m`),
         h('span', {}, 'Vitesse'), h('b', {}, `${kmh} km/h`),
@@ -759,13 +757,14 @@ export function createUI(game) {
     const okOf = (kind) => { const l = mods(kind); return l.length ? `${l.filter((m) => m.state < 2).length}/${l.length}` : null; };
     const aaAlive = s.aaMounts.filter((a) => a.alive).length;
     const jam = s.mounts.filter((m) => m.alive && m.jam > 0).length;
+    const stt = shipStatus(s);
     const lines = [
       h('div', { class: 'si-head', style: `--tc:${css(t.rgb)}` }, h('span', { class: 'sw' }), h('b', {}, s.name), h('small', {}, ` ${typeName(s.stats.type)} · ${s.stats.className}`)),
-      h('div', { class: 'si-bar' }, h('i', { style: `width:${(s.hpFrac * 100).toFixed(0)}%;background:${s.hpFrac > 0.55 ? '#5ec26a' : s.hpFrac > 0.25 ? '#e0b43a' : '#d9534f'}` })),
+      h('div', { class: 'si-meters' }, h('span', {}, 'Flottabilité'), h('i', { class: 'm1' }, h('b', { style: `width:${(stt.reserve * 100).toFixed(0)}%` })), h('span', {}, 'Équipage'), h('i', { class: 'm2' }, h('b', { style: `width:${(stt.crew * 100).toFixed(0)}%` }))),
       dmgCanvas,
       // the essentials, then the rest on demand (a short screen has no room for all of it)
       h('div', { class: 'si-grid' },
-        h('span', {}, 'Structure'), h('b', {}, `${Math.round(s.hp)} / ${s.stats.maxHp}`),
+        h('span', {}, 'État'), h('b', { style: `color:${LEVEL_COLOR[stt.level]}` }, stt.text),
         h('span', {}, 'Vitesse'), h('b', {}, `${(s.speed / KN).toFixed(0)} nœuds${s.propulsion < 0.95 ? ` (machines ${Math.round(s.propulsion * 100)} %)` : ''}`),
         h('span', {}, 'Artillerie'), h('b', {}, `${mainAlive}/${mainMounts.length} tourelles, ${ready} prêtes${jam ? `, ${jam} enrayée${jam > 1 ? 's' : ''}` : ''}`),
         h('span', {}, 'Cible'), h('b', {}, target && target.alive ? `${target.name} (${(Math.hypot(target.x - s.x, target.z - s.z) / 1000).toFixed(1)} km)` : '—'),
@@ -799,7 +798,7 @@ export function createUI(game) {
       let el = labelEls.get(s.id);
       if (!el) {
         const t = world.teams[s.team];
-        el = h('div', { class: 'lab', style: `--tc:${css(t.rgb)}` }, h('span', { class: 'dot' }), h('span', { class: 'ln' }), h('span', { class: 'ld' }), h('span', { class: 'lbar' }, h('i', {})));
+        el = h('div', { class: 'lab', style: `--tc:${css(t.rgb)}` }, h('span', { class: 'dot' }), h('span', { class: 'ln' }), h('span', { class: 'ld' }), h('span', { class: 'lbar' }, h('i', {}), h('i', {})));
         el.querySelector('.ln').textContent = s.name;
         labelsBox.append(el);
         labelEls.set(s.id, el);
@@ -815,8 +814,7 @@ export function createUI(game) {
       el.classList.toggle('far', dist > 6000 && !sel && game.camera.mode !== 'tactical');
       el.classList.toggle('dead', !s.alive);
       el.querySelector('.ld').textContent = dist > 1000 ? (dist / 1000).toFixed(1) + ' km' : Math.round(dist) + ' m';
-      const bar = el.querySelector('.lbar i');
-      bar.style.width = (s.alive ? s.hpFrac * 100 : 0).toFixed(0) + '%';
+      setMeters(el.querySelector('.lbar'), s);
     }
     for (const [id, el] of labelEls) if (!seen.has(id)) { el.remove(); labelEls.delete(id); }
     updatePlaneMarkers(out, cam);
@@ -861,7 +859,7 @@ export function createUI(game) {
         h('thead', {}, h('tr', {}, ['Navire', 'Équipe', 'État', 'Dégâts', 'Tirs', 'Touches', 'Coulés', 'Avions abattus'].map((x) => h('th', {}, x)))),
         h('tbody', {}, rows.map((s) => h('tr', { class: s.alive ? '' : 'dead' },
           h('td', {}, s.name), h('td', { style: `color:${css(w.teams[s.team].rgb)}` }, w.teams[s.team].name),
-          h('td', {}, s.alive ? `${Math.round(s.hpFrac * 100)} %` : 'coulé'), h('td', {}, Math.round(s.damageDealt)),
+          h('td', {}, s.alive ? shipStatus(s).text : (SINK_WORD[s.split ? 'split' : s.sinkMode] || 'coulé')), h('td', {}, Math.round(s.damageDealt)),
           h('td', {}, s.shotsFired), h('td', {}, s.shotsHit), h('td', {}, s.kills), h('td', {}, s.planeKills || 0))))),
       h('div', { class: 'row' },
         h('button', { class: 'btn primary', onclick: () => { results.classList.add('hidden'); game.spawn(); game.camera.setMode('orbit'); setup.classList.remove('collapsed'); btnStart.disabled = false; } }, 'Rejouer avec les mêmes flottes'),

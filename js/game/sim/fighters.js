@@ -65,7 +65,7 @@ export function fighterSteer(world, p, dt, ctx) {
   const pf = perfOf(p), vC = pf.vcomb || 145, vCruiseF = pf.vc * 1.25;
   const out = { hdg: p.heading, gam: 0, spd: vCruiseF, o: { bankMax: 70 * D2R, pitchRate: 0.7 } };
   // ---- going home: out of ammunition, hurt, or short of fuel ----
-  if (p.ammo <= 0 || p.hp < p.maxHp * 0.3 || p.fuel < 260) { p.phase = 'return'; p.prey = null; return out; }
+  if (p.ammo <= 0 || p.cond < 0.3 || p.fuel < 260) { p.phase = 'return'; p.prey = null; return out; }
   if (!ship || !ship.alive || ship.deckWrecked) { p.phase = 'return'; p.prey = null; return out; }
 
   const anchor = p.role === 'escort' ? escorted(world, p) : null;

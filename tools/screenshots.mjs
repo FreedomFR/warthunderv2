@@ -40,7 +40,7 @@ await p.keyboard.press('6');
 await p.waitForTimeout(2500);
 await shot('tactical');
 // the damage plan of a ship that has been hit
-await G(() => { const g = window.__game; const w = g.world.ships.filter((s) => s.state === 'afloat').sort((a, c) => a.hpFrac - c.hpFrac)[0]; g.camera.setTarget(w); });
+await G(() => { const g = window.__game; const w = g.world.ships.filter((s) => s.state === 'afloat').sort((a, c) => a.condition - c.condition)[0]; g.camera.setTarget(w); });
 await p.keyboard.press('2');
 await p.waitForTimeout(2500);
 await shot('damage-plan');

@@ -197,7 +197,7 @@ export class CameraRig {
     // instead of sitting in the fireball and then swinging round a hull that rolls while the horizon stays level
     if (mode === 'bridge' && this.target && (this.target.state !== 'afloat' || this.target.exploded)) mode = 'orbit';
     // the automatic director does not put the camera on the bridge of a ship that burns badly or is nearly lost: the screen is black smoke
-    else if (mode === 'bridge' && this.mode === 'auto' && this.target && (this.target.fireLevel > 0.4 || this.target.hpFrac < 0.35)) mode = 'follow';
+    else if (mode === 'bridge' && this.mode === 'auto' && this.target && (this.target.fireLevel > 0.4 || this.target.condition < 0.35)) mode = 'follow';
     // the view that is drawn changed between two frames without a cut of the director (the ship under the camera was lost a moment after the cut to her bridge):
     // cut too, instead of sweeping from the bridge to the outside through the hull and the fireball
     if (mode !== this._shown) { if (this._shown === 'bridge' || mode === 'bridge') this.smooth.init = false; this._shown = mode; }
@@ -493,7 +493,7 @@ export class CameraRig {
     }
     // 'victim': from the deck of the ship the aircraft is attacking
     // (not from a ship that is going down, on fire or smoking heavily, nor when the aircraft is almost overhead: the screen is then a brown smoke or a blank sky)
-    let tgt = p.target && p.target.state === 'afloat' && !p.target.exploded && p.target.hpFrac > 0.4 && p.target.fireLevel < 0.35 ? p.target : null;
+    let tgt = p.target && p.target.state === 'afloat' && !p.target.exploded && p.target.condition > 0.4 && p.target.fireLevel < 0.35 ? p.target : null;
     // the view from the deck of the victim is for an aircraft that is attacking or about to: from a ship far away it would look at an empty sky
     if (tgt && (Math.hypot(p.x - tgt.x, p.z - tgt.z) > 7000 || DECK_PHASES.has(p.phase) || p.phase === 'assemble')) tgt = null;
     if (tgt) {

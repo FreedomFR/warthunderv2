@@ -57,14 +57,14 @@ const is = T.islands[0];
   w.start();
   ship.controller = { update(sh) { sh.cmd.throttle = 1; sh.cmd.heading = Math.PI / 2; sh.cmd.main.fire = false; sh.cmd.sec.fire = false; sh.cmd.torpedo.fire = false; } };
   ship.speed = 12;
-  let touched = false, deepest = 0, hp0 = ship.hp;
+  let touched = false, deepest = 0, hp0 = ship.comps.reduce((a, c) => a + c.struct, 0);
   for (let i = 0; i < 1500; i++) {
     w.update(0.1);
     for (const e of w.drainEvents()) if (e.type === 'collision' && e.land) touched = true;
     const g = T.grounding([[ship.x, ship.z]], ship.stats.D * 0.8);
     if (g) deepest = Math.max(deepest, g.pen);
   }
-  ok(touched || ship.hp < hp0 || ship.speed < 3, 'a ship driven at the island stops (aground)');
+  ok(touched || ship.comps.reduce((a, c) => a + c.struct, 0) > hp0 || ship.speed < 3, 'a ship driven at the island stops (aground)');
   ok(T.heightAt(ship.x, ship.z) < 0, 'and is not in the middle of the rock');
 }
 
@@ -130,7 +130,7 @@ const is = T.islands[0];
       while (w.time < 2400 && w.state !== 'finished') {
         w.update(0.1); w.drainEvents();
         if (Math.round(w.time * 10) % 100 === 0) for (const s of w.ships) {
-          if (![s.x, s.z, s.heading, s.speed, s.hp].every(Number.isFinite)) problems++;
+          if (![s.x, s.z, s.heading, s.speed, s.waterFill].every(Number.isFinite)) problems++;
           deep = Math.max(deep, w.terrain.heightAt(s.x, s.z));
         }
       }

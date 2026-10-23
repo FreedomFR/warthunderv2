@@ -1,5 +1,6 @@
 // Top-down damage plan of a ship drawn on a small canvas: hull outline, watertight compartments (water level),
 // machinery, magazines, directors, funnels, masts, gun mounts, AA mounts and fires, coloured by state.
+import { crewOf, MIN_CREW } from '../sim/hull.js';
 const OK = '#5ec26a', HURT = '#e0b43a', DEAD = '#d9534f', JAM = '#e08a3a';
 
 export function drawDamage(cv, ship) {
@@ -31,6 +32,14 @@ export function drawDamage(cv, ship) {
     const hb = model.hull.halfBeamDeck(c.xc);
     ctx.fillRect(px(c.x0) + 0.5, Z(-hb * 0.9), (c.x1 - c.x0) * sx - 1, hb * 1.8 * sz);
   }
+  // the structure: a compartment that is broken shows its cracks (strokes across the hull, more of them the worse it is)
+  ctx.lineWidth = 1;
+  for (const c of ship.comps) {
+    if (c.struct < 0.25) continue;
+    const hb = model.hull.halfBeamDeck(c.xc), k = Math.min(4, Math.floor(c.struct * 2));
+    ctx.strokeStyle = c.struct > 1 ? '#ff6a4a' : '#e0a040';
+    for (let i = 0; i < k; i++) { const x = px(c.x0 + (c.x1 - c.x0) * (i + 0.5) / k); ctx.beginPath(); ctx.moveTo(x - 1.5, Z(-hb * 0.8)); ctx.lineTo(x + 1.5, Z(hb * 0.8)); ctx.stroke(); }
+  }
   const col = (state) => (state === 2 ? DEAD : state === 1 ? HURT : OK);
   // internal modules
   for (const m of ship.modules) {
@@ -53,14 +62,23 @@ export function drawDamage(cv, ship) {
   for (const m of ship.mounts) {
     const r = Math.max(1.8, m.rec.cal / 90 * 1.1);
     ctx.beginPath(); ctx.arc(px(m.rec.x), Z(m.rec.z), r, 0, 6.283);
+    const cr = crewOf(m);
     ctx.fillStyle = !m.alive ? DEAD : m.noAmmo ? '#8a5fc7' : m.jam > 0 ? JAM : m.hp < m.maxHp * 0.5 ? HURT : '#cfd6dc';
     ctx.fill();
-    ctx.strokeStyle = '#000a'; ctx.lineWidth = 0.8; ctx.stroke();
+    // the ring says how many of its people are left: white when it is manned, yellow when a part of them are gone, red when too few can work it
+    ctx.strokeStyle = !m.alive ? '#000a' : cr >= 0.8 ? '#000a' : cr >= MIN_CREW ? '#e0b43a' : '#ff4a3a'; ctx.lineWidth = cr >= 0.8 || !m.alive ? 0.8 : 1.6; ctx.stroke();
   }
   // AA mounts
   for (const a of ship.aaMounts) {
-    ctx.fillStyle = a.alive ? '#8fa88f' : '#7a2e2e';
+    ctx.fillStyle = !a.alive ? '#7a2e2e' : crewOf(a) < MIN_CREW ? '#b8782e' : '#8fa88f';
     ctx.fillRect(px(a.rec.x) - 1, Z(a.rec.z) - 1, 2, 2);
+  }
+  // the holes in the hull: a blue tick on the side where the water is coming in, pale where the hole is still above the water
+  ctx.lineWidth = 1.4;
+  for (const h of ship.holes) {
+    ctx.strokeStyle = h.head > 0 ? '#3fb4ff' : '#8fb4cc88';
+    const y = Z(h.z), x = px(h.x);
+    ctx.beginPath(); ctx.moveTo(x, y - 2.5); ctx.lineTo(x + 2.5, y + 2); ctx.lineTo(x - 2.5, y + 2); ctx.closePath(); ctx.stroke();
   }
   // fires
   for (const f of ship.fires) {

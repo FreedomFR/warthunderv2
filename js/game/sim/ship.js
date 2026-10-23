@@ -6,6 +6,7 @@ import { clamp, wrapPi, approach, D2R, sat, smoothstep } from '../math.js';
 import { createModules, createCompartments, AA_HP, AA_ROUNDS, blast } from './modules.js';
 import { shipDmg } from '../data/balance.js';
 import { planeTypeFor } from '../model/planes.js';
+import { initHull, updateHoles, updateCrew, hullHit, checkBreakUp, compAt, SINK_FILL, crewOf, MIN_CREW } from './hull.js';
 
 /**
  * ShipCommand: the only interface between a controller and a ship.
@@ -51,7 +52,7 @@ export class Ship {
     this.controller = null;
 
     this.state = 'afloat';          // afloat | sinking | sunk
-    this.hp = stats.maxHp;
+    this.waterFill = 0; this.floodTrim = 0; this.floodList = 0;      // the water in the hull (see hull.js): there are no hit points
     this.fires = [];
     this.floodRate = 0;             // hp/s lost to flooding (sum of the compartment inflows)
     this.listSide = world.rng() < 0.5 ? -1 : 1;
@@ -119,12 +120,15 @@ export class Ship {
     this.modules = createModules(model, stats);
     this.partState = model.parts.map(() => 0);
     this.comps = createCompartments(stats);
+    initHull(this);
     this.scars = [];
     this.mainAlive = this.mounts.filter((m) => m.group === 'main').length;
     this.updateParked();
   }
 
   get alive() { return this.state === 'afloat'; }
+  /** Her guns may be worked: she is afloat, or going down with the guns still out of the water (mountUsable says which). */
+  get canFire() { return this.state === 'afloat' || (this.state === 'sinking' && !this.exploded && !this.split); }
   /** rounds left for the light AA: { left, frac } (all the mounts, the working ones or not) */
   aaAmmo() {
     let left = 0, all = 0;
@@ -142,7 +146,31 @@ export class Ship {
     }
     return { AP, HE, frac: all ? (AP + HE) / all : 0 };
   }
-  get hpFrac() { return this.hp / this.stats.maxHp; }
+  /**
+   * How fit the ship is to go on, 0..1 (for the choices of the AI, the camera and the interface; nothing is lost when it falls): the reserve of buoyancy she has left
+   * and the crew she still has. It is not a pool of hit points: it is worked out from the water in her hull and the people at her stations.
+   */
+  get condition() {
+    const reserve = clamp(1 - this.waterFill / SINK_FILL[this.stats.type], 0, 1);
+    const crew = clamp((this.crewFrac - 0.14) / 0.86, 0, 1);
+    return Math.min(reserve, 0.2 + 0.8 * crew);
+  }
+  /** Can she still hurt a ship: a gun that works and has shells, a torpedo, aircraft to send up, a missile (light AA does not count: it cannot sink anyone). */
+  canStrike() {
+    for (const m of this.mounts) if (m.alive && !m.noAmmo && crewOf(m) >= MIN_CREW) return true;
+    return this.torpLeft > 0 && this.tubes.length > 0 || !!(this.air && this.air.ready + this.air.fReady > 0 && !this.deckWrecked) || !!(this.msl && Object.values(this.msl).some((q) => q && q.left > 0));
+  }
+  /** Can mount `m` fire now: its people, and, once the ship is going down, the mount still clear of the water and the ship not turned over too far to train the guns. */
+  mountUsable(m) {
+    if (crewOf(m) < MIN_CREW) return false;
+    if (this.state === 'afloat') return true;
+    if (this.state !== 'sinking' || this.exploded || this.split) return false;
+    const tilt = Math.abs(this.roll) + Math.abs(this.pitch) * 0.8;
+    if (tilt > 0.62) return false;
+    // the height of the mount over the water: the ship's own, the bow or stern that the trim has lowered, the side that the heel has put in
+    const rec = m.rec;
+    return this.y + rec.y + this.pitch * rec.x - Math.abs(this.roll) * Math.abs(rec.z) > -0.4;
+  }
   get forwardX() { return Math.sin(this.heading); }
   get forwardZ() { return -Math.cos(this.heading); }
 
@@ -185,17 +213,10 @@ export class Ship {
     this.world.events.push({ type: 'fireStart', ship: this, x: lx, y: ly, z: lz });
   }
 
-  /** Water entering at local x (hp/s of flooding); the compartments nearby take it, with a bias to the damaged side. */
-  flood(lx, lz, rate) {
+  /** Water entering at a local point (a hole of this size, in the units of flooding per second; `ly` the height of the hole): it leaks once the hole is under the waterline. */
+  flood(lx, lz, rate, ly = -1.5) {
     if (rate <= 0) return;
-    const comps = this.comps;
-    let wsum = 0;
-    const w = comps.map((c) => { const d = Math.abs(c.xc - lx) / (this.stats.L / comps.length); const v = Math.exp(-d * d * 0.7); wsum += v; return v; });
-    const side = lz >= 0 ? 1 : 0;
-    comps.forEach((c, i) => {
-      const share = rate * w[i] / wsum;
-      c.inflow[side] += share * 0.8; c.inflow[1 - side] += share * 0.2;
-    });
+    if (this.holes.length < 60) this.holes.push({ i: compAt(this, lx), x: lx, y: ly, z: lz, rate });
     if (this.state === 'afloat') this.listSide = lz >= 0 ? 1 : -1;        // (a ship going down keeps rolling the way she was rolling)
   }
 
@@ -203,7 +224,7 @@ export class Ship {
   updatePropulsion() {
     const engs = this.modules.filter((m) => m.kind === 'engine');
     let eng = 0;
-    for (const m of engs) eng += m.state === 2 ? 0 : 0.25 + 0.75 * m.hp / m.maxHp;
+    for (const m of engs) eng += m.state === 2 ? 0 : (0.25 + 0.75 * m.hp / m.maxHp) * (0.2 + 0.8 * crewOf(m));
     eng = engs.length ? eng / engs.length : 1;
     const shafts = this.modules.filter((m) => m.kind === 'shaft');
     let sp = 0, ss = 0, nP = 0, nS = 0;
@@ -264,7 +285,7 @@ export class Ship {
     if (world.rng() < 0.45) {
       blast(world, this, m.x, m.y, m.z, tp.warhead * (this.torpLeft / tp.tubes) * 0.9, 'outside', owner, 'torpedo');
       world.events.push({ type: 'explosion', x: this.toWorld(m.x, m.y, m.z, [0, 0, 0])[0], y: this.y + m.y, z: this.toWorld(m.x, m.y, m.z, [0, 0, 0])[2], size: Math.min(1.5, tp.warhead / 250), ship: this, stage: 'secondary' });
-      this.applyDamage(this.stats.maxHp * 0.03, owner, 'torpedo');
+      hullHit(this, { lx: m.x, ly: m.y, lz: m.z, energy: this.stats.hullStrength * 0.03, cause: 'torpedo', attacker: owner });
     }
     this.torpLeft = Math.floor(this.torpLeft * (1 - 1 / nTubes));
   }
@@ -276,11 +297,11 @@ export class Ship {
     this.addFire(m.x + 12, this.model.fdY ? this.model.fdY - 1 : 3, m.z + 3, 1.2);
     // fuelled and armed aircraft, fuel lines and bombs in the hangar: the American carriers kept their lines filled with inert gas and foamed the
     // hangars; at Midway the Japanese hangars were full of unstowed ordnance and three carriers were lost in minutes
-    const hazard = (m.kind === 'avgas' ? 0.45 : 0.25) * (this.stats.avgas === 'closed' ? 0.65 : 1) * (1.35 - 0.45 * this.stats.navy.dc);
+    const hazard = (m.kind === 'avgas' ? 0.45 : 0.25) * (this.stats.avgas === 'closed' ? 0.65 : 1) * (1.35 - 0.45 * this.dcEff);
     if (world.rng() < hazard) {
       const w = this.toWorld(m.x, m.y, m.z, [0, 0, 0]);
       world.events.push({ type: 'explosion', x: w[0], y: w[1], z: w[2], size: 1.2, ship: this, stage: 'secondary' });
-      this.applyDamage(this.stats.maxHp * 0.1, owner, 'bomb');
+      hullHit(this, { lx: m.x, ly: m.y, lz: m.z, energy: this.stats.hullStrength * 0.1, cause: 'bomb', attacker: owner });
     }
   }
 
@@ -312,7 +333,7 @@ export class Ship {
    * A flooded magazine saves the ship but the turret it fed is out of ammunition. Returns true when the ship blew up.
    */
   updateMagazines(dt) {
-    const rng = this.world.rng, st = this.stats, dc = st.navy.dc;
+    const rng = this.world.rng, st = this.stats, dc = this.dcEff;
     const cookRate = { DD: 0.03, CL: 0.008, CA: 0.006, BB: 0.005, CV: 0.008 }[st.type] * st.navy.flash;
     for (const m of this.modules) {
       if (m.kind !== 'magazine' || m.state === 2 || m.flooded) continue;
@@ -353,9 +374,9 @@ export class Ship {
     if (st.type === 'DD' || Math.abs(this.floodList) < 0.05) return;
     this._cfT = (this._cfT ?? 6) - dt;
     if (this._cfT > 0) return;
-    this._cfT = 8 + 10 / st.navy.dc;
+    this._cfT = 8 + 10 / Math.max(0.2, this.dcEff);
     const rng = this.world.rng;
-    if (this.waterFill > 0.5 || rng() > 0.9 * st.navy.dc) return;
+    if (this.waterFill > 0.5 || rng() > 0.9 * this.dcEff) return;
     const high = this.floodList > 0 ? 1 : 0;       // the heavy side, so the water goes to the other one
     const low = 1 - high;
     const mid = this.comps.map((c, i) => ({ c, i })).filter(({ c }) => Math.abs(c.xc) < st.L * 0.3 && c.water[low] < 0.6).sort((a, b) => a.c.water[low] - b.c.water[low]).slice(0, 3);
@@ -372,7 +393,7 @@ export class Ship {
    */
   startAvgasLeak(m, world) {
     if (this.avgasLeak || this.state !== 'afloat') return;
-    const rng = world.rng, dc = this.stats.navy.dc;
+    const rng = world.rng, dc = this.dcEff;
     const purged = rng() < (this.stats.avgas === 'closed' ? 0.75 : 0.25) * dc;
     this.avgasLeak = { t: 0, purge: purged ? 40 + rng() * 60 : Infinity, blow: 140 + rng() * 220, x: m.x, z: m.z };
   }
@@ -388,7 +409,7 @@ export class Ship {
       for (let i = 0; i < 3; i++) this.world.after(0.4 + i * 0.5 + rng() * 0.4, () => this.world.secondaryBlast(this, lk.x + (rng() - 0.5) * 60, 3 + rng() * 3, (rng() - 0.5) * 8, 0.6 + rng() * 0.5));
       blast(this.world, this, lk.x, 0, lk.z, 700, 'inside', this.lastAttacker, 'bomb');
       this.addFire(lk.x, 4, lk.z, 1.3, true);
-      this.applyDamage(this.stats.maxHp * 0.35, this.lastAttacker, 'fire');
+      hullHit(this, { lx: lk.x, ly: 3, lz: lk.z, energy: this.stats.hullStrength * 0.3, cause: 'bomb', attacker: this.lastAttacker });
     }
   }
 
@@ -454,17 +475,21 @@ export class Ship {
     // ---- flooding compartments: water, list and trim -----------------------------------------------------
     let inflow = 0, wP = 0, wS = 0, moment = 0, filled = 0;
     const nC = this.comps.length;
-    const cap = st.maxHp * 0.22 / nC;
-    const pump = st.maxHp * 0.00012 * dt * st.navy.dc;
-    let active = 0;
-    for (const c of this.comps) if (c.inflow[0] > 0 || c.inflow[1] > 0) active++;
-    for (const c of this.comps) {
+    const cap = st.hullStrength * 0.22 / nC;
+    updateHoles(this, dt);
+    const cs = this.comps;
+    for (let i = 0; i < nC; i++) {
+      const c = cs[i];
       for (let s = 0; s < 2; s++) {
-        if (c.inflow[s] > 0) {
-          if (afloat) c.water[s] = Math.min(1, c.water[s] + c.inflow[s] * dt / cap);
-          inflow += c.inflow[s];
-          // pumps and damage-control parties patch the breaches over time
-          if (afloat) c.inflow[s] = Math.max(0, c.inflow[s] - pump / Math.max(1, active) * 1.5);
+        let add = 0;
+        if (c.inflow[s] > 0) { add = c.inflow[s] * dt / cap; inflow += c.inflow[s]; }
+        if (c.spill && c.spill[s] > 0) { add += c.spill[s]; c.spill[s] = 0; }
+        if (add > 0 && afloat) {
+          // a full compartment passes what comes in to its neighbours (the water finds its way through the bulkheads, the faster the more they are broken)
+          const room = 1 - c.water[s], used = Math.min(add, room);
+          c.water[s] += used;
+          const over = add - used;
+          if (over > 0) for (const j of [i - 1, i + 1]) if (j >= 0 && j < nC) { (cs[j].spill ||= [0, 0])[s] += over * 0.5 * (0.35 + 0.65 * Math.min(1, c.struct + cs[j].struct)); }
         }
       }
       const f = (c.water[0] + c.water[1]) / 2;
@@ -479,11 +504,15 @@ export class Ship {
 
     // the damage-control party floods compartments on the high side to bring the ship upright (the cost: she sits lower), when it has the time and the means
     if (afloat) this.counterFlood(dt);
+    // the water has taken her reserve of buoyancy: she is going down
+    if (afloat && this.waterFill > SINK_FILL[st.type]) this.destroy(this.lastAttacker, 'flood');
 
     // heel in turns (outward), damage list, flooding trim
     const heelT = clamp(-this.yawRate * this.speed * (st.type === 'DD' ? 5.5 : st.type === 'BB' ? 2.2 : 3.2), -12, 12) * D2R;
     this.heel += (heelT - this.heel) * Math.min(1, dt * 0.9);
-    const dmgF = 1 - this.hpFrac;
+    let sSum = 0;
+    for (const c of this.comps) sSum += Math.min(1, c.struct);
+    const dmgF = Math.min(1, sSum / nC * 1.5);        // how battered the hull is: the structure of the compartments
     const listT = (afloat ? 1 : 0) * clamp(this.listSide * dmgF * 0.05 + this.floodList * 0.9, -0.38, 0.38);
     this.listCur += (listT - this.listCur) * Math.min(1, dt * 0.3);
     // a ship that heels past the limit of her stability for long enough turns over
@@ -519,7 +548,7 @@ export class Ship {
           }
           this.fireLevel = Math.max(this.fireLevel, this.sinkT < this.burnT ? 0.85 : 0.5);
         }
-        const T = st.sinkTime * ({ roll: 1.1, bow: 1, stern: 1.05, level: 1.6, burn: 1.5, blast: 0.4 }[mode] || 1);
+        const T = st.sinkTime * ({ roll: 1.1, bow: 1, stern: 1.05, level: 1.6, scuttle: 1.7, burn: 1.5, blast: 0.4 }[mode] || 1);
         const k = t / T;
         const kk = Math.min(k, 1.4);
         let depth;
@@ -542,7 +571,7 @@ export class Ship {
           sinkPitchT = this.listSide * 0.3 * Math.min(1, k * 1.4);
           sinkRollT = this.listSide * 0.35 * Math.min(1, k * 1.4);
           depth = full * Math.pow(kk, 1.5);
-        } else {   // level, burn: settles on an even keel, the deck awash, the bow or stern a little low
+        } else {   // level, scuttle, burn: settles on an even keel, the deck awash, the bow or stern a little low
           sinkPitchT = this.floodTrim * -0.12 * Math.min(1, k * 2);
           sinkRollT = this.listSide * 0.07 * Math.min(1, k * 2);
           depth = full * Math.pow(kk, 1.35);
@@ -561,10 +590,13 @@ export class Ship {
     this.settleCur += (settleT - this.settleCur) * Math.min(1, dt * (afloat ? 1.5 : 0.12));
     this.y = this.sh.x - this.settleCur - this.sinkDepth;
 
+    // ---- the people aboard: fires and water kill them, replacements, abandoning ship ----------------------------
+    if (this.state !== 'sunk') updateCrew(this, dt);
+
     // ---- fires, magazine heating -------------------------------------------------------------------------
     if (afloat) {
       let burn = 0;
-      const dc = st.navy.dc;
+      const dc = this.dcEff;
       // a carrier's hangar full of fuelled and armed aircraft, or a ship of wood and paint, feeds a fire; the damage-control parties put it out
       const feed = st.type === 'CV' ? 2.2 : st.navy.dc < 0.7 ? 1.3 : 1;
       for (let i = this.fires.length - 1; i >= 0; i--) {
@@ -581,26 +613,8 @@ export class Ship {
       if (this.avgasLeak) this.updateAvgas(dt);
       this.fireLevel = sat(burn * 0.35);
       // a fire does less harm to a big, compartmented, armoured ship than to a destroyer or a carrier with fuel and aircraft aboard
-      if (burn > 0) this.applyDamage(Math.min(burn, 3.5) * 0.00036 * st.maxHp * dt * { DD: 1.2, CL: 1.0, CA: 0.85, BB: 0.6, CV: 1.2 }[st.type], null, 'fire');
-      if (this.floodRate > 0) this.applyDamage(this.floodRate * dt, null, 'flood');
-      // structural failure: a long, battered ship whose neighbouring compartments are both full amidships breaks her back
-      if (st.L > 110 && this.hpFrac < 0.3 && !this.split && this.state === 'afloat') {
-        this._breakT = (this._breakT || 0) + dt;
-        if (this._breakT > 1) {
-          this._breakT = 0;
-          for (let i = 0; i + 1 < this.comps.length; i++) {
-            const a = this.comps[i], c = this.comps[i + 1];
-            if (Math.abs(a.xc) > st.L * 0.32 || Math.min((a.water[0] + a.water[1]) / 2, (c.water[0] + c.water[1]) / 2) < 0.8) continue;
-            if (this.world.rng() < 0.12) {
-              this.sinkMode = 'split';
-              this.destroy(this.lastAttacker, 'structure');
-              this.sinkMode = 'split'; this.sinkStyle = 'split';
-              this.world.breakInTwo(this, (a.xc + c.xc) / 2);
-              return;
-            }
-          }
-        }
-      }
+      // structural failure: a long, battered ship whose neighbouring compartments are both broken and full amidships breaks her back
+      if (checkBreakUp(this, dt)) return;
       // temporary engine disruption and rudder repairs; destroyed modules are gone for good
       if (this.engine < 1) this.engine = Math.min(1, this.engine + dt * 0.002);
       if (this.rudderJam !== 0 && !this.rudderDead && this.world.time - this.lastHitT > 25) this.rudderJam = 0;
@@ -644,17 +658,6 @@ export class Ship {
     if (deep === sp.halves.length) { this.state = 'sunk'; this.world.shipGone(this); }
   }
 
-  /** Apply structural damage. Returns true if the ship was destroyed by it. */
-  applyDamage(amount, attacker, cause) {
-    if (this.state !== 'afloat' || amount <= 0) return false;
-    amount *= shipDmg(cause);       // the multiplier of data/balance.js
-    if (amount <= 0) return false;
-    this.hp -= amount;
-    if (attacker) { this.lastAttacker = attacker; this.lastHitT = this.world.time; this.world.lastCombatT = this.world.time; }
-    if (this.hp <= 0) { this.hp = 0; this.destroy(attacker, cause); return true; }
-    return false;
-  }
-
   /**
    * How a ship that has been lost goes down, from what killed her and the state of her hull: a magazine blows her apart; a fire that
    * got out of hand burns her out first; a strongly one-sided flooding (a torpedo) capsizes her; a trim by the bow or stern takes her
@@ -663,13 +666,14 @@ export class Ship {
   chooseSinkMode(cause, type, rng) {
     const r = rng();
     if (cause === 'magazine') return 'blast';
+    if (cause === 'abandoned') return 'scuttle';
     if (cause === 'fire' || (this.fireLevel > 0.55 && cause !== 'torpedo' && r < 0.5)) return 'burn';
     const list = Math.abs(this.floodList), trim = this.floodTrim;
     if (list > 0.16 && type !== 'BB') return 'roll';
     if (list > 0.3) return 'roll';
     if (trim > 0.1) return 'bow';
     if (trim < -0.1) return 'stern';
-    if (cause === 'flood' && this.waterFill > 0.55) return 'level';
+    if (cause === 'flood' && this.waterFill > SINK_FILL[type] * 1.1) return 'level';
     const w = { DD: [0.4, 0.2, 0.3, 0.1], CL: [0.25, 0.25, 0.3, 0.2], CA: [0.2, 0.25, 0.3, 0.25], BB: [0.1, 0.3, 0.3, 0.3], CV: [0.2, 0.2, 0.2, 0.4] }[type] || [0.3, 0.25, 0.25, 0.2];
     return ['roll', 'bow', 'stern', 'level'][r < w[0] ? 0 : r < w[0] + w[1] ? 1 : r < w[0] + w[1] + w[2] ? 2 : 3];
   }
@@ -677,7 +681,6 @@ export class Ship {
   destroy(attacker, cause) {
     if (this.state !== 'afloat') return;
     this.state = 'sinking';
-    this.hp = 0;
     this.sinkT = 0;
     const killer = attacker || this.lastAttacker;
     if (killer && killer !== this) killer.kills++;
@@ -691,7 +694,9 @@ export class Ship {
     this.sinkStyle = this.sinkMode;
     if (this.sinkMode === 'burn') this.burnT = clamp(this.stats.L * 0.3 + rng() * 40, 30, 100);
     if (cause === 'magazine') this.exploded = true;
-    for (const m of this.mounts) { m.alive = false; }
+    // the guns that are still above the water and have people and shells go on firing as she goes down (mountUsable); she no longer steers
+    for (const g of [this.cmd.main, this.cmd.sec]) { g.fire = true; g.target = null; }
+    if (cause === 'magazine') for (const m of this.mounts) m.alive = false;
     this.cmd.throttle = 0; this.cmd.desiredHeading = null;
     this.world.events.push({ type: 'sinking', ship: this, magazine: cause === 'magazine', mode: this.sinkMode });
     this.world.onShipSunk(this, killer, cause);

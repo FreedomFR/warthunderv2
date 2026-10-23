@@ -134,7 +134,7 @@ Les croiseurs et cuirassés ont aussi leur hydravion sur la catapulte (Kingfishe
 |---|---|---|
 | ![Cheminée](funnel.jpg) | ![Torpille](torpedo.jpg) | ![Plan des dégâts](damage-plan.jpg) |
 
-Un navire n'a pas une seule barre de vie : il est fait de **modules** placés là où ils sont sur le modèle 3D : chaufferies et salles des machines,
+Un navire n'a **pas de points de vie** : il est perdu quand il ne peut plus flotter (l'eau a pris sa réserve de flottabilité, il chavire, se brise ou explose) ou quand il n'a plus assez d'équipage pour le servir. Il est fait de **modules** placés là où ils sont sur le modèle 3D : chaufferies et salles des machines,
 soutes à munitions sous chaque tourelle, appareil à gouverner, lignes d'arbres, passerelle, directeurs de tir, radars, cheminées, mâts, tubes
 lance-torpilles, catapultes, hangar, soute à essence et pont d'envol des porte-avions, chaque affût de DCA, plus des **compartiments étanches**.
 
@@ -148,11 +148,14 @@ lance-torpilles, catapultes, hangar, soute à essence et pont d'envol des porte-
   tubes lance-torpilles qui explosent, hangar en feu, DCA qui se tait.
 - **Éléments détruits visibles** : cheminées, mâts, passerelle, directeurs, radars, catapultes, tubes et tourelles sont remplacés par leur épave
   (souche calcinée, tourelle tordue) et leurs morceaux **volent** et retombent à la mer. Chaque impact laisse une **cicatrice** sur la coque.
-- **Inondation** : 8 à 18 compartiments par navire. Une torpille inonde ceux qui sont près de l'impact, du côté touché : gîte, assiette (par l'avant ou par
-  l'arrière), enfoncement ; le navire sombre selon l'eau qu'il a embarquée. Les pompes et l'équipe de sécurité colmatent peu à peu.
-- **Incendies** : ils chauffent les soutes voisines ; l'équipe de sécurité les noie... ou pas.
-- Le panneau du navire sélectionné montre un **plan des dégâts** : modules en vert / orange / rouge, compartiments inondés en bleu, incendies,
-  tourelles enrayées, DCA restante.
+- **Voies d'eau** (`js/game/sim/hull.js`) : chaque coup porté à la coque (obus, torpille, bombe, souffle, abordage) ouvre un **trou** à l'endroit touché, grand ou petit selon le coup. Un trou ne laisse entrer l'eau que s'il est **sous la flottaison** : un trou d'obus à six mètres au-dessus de l'eau ne fuit pas, jusqu'à ce que le navire s'enfonce ou gîte jusqu'à lui. Les chocs fatiguent aussi la structure du compartiment (`struct`) : tous les quarts de rupture, un joint cède et fuit à la flottaison.
+- **Inondation** : 8 à 18 compartiments par navire. L'eau entre par les trous, remplit le compartiment du côté touché, puis passe aux voisins quand il est plein (plus vite quand les cloisons sont brisées) : gîte, assiette (par l'avant ou par l'arrière), enfoncement. L'équipe de sécurité colmate peu à peu les trous qui fuient, et noie du côté haut pour redresser un navire qui gîte. **Le navire est perdu quand l'eau atteint sa réserve de flottabilité** (30 % du volume pour un destroyer, 50 % pour un cuirassé), ou qu'il gîte trop longtemps (il chavire), ou qu'il se brise (deux compartiments voisins au milieu, brisés et noyés).
+- **Équipage** : chaque poste a ses hommes (tourelles, DCA, chaufferies, passerelle) et chaque compartiment ses équipes de sécurité. Les explosions les tuent selon la distance et selon l'abri (l'équipage d'une tourelle est à l'abri d'un éclatement sur son toit, pas d'un obus qui éclate dedans), les incendies et l'eau aussi. Une pièce qui n'a plus que 20 % de son équipage ne tire plus ; les équipes de sécurité envoient du monde aux postes qui ont perdu le leur. Un navire qui n'a presque plus personne est **abandonné puis sabordé** ; un navire qui n'a plus ni canon, ni torpille, ni moyen d'avancer est sabordé après un moment.
+- **Un navire qui coule continue de tirer** : tant que la tourelle ou la DCA est hors de l'eau, que la gîte ne bloque pas le pointage, qu'il reste du monde et des obus. Les navires dont la soute explose ne tirent plus.
+- **Incendies** : ils chauffent les soutes voisines et brûlent l'équipage des postes voisins ; l'équipe de sécurité les noie... ou pas.
+- Le panneau du navire sélectionné montre un **plan des dégâts** : modules en vert / orange / rouge, compartiments inondés en bleu, structure fissurée, trous (bleu: l'eau entre), incendies,
+  tourelles enrayées, équipage de chaque tourelle (anneau jaune puis rouge), DCA restante ; au-dessus, la **flottabilité** restante et l'**équipage** à bord, et un mot sur l'état du navire (à flot, voie d'eau, gîte, en feu, équipage réduit, immobilisé, désarmé, abandonné).
+- **Les avions n'ont pas de points de vie non plus** (`planedamage.js`) : ailes gauche et droite, empennage, fuselage, moteurs, réservoirs, pilote et commandes. Chaque impact touche une pièce (le nez de face, l'empennage de derrière, les ailes de côté) et ce qu'elle protège (le fuselage, le pilote ; l'aile, son réservoir). Une aile arrachée, l'empennage coupé, le pilote tué, le fuselage brisé ou un incendie qui dure font tomber l'avion ; une aile touchée fait voler moins bien (moins de portance, roulis plus lent, une aile qui tombe), des commandes touchées lâchent quelques secondes après, un réservoir percé brûle (ou s'éteint si le pilote pique), un moteur perdu réduit la poussée.
 
 
 ## Explosions et naufrages
