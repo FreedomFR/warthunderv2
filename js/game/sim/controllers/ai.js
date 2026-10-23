@@ -117,7 +117,8 @@ export class AIController {
     const ramp = clamp(1 - Math.max(0, world.time - 420) / 1700, 0.42, 1);
     Rd *= ramp * (lull ? 0.7 : 1);
     if (st.type === 'CV') Rd = lull ? 9000 : Math.max(Rd, 22000 * ramp);
-    if (tp && ship.torpLeft > 0) Rd = Math.min(Rd, clamp(tp.range * 0.5, 3800, 7500));
+    // (inside the window the torpedoes are fired in, not on its edge: she holds the middle of it)
+    if (tp && ship.torpLeft > 0) Rd = Math.min(Rd, clamp(tp.range * 0.5, 4500, 9000) * 0.72);
     ship.aiRd = Rd;                                  // what this ship would fight at; the captain takes the shortest of the line (sim/fleet.js)
     const stn = fleet ? ship.station : null;
     if (stn && stn.flag && fleet.Rd) Rd = fleet.Rd;
@@ -149,7 +150,10 @@ export class AIController {
     // sailing with the fleet: keep the station (a ship breaks formation when it is crippled, in the middle of a torpedo run or too close to the enemy)
     let following = false;
     const fp = stn ? fleet.stationPoint(ship) : null;
-    if (fp && !stn.flag && !crippled && !torpRun && ship.condition > 0.3 && !(st.type !== 'DD' && st.type !== 'CV' && d < Rd * 0.55) && !(st.type === 'CV' && d < Rd * 0.85)) {
+    // a destroyer with her torpedoes still aboard leaves the line to get into range of an enemy that is within reach (it is what a destroyer is for: a carrier or a battleship that
+    // keeps its distance is sunk by torpedoes, not by 4.7 in shells)
+    const hunter = !!(tp && ship.torpLeft > 0 && (st.type === 'DD' || tp.bow) && d < 18000 && ship.condition > 0.3);
+    if (fp && !stn.flag && !crippled && !torpRun && !hunter && ship.condition > 0.3 && !(st.type !== 'DD' && st.type !== 'CV' && d < Rd * 0.55) && !(st.type === 'CV' && d < Rd * 0.85)) {
       const [sx, sz, fx, fz, rx, rz] = fp, F = fleet.flag;
       const ex = sx - ship.x, ez = sz - ship.z, dist = Math.hypot(ex, ez);
       const ea = ex * fx + ez * fz, el = ex * rx + ez * rz;      // metres short of the station along the course (+) and to starboard of the ship (+)

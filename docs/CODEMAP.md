@@ -190,7 +190,7 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 
 ## js/game/sim/controllers/
 
-- `ai.js` (213) Autonomous captain. Writes a ShipCommand (see ship.js) every ~0.5 s: picks targets, chooses a fighting range and heading, launches torpedoes and air strikes, avoids… [AIController] ← 2
+- `ai.js` (217) Autonomous captain. Writes a ShipCommand (see ship.js) every ~0.5 s: picks targets, chooses a fighting range and heading, launches torpedoes and air strikes, avoids… [AIController] ← 2
 - `manual.js` (32) Manual controller (prepared, not wired into the UI yet). [ManualController] ← 2
 
 ## js/game/ui/
