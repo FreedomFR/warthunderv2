@@ -221,6 +221,10 @@
   {
    "file": "posture.mjs",
    "args": []
+  },
+  {
+   "file": "dogfight.mjs",
+   "args": []
   }
  ],
  "tools": [
