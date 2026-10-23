@@ -1,0 +1,6 @@
+{"mounts": [
+ {"name": "m0", "group": "main", "cal": 380, "x": 70.8, "y": 6.9, "z": 0},
+ {"name": "m1", "group": "main", "cal": 380, "x": 52.7, "y": 10.4, "z": 0},
+ {"name": "m2", "group": "main", "cal": 380, "x": -56.8, "y": 10.4, "z": 0},
+ {"name": "m3", "group": "main", "cal": 380, "x": -74.6, "y": 6.9, "z": 0}
+]}

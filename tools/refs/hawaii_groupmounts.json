@@ -1,0 +1,54 @@
+{
+ "ship": "Hawaii",
+ "elements": [
+  {
+   "id": "g127",
+   "type": "main",
+   "cal": 127,
+   "group": "main",
+   "materials": [
+    "agm127_5in54_mark42_190",
+    "agm127_5in54_mark427"
+   ],
+   "cluster": {
+    "gap": 0.3,
+    "min_tris": 3000
+   },
+   "split": true,
+   "barrel_len": 2.0
+  },
+  {
+   "id": "t76",
+   "type": "sec",
+   "cal": 76,
+   "group": "sec",
+   "materials": [
+    "aga128_3in70"
+   ],
+   "cluster": {
+    "gap": 0.3,
+    "min_tris": 1500
+   },
+   "split": true,
+   "barrel_len": 2.5,
+   "barrel_rise": 1.0,
+   "level_guns": true,
+   "no_cradle": true
+  },
+  {
+   "id": "o20",
+   "type": "o20",
+   "cal": 20,
+   "group": "aa",
+   "materials": [
+    "aga003_20mm_oerlikon"
+   ],
+   "cluster": {
+    "gap": 0.1,
+    "min_tris": 300
+   },
+   "facing": "thin",
+   "thin_len": 0.6
+  }
+ ]
+}

@@ -2,6 +2,7 @@
 // and of every destroyable part (the cells of a part carry its number), without the rods, wires and rails (a cell with few neighbours is dropped). The shells stop on the surface they
 // meet, so the scars lie on it; sim/damage.js `probeDrawn`. The mounts keep the volumes of their own houses.
 import { decodeBakedGeometry } from './bakedmesh.js';
+import { VERTEX_STRIDE } from './meshbuilder.js';
 
 const CELL = 0.5, STEP = 0.3;       // cell (m); sampling step on the surfaces
 
@@ -53,6 +54,30 @@ export function buildHitModel(data, drop = []) {
   }
   for (const d of thin) grid[d] = 0;
   return { x0, y0, z0, cell: CELL, nx, ny, nz, data: grid, ids };
+}
+
+/**
+ * Puts the surfaces of parts the procedural build adds to a ship drawn from a model (the missile launchers of a later fit) into its grid, each with its own label: `parts` are the
+ * parts of the ship ({ id, mesh }); their ids are added to `h.ids`.
+ */
+export function addPartSurfaces(h, parts) {
+  for (const p of parts) {
+    if (!p.mesh) continue;
+    const lab = 2 + h.ids.length;
+    if (lab > 255) break;
+    h.ids.push(p.id);
+    const f = new Float32Array(p.mesh.vertices), stride = VERTEX_STRIDE / 4, idx = p.mesh.indices;
+    const pos = (v) => [f[v * stride], f[v * stride + 1], f[v * stride + 2]];
+    for (let t = 0; t < idx.length; t += 3) {
+      const A = pos(idx[t]), B = pos(idx[t + 1]), C = pos(idx[t + 2]), flat = [...A, ...B, ...C];
+      sampleTriangle(flat, 0, 3, 6, (x, y, z) => {
+        const i = Math.floor((x - h.x0) / h.cell), j = Math.floor((z - h.z0) / h.cell), k = Math.floor((y - h.y0) / h.cell);
+        if (i < 0 || j < 0 || k < 0 || i >= h.nx || j >= h.nz || k >= h.ny) return;
+        h.data[(j * h.nx + i) * h.ny + k] = lab;
+      });
+    }
+  }
+  return h;
 }
 
 /** The surface normal of the drawn surface at a cell (i, j, k): the axis along which the filled cells round it are least spread (principal axes of the 5 x 5 x 5 block), turned to the empty side. */

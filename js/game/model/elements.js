@@ -18,5 +18,8 @@ import * as fantasque from './ships/fantasque_elements.js';
 import * as cleveland from './ships/cleveland_elements.js';
 import * as baltimore from './ships/baltimore_elements.js';
 import * as essex from './ships/essex_elements.js';
+import * as bismarck from './ships/bismarck_elements.js';
+import * as tirpitz from './ships/tirpitz_elements.js';
+import * as hawaii from './ships/hawaii_elements.js';
 
-export const ELEMENTS = { yamato, gioberti, graf_spee, shokaku, kagero, tade, adams, iowa, richelieu, fletcher, bearn, la_galissoniere, flak, fantasque, cleveland, baltimore, algerie, essex};
+export const ELEMENTS = { yamato, gioberti, graf_spee, shokaku, kagero, tade, adams, iowa, richelieu, fletcher, bearn, la_galissoniere, flak, fantasque, cleveland, baltimore, algerie, essex, bismarck, hawaii, tirpitz };

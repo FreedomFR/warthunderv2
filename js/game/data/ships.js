@@ -16,6 +16,12 @@ export const NATIONS = [
   { id: 'Italy', name: 'Italie', adj: 'Regia Marina', flag: '#2e8b57' },
 ];
 
+/** Nations that have aircraft in the game but no ships yet: they are not offered in the setup panel nor in the ship trees (the Soviet Union: the Il-2). */
+export const OTHER_NATIONS = [
+  { id: 'USSR', name: 'Union soviétique', adj: 'Aviation soviétique', flag: '#b32a2a' },
+];
+export const ALL_NATIONS = [...NATIONS, ...OTHER_NATIONS];
+
 export const TYPES = [
   { id: 'DD', name: 'Destroyer' },
   { id: 'CL', name: 'Croiseur léger' },

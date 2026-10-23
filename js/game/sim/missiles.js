@@ -1,11 +1,15 @@
-// The guided missiles of the ships (the spec sheet's `missiles`): a surface-to-air missile (RIM-24 Tartar) that is fired at aircraft and steers itself on them, and a rocket-thrown
-// torpedo (RUR-5 ASROC) that is fired at ships, flies a ballistic arc and drops its torpedo on a parachute near the target. A ship keeps a stock of each (ship.msl), fires
-// when a target is in the window of range of the system, and the SAM is limited by the number of fire-control channels (targets guided at the same time).
+// The guided missiles of the ships (the spec sheet's `missiles`): a surface-to-air missile (RIM-24 Tartar) that is fired at aircraft and steers itself on them, a rocket-thrown
+// torpedo (RUR-5 ASROC) that is fired at ships, flies a ballistic arc and drops its torpedo on a parachute near the target, and the sea-skimming cruise missiles (RGM-84 Harpoon,
+// BGM-109 Tomahawk: `ssm`) that fly to the target, are shot at by the defences of the ship they come for (the close-in guns above all), and burst inside the hull like a bomb.
+// A ship keeps a stock of each (ship.msl), fires when a target is in the window of range of the system, and the SAM is limited by the number of fire-control channels (targets guided at the same time).
 import { clamp, KN } from '../math.js';
 import { hitPlane } from './planedamage.js';
 import { DECK_PHASES } from './deck.js';
 import { interceptTime } from './weapons.js';
 import { tntEquivalent } from '../data/explosives.js';
+import { BOMBS } from '../data/ordnance.js';
+import { segmentNearShip, segmentHit, resolveBombHit } from './damage.js';
+import { bombHitsBase } from './baseops.js';
 
 const _w = [0, 0, 0];
 const SCAN = 0.5;                       // s between two looks for a target
@@ -21,7 +25,7 @@ export function initMissiles(stats) {
 /** Normalised stats of the `missiles` of a spec sheet. */
 export function missileStats(spec) {
   return (spec.missiles || []).map((m) => ({
-    kind: m.kind, name: m.name, count: m.count, salvo: m.salvo || 1, cycleS: m.cycleS || 10, channels: m.channels || 1, minRange: m.minRangeM || 500, maxRange: m.maxRangeM,
+    id: m.id || m.kind, model: m.model, ord: m.ord, targets: m.targets || ['ship'], altM: m.altM || 15, kind: m.kind, name: m.name, count: m.count, salvo: m.salvo || 1, cycleS: m.cycleS || 10, channels: m.channels || 1, minRange: m.minRangeM || 500, maxRange: m.maxRangeM,
     ceiling: m.ceilingM || 12000, speed: m.speedMs || 400, killChance: m.killChance ?? 0.75, warhead: tntEquivalent(m.warheadKg || 40, m.explosive), filler: m.warheadKg || 40,
     torpSpeed: (m.torpedoSpeedKn || 40) * KN, torpRange: m.torpedoRangeM || 8000,
   }));
@@ -36,7 +40,7 @@ function bears(ship, sys, px, pz) {
   return Math.abs(a) <= m.arcH;
 }
 
-const mountOf = (ship, kind) => ship.model.missileMounts?.find((m) => m.kind === kind);
+const mountOf = (ship, kind, id) => ship.model.missileMounts?.find((m) => m.kind === kind && (!id || !m.sys || m.sys === id));
 
 /** Per ship and per tick: look for a target and fire. */
 export function updateMissileLaunchers(ship, world, dt) {
@@ -46,13 +50,14 @@ export function updateMissileLaunchers(ship, world, dt) {
     sys.scan -= dt;
     if (sys.scan > 0 || world.time < sys.nextT) continue;
     sys.scan = SCAN;
-    const m = mountOf(ship, sys.def.kind);
+    const m = mountOf(ship, sys.def.kind, sys.def.id);
     if (!m) continue;
     ship.toWorld(m.x, m.y, m.z, _w);
     const ox = _w[0], oy = _w[1], oz = _w[2];
     sys.arc = m;                                                   // the traverse of the launcher: arcC (bow = 0) and arcH either side of it, in the ship's frame
     if (sys.def.kind === 'sam') fireSam(ship, world, sys, ox, oy, oz);
     else if (sys.def.kind === 'asroc') fireAsroc(ship, world, sys, ox, oy, oz);
+    else if (sys.def.kind === 'ssm') fireSsm(ship, world, sys, ox, oy, oz);
   }
 }
 
@@ -127,6 +132,7 @@ export function stepMissiles(world, dt) {
     if (q.age < 0) continue;                                       // the second missile of a salvo waits for its turn on the rail
     let done = false;
     if (q.kind === 'sam') done = stepSam(world, q, dt);
+    else if (q.kind === 'ssm') done = stepSsm(world, q, dt);
     else done = stepAsroc(world, q, dt);
     if (done) arr.splice(i, 1);
   }
@@ -193,4 +199,112 @@ function stepAsroc(world, q, dt) {
     world.spawnTorpedo({ owner, x: q.ax, z: q.az, vx: (ix - q.ax) / d * def.torpSpeed, vz: (iz - q.az) / d * def.torpSpeed, speed: def.torpSpeed, range: def.torpRange, warhead: def.warhead, team: owner.team });
   }
   return true;
+}
+
+// ---- the sea-skimming cruise missiles --------------------------------------------------------------------------------------------------------------
+
+const SSM_TURN = 0.45;                 // rad/s: the turn of a cruise missile (it flies a straight line to the point where the target will be)
+const SSM_PER_TARGET = 4;              // missiles of one ship in the air at one target: more would only be a waste
+const SIZE = { CV: 1.8, BB: 1.6, CA: 1.3, CL: 1.1, DD: 0.8 };
+
+/** The targets a cruise missile can be fired at: the enemy ships and, for the ones that have a land-attack warhead, the bases. */
+function ssmTargets(ship, world, def) {
+  const out = [];
+  for (const e of world.enemiesOf(ship)) if (e.alive && e.state === 'afloat') out.push(e);
+  if (def.targets.includes('base') && world.bases) for (const b of world.bases) if (!b.inert && b.team !== ship.team && b.alive) out.push(b.target);
+  return out;
+}
+
+function fireSsm(ship, world, sys, ox, oy, oz) {
+  const def = sys.def;
+  const inFlight = new Map();
+  for (const q of world.missiles) if (q.kind === 'ssm' && q.owner === ship) inFlight.set(q.target, (inFlight.get(q.target) || 0) + 1);
+  const T = world.terrain;
+  let best = null, bs = 0;
+  for (const e of ssmTargets(ship, world, def)) {
+    const d = Math.hypot(e.x - ox, e.z - oz);
+    if (d < def.minRange || d > def.maxRange || d > (ship.stats.visualRange || 1e9) || !bears(ship, sys, e.x, e.z)) continue;
+    if ((inFlight.get(e) || 0) >= SSM_PER_TARGET) continue;
+    if (T && T.blocks && T.blocks(ship.x, 25, ship.z, e.x, 25, e.z)) continue;             // an island between: it flies at 15 m
+    if (!e.isBase && e.condition < 0.15) continue;                                         // a wreck is not worth a missile
+    const s = (e.isBase ? 0.9 : SIZE[e.stats.type] || 1) * (e.isBase ? 1 : 0.5 + e.condition) / (0.4 + d / def.maxRange);
+    if (s > bs) { bs = s; best = e; }
+  }
+  if (!best) return;
+  for (let i = 0; i < def.salvo && sys.left > 0; i++) {
+    sys.left--;
+    const d = Math.hypot(best.x - ox, best.z - oz) || 1, el = 0.6, ce = Math.cos(el);
+    world.missiles.push({
+      id: world.missileSeq = (world.missileSeq || 0) + 1, kind: 'ssm', def, owner: ship, team: ship.team, target: best, x: ox, y: oy, z: oz + (i ? 0.3 : 0),
+      vx: (best.x - ox) / d * ce * 70, vy: Math.sin(el) * 70, vz: (best.z - oz) / d * ce * 70, speed: 70, age: -i * 1.6, life: d / def.speed * 1.35 + 30, trail: 0, checked: new Set(), checked2: new Set(),
+    });
+    world.events.push({ type: 'missileLaunch', kind: 'ssm', x: ox, y: oy, z: oz, dx: (best.x - ox) / d, dz: (best.z - oz) / d });
+  }
+  sys.nextT = world.time + def.cycleS;
+}
+
+/** The chance that the defences of `ship` stop a missile that comes for it: the close-in guns (a Phalanx kills most of what it fires at), then the light guns, then the heavy dual-purpose ones. */
+function interceptChance(ship, close) {
+  let ciws = 0, light = 0, dp = 0;
+  for (const a of ship.aaMounts) {
+    if (!a.alive || !(a.ammo > 0)) continue;
+    if (a.rec.variant === 'phalanx') ciws++; else light += Math.sqrt(a.rec.n || 1);
+  }
+  if (!close) for (const m of ship.mounts) if (m.group === 'sec' && m.alive && m.gun.cal <= 140 && m.gun.maxElevDeg >= 55 && !m.noAmmo) dp++;
+  const pCiws = 1 - Math.pow(0.5, Math.min(ciws, 2.5)), pLight = close ? 0 : Math.min(0.3, light * 0.012 + dp * 0.01);
+  return 1 - (1 - pCiws) * (1 - pLight);
+}
+
+function stepSsm(world, q, dt) {
+  const def = q.def, tg = q.target, rng = world.rng;
+  q.speed = Math.min(def.speed, q.speed + 90 * dt);
+  const live = tg && (tg.isBase ? tg.alive : tg.alive && tg.state === 'afloat');
+  // where to fly: the point the target will have reached (a ship moves, a base does not); a target that is gone leaves the missile on its line
+  let hx = q.vx, hz = q.vz, dTarget = 1e9;
+  if (live) {
+    const tt = clamp(Math.hypot(tg.x - q.x, tg.z - q.z) / q.speed, 0, 90);
+    const px = tg.x + (tg.vx || 0) * tt, pz = tg.z + (tg.vz || 0) * tt;
+    dTarget = Math.hypot(tg.x - q.x, tg.z - q.z);
+    hx = px - q.x; hz = pz - q.z;
+  }
+  // heading: turn towards it at the rate of the missile
+  const cur = Math.atan2(q.vx, -q.vz), want = Math.atan2(hx, -hz);
+  let dh = Math.atan2(Math.sin(want - cur), Math.cos(want - cur));
+  dh = clamp(dh, -SSM_TURN * dt * (q.age < 3 ? 2.5 : 1), SSM_TURN * dt * (q.age < 3 ? 2.5 : 1));
+  const hd = cur + dh;
+  // height: up and over in the first seconds, then down to the cruise height; at the end of the run, to the sea (a base: to the ground)
+  const terminal = dTarget < 7000;      // (the last run is made just over the waves: at the height of the side, not of the deck, or the missile flies over the ship)
+  let alt = q.age < 5 ? 160 : terminal ? (tg && tg.isBase ? 0 : 3) : def.altM;
+  if (tg && tg.isBase && dTarget < 600) alt = 0;
+  const vy = clamp((alt - q.y) * 0.6, -45, 55);
+  const hs = Math.sqrt(Math.max(q.speed * q.speed - vy * vy, 100));
+  q.vx = Math.sin(hd) * hs; q.vz = -Math.cos(hd) * hs; q.vy = vy;
+  const px = q.x, py = q.y, pz = q.z;
+  q.x += q.vx * dt; q.y += q.vy * dt; q.z += q.vz * dt;
+  // the defences of the ships it passes: once at 3 km (all the guns), once at 900 m (the close-in guns again)
+  for (const s of world.ships) {
+    if (s.team === q.team || !s.alive || s.state !== 'afloat') continue;
+    const d = Math.hypot(s.x - q.x, s.z - q.z);
+    const first = d < 3000 && !q.checked.has(s), second = d < 900 && !q.checked2.has(s);
+    if (!first && !second) continue;
+    (first ? q.checked : q.checked2).add(s);
+    if (rng() < interceptChance(s, !first)) {
+      world.events.push({ type: 'flak', x: q.x, y: Math.max(q.y, 3), z: q.z, cal: 127 });
+      world.events.push({ type: 'explosion', stage: 'air', x: q.x, y: Math.max(q.y, 3), z: q.z, size: 0.3 });
+      s.aaKills = (s.aaKills || 0) + 1;
+      return true;
+    }
+  }
+  // the hit: the warhead goes off like a bomb that strikes with the speed of the missile
+  const ord = BOMBS[def.ord];
+  const body = { x: q.x, y: q.y, z: q.z, vx: q.vx, vy: q.vy, vz: q.vz, kg: ord ? ord.kg : 300, ord, owner: q.owner, team: q.team, kind: 'ssm', asp: 0 };
+  for (const s of world.ships) {
+    if (s.team === q.team || s.state === 'sunk') continue;
+    if (!segmentNearShip(s, px, py, pz, q.x, q.y, q.z)) continue;
+    const hit = segmentHit(s, px, py, pz, q.x, q.y, q.z);
+    if (hit) { resolveBombHit(world, s, body, hit); return true; }
+  }
+  if (world.bases && world.bases.length && q.y < 60 && bombHitsBase(world, body)) return true;
+  if (q.y < 0.4) { world.events.push({ type: 'splash', x: q.x, z: q.z, cal: 300, dx: q.vx, dz: q.vz, speed: q.speed, shell: 'HE' }); return true; }
+  return q.age > q.life;
 }

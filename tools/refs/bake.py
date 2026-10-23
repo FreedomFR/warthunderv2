@@ -73,6 +73,7 @@ if SPLIT > 0:
     print(f'split to {nv} vertices, {nf} triangles', file=sys.stderr)
 # the colour of the textures at each vertex
 col = np.full((nv, 3), 0.6, dtype=np.float32)
+alpha = np.ones(nv, dtype=np.float32)
 texdir = os.path.join(os.path.dirname(src.rstrip('/')), 'src')
 for mi, m in enumerate(info['mats']):
     sel = np.where(vm == mi)[0]
@@ -81,9 +82,12 @@ for mi, m in enumerate(info['mats']):
     f = np.array(m['factor'][:3], dtype=np.float32)
     if m['diffuse']:
         try:
-            im = Image.open(os.path.join(texdir, m['diffuse'])).convert('RGB')
+            im0 = Image.open(os.path.join(texdir, m['diffuse']))
+            im = im0.convert('RGB')
             im.thumbnail((TEX, TEX))
             arr = np.asarray(im, dtype=np.float32) / 255.0
+            if fl.get('alpha') and 'A' in im0.getbands():      # --alpha=1: the alpha of the texture at each vertex is kept too (the cards of wires and stays of an aircraft are transparent everywhere but on their line)
+                ia = im0.getchannel('A'); ia.thumbnail((TEX, TEX)); aarr = np.asarray(ia, dtype=np.float32) / 255.0
             h, w = arr.shape[:2]
             u = np.mod(uv[sel, 0], 1.0); v = np.mod(uv[sel, 1], 1.0)
             if info.get('flipV'):                                                   # an OBJ's v runs up, a glTF's down
@@ -94,6 +98,9 @@ for mi, m in enumerate(info['mats']):
             g = lambda yy, xx: arr[np.mod(yy, h), np.mod(xx, w)]
             c = g(y0, x0) * (1 - tx) * (1 - ty) + g(y0, x0 + 1) * tx * (1 - ty) + g(y0 + 1, x0) * (1 - tx) * ty + g(y0 + 1, x0 + 1) * tx * ty
             col[sel] = c * f
+            if fl.get('alpha') and 'A' in im0.getbands():
+                ga = lambda yy, xx: aarr[np.mod(yy, h), np.mod(xx, w)]
+                alpha[sel] = (ga(y0, x0) * (1 - tx[:, 0]) * (1 - ty[:, 0]) + ga(y0, x0 + 1) * tx[:, 0] * (1 - ty[:, 0]) + ga(y0 + 1, x0) * (1 - tx[:, 0]) * ty[:, 0] + ga(y0 + 1, x0 + 1) * tx[:, 0] * ty[:, 0])
             continue
         except Exception as e:
             print('texture', m['diffuse'], e, file=sys.stderr)
@@ -104,6 +111,7 @@ if RAWOUT:       # the split mesh with its colours and groups, as `bakeraw` writ
     pos.astype(np.float32).tofile(os.path.join(RAWOUT, 'pos.f32')); idx.astype(np.uint32).tofile(os.path.join(RAWOUT, 'idx.u32'))
     (np.clip(col, 0, 1) * 255).astype(np.uint8).tofile(os.path.join(RAWOUT, 'colfull.u8'))
     if vp is not None: vp.astype(np.int32).tofile(os.path.join(RAWOUT, 'vpart.i32'))
+    (np.clip(alpha, 0, 1) * 255).astype(np.uint8).tofile(os.path.join(RAWOUT, 'alpha.u8'))
     vm.astype(np.int16).tofile(os.path.join(RAWOUT, 'vmat.i16')); uv.astype(np.float32).tofile(os.path.join(RAWOUT, 'uv.f32'))
     json.dump({**info, 'vertices': int(len(pos)), 'triangles': int(len(idx))}, open(os.path.join(RAWOUT, 'info.json'), 'w'))
     print(f'split mesh written to {RAWOUT}: {len(pos)} vertices, {len(idx)} triangles', file=sys.stderr)

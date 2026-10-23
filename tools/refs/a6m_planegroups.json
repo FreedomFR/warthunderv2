@@ -1,0 +1,102 @@
+{
+ "key": "a6m",
+ "name": "Mitsubishi A6M2 Zero",
+ "axis_deg": 90,
+ "scale": {
+  "span": 12.0
+ },
+ "rules": [
+  {
+   "part": "drop",
+   "box": [
+    -2.7,
+    -1.25,
+    1.09,
+    1.7,
+    -0.1,
+    0.1
+   ]
+  },
+  {
+   "part": "drop",
+   "box": [
+    -2.6,
+    -0.25,
+    -9,
+    9,
+    -9,
+    -0.55
+   ]
+  },
+  {
+   "part": "drop",
+   "box": [
+    -2.6,
+    -0.25,
+    -9,
+    9,
+    0.55,
+    9
+   ]
+  },
+  {
+   "part": "prop",
+   "box": [
+    3.12,
+    5,
+    -3,
+    3,
+    -3,
+    3
+   ]
+  },
+  {
+   "part": "drop",
+   "box": [
+    -0.3,
+    2.4,
+    -2.4,
+    -1.19,
+    -0.7,
+    0.7
+   ]
+  },
+  {
+   "part": "canopy",
+   "box": [
+    -1.2,
+    2.0,
+    0.37,
+    3,
+    -0.75,
+    0.75
+   ]
+  }
+ ],
+ "wing_z": 0.6,
+ "tail_x": -2.7,
+ "budget": {
+  "body": 9000,
+  "tail": 3000,
+  "wingL": 3500,
+  "wingR": 3500,
+  "prop": 1800,
+  "canopy": 1500
+ },
+ "refine": 1.2,
+ "minedge": 0.1,
+ "colthr": 40,
+ "norefine": [
+  "prop"
+ ],
+ "recolor": {
+  "prop": [
+   50,
+   42,
+   36
+  ]
+ },
+ "drop_wires": true,
+ "mirror_wings": "L",
+ "hub_depth": 0.12
+}

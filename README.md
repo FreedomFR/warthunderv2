@@ -140,7 +140,7 @@ voir `tools/trailer/README.md` pour refaire les vidéos.
 
 Les fiches sont dans `js/game/data/specs/` (avec leurs sources). Les champs que les sources ne donnaient pas (positions précises des tourelles, hauteurs de mâts…)
 sont marqués `estimated` : ce sont des estimations d'après le profil connu du navire. Le *Graf Zeppelin* et l'*Aquila* n'ont jamais été achevés ; ils sont
-modélisés d'après leur conception réelle.
+modélisés d'après leur conception réelle. Hors tableau, le *USS Hawaii* (classe Alaska, projet de navire de commandement CBC-1 de 1952, croiseur lourd américain à 24 canons de 127 mm, 16 de 76 mm/70 et 24 tubes) est dessiné d'après son modèle 3D (voir `docs/CREDITS.md`).
 
 ## Installation et développement
 

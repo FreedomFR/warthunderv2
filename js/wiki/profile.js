@@ -21,8 +21,9 @@ export function shipPicture(spec, opts = {}) {
   img.loading = 'lazy';
   img.draggable = false;
   img.style.width = opts.full ? '100%' : `${f1(iconScale(spec) * 100)}%`;
-  img.onerror = () => { wrap.innerHTML = shipProfile(spec, opts); };
-  img.src = `wiki/ships/${spec.baseId || spec.id}.webp`;
+  // (another fit of a ship has its own picture when it was made, else the one of its base, else the silhouette drawn from the sheet)
+  img.onerror = () => { if (spec.baseId && !img.dataset.base) { img.dataset.base = '1'; img.src = `wiki/ships/${spec.baseId}.webp`; } else wrap.innerHTML = shipProfile(spec, opts); };
+  img.src = `wiki/ships/${spec.id}.webp`;
   wrap.append(img);
   return wrap;
 }

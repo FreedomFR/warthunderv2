@@ -24,6 +24,8 @@ export const AMMO = {
   mine20: { name: '20 mm Minengeschoss', cal: 20, dmg: 2.0, fire: 0.7, blast: 25 },
   hei20hs: { name: '20 mm HS.404 HEI', cal: 20, dmg: 3.3, fire: 0.9, blast: 8 },
   ap20: { name: '20 mm AP-T', cal: 20, dmg: 2.5, fire: 0.25, blast: 0 },
+  hei23: { name: '23 mm VYa HE-I', cal: 23, dmg: 3.2, fire: 0.75, blast: 10 },
+  api23: { name: '23 mm VYa API', cal: 23, dmg: 2.9, fire: 0.45, blast: 2 },
 };
 
 /** The belts: the share of each round in the belt. */
@@ -38,6 +40,8 @@ export const BELTS = {
   fr75: { ball75: 1 },
   it127: { breda127: 1 },
   mg131: { mg131: 1 },
+  ru23: { hei23: 0.55, api23: 0.45 },                                             // the VYa-23 of the Il-2: HE-I and armour-piercing incendiary
+  ru762: { ball303: 0.45, ap303: 0.4, inc303: 0.15 },                            // the ShKAS: ball, AP and incendiary (rifle calibre)
 };
 
 /** The guns: calibre (mm), cyclic rate (rounds a minute, as fired through the propeller or from the wing), a long burst's worth of the rounds a gun carries. */
@@ -51,6 +55,8 @@ export const GUNS = {
   hs404: { name: 'Hispano HS.404 (20 mm)', cal: 20, rpm: 650, v0: 860 },
   mac: { name: 'MAC 1934 (7,5 mm)', cal: 7.5, rpm: 1200, v0: 830 },
   breda127: { name: 'Breda-SAFAT (12,7 mm)', cal: 12.7, rpm: 600, v0: 760 },
+  vya23: { name: 'VYa-23 (23 mm)', cal: 23, rpm: 550, v0: 905 },
+  shkas: { name: 'ShKAS (7,62 mm)', cal: 7.62, rpm: 1800, v0: 825 },
 };
 
 /** The fit of each fighter: the guns, how many, the rounds each carries (a drum of 60 for a 20 mm cannon is 7 s of fire), the belt. */
@@ -61,6 +67,7 @@ export const FIGHTER_GUNS = {
   bf109t: [{ gun: 'mg17', n: 2, rpg: 500, belt: 'de792' }, { gun: 'mgff', n: 2, rpg: 60, belt: 'de20ff' }],
   d520: [{ gun: 'hs404', n: 1, rpg: 60, belt: 'fr20' }, { gun: 'mac', n: 4, rpg: 675, belt: 'fr75' }],
   mc202: [{ gun: 'breda127', n: 2, rpg: 370, belt: 'it127' }],
+  il2: [{ gun: 'vya23', n: 2, rpg: 150, belt: 'ru23' }, { gun: 'shkas', n: 2, rpg: 750, belt: 'ru762' }],      // the guns of the wings (the ground attack: not simulated yet)
 };
 
 /** The guns of a fighter type as a list of groups with their state: { gun, n, cal, rps (rounds a second of the whole group), left (rounds left in each gun), belt }. */
@@ -88,6 +95,7 @@ export function beltMean(belt) {
  * the 7,92 mm of the Germans, the 13 mm MG 131, the 7,5 mm and the 20 mm of the French, the 12,7 and 7,7 of the Italians, the .303 of the British).
  */
 export function beltForGun(cal, nation) {
+  if (nation === 'USSR') return cal >= 19 ? 'ru23' : cal >= 12.5 ? 'us50' : 'ru762';
   if (cal >= 19) return nation === 'Japan' ? 'jp20' : nation === 'France' ? 'fr20' : 'de20ff';
   if (cal >= 12.5 && cal < 14) return cal > 12.9 ? 'mg131' : nation === 'Italy' ? 'it127' : 'us50';
   if (nation === 'USA') return 'us30';

@@ -25,6 +25,7 @@ export const PALETTES = [
  */
 export const LIVERY = {
   cleveland: { scheme: CAMO.DAZZLE, pal: 0, seed: 0.21 },
+  missouri_1991: null,                                         // overall haze gray (Measure 22), the colours of its sheet
   iowa: { scheme: CAMO.DAZZLE, pal: 0, seed: 0.52 },          // Measure 32 design 1B, 1944 (photograph in dry dock)
   essex: { scheme: CAMO.DAZZLE, pal: 0, seed: 0.83 },         // Measure 32/33 dazzle of 1944 (photograph leaving San Francisco)
   tribal: { scheme: CAMO.ADMIRALTY, pal: 1, seed: 0.62 },
@@ -46,6 +47,7 @@ const IT_MARKS = { top: { bands: ['#a82e27', '#e6e3d8'] }, stripes: { cols: ['#a
 export const MARKS = {
   soldati: IT_MARKS, montecuccoli: IT_MARKS, zara: IT_MARKS, littorio: IT_MARKS,
   bismarck: { top: { col: '#474A51' } },
+  tirpitz: { top: { col: '#474A51' } },
 };
 
 /** Hull number carried on the bow ("61", "F03"...), taken from the reference ship of the spec: "USS Iowa (BB-61)". */
@@ -62,6 +64,6 @@ export function hex(c) { return '#' + c.map((v) => Math.max(0, Math.min(255, Mat
 
 /** The paint vector uploaded per ship instance: x scheme, y seed, z nation id, w palette. */
 export function paintOf(spec) {
-  const lv = LIVERY[spec.baseId || spec.id];
+  const lv = spec.id in LIVERY ? LIVERY[spec.id] : LIVERY[spec.baseId || spec.id];
   return [lv ? lv.scheme : 0, lv ? lv.seed : 0, NATION_ID[spec.nation] || 0, lv ? lv.pal : 0];
 }

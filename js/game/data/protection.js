@@ -36,6 +36,7 @@ export const PROTECTION = {
   baltimore: { torp: { kg: 110 } },                             // estimated
   iowa: { beltIncl: 19, weather: 38, lower: 80, torp: { kg: 320, flaw: 0.85 } },    // 5.5 m system; the liquid loading had to be modified to work
   essex: { beltIncl: 0, torp: { kg: 150 }, avgas: 'closed' },   // estimated
+  hawaii: { beltIncl: 10, torp: { kg: 200 } },                  // Alaska class: belt sloped 10 degrees; the resistance of the side system is estimated
   // ---- Japan
   kagero: { torp: { kg: 0 } },
   agano: { torp: { kg: 80 } },                                  // estimated
@@ -53,6 +54,7 @@ export const PROTECTION = {
   koenigsberg: { torp: { kg: 80 } },                            // estimated; 15 mm torpedo bulkhead
   admiral_hipper: { torp: { kg: 100 } },                        // estimated; 20 mm torpedo bulkhead
   bismarck: { weather: 50, lower: 170, torp: { kg: 250 } },     // 5.5 m system with a 45-53 mm bulkhead, 250 kg TNT
+  tirpitz: { weather: 50, lower: 170, torp: { kg: 250 } },      // as the Bismarck (same class and belts)
   graf_zeppelin: { torp: { kg: 150 }, avgas: 'closed' },        // estimated
   // ---- France
   fantasque: { torp: { kg: 0 } },

@@ -36,8 +36,23 @@ for (const id of SHIPS) {
   ok(b.look || (clearElev(b, 0) > 20 * D2R && clearElev(b, Math.PI) > 20 * D2R), 'tade B: the funnels stop a low shot ahead and astern');
 }
 
+// ---- the Hawaii (drawn from a reference model, hand-made hit volumes of its masses): the 12 twin 5 in and the 8 twin 3 in each fire over their own side, and none is shut in ----
+{
+  const m = model('hawaii');
+  const mains = m.mounts.filter((r) => r.group === 'main'), secs = m.mounts.filter((r) => r.group === 'sec');
+  ok(mains.length === 12 && secs.length === 8, `hawaii: ${mains.length} twin 5 in and ${secs.length} twin 3 in`);
+  for (const r of m.mounts) {
+    const name = `hawaii ${r.group} at (${r.x.toFixed(1)}, ${r.z.toFixed(1)})`;
+    ok(!r.noArc && dg(r.arcMax - r.arcMin) >= 150, `${name}: trains over ${dg(r.arcMax - r.arcMin)} degrees`);
+    if (Math.abs(r.z) > 5) { const beam = r.z > 0 ? Math.PI / 2 : -Math.PI / 2; ok(beam >= r.arcC + r.arcMin - 0.02 && beam <= r.arcC + r.arcMax + 0.02, `${name}: bears abeam on its own side`); }
+    let blockedLow = 0;
+    for (let a = r.arcMin; a <= r.arcMax; a += 15 * D2R) if (clearElev(r, r.arcC + a) > 24 * D2R) blockedLow++;
+    ok(blockedLow <= 8, `${name}: ${blockedLow} sampled bearings need more than 24 degrees to clear the ship`);
+  }
+}
+
 // ---- the launchers: the sectors of each, from what stands round it ----
-for (const id of SHIPS) {
+for (const id of [...SHIPS, 'hawaii']) {
   const m = model(id);
   if (!ALL_SHIPS.find((x) => x.id === id).torpedoes) continue;
   ok(m.tubes.length >= 2, `${id}: ${m.tubes.length} launchers`);
@@ -76,6 +91,7 @@ for (const id of SHIPS) {
   ok(sb >= 2 && sb <= 3 && pt >= 2 && pt <= 3, `adams: a salvo of at most one launcher's three tubes abeam (${sb} to starboard, ${pt} to port)`);
   ok(fire('adams', 10) === 0 && fire('adams', -170) === 0, 'adams: nothing fired inside the dead sectors near the bow and the stern');
   for (const id of ['kagero', 'tade', 'gioberti']) ok(fire(id, 90) >= 2 && fire(id, -90) >= 2, `${id}: fires to either beam`);
+  { const sb = fire('hawaii', 90), pt = fire('hawaii', -90); ok(sb >= 2 && sb <= 5 && pt >= 2 && pt <= 5, `hawaii: a salvo of up to five torpedoes from the three launchers of the side that bears, to either side (${sb} to starboard, ${pt} to port)`); ok(fire('hawaii', 0) === 0 && fire('hawaii', 180) === 0, 'hawaii: nothing fired at a target dead ahead or astern'); }
   { const sb = fire('graf_spee', 90), pt = fire('graf_spee', -90); ok(sb >= 2 && sb <= 4 && pt >= 2 && pt <= 4, `graf_spee: a quadruple bank on each side fires to its own side (${sb} to starboard, ${pt} to port)`); ok(fire('graf_spee', 0) === 0, 'graf_spee: nothing fired dead ahead'); }
   ok(fire('kagero', 5) === 0, 'kagero: nothing fired at a target almost ahead');
 }

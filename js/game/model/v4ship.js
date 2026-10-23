@@ -3,10 +3,10 @@
 // is wood (a warm colour on an upward face: the planking) and how light or dark a spot is against its kind (a window, a hatch, a plate).
 import { MeshBuilder, MAT, rgb } from './meshbuilder.js';
 import { decodeBaked, cutBaked } from './bakedmesh.js';
-import { buildHitModel } from './v4hit.js';
+import { buildHitModel, addPartSurfaces } from './v4hit.js';
 
 const lum = (r, g, b) => (0.3 * r + 0.59 * g + 0.11 * b) / 255;
-const CHROMA = 0.6, CHROMA_HULL = 0.4;      // how much of the texture's colour variations the paint takes (1 = all of it)
+const CHROMA = 0.6, CHROMA_HULL = 0.4, CHROMA_PLAIN = 0.12;      // how much of the texture's colour variations the paint takes (1 = all of it); 'plain': a part that keeps almost none of it (launchers a model paints red)
 
 /** Split a decoded piece into triangles of the materials it is drawn with. cls: 'hull' (plating), anything else (paint of the structure). */
 function paint(piece, scale, pal, cls, ref, maxY = Infinity) {
@@ -56,7 +56,7 @@ function paint(piece, scale, pal, cls, ref, maxY = Infinity) {
     }       // the flight deck: its upper face flat, in the deck colour (a few huge triangles: the texture colours and the smoothed normals at their corners would stain it)
     const c = cls === 'hull' ? base.hull : base.sup;
     // the model's own colour variations (rust, red lead, a painted marking, a tarred plate) ride on the livery's paint: the chroma of the texture against the ship's median chroma, kept within bounds
-    const lr = Math.max(1, 0.3 * r + 0.59 * g + 0.11 * b), K = cls === 'hull' ? CHROMA_HULL : CHROMA;
+    const lr = Math.max(1, 0.3 * r + 0.59 * g + 0.11 * b), K = cls === 'hull' ? CHROMA_HULL : cls === 'plain' ? CHROMA_PLAIN : CHROMA;
     const cm = (v, rf) => Math.pow(Math.max(0.5, Math.min(1.7, (v / lr) / rf)), K);
     put(cls === 'hull' ? MAT.SKIN : MAT.HULL, i, [Math.min(255, c[0] * m * cm(r, ref.cr)), Math.min(255, c[1] * m * cm(g, ref.cg)), Math.min(255, c[2] * m * cm(b, ref.cb))]);
   }
@@ -86,7 +86,11 @@ export function paintInto(nb, piece, scale, pal, cls, ref, maxY = Infinity) {
 
 export function applyV4(model, data, pal, drop = [], clean = []) {
   // clean: [{ x, z, r, y0, maxArea }]: the small triangles (details of what stood there: a turret's roller path, its fittings) of the static pieces above y0 within r of (x, z) are left out: what a fit has landed leaves no trace
-  if (clean.length) data = { SCALE: data.SCALE, SHIP: { ...data.SHIP, static: Object.fromEntries(Object.entries(data.SHIP.static).map(([k, p]) => [k, cutBaked(p, data.SCALE, (x, y, z, a) => clean.some((c) => y >= c.y0 && Math.hypot(x - c.x, z - c.z) <= c.r && a <= c.maxArea))])) } };      // drop: ids of parts the fit of this ship does not have (not drawn, no hit volume)
+  if (clean.length) {
+    const gone = (x, y, z, a) => clean.some((c) => y >= c.y0 && Math.hypot(x - c.x, z - c.z) <= c.r && a <= c.maxArea);
+    const S0 = data.SHIP;
+    data = { SCALE: data.SCALE, SHIP: { ...S0, static: Object.fromEntries(Object.entries(S0.static).map(([k, p]) => [k, cutBaked(p, data.SCALE, gone)])), ...(S0.fine ? { fine: cutBaked(S0.fine, data.SCALE, gone) } : {}) } };      // (the fine detail too)
+  }      // drop: ids of parts the fit of this ship does not have (not drawn, no hit volume)
   const sc = data.SCALE, S = data.SHIP;
   const nb = new MeshBuilder();
   const ref = reference([...Object.values(S.static), ...(S.fine ? [S.fine] : []), ...Object.values(S.parts).map((p) => p.mesh)], sc);
@@ -96,10 +100,10 @@ export function applyV4(model, data, pal, drop = [], clean = []) {
   const parts = [];
   for (const [id, p] of Object.entries(S.parts)) {
     if (drop.includes(id)) continue;
-    nb.group(id, () => draw(p.mesh, 'part'));
+    nb.group(id, () => draw(p.mesh, p.plain ? 'plain' : 'part'));
     // the wreck: the lowest third of the piece, charred
     const lo = p.bb[1], hi = p.bb[4], cut = lo + (hi - lo) * 0.33;
-    nb.group(id + '_ruin', () => paintInto(nb, p.mesh, sc, pal, 'part', ref, cut));
+    nb.group(id + '_ruin', () => paintInto(nb, p.mesh, sc, pal, p.plain ? 'plain' : 'part', ref, cut));
     const ctr = [(p.bb[0] + p.bb[3]) / 2, p.bb[1], (p.bb[2] + p.bb[5]) / 2];
     const def = { id, kind: p.kind, label: p.label, bb: p.bb.slice(), hasRuin: true, hasFine: false };
     if (p.spin) def.spin = { x: ctr[0], y: (p.bb[1] + p.bb[4]) / 2, z: ctr[2], rate: 1.6 };
@@ -110,7 +114,7 @@ export function applyV4(model, data, pal, drop = [], clean = []) {
   model.mesh = built;
   model.fine = built.groups.fine || null;
   for (const p of parts) { p.mesh = built.groups[p.id]; p.ruin = built.groups[p.id + '_ruin']; p.fineMesh = null; }
-  model.parts = parts;
-  model.hit = buildHitModel(data, drop);      // the hit volumes made from what is drawn (v4hit.js)
+  model.parts = [...parts, ...model.parts.filter((p) => p.keep)];      // (what the procedural build adds that the model does not have, such as the missile launchers of a later fit, stays)
+  model.hit = addPartSurfaces(buildHitModel(data, drop), model.parts.filter((p) => p.keep));      // the hit volumes made from what is drawn (v4hit.js)
   return model;
 }

@@ -1,0 +1,322 @@
+{
+ "ship": "Tirpitz",
+ "elements": [
+  {
+   "id": "s15",
+   "type": "sec",
+   "cal": 150,
+   "group": "sec",
+   "materials": [
+    "150mm_SK_C-28"
+   ],
+   "cluster": {
+    "gap": 0.3,
+    "min_tris": 300
+   },
+   "split": true,
+   "barrel_len": 2.5,
+   "skip_box": [
+    5,
+    14,
+    -30,
+    30
+   ]
+  },
+  {
+   "id": "s15a",
+   "type": "sec",
+   "cal": 150,
+   "group": "sec",
+   "materials": [
+    "150mm_SK_C-28"
+   ],
+   "cluster": {
+    "gap": 0.3,
+    "min_tris": 300
+   },
+   "split": true,
+   "barrel_len": 2.5,
+   "only_box": [
+    5,
+    14,
+    -30,
+    30
+   ]
+  },
+  {
+   "id": "d105",
+   "type": "sec105",
+   "cal": 105,
+   "group": "sec",
+   "materials": [
+    "105mm_SK_C-33"
+   ],
+   "cluster": {
+    "gap": 0.3,
+    "min_tris": 300
+   },
+   "split": true,
+   "barrel_len": 3
+  },
+  {
+   "id": "a37",
+   "type": "t37",
+   "cal": 37,
+   "group": "aa",
+   "materials": [
+    "37mm_SK_C-30"
+   ],
+   "cluster": {
+    "gap": 0.3,
+    "min_tris": 300
+   },
+   "facing": "mass"
+  },
+  {
+   "id": "a20",
+   "type": "o20",
+   "cal": 20,
+   "group": "aa",
+   "materials": [
+    "20mm_Flak_38"
+   ],
+   "cluster": {
+    "gap": 0.1,
+    "min_tris": 100
+   },
+   "facing": "thin",
+   "thin_len": 0.45
+  },
+  {
+   "id": "q20",
+   "type": "q20",
+   "cal": 20,
+   "group": "aa",
+   "materials": [
+    "20mm_Flakvierling_38"
+   ],
+   "cluster": {
+    "gap": 0.1,
+    "min_tris": 100
+   },
+   "facing": "mass",
+   "skip_box": [
+    -4,
+    0,
+    -6,
+    6
+   ],
+   "only_box": [
+    -60,
+    -30,
+    -8,
+    8
+   ]
+  },
+  {
+   "id": "q20b",
+   "type": "q20",
+   "cal": 20,
+   "group": "aa",
+   "materials": [
+    "20mm_Flakvierling_38"
+   ],
+   "cluster": {
+    "gap": 0.1,
+    "min_tris": 100
+   },
+   "facing": "mass",
+   "only_box": [
+    -4,
+    0,
+    -6,
+    6
+   ]
+  },
+  {
+   "id": "q20c",
+   "type": "q20",
+   "cal": 20,
+   "group": "aa",
+   "materials": [
+    "20mm_Flakvierling_38"
+   ],
+   "cluster": {
+    "gap": 0.1,
+    "min_tris": 100
+   },
+   "facing": "mass",
+   "skip_box": [
+    -4,
+    0,
+    -6,
+    6
+   ],
+   "only_box": [
+    38,
+    55,
+    -1,
+    1
+   ]
+  },
+  {
+   "id": "q20d",
+   "type": "q20",
+   "cal": 20,
+   "group": "aa",
+   "materials": [
+    "20mm_Flakvierling_38"
+   ],
+   "cluster": {
+    "gap": 0.1,
+    "min_tris": 100
+   },
+   "facing": "mass",
+   "skip_box": [
+    -4,
+    0,
+    -6,
+    6
+   ],
+   "only_box": [
+    10,
+    25,
+    -8,
+    8
+   ]
+  },
+  {
+   "id": "tA",
+   "type": "main",
+   "cal": 380,
+   "group": "main",
+   "layout_match": {
+    "group": "main",
+    "name": [
+     "m0"
+    ]
+   },
+   "x_range": [
+    -9.3,
+    8.3
+   ],
+   "z_range": [
+    -5.5,
+    5.5
+   ],
+   "below": 0.5,
+   "above": 7.5,
+   "min_part_tris": 1,
+   "gun_materials": [
+    "380mm_SK_C-34"
+   ],
+   "gun_min_len": 12,
+   "split": true,
+   "barrel_len": 8,
+   "materials": [
+    "380mm_SK_C-34",
+    "BaseMetal"
+   ]
+  },
+  {
+   "id": "tB",
+   "type": "main",
+   "cal": 380,
+   "group": "main",
+   "layout_match": {
+    "group": "main",
+    "name": [
+     "m1"
+    ]
+   },
+   "x_range": [
+    -9.3,
+    8.3
+   ],
+   "z_range": [
+    -5.5,
+    5.5
+   ],
+   "below": 0.5,
+   "above": 7.5,
+   "min_part_tris": 1,
+   "gun_materials": [
+    "380mm_SK_C-34"
+   ],
+   "gun_min_len": 12,
+   "split": true,
+   "barrel_len": 8,
+   "materials": [
+    "380mm_SK_C-34",
+    "BaseMetal"
+   ]
+  },
+  {
+   "id": "tC",
+   "type": "main",
+   "cal": 380,
+   "group": "main",
+   "layout_match": {
+    "group": "main",
+    "name": [
+     "m2"
+    ]
+   },
+   "x_range": [
+    -8.3,
+    9.3
+   ],
+   "z_range": [
+    -5.5,
+    5.5
+   ],
+   "below": 0.5,
+   "above": 7.5,
+   "min_part_tris": 1,
+   "gun_materials": [
+    "380mm_SK_C-34"
+   ],
+   "gun_min_len": 12,
+   "split": true,
+   "barrel_len": 8,
+   "materials": [
+    "380mm_SK_C-34",
+    "BaseMetal"
+   ]
+  },
+  {
+   "id": "tD",
+   "type": "main",
+   "cal": 380,
+   "group": "main",
+   "layout_match": {
+    "group": "main",
+    "name": [
+     "m3"
+    ]
+   },
+   "x_range": [
+    -8.3,
+    9.3
+   ],
+   "z_range": [
+    -5.5,
+    5.5
+   ],
+   "below": 0.5,
+   "above": 7.5,
+   "min_part_tris": 1,
+   "gun_materials": [
+    "380mm_SK_C-34"
+   ],
+   "gun_min_len": 12,
+   "split": true,
+   "barrel_len": 8,
+   "materials": [
+    "380mm_SK_C-34",
+    "BaseMetal"
+   ]
+  }
+ ],
+ "layout": "tools/refs/tirpitz_turrets.json"
+}

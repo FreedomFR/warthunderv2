@@ -1,6 +1,6 @@
 // "Aviation": the carrier aircraft of every nation, the catapult floatplanes of cruisers and battleships and the land-based bombers of the island airfields.
 import { h } from '../viewer/dom.js';
-import { AIRCRAFT, NATIONS, ROLE_NAMES, fr } from './data.js';
+import { AIRCRAFT, ALL_NATIONS as NATIONS, ROLE_NAMES, fr } from './data.js';
 import { flagSVG, ACCENTS } from './flags.js';
 import { aircraftPicture } from './profile.js';
 

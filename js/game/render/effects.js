@@ -214,13 +214,13 @@ export class Effects {
       if (dc > 14000) { q.ex = undefined; continue; }
       const sp = Math.hypot(q.vx, q.vy, q.vz) || 1;
       if (q.ex === undefined) { q.ex = q.x; q.ey = q.y; q.ez = q.z; }
-      const dist = Math.hypot(q.x - q.ex, q.y - q.ey, q.z - q.ez), step = q.kind === 'sam' ? 7 : 9, n = Math.min(40, Math.floor(dist / step));
-      for (let k = 1; k <= n; k++) {
+      const dist = Math.hypot(q.x - q.ex, q.y - q.ey, q.z - q.ez), step = q.kind === 'sam' ? 7 : 9, quiet = q.kind === 'ssm' && q.age > 8, n = Math.min(40, Math.floor(dist / step));
+      for (let k = 1; k <= n && !quiet; k++) {      // (a cruise missile's engine leaves no trail once the booster is gone)
         const f = k / n, x = q.ex + (q.x - q.ex) * f, y = q.ey + (q.y - q.ey) * f, z = q.ez + (q.z - q.ez) * f;
         this.p.add({ kind: K.SMOKE, x, y, z, vx: rr(-0.6, 0.6), vy: rr(-0.3, 0.6), vz: rr(-0.6, 0.6), s0: q.age < 2.5 ? 1.2 : 0.7, s1: 7, life: rr(3.5, 5.5), r: 0.93, g: 0.93, b: 0.92, a0: q.age < 2.5 ? 0.6 : 0.38, a1: 0, wind: 1, drag: 0.4, grav: 0.02 });
       }
       if (n > 0) { q.ex = q.x; q.ey = q.y; q.ez = q.z; }
-      if (q.kind === 'sam' ? q.age < 6 : q.run < q.flight * 0.55) this.p.add({ kind: K.FLASH, x: q.x - q.vx / sp * 2.4, y: q.y - q.vy / sp * 2.4, z: q.z - q.vz / sp * 2.4, s0: 2.6, s1: 4.4, life: 0.05, r: 1, g: 0.68, b: 0.3, a0: 4, a1: 0 });
+      if (q.kind === 'sam' ? q.age < 6 : q.kind === 'ssm' ? q.age < 7 : q.run < q.flight * 0.55) this.p.add({ kind: K.FLASH, x: q.x - q.vx / sp * 2.4, y: q.y - q.vy / sp * 2.4, z: q.z - q.vz / sp * 2.4, s0: 2.6, s1: 4.4, life: 0.05, r: 1, g: 0.68, b: 0.3, a0: 4, a1: 0 });
     }
 
     // ---- torpedo tracks: a thin white wake ----

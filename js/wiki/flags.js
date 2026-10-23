@@ -8,10 +8,11 @@ const FLAGS = {
   UK: '<rect width="30" height="20" fill="#012169"/><path d="M0 0L30 20M30 0L0 20" stroke="#fff" stroke-width="4"/><path d="M0 0L30 20M30 0L0 20" stroke="#c8102e" stroke-width="1.6"/><path d="M15 0V20M0 10H30" stroke="#fff" stroke-width="6"/><path d="M15 0V20M0 10H30" stroke="#c8102e" stroke-width="3.4"/>',
   Germany: '<rect width="30" height="6.7" fill="#111"/><rect y="6.7" width="30" height="6.7" fill="#f4f4f4"/><rect y="13.4" width="30" height="6.6" fill="#c8102e"/>',
   France: '<rect width="10" height="20" fill="#0055a4"/><rect x="10" width="10" height="20" fill="#f4f4f4"/><rect x="20" width="10" height="20" fill="#ef4135"/>',
+  USSR: '<rect width="30" height="20" fill="#cc0000"/><path d="M6 3.2l1 2.9h3l-2.4 1.8.9 2.9-2.5-1.8-2.5 1.8.9-2.9L2 6.1h3z" fill="#ffd900"/>',
   Italy: '<rect width="10" height="20" fill="#009246"/><rect x="10" width="10" height="20" fill="#f4f4f4"/><rect x="20" width="10" height="20" fill="#ce2b37"/>',
 };
 
-export const ACCENTS = { USA: '#5b8def', Japan: '#e5565b', UK: '#8da7e6', Germany: '#b0b4ba', France: '#4fa8e8', Italy: '#4fbf83' };
+export const ACCENTS = { USA: '#5b8def', Japan: '#e5565b', UK: '#8da7e6', Germany: '#b0b4ba', France: '#4fa8e8', Italy: '#4fbf83', USSR: '#e05a4a' };
 
 export function flagSVG(nation, w = 30, extra = '') {
   return `<svg class="flag ${extra}" xmlns="${NS}" viewBox="0 0 30 20" width="${w}" height="${Math.round(w * 2 / 3)}" role="img" aria-label="Drapeau">${FLAGS[nation] || ''}</svg>`;

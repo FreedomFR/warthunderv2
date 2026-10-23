@@ -22,6 +22,13 @@ export const BOMBS = {
   anm66: { name: '2000 lb GP AN-M66', nation: 'USA', cls: 'GP', kg: lb(2000), filler: 499, fill: 'tnt', caseK: 0.6, delay: 0.025, pen: 55 },
   anmk33: { name: '1000 lb AP AN-Mk 33', nation: 'USA', cls: 'AP', kg: lb(1000), filler: 63.5, fill: 'explosiveD', caseK: 0.25, delay: 0.04, pen: 100 },
   anmk1: { name: '1600 lb AP AN-Mk 1', nation: 'USA', cls: 'AP', kg: lb(1600), filler: 97.7, fill: 'explosiveD', caseK: 0.25, delay: 0.04, pen: 150 },
+  // ---- the warheads of the cruise missiles (they strike as a bomb that goes through the plating and bursts inside; the fillers are estimates) ----
+  rgm84: { name: 'RGM-84 Harpoon (WDU-18/B)', nation: 'USA', cls: 'SAP', kg: 221, filler: 100, fill: 'tnt', caseK: 0.45, delay: 0.012, pen: 45, est: true },
+  bgm109: { name: 'BGM-109 Tomahawk (WDU-25/B)', nation: 'USA', cls: 'SAP', kg: 454, filler: 205, fill: 'tnt', caseK: 0.45, delay: 0.012, pen: 55, est: true },
+  // ---- Soviet Union (FAB = fugasnaya aviabomba, the general-purpose bomb; the fillers are the published ones where the sources give them, an estimate of the share of the mass otherwise) ----
+  fab50: { name: 'FAB-50', nation: 'USSR', cls: 'GP', kg: 50, filler: 21, fill: 'tnt', caseK: 0.6, delay: 0.01, pen: 25, est: true },
+  fab100: { name: 'FAB-100', nation: 'USSR', cls: 'GP', kg: 100, filler: 40, fill: 'tnt', caseK: 0.6, delay: 0.01, pen: 28, est: true },
+  fab250: { name: 'FAB-250', nation: 'USSR', cls: 'GP', kg: 250, filler: 100, fill: 'tnt', caseK: 0.6, delay: 0.025, pen: 38, est: true },
   // ---- Japan (Navy and Army bombs; the No. is the nominal mass in 10 kg) ----
   jn6: { name: 'Type 97 No.6 (60 kg)', nation: 'Japan', cls: 'GP', kg: 56, filler: 23, fill: 'type91', caseK: 0.6, delay: 0.01, pen: 25 },
   jn25: { name: 'Type 99 No.25 (250 kg)', nation: 'Japan', cls: 'MC', kg: 250, filler: 60, fill: 'type91', caseK: 0.45, delay: 0.025, pen: 50 },

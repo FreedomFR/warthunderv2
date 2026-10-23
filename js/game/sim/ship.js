@@ -290,6 +290,22 @@ export class Ship {
     this.torpLeft = Math.floor(this.torpLeft * (1 - 1 / nTubes));
   }
 
+  /** A missile launcher destroyed: its share of the stock of its system is lost, and what was in the cells may go off (a fire, a blast the size of a few warheads). */
+  launcherLost(m, world, owner) {
+    const p = this.model.parts[m.part];
+    const sys = p && this.msl.find((s) => s.def.id === p.sys);
+    if (!sys || sys.left <= 0) return;
+    const n = Math.max(1, this.model.parts.filter((q) => q.kind === 'launcher' && q.sys === p.sys).length);
+    const lost = Math.ceil(sys.left / n);
+    sys.left = Math.max(0, sys.left - lost);
+    this.addFire(m.x, m.y, m.z, 0.8);
+    if (world.rng() < 0.35) {
+      const tnt = Math.min(lost, 4) * sys.def.filler * 0.35;
+      blast(world, this, m.x, m.y, m.z, tnt, 'outside', owner, 'bomb');
+      world.events.push({ type: 'explosion', x: this.toWorld(m.x, m.y, m.z, [0, 0, 0])[0], y: this.y + m.y, z: this.toWorld(m.x, m.y, m.z, [0, 0, 0])[2], size: 0.8 });
+    }
+  }
+
   /** Hangar or aviation-fuel store destroyed: the aircraft below burn, fuel fires. */
   hangarLost(m, world, owner) {
     if (this.air) { this.air.ready = Math.floor(this.air.ready * 0.4); this.air.fReady = Math.floor(this.air.fReady * 0.4); }

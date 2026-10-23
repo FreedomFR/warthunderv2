@@ -38,6 +38,7 @@ const SINGLE = {
   d3a: [{ x: -1.65, cal: 7.7, n: 1, h: 1.05, hi: 1.2, lo: -0.3, fin: true }],                      // Type 92
   b5n: [{ x: 0.55, cal: 7.7, n: 1, h: 1.1, hi: 1.15, lo: -0.4, fin: true }],
   swordfish: [{ x: -1.8, cal: 7.7, n: 1, open: true, h: 1.5, hi: 1.3, lo: -0.5 }],                 // Vickers K
+  il2: [{ x: -0.7, cal: 12.7, n: 1, h: 1.0, hi: 1.25, lo: -0.3, fin: true }],                       // the UBT 12.7 mm of the gunner, in the rear cockpit
   skua: [{ x: -1.6, cal: 7.7, n: 1, h: 1.05, hi: 1.2, lo: -0.3, fin: true }],
   ju87: [{ x: 0.3, cal: 7.92, n: 1, h: 1.2, hi: 1.25, lo: -0.45, fin: true }],                     // MG 15
   fi167: [{ x: 0.15, cal: 7.92, n: 1, h: 1.25, hi: 1.2, lo: -0.5 }],

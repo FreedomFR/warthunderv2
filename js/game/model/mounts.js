@@ -105,6 +105,10 @@ const FAMILY = {
   type3_120: { kind: 'shield', cal: 120, n: 1, spacing: 0, trunX: 0.4, trunY: 1.5, face: 1.0, fwd: 4.6, back: 1.0, rB: 0.2, rP: 0.15, rM: 0.1, bagR: 0.0, bagLen: 0, recoil: 0.45, lift: 2.7, h: 2.6 },
   // Charles F. Adams class 5"/54 Mk 42 (measured on a reference model, see ships/adams.js): the training axis 2.05 m behind the face of the house, the trunnion at the face, 2 m above the ring, the barrel 4.6 m clear of it
   mk42: { kind: 'shield', cal: 127, n: 1, spacing: 0, trunX: 1.95, trunY: 2.0, face: 2.05, fwd: 4.6, back: 1.0, rB: 0.26, rP: 0.21, rM: 0.095, bagR: 0.0, bagLen: 0, recoil: 0.35, lift: 0, h: 4.4 },
+  // Hawaii (CBC-1 design) twin 5"/54 mount and twin 3"/70 Mk 37 mount (measured on the reference model, see ships/hawaii_elements.js): a closed house 5 m long and 4.3 m high with the trunnion 2.1 m behind the face,
+  // barrels 5.1 m clear of it and 0.9 m apart; the 3 in house 4.6 m high, the guns 3 m clear of the trunnion
+  mk42t: { kind: 'dp', cal: 127, n: 2, spacing: 0.91, trunX: 2.12, trunY: 1.34, face: 2.56, fwd: 5.11, back: 0.43, rB: 0.07, rP: 0.06, rM: 0.04, bagR: 0.0, bagLen: 0, recoil: 0.35, lift: 2.2, h: 3.5 },
+  mk37_76: { kind: 'dp', cal: 76, n: 2, spacing: 0.8, trunX: 2.15, trunY: 2.7, face: 2.5, fwd: 2.99, back: 0.75, rB: 0.05, rP: 0.04, rM: 0.03, bagR: 0.0, bagLen: 0, recoil: 0.2, lift: 0, h: 4.3 },
   type89c: { kind: 'dp', cal: 127, n: 2, spacing: 0.78, trunX: 0.4, trunY: 1.7, face: 3.0, fwd: 4.6, back: 0.9, rB: 0.19, rP: 0.15, rM: 0.085, bagR: 0.3, bagLen: 0.3, recoil: 0.5, lift: 3.0, h: 2.6 },
   mk28: { kind: 'dp', cal: 127, n: 2, spacing: 0.78, trunX: 0.55, trunY: 1.35, face: 1.9, fwd: 3.6, back: 0.9, rB: 0.19, rP: 0.15, rM: 0.085, bagR: 0.3, bagLen: 0.3, recoil: 0.5, lift: 3.0, h: 2.9 },
   mk30: { kind: 'shield', cal: 127, n: 1, spacing: 0, trunX: 0.5, trunY: 1.3, face: 1.5, fwd: 3.4, back: 0.9, rB: 0.19, rP: 0.15, rM: 0.085, bagR: 0.0, bagLen: 0, recoil: 0.5, lift: 1.7, h: 2.9 },
@@ -630,6 +634,15 @@ function aaMount(hb, gb, s, col, dark) {
     hb.box(-0.15, 1.0, 0, 0.5, 0.5, 0.45, shade(col, 0.95), MAT.HULL);
     gb.rod(-0.2, 1.1, 0, 0, 0.035, 0.03, dark, MAT.DARK, { seg: 6 });
     s._tx = 0; s._ty = 1.0; s._len = 1.1;
+    return;
+  }
+  if (v === 'phalanx') {   // the Mk 15 Phalanx close-in weapon (Block 1B): a round pedestal, the gun house with its six barrels in one cluster, and the white radome of the search and track radar behind it
+    hb.cylinder(0, 0, 0, 0.8, 0.75, 0.9, shade(col, 0.9), MAT.HULL, { seg: 12 });
+    hb.box(-0.1, 1.35, 0, 1.3, 0.9, 1.15, shade(col, 0.95), MAT.HULL);
+    hb.sphere(-0.55, 2.05, 0, 0.62, 0.7, 0.62, rgb('#e4e6e2'), MAT.HULL, { half: true, seg: 14, rings: 6 });
+    hb.cylinder(-0.55, 1.8, 0, 0.64, 0.62, 0.3, rgb('#d2d4d0'), MAT.HULL, { seg: 14 });
+    gb.rod(-0.25, 1.7, 0, 0, 0.1, 0.085, dark, MAT.DARK, { seg: 8 });
+    s._tx = 0.15; s._ty = 1.5; s._len = 1.7;
     return;
   }
   if (v === 'breda37') {   // the twin 37/54 Breda of the Oriani class (measured on a reference model): a short pedestal, a small shield, two barrels 0.24 m apart

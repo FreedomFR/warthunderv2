@@ -14,6 +14,9 @@ import { MeshBuilder, MAT, rgb, shade } from './meshbuilder.js';
 import { drawHeavy, propMounts, bayPivot } from './heavy.js';
 import { HEAVY } from './bomberdata.js';
 import { planeGuns, drawGunHead } from './planeGuns.js';
+import { drawV4Plane } from './v4plane.js';
+import * as D3A_V4 from './aircraft/d3a_v4.js';
+import * as A6M_V4 from './aircraft/a6m_v4.js';
 
 const PI = Math.PI;
 const D2R = PI / 180;
@@ -22,6 +25,7 @@ const D2R = PI / 180;
 export const PAINT = {
   USA: { top: '#3b4a63', bot: '#c4c8ca', acc: '#e8e6dc' },
   Japan: { top: '#6c7556', bot: '#bcc0a8', acc: '#d9a23a' },
+  USSR: { top: '#4d5a3a', bot: '#8fa6bb', acc: '#c42a24' },
   UK: { top: '#4b5a44', bot: '#8d9b9e', acc: '#2a2a2a' },
   Germany: { top: '#55604b', bot: '#8da3b7', acc: '#1c1c1c' },
   France: { top: '#6b7d66', bot: '#c9cecf', acc: '#b04040' },
@@ -49,12 +53,12 @@ export const PLANES = {
     tail: { x: -5.8, chord: 2.4, span: 5.4, fin: 1.9, finChord: 2.2, y: 0.35 }, canopy: [{ x0: 0.4, x1: 1.8, tx1: 1.4, h: 0.62 }, { x0: -2.6, x1: -1.1, tx1: -1.4, h: 0.55 }],
     gear: 'retract', ordnance: 'torp', turret: true,
   },
-  d3a: {
-    name: 'Aichi D3A1 Type 99', nation: 'Japan', role: 'dive', kind: 'mono', L: 10.2, span: 14.4, mass: 3.6, hp: 2.8, bombKg: 250,
-    fus: { r: 0.58, ar: 1.15, x: -0.4 }, engine: { type: 'radial', r: 0.64, len: 1.1 }, prop: { r: 1.55, n: 3, x: 0 },
-    wing: { cr: 2.5, ct: 1.0, x: 1.00, y: -0.28, dih: 0.3, sweep: 0.3, t: 0.3, elliptic: true },
-    tail: { x: -5.4, chord: 2.0, span: 4.8, fin: 1.45, finChord: 1.6, y: 0.1 }, canopy: [{ x0: 0.0, x1: 1.5, tx1: 1.2, h: 0.62 }, { x0: -2.0, x1: -0.8, tx1: -1.0, h: 0.5 }],
-    gear: 'spats', ordnance: 'bomb',
+  d3a: {      // measured on the model (tools/refs/planegroups.py --probe): the elliptic wing 3.5 m of chord at the root, the tailplane 4.3 m, the fixed spatted undercarriage, two canopies
+    name: 'Aichi D3A1 Type 99', nation: 'Japan', role: 'dive', kind: 'mono', L: 10.67, span: 14.365, mass: 3.6, hp: 2.8, bombKg: 250,
+    fus: { r: 0.6, ar: 1.3, x: -0.4 }, engine: { type: 'radial', r: 0.64, len: 1.3 }, prop: { r: 1.46, n: 3, x: 0 },
+    wing: { cr: 3.5, ct: 0.5, x: 0.77, y: -0.45, dih: 0.6, sweep: 0.3, t: 0.3, elliptic: true },
+    tail: { x: -5.15, chord: 1.9, span: 4.32, fin: 1.8, finChord: 2.3, y: 0.0 }, canopy: [{ x0: 0.75, x1: 1.65, tx1: 1.35, h: 0.4 }, { x0: -0.46, x1: 0.7, tx1: 0.3, h: 0.4 }],
+    gear: 'spats', ordnance: 'bomb', groundY: 2.16, v4: D3A_V4,
   },
   b5n: {
     name: 'Nakajima B5N2 Type 97', nation: 'Japan', role: 'torp', kind: 'mono', L: 10.3, span: 15.5, mass: 3.8, hp: 2.9,
@@ -127,12 +131,21 @@ export const PLANES = {
     tail: { x: -4.6, chord: 1.5, span: 4.3, fin: 1.6, finChord: 1.9, y: 0.2 }, canopy: [{ x0: 0.1, x1: 1.9, tx1: 1.4, h: 0.55 }],
     gear: 'retract', ordnance: null,
   },
-  a6m: {
-    name: 'Mitsubishi A6M2 Zero', nation: 'Japan', role: 'fighter', kind: 'mono', L: 9.1, span: 12.0, mass: 2.8, hp: 2.4,
-    fus: { r: 0.55, ar: 1.12, x: -0.4 }, engine: { type: 'radial', r: 0.62, len: 1.1 }, prop: { r: 1.5, n: 3, x: 0 },
-    wing: { cr: 2.5, ct: 1.0, x: 0.35, y: -0.3, dih: 0.25, sweep: 0.3, t: 0.28 },
-    tail: { x: -3.9, chord: 1.3, span: 3.9, fin: 1.3, finChord: 1.6, y: 0.1 }, canopy: [{ x0: -0.1, x1: 1.8, tx1: 1.3, h: 0.5 }],
-    gear: 'retract', ordnance: null,
+  a6m: {      // measured on the model (tools/refs/planegroups.py --measures); the retractable undercarriage is drawn by the game (the model has it up)
+    name: 'Mitsubishi A6M2 Zero', nation: 'Japan', role: 'fighter', kind: 'mono', L: 8.97, span: 12.0, mass: 2.8, hp: 2.4,
+    fus: { r: 0.62, ar: 1.1, x: -0.4 }, engine: { type: 'radial', r: 0.62, len: 1.3 }, prop: { r: 1.49, n: 3, x: 0 },
+    wing: { cr: 2.5, ct: 0.9, x: 1.05, y: 0.0, dih: 0.1, sweep: 0.1, t: 0.3 },
+    tail: { x: -3.6, chord: 1.7, span: 3.9, fin: 1.5, finChord: 2.2, y: 0.0 }, canopy: [{ x0: 0.1, x1: 1.5, tx1: 1.2, h: 0.7 }],
+    gear: 'retract', ordnance: null, groundY: 1.9, v4: A6M_V4,
+  },
+  // The Ilyushin Il-2 Type 3 (a Soviet ground-attack aircraft: not in the air group of a fleet, the Soviet Union has no ships in the game yet), measured on its model: the span
+  // 14.6 m, the wing 2.9 m of chord at the root, 2.7 m behind the nose, and 0.9 m at the tip (the leading edge swept back 0.3), the tailplane 4.7 m, the fin 1.9 m over it, two canopies
+  il2: {
+    name: 'Ilyushin Il-2 Type 3', nation: 'USSR', role: 'attack', kind: 'mono', L: 11.65, span: 14.6, mass: 4.2, hp: 5.0, bombKg: 400,
+    fus: { r: 0.78, ar: 1.15, x: -0.9 }, engine: { type: 'inline', r: 0.62, len: 2.4 }, prop: { r: 1.8, n: 3, x: 0 },
+    wing: { cr: 2.9, ct: 0.9, x: 0.8, y: -0.42, dih: 0.08, sweep: 0.3, t: 0.3 },
+    tail: { x: -5.15, chord: 1.9, span: 4.7, fin: 1.9, finChord: 2.4, y: 0.1 }, canopy: [{ x0: 1.05, x1: 2.35, tx1: 1.9, h: 0.55 }, { x0: -1.35, x1: -0.05, tx1: -0.4, h: 0.5 }],
+    gear: 'retract', ordnance: 'bomb', stripes: false,
   },
   fulmar: {
     name: 'Fairey Fulmar', nation: 'UK', role: 'fighter', kind: 'mono', L: 12.2, span: 14.1, mass: 4.6, hp: 3.6,
@@ -206,7 +219,7 @@ export function damageSites(spec) {
 export function planeTypeFor(nation, role) {
   const t = {
     USA: { dive: 'sbd', torp: 'tbf', fighter: 'f6f', level: 'b17' }, Japan: { dive: 'd3a', torp: 'b5n', fighter: 'a6m', level: 'g4m' }, UK: { dive: 'skua', torp: 'swordfish', fighter: 'fulmar', level: 'lancaster' },
-    Germany: { dive: 'ju87', torp: 'fi167', fighter: 'bf109t', level: 'he111' }, France: { dive: 'ln401', torp: 'pl10', fighter: 'd520', level: 'leo451' }, Italy: { dive: 're2001', torp: 're2001t', fighter: 'mc202', level: 'sm79' },
+    USSR: { dive: 'il2' }, Germany: { dive: 'ju87', torp: 'fi167', fighter: 'bf109t', level: 'he111' }, France: { dive: 'ln401', torp: 'pl10', fighter: 'd520', level: 'leo451' }, Italy: { dive: 're2001', torp: 're2001t', fighter: 'mc202', level: 'sm79' },
   }[nation] || { dive: 'sbd', torp: 'tbf', fighter: 'f6f', level: 'b17' };
   return t[role];
 }
@@ -330,6 +343,15 @@ export function insignia(b, nation, cx, cy, cz, r, axis, sign) {
       bar(b, cx, cy, cz, r * 0.18, r * 0.62, axis, sign, rgb('#3a2418'));
       break;
     }
+    case 'USSR': {        // the red star (a disc of red with a smaller disc of the camouflage colour would not do: the five points are drawn as kites from the centre)
+      const red = rgb('#c42a24'), pt = (a, rr) => (axis === 'y' ? [cx + Math.cos(a) * rr, cy + sign * 0.014, cz + Math.sin(a) * rr] : [cx + Math.cos(a) * rr, cy + Math.sin(a) * rr, cz + sign * 0.014]);
+      const ref = axis === 'y' ? [cx, cy - sign, cz] : [cx, cy, cz - sign], c0 = pt(0, 0);
+      for (let i = 0; i < 5; i++) {
+        const a = -PI / 2 + i * PI * 2 / 5, tip = pt(a, r * 1.05), l = pt(a - PI / 5, r * 0.42), rt = pt(a + PI / 5, r * 0.42);
+        b.triFlat(c0, l, tip, red, MAT.AIRCRAFT, ref, 1); b.triFlat(c0, tip, rt, red, MAT.AIRCRAFT, ref, 1);
+      }
+      break;
+    }
     default: break;
   }
 }
@@ -341,6 +363,7 @@ export function insignia(b, nation, cx, cy, cz, r, axis, sign) {
  */
 export function drawPlane(b, s, { part = 'whole' } = {}) {
   if (s.engines) return drawHeavy(b, s, part);          // several engines: heavy.js
+  if (s.v4 && part !== 'hook' && part !== 'ordnance') return drawV4Plane(b, s, part);          // drawn from the pieces of its reference model (v4plane.js); the hook and the load stay procedural
   const P = PAINT[s.nation] || PAINT.USA;
   const top = rgb(P.top), bot = rgb(P.bot), acc = rgb(P.acc);
   const dark = rgb('#25272a'), glass = rgb('#33485a');
@@ -739,6 +762,18 @@ export function drawShell(b, type = 'AP') {
 
 /** A ship-launched missile (origin = centre, nose towards +x): 'sam' the 4.7 m RIM-24 Tartar (white body, four wings and four tail fins), 'asroc' the 4.5 m rocket with its torpedo payload. */
 export function drawMissile(b, kind) {
+  if (kind === 'harpoon' || kind === 'tomahawk') {            // the cruise missiles: a slim white body with its booster behind, pop-out wings and tail fins
+    const tl = kind === 'tomahawk', len = tl ? 6.25 : 5.4, r = tl ? 0.26 : 0.17;
+    const body = rgb(tl ? '#cfd2cf' : '#d8d6cc'), nose = rgb(tl ? '#6d7276' : '#c9772c'), dark = rgb('#2a2c2e'), band = rgb('#9a9ea2');
+    b.rod(-len / 2, len * 0.34, 0, 0, r, r, body, MAT.HULL, { seg: 12, capTop: false });
+    b.rod(len * 0.34, len / 2, 0, 0, r, 0.025, nose, MAT.HULL, { seg: 12, capTop: true });                                          // the nose
+    b.rod(-len / 2, -len / 2 + (tl ? 0.8 : 0.7), 0, 0, r * 1.04, r * 1.04, band, MAT.HULL, { seg: 12, capTop: false });                // the booster
+    const fin = (x0, x1, span, th, ang0) => { for (const a of [0, 1, 2, 3]) { const c = Math.cos(a * Math.PI / 2 + ang0), s2 = Math.sin(a * Math.PI / 2 + ang0); b.beam([x0, c * r, s2 * r], [x1, c * (r + span), s2 * (r + span)], th, th, dark, MAT.DARK, { caps: false }); } };
+    fin(-len / 2 + 0.1, -len / 2 + 0.55, tl ? 0.38 : 0.3, 0.035, Math.PI / 4);
+    if (tl) { for (const sz of [-1, 1]) b.beam([0.2, 0, sz * r], [0.55, 0, sz * 1.33], 0.045, 0.045, dark, MAT.DARK, { caps: false }); }
+    else fin(len * 0.02, len * 0.12, 0.36, 0.03, 0);
+    return;
+  }
   const asroc = kind === 'asroc', len = asroc ? 4.5 : 4.7, r = asroc ? 0.19 : 0.17;
   const body = rgb(asroc ? '#8c9096' : '#d6d8d4'), dark = rgb('#2a2c2e'), band = rgb(asroc ? '#c9a23a' : '#9aa0a4');
   b.rod(-len / 2, len * 0.28, 0, 0, r, r, body, MAT.HULL, { seg: 12, capTop: false });
@@ -760,5 +795,7 @@ export function buildOrdnanceMeshes() {
     shellHE: mk((b) => drawShell(b, 'HE')),
     missileSam: mk((b) => drawMissile(b, 'sam')),
     missileAsroc: mk((b) => drawMissile(b, 'asroc')),
+    missileHarpoon: mk((b) => drawMissile(b, 'harpoon')),
+    missileTomahawk: mk((b) => drawMissile(b, 'tomahawk')),
   };
 }

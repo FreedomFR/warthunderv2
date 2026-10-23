@@ -27,6 +27,7 @@ export const PERF = {
   d3a: { vmax: 108, vc: 82, vt: 90, vd: 103, vcl: 47, vp: 43, va: 36, vto: 31, vcomb: 0, bank: 60, pr: 0.38, asm: 300, roc: 7, roll: 0.9, nmax: 5.5, brakes: true },
   b5n: { vmax: 105, vc: 72, vt: 90, vd: 92, vcl: 46, vp: 42, va: 35, vto: 31, vcomb: 0, bank: 52, pr: 0.32, asm: 280, roc: 5.2, roll: 0.8, nmax: 4.5, brakes: false },
   a6m: { vmax: 148, vc: 92, vt: 0, vd: 0, vcl: 56, vp: 50, va: 37, vto: 31, vcomb: 110, bank: 82, pr: 0.8, asm: 350, roc: 15, roll: 1.3, nmax: 6.5, brakes: false },
+  il2: { vmax: 115, vc: 88, vt: 0, vd: 105, vcl: 46, vp: 52, va: 38, vto: 34, vcomb: 0, bank: 55, pr: 0.3, asm: 250, roc: 4.8, roll: 0.9, nmax: 4.5, brakes: false },      // Type 3 (AM-38F, 6 300 kg): 414 km/h at sea level, 1 000 m in 3.2 min
   skua: { vmax: 100, vc: 84, vt: 95, vd: 118, vcl: 46, vp: 45, va: 36, vto: 33, vcomb: 0, bank: 50, pr: 0.3, asm: 300, roc: 6.5, roll: 0.8, nmax: 5.5, brakes: true },
   swordfish: { vmax: 64, vc: 46, vt: 48, vd: 70, vcl: 33, vp: 36, va: 29, vto: 26, vcomb: 0, bank: 45, pr: 0.25, asm: 250, roc: 4.5, roll: 0.7, nmax: 4.5, brakes: false },
   fulmar: { vmax: 122, vc: 105, vt: 0, vd: 0, vcl: 50, vp: 52, va: 37.5, vto: 32, vcomb: 105, bank: 82, pr: 0.55, asm: 330, roc: 6, roll: 1.0, nmax: 6, brakes: false },

@@ -52,7 +52,8 @@ for (const id of Object.keys(ELEMENTS)) {
   const m = buildShipModel(spec, TWEAKS[id] || {});
   const rec = [...m.mounts, ...m.aaMounts].filter((r) => r.look);
   const moved = rec.filter((r) => el.PLACEMENTS.some((p) => `${id}/${p.kind}` === r.look && Math.hypot(p.x - r.x, p.z - r.z) < 0.05 && Math.abs(p.y - r.y) < 0.8));
-  ok(moved.length === rec.length && rec.length === el.PLACEMENTS.length, `${id}: ${rec.length} mount records take a copy and ${moved.length} of them stand at the measured place`);
+  const twk = TWEAKS[id] || {}, extra = (twk.mountAt || []).length, kept = el.PLACEMENTS.filter((p) => !(twk.dropPlacements || []).includes(p.group)).length;      // (the mounts a fit leaves out, and the ones put on free deck that the model lacks, are not at a measured place)
+  ok(moved.length === rec.length - extra && rec.length === kept + extra, `${id}: ${rec.length} mount records take a copy and ${moved.length} of them stand at the measured place${extra ? ` (+ ${extra} on free deck)` : ''}`);
   const aa = m.aaMounts.filter((r) => r.look);
   let over = 0;
   for (let i = 0; i < aa.length; i++) for (let j = i + 1; j < aa.length; j++) if (Math.hypot(aa[i].x - aa[j].x, aa[i].z - aa[j].z) < 1.5 && Math.abs(aa[i].y - aa[j].y) < 1.5) over++;

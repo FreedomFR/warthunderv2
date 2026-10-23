@@ -1,0 +1,122 @@
+{
+ "ship": "Bismarck",
+ "elements": [
+  {
+   "id": "t38",
+   "type": "main",
+   "cal": 380,
+   "group": "main",
+   "materials": [
+    "SKC34 B002"
+   ],
+   "cluster": {
+    "gap": 0.3,
+    "min_tris": 800
+   },
+   "split": true,
+   "barrel_len": 8
+  },
+  {
+   "id": "s15",
+   "type": "sec",
+   "cal": 150,
+   "group": "sec",
+   "materials": [
+    "15cm SKC34 B003"
+   ],
+   "cluster": {
+    "gap": 0.3,
+    "min_tris": 500
+   },
+   "split": true,
+   "barrel_len": 2.5
+  },
+  {
+   "id": "s15a",
+   "type": "sec",
+   "cal": 150,
+   "group": "sec",
+   "materials": [
+    "15cm SKC34 A001"
+   ],
+   "cluster": {
+    "gap": 0.3,
+    "min_tris": 500
+   },
+   "split": true,
+   "barrel_len": 2.5
+  },
+  {
+   "id": "d105",
+   "type": "sec105",
+   "cal": 105,
+   "group": "sec",
+   "materials": [
+    "10.5cm SKC034"
+   ],
+   "cluster": {
+    "gap": 0.3,
+    "min_tris": 500
+   },
+   "split": true,
+   "barrel_len": 3
+  },
+  {
+   "id": "d105b",
+   "type": "sec105",
+   "cal": 105,
+   "group": "sec",
+   "materials": [
+    "10.5cm SKC33 B001"
+   ],
+   "cluster": {
+    "gap": 0.3,
+    "min_tris": 500
+   },
+   "split": true,
+   "barrel_len": 3
+  },
+  {
+   "id": "a37",
+   "type": "t37",
+   "cal": 37,
+   "group": "aa",
+   "materials": [
+    "38cm SKC033"
+   ],
+   "cluster": {
+    "gap": 0.3,
+    "min_tris": 500
+   },
+   "facing": "mass"
+  },
+  {
+   "id": "a20",
+   "type": "o20",
+   "cal": 20,
+   "group": "aa",
+   "materials": [
+    "20mm Flak 048"
+   ],
+   "cluster": {
+    "gap": 0.1,
+    "min_tris": 100
+   },
+   "facing": "mass"
+  },
+  {
+   "id": "q20",
+   "type": "q20",
+   "cal": 20,
+   "group": "aa",
+   "materials": [
+    "20mm Flak Veirling"
+   ],
+   "cluster": {
+    "gap": 0.1,
+    "min_tris": 100
+   },
+   "facing": "mass"
+  }
+ ]
+}

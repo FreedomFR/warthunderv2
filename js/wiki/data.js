@@ -1,6 +1,6 @@
 // Data adapter of the wiki: reads the same spec sheets as the game (js/game/data, js/game/model/planes.js) and turns them into
 // display records (French labels, number formatting, tiers, statistic sections). Nothing is copied: the wiki never goes out of date.
-import { ALL_SHIPS, NATIONS, TYPES, typeName } from '../game/data/ships.js';
+import { ALL_SHIPS, NATIONS, ALL_NATIONS, TYPES, typeName } from '../game/data/ships.js';
 import { PLANES, floatplaneSpec, planeTypeFor } from '../game/model/planes.js';
 import { PERF } from '../game/sim/airperf.js';
 import { shipName, ROLE_NAMES } from '../viewer/subjects.js';
@@ -13,7 +13,7 @@ import { planeGuns } from '../game/model/planeGuns.js';
 
 const EXPLOSIVE_NAMES = { tnt: 'TNT', hexanite: 'hexanite', hbx: 'HBX', torpex: 'Torpex' };
 
-export { NATIONS, TYPES, typeName, shipName, ROLE_NAMES };
+export { NATIONS, ALL_NATIONS, TYPES, typeName, shipName, ROLE_NAMES };
 
 // ---- number formatting (French) ----
 const fmts = new Map();
@@ -165,10 +165,11 @@ export function shipSections(rec) {
     add('msl', 'Missiles', s.missiles.flatMap((m) => {
       const sam = m.kind === 'sam';
       return [
-        row(s, `${m.name}`, `${fr(m.count, 0)}${NB}missiles · ${sam ? 'contre les avions' : 'contre les navires (torpille Mk 46 larguée)'}`),
+        row(s, `${m.name}`, `${fr(m.count, 0)}${NB}missiles · ${sam ? 'contre les avions' : m.kind === 'ssm' ? ((m.targets || []).includes('base') ? 'contre les navires et les bases (vol rasant, ' : 'contre les navires (vol rasant, ') + `ogive de ${fr(m.warheadKg, 0)}${NB}kg)` : 'contre les navires (torpille Mk 46 larguée)'}`),
         row(s, `Portée (${m.name})`, `${fr(m.minRangeM / 1000, 1)} à ${fr(m.maxRangeM / 1000, 1)}${NB}km`),
         row(s, `Cadence (${m.name})`, `${fr(m.salvo, 0)}${NB}${plural(m.salvo, 'missile', 'missiles')} toutes les ${fr(m.cycleS, 0)}${NB}s`),
         sam ? row(s, `Guidage (${m.name})`, `radar semi-actif, ${fr(m.channels, 0)}${NB}cibles à la fois`) : null,
+        m.kind === 'ssm' ? row(s, `Vitesse (${m.name})`, `${fr(m.speedMs * 3.6, 0)}${NB}km/h (Mach ${fr(m.speedMs / 340, 2)}), à ${fr(m.altM, 0)}${NB}m au-dessus de l'eau`) : null,
       ];
     }));
   }
@@ -246,7 +247,7 @@ export function aircraftSections(a) {
   const s = a.spec, pf = a.key.startsWith('plane:') ? PERF[a.key.slice(6)] : null, kmh = (v) => unit(Math.round(v * 3.6 / 5) * 5, 'km/h', 0);
   const level = s.role === 'level';
   const rows = [
-    ['Nation', NATIONS.find((n) => n.id === s.nation).name],
+    ['Nation', ALL_NATIONS.find((n) => n.id === s.nation).name],
     ['Rôle', a.roleName],
     ['Configuration', (s.kind === 'bi' ? 'biplan' : 'monoplan') + (s.engines ? `, ${s.engines.length}${NB}moteurs ${ENGINE_KIND[s.engine.type] || ''}` : '')],
     ['Longueur', unit(s.L, 'm', 2)],

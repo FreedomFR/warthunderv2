@@ -21,10 +21,13 @@ import * as CLEVELAND_V4 from './ships/cleveland_v4.js';
 import * as BALTIMORE_V4 from './ships/baltimore_v4.js';
 import * as FANTASQUE_V4 from './ships/fantasque_v4.js';
 import * as ESSEX_V4 from './ships/essex_v4.js';
+import * as BISMARCK_V4 from './ships/bismarck_v4.js';
+import * as TIRPITZ_V4 from './ships/tirpitz_v4.js';
 import { TADE_PB39_AA, KAGERO_1944_AA, SHOKAKU_1944_AA, GIOBERTI_1940_AA, GIOBERTI_1942_AA } from './ships/variants_aa.js';
 import { VARIANTS } from '../data/variants.js';
 import { GIOBERTI } from './ships/gioberti.js';
 import { ADAMS } from './ships/adams.js';
+import { HAWAII } from './ships/hawaii.js';
 import { YAMATO } from './ships/yamato.js';
 
 /**
@@ -133,7 +136,7 @@ function s30Extras({ b, hull, X, Y, pal, model, MAT, rgb, shade, part, PT, note,
 export const TWEAKS = {
   // the ships measured on reference models have a file each (ships/): they are refined one at a time
   graf_spee: GRAF_SPEE,
-  tade: TADE, gioberti: GIOBERTI, adams: ADAMS,
+  tade: TADE, gioberti: GIOBERTI, adams: ADAMS, hawaii: HAWAII,
   // S-30 class Schnellboot, measured in metres on orthographic views (side, plan, front, stern, sections every metre) of a reference model of the boat ("S30 S61 (War Thunder) Ninth Wave", KojfDiscord,
   // CC BY 4.0; used to measure only, nothing of it is in the repository): the hull 32.77 m from the stem to the transom, 4.9 m at the waterline and 5.2 m at the deck, a keel 1.5 m below the waterline
   // that runs up to the stem and, abaft 0.86, to a stern 0.6 m shallower; the deck 2.0 m above the water amidships and aft, 1.5 m at the quarterdeck, up to 2.75-2.9 m on the turtleback forecastle
@@ -847,13 +850,15 @@ export const TWEAKS = {
   // the athwartships catapult between the funnel and the hangars, the mainmast rising from the after hangar.
   bismarck: {
     mainVariant: 'drh34', secVariant: ['drh28_150'], dirKind: 'drum', houseH: 3.5, bulwarkF: [0, 0],
-    // three shafts: the centre screw further aft than the wing ones, twin rudders, as drawn on the profile (athwartship positions estimated)
-    props: [{ f: 0.928, depth: 6.5, d: 4.7, blades: 3, toF: 0.86 }, { f: 0.900, z: 8.0, depth: 6.2, d: 4.7, blades: 3, toF: 0.83, strutF: 0.885 }],
-    rudders: [{ f: 0.945, z: 3.7, top: 2.4, bottom: 6.8, chord: 4.8 }],
-    keel: [[0, 0.9], [0.04, 1], [0.86, 1], [0.9, 0.86], [0.91, 0.32], [0.95, 0.2], [0.98, 0.02], [1, 0.0]],   // as drawn
+    // three screws and the twin rudders where the model has them (its shafts and brackets stay drawn; its own screws and rudders are left out)
+    props: [{ f: 0.9069, depth: 10.0, d: 4.8, blades: 3, toF: 0.874 }, { f: 0.894, z: 5.4, depth: 10.0, d: 4.8, blades: 3, toF: 0.82 }],
+    rudders: [{ f: 0.934, z: 2.65, top: 4.8, bottom: 12.3, chord: 4.8, t: 0.4 }],
+    keel: [[0, 0], [0.042, 0.97], [0.083, 0.97], [0.5, 1], [0.75, 0.97], [0.875, 0.96], [0.917, 0.35], [0.958, 0.17], [1, 0]],   // measured on the reference model (flat keel at its draft of 12.7 m)
+    planDeck: [[0, 0.019], [0.042, 0.208], [0.083, 0.361], [0.125, 0.495], [0.167, 0.595], [0.208, 0.671], [0.25, 0.759], [0.292, 0.833], [0.333, 0.898], [0.375, 0.951], [0.417, 0.987], [0.458, 1.007], [0.5, 1.01], [0.542, 1.01], [0.583, 1.006], [0.625, 0.994], [0.667, 0.955], [0.708, 0.91], [0.75, 0.844], [0.792, 0.767], [0.833, 0.677], [0.875, 0.586], [0.917, 0.458], [0.958, 0.298], [1, 0.003]],
+    planWL: [[0, 0], [0.042, 0.166], [0.083, 0.311], [0.125, 0.436], [0.167, 0.531], [0.208, 0.597], [0.25, 0.679], [0.292, 0.73], [0.333, 0.786], [0.375, 0.841], [0.417, 0.861], [0.458, 0.872], [0.5, 0.872], [0.542, 0.872], [0.583, 0.872], [0.625, 0.865], [0.667, 0.843], [0.708, 0.812], [0.75, 0.772], [0.792, 0.727], [0.833, 0.657], [0.875, 0.571], [0.917, 0.444], [0.958, 0.253], [1, 0]],      // the deck edge and the waterline of the reference model
     bow: { rake: 6.5, pr: 1.42, forefoot: 1.8 },   // Atlantic bow: the stem meets the waterline at 2.6 %, the forefoot 1.8 m further aft
-    // freeboards at the full-load draft of 9.9 m (the profile is drawn at about 8.5 m: 1.36 m less here, for the real moulded depth of 15 m)
-    fb: [[0, 9.54], [0.03, 8.44], [0.06, 7.54], [0.115, 6.34], [0.172, 5.84], [0.258, 5.64], [0.5, 5.24], [0.75, 5.34], [0.87, 5.54], [1, 6.54]],
+    // deck edge measured on the reference model, drawn on the waterline where its hull has the real freeboard (5.4 m amidships)
+    fb: [[0, 10.5], [0.03, 10.3], [0.06, 8.8], [0.1, 7.6], [0.14, 7.1], [0.2, 6.6], [0.3, 6.1], [0.4, 5.5], [0.5, 5.4], [0.6, 5.6], [0.7, 5.8], [0.8, 6.1], [0.9, 6.5], [0.97, 7.0], [1, 7.3]],
     house: { plan: [[0.331, 5], [0.36, 8.5], [0.70, 8.5], [0.761, 5]] },   // narrow: the 15 cm turrets stand on the deck outboard of it
     decks: [
       { f: [0.331, 0.455], hw: 7.5, y: [3.5, 8.9], rake: 1.5, windows: true },                         // forward superstructure
@@ -899,12 +904,79 @@ export const TWEAKS = {
     // boats as drawn: the two big motor launches on the hangar roof, a launch on the searchlight deck abaft the tower, a cutter on
     // the deck beside the forward superstructure (athwartship positions estimated: no plan view)
     boats: [{ f0: 0.553, f1: 0.604, z: 4.5, y: 8.7, cabin: true }, { f0: 0.455, f1: 0.48, z: 4, y: 10.2 }, { f0: 0.418, f1: 0.446, z: 10, y: 1.5 }],
-    // light AA as drawn on the profile (May 1941): eight twin 3.7 cm, the two quadruple 2 cm on the foretop platform, single 2 cm
-    aa: [
-      { k: 't37', f: 0.44, z: 7, y: 14.5 }, { k: 't37', f: 0.345, z: 6.5, y: 5.5 }, { k: 't37', f: 0.62, z: 6, y: 7.7 }, { k: 't37', f: 0.695, z: 6, y: 3.5 },
-      { k: 'q20', f: 0.42, z: 4.5, y: 20.2 },
-      { k: 'f20', f: 0.315, z: 7, y: 3.5 }, { k: 'f20', f: 0.38, z: 6, y: 12.0 }, { k: 'f20', f: 0.50, z: 7.5, y: 8.9 }, { k: 'f20', f: 0.773, z: 8, y: 0 },
+    v4: BISMARCK_V4, aa: [],      // hull, structure and parts from the reference model; its guns are the model's (4 twin 38 cm, 6 twin 15 cm, 4 of the 8 twin 10.5 cm, 4 of the 8 twin 3.7 cm, 10 single and 4 quadruple 2 cm)
+    // the 1941 fit (8 twin 10.5 cm, 8 twin 3.7 cm, 12 single and 2 quadruple 2 cm): the two quadruple mounts the model has on the bow superstructure are left out (the real ship had two, on the foretop platform)
+    dropPlacements: ['q20#2', 'q20#3'],
+    // the four twin 10.5 cm the model lacks (8 on the real ship, 4 a side): on the free flak deck abaft the funnel, places and not measurements
+    mountAt: [{ group: 'sec', cal: 105, x: -4.5, y: 8.4, z: 11.6, yaw: 90, kind: 'd105' }, { group: 'sec', cal: 105, x: -4.5, y: 8.4, z: -11.6, yaw: -90, kind: 'd105' }, { group: 'sec', cal: 105, x: -31, y: 8.2, z: 15.5, yaw: 90, kind: 'd105' }, { group: 'sec', cal: 105, x: -31, y: 8.2, z: -15.5, yaw: -90, kind: 'd105' }],
+    // the light mounts the model lacks (4 twin 3.7 cm, 2 single 2 cm), on free deck: places and not measurements
+    aaAt: [{ k: 't37', x: 61.75, y: 8.5, z: 12.25 }, { k: 't37', x: 61.75, y: 8.5, z: -12.25 }, { k: 't37', x: 38.9, y: 8.5, z: 14.75 }, { k: 't37', x: 38.9, y: 8.5, z: -14.75 }, { k: 'f20', x: 16.25, y: 7.5, z: 16.75 }, { k: 'f20', x: 16.25, y: 7.5, z: -16.75 }],
+    // the athwartships catapult on the aircraft deck; a crane each side of the funnel, its jib raised forward
+    cat: { f: 0.538, y: 5.8, yaw: Math.PI / 2, len: 30, craneF: 0.527, craneY: 3.5, craneZ: 9, craneBoth: true, craneH: 3, craneLen: 27.9, craneDir: 1, craneAng: 0.87, craneSide: 0, craneW: 0.8 },
+  },
+  // Tirpitz (1944 fit, Norway): the sister of the Bismarck drawn from a reference model of her own (v4): deck edge, waterline and keel measured on it (its hull is drawn on the waterline where the
+  // real ship had her 9.5 m draft: the freeboard is 5.4 m amidships), the procedural superstructure (clearances of the guns) kept from the sister's drawing, whose tower, funnel and masts stand at
+  // the same places within a metre or two. Eight 53.3 cm tubes in two quadruple mounts abaft the funnel (the model's tube houses), 16 x 10.5 cm and 16 x 3.7 cm as the model has them.
+  tirpitz: {
+    mainVariant: 'drh34', secVariant: ['drh28_150'], dirKind: 'drum', houseH: 3.5, bulwarkF: [0, 0],
+    // three screws and the twin rudders where the model has them (its shafts and brackets stay drawn; its own screws and rudders are left out)
+    props: [{ f: 0.9127, depth: 9.7, d: 3.9, blades: 3, toF: 0.86 }, { f: 0.8868, z: 8.6, depth: 9.1, d: 3.9, blades: 3, toF: 0.82 }],
+    rudders: [{ f: 0.9338, z: 3.42, top: 5.4, bottom: 10.1, chord: 6.1, t: 0.5 }],
+    keel: [[0, 0], [0.042, 0.97], [0.083, 0.97], [0.5, 1], [0.792, 0.97], [0.875, 0.96], [0.917, 0.85], [0.958, 0.42], [1, 0]],   // measured on the reference model
+    planDeck: [[0, 0.027], [0.042, 0.173], [0.083, 0.301], [0.125, 0.445], [0.167, 0.55], [0.208, 0.647], [0.25, 0.732], [0.292, 0.805], [0.333, 0.873], [0.375, 0.937], [0.417, 0.973], [0.458, 0.992], [0.5, 1], [0.542, 1], [0.583, 0.983], [0.625, 0.957], [0.667, 0.92], [0.708, 0.877], [0.75, 0.811], [0.792, 0.737], [0.833, 0.648], [0.875, 0.54], [0.917, 0.418], [0.958, 0.269], [1, 0.003]],
+    planWL: [[0, 0], [0.042, 0.056], [0.083, 0.173], [0.125, 0.31], [0.167, 0.454], [0.208, 0.591], [0.25, 0.7], [0.292, 0.785], [0.333, 0.862], [0.375, 0.934], [0.417, 0.97], [0.458, 0.988], [0.5, 0.997], [0.542, 0.997], [0.583, 0.98], [0.625, 0.954], [0.667, 0.917], [0.708, 0.875], [0.75, 0.81], [0.792, 0.736], [0.833, 0.646], [0.875, 0.527], [0.917, 0.403], [0.958, 0.248], [1, 0]],      // the deck edge and the waterline of the reference model
+    bow: { rake: 6.5, pr: 1.42, forefoot: 1.8 },   // Atlantic bow: the stem meets the waterline at 2.6 %, the forefoot 1.8 m further aft
+    // deck edge measured on the reference model, drawn on the waterline where its hull has the real freeboard (5.4 m amidships)
+    fb: [[0, 8.0], [0.03, 7.9], [0.06, 7.6], [0.1, 7.1], [0.2, 6.3], [0.3, 5.7], [0.4, 5.5], [0.5, 5.5], [0.7, 5.5], [0.8, 5.7], [0.9, 6.0], [0.97, 6.3], [1, 6.3]],
+    house: { plan: [[0.331, 5], [0.36, 8.5], [0.70, 8.5], [0.761, 5]] },   // narrow: the 15 cm turrets stand on the deck outboard of it
+    decks: [
+      { f: [0.331, 0.455], hw: 7.5, y: [3.5, 8.9], rake: 1.5, windows: true },                         // forward superstructure
+      { f: [0.36, 0.405], hw: 7, y: [8.9, 13.2], rake: 0.8, windows: true, wings: 1.8, rail: true },   // forward bridge
+      { f: [0.47, 0.484], hw: 3, y: [8.9, 15.8] },                                                      // searchlight tower abaft the tower
+      { f: [0.466, 0.488], hw: 4.5, y: [15.8, 16.6] },
+      { f: [0.475, 0.53], hw: 7, y: [3.5, 8.9] },                                                       // funnel casing
+      { f: [0.53, 0.555], hw: 7.5, y: [3.5, 5.8] },                                                     // aircraft deck (catapult)
+      { f: [0.555, 0.635], hw: 7.5, y: [3.5, 7.7] },                                                    // hangars
+      { f: [0.598, 0.614], round: true, hw: 2.5, y: [7.7, 12.0], taper: 0.9 },                        // after searchlight / control position
+      { f: [0.62, 0.635], hw: 7, y: [3.5, 7.7] },
+      { f: [0.635, 0.665], hw: 7, y: [3.5, 9.1], windows: true },                                       // after superstructure
+      { f: [0.665, 0.68], hw: 6, y: [3.5, 7.7] },
+      { f: [0.68, 0.70], hw: 6, y: [3.5, 9.1], rakeA: 1.0 },
+      { f: [0.637, 0.662], hw: 5, y: [9.1, 13.4], windows: true },
+      { f: [0.641, 0.651], round: true, hw: 2.6, y: [13.4, 17.7], taper: 0.9 },                       // after fire control tower
     ],
+    // the tower: its front steps back as it rises (front at 0.405 / 0.408 / 0.416 / 0.42 / 0.432), the foretop cupola at 0.44
+    towerF: 0.433, towerY0: 8.9,
+    tiers: [
+      { len: 14.3, w: 9, h: 5.4, dx: -0.13, rake: 0.8, windows: true },                                // admiral's bridge
+      { len: 16.3, w: 12, h: 0.8, dx: 0.13, windows: false },
+      { len: 13, w: 8, h: 5.6, dx: -0.25, round: true, taper: 0.9 },                                  // tower
+      { len: 15, w: 12, h: 1.2, dx: -0.5, windows: false },                                           // searchlight platform
+      { len: 11, w: 7, h: 2.6, dx: -1.25, round: true, taper: 0.92 },
+      { len: 10, w: 7.5, h: 1.0, dx: -1.76, windows: false },
+    ],
+    dir0: { dx: -1.76, w: 6, l: 4, h: 2.9 },
+    foremast: { dx: -8.5, y0: 16.3 },
+    // the funnel cap slopes down 4 m from its forward to its after edge
+    funnels: [{ lx: 11.5, lz: 7.5, y0: 3.5, h: 16.3, rake: 1.0, top: 0.92, capSlope: 4.0, pipes: false }],
+    mastY0: { 1: 7.7 },
+    directors: [
+      { f: 0.394, y: 13.2, kind: 'drum', w: 5.8, l: 3, h: 2.6, label: 'Télémètre avant' },
+      { f: 0.646, y: 17.7, kind: 'drum', w: 5.8, l: 3.5, h: 2.6, label: 'Télémètre arrière' },
+      { f: 0.606, y: 12.0, kind: 'drum', w: 3.6, l: 2.6, h: 1.8, label: 'Poste de tir arrière' },
+      // the four stabilised AA directors (SL-8) under their domes: abreast the tower and abreast the front of the funnel
+      { f: 0.43, z: 6.5, y: 9.7, kind: 'dome', w: 4.5, h: 4.5, label: 'Directeur antiaérien SL-8 tribord avant' },
+      { f: 0.43, z: -6.5, y: 9.7, kind: 'dome', w: 4.5, h: 4.5, label: 'Directeur antiaérien SL-8 bâbord avant' },
+      { f: 0.495, z: 5, y: 14.7, kind: 'dome', w: 4, h: 3.6, label: 'Directeur antiaérien SL-8 tribord arrière' },
+      { f: 0.495, z: -5, y: 14.7, kind: 'dome', w: 4, h: 3.6, label: 'Directeur antiaérien SL-8 bâbord arrière' },
+    ],
+    // boats as drawn: the two big motor launches on the hangar roof, a launch on the searchlight deck abaft the tower, a cutter on
+    // the deck beside the forward superstructure (athwartship positions estimated: no plan view)
+    boats: [{ f0: 0.553, f1: 0.604, z: 4.5, y: 8.7, cabin: true }, { f0: 0.455, f1: 0.48, z: 4, y: 10.2 }, { f0: 0.418, f1: 0.446, z: 10, y: 1.5 }],
+    v4: TIRPITZ_V4, aa: [],      // hull, structure and parts from the reference model; its guns are the model's (4 twin 38 cm, 6 twin 15 cm, 8 twin 10.5 cm, 8 twin 3.7 cm, 12 single and 8 quadruple 2 cm)
+    tubeAt: [[-14.8, 6.5, -16.1], [-14.8, 6.5, 16.1]],      // the two quadruple 53.3 cm mounts, where the reference model has them (a little outboard of their houses)
+    // the model has 12 single and 8 quadruple 2 cm (44 barrels); the sheet has 58: twelve more singles on free deck (places, not measurements)
+    aaAt: [{ k: 'f20', x: 98.75, y: 7, z: 5.25 }, { k: 'f20', x: -99.75, y: 6.5, z: -7.75 }, { k: 'f20', x: -91.25, y: 6, z: 9.25 }, { k: 'f20', x: 87.75, y: 7, z: -7.75 }, { k: 'f20', x: 83.75, y: 6.5, z: 8.75 }, { k: 'f20', x: 61.75, y: 6, z: -12.25 }, { k: 'f20', x: 61.75, y: 6, z: 12.25 }, { k: 'f20', x: -85.25, y: 6, z: -10.25 }, { k: 'f20', x: -79.25, y: 6, z: 11.25 }, { k: 'f20', x: 76.25, y: 6.5, z: -10.25 }, { k: 'f20', x: 72.25, y: 6.5, z: 10.75 }, { k: 'f20', x: -74.75, y: 6, z: -11.75 }],
     // the athwartships catapult on the aircraft deck; a crane each side of the funnel, its jib raised forward
     cat: { f: 0.538, y: 5.8, yaw: Math.PI / 2, len: 30, craneF: 0.527, craneY: 3.5, craneZ: 9, craneBoth: true, craneH: 3, craneLen: 27.9, craneDir: 1, craneAng: 0.87, craneSide: 0, craneW: 0.8 },
   },
@@ -1074,6 +1146,14 @@ const VARIANT_TWEAKS = {
   tade_pb39: { noTubes: true, v4Drop: ['tubes0', 'tubes1'], aaAt: TADE_PB39_AA, dropPlacements: ['m2'] },
   kagero_1944: { aaAt: KAGERO_1944_AA, dropPlacements: ['m1'], v4Clean: [{ x: -27.2, z: 0, r: 2.7, y0: 5.6, maxArea: 1.5 }, { x: -27.2, z: 0, r: 4.4, y0: 5.6, maxArea: 0.12 }] },      // the roller path of the X turret
   shokaku_1944: { aaAt: SHOKAKU_1944_AA },
+  // the Iowa of 1991: the 40 and 20 mm landed, four of the ten 5-inch mounts landed (the outer ones, where the armoured box launchers stand), the catapults gone; the launchers and the Phalanx are put by hand (estimated places, free deck of the model)
+  missouri_1991: { aa: [], aaCap: null, dropAA: true, dropPlacements: ['s127#3', 's127#4', 's127#7', 's127#8'], v4Drop: ['cat0', 'cat1', 'crane'], v4Clean: [{ x: -113, z: 0, r: 29, y0: 6.6, maxArea: 80 }],      // the catapults and the aircraft on the fantail
+    aaAt: [{ k: 'p20', x: 20.5, y: 8.7, z: -11.5 }, { k: 'p20', x: 20.9, y: 8.7, z: 11.5 }, { k: 'p20', x: -130.7, y: 6.1, z: 4.4 }, { k: 'p20', x: -130.7, y: 6.1, z: -4.2 }],
+    launchers: [  // free deck found with tools/refs/freespots.mjs (a flat patch of 6 x 2.6 m with open air above); the places are estimated
+      { sys: 'tomahawk', kind: 'abl', x: -34, y: 5, z: 13.5, yaw: 180 }, { sys: 'tomahawk', kind: 'abl', x: -39, y: 5, z: 13, yaw: 180 }, { sys: 'tomahawk', kind: 'abl', x: -44, y: 5, z: 12, yaw: 180 }, { sys: 'tomahawk', kind: 'abl', x: -57.5, y: 5, z: 12, yaw: 180 },
+      { sys: 'tomahawk', kind: 'abl', x: -34, y: 5, z: -15, yaw: 180 }, { sys: 'tomahawk', kind: 'abl', x: -39, y: 5, z: -15, yaw: 180 }, { sys: 'tomahawk', kind: 'abl', x: -44, y: 5, z: -15, yaw: 180 }, { sys: 'tomahawk', kind: 'abl', x: -58, y: 5, z: -13, yaw: 180 },
+      { sys: 'harpoon', kind: 'mk141', x: -67.5, y: 10, z: 2.5, yaw: 180 }, { sys: 'harpoon', kind: 'mk141', x: -67.5, y: 10, z: -2.5, yaw: 180 }, { sys: 'harpoon', kind: 'mk141', x: -57, y: 5.5, z: 5.5, yaw: 180 }, { sys: 'harpoon', kind: 'mk141', x: -57.5, y: 5.5, z: -7.5, yaw: 180 },
+    ] },
   gioberti_1940: { aa: [], aaAt: GIOBERTI_1940_AA, dropPlacements: ['13mm_Breda_1931_Twin#0', '13mm_Breda_1931_Twin#1', '13mm_Breda_1931_Twin#2', '13mm_Breda_1931_Twin#3'] },
   gioberti_1942: { aa: [], aaAt: GIOBERTI_1942_AA, dropPlacements: ['13mm_Breda_1931_Twin#0', '13mm_Breda_1931_Twin#1', '13mm_Breda_1931_Twin#2', '13mm_Breda_1931_Twin#3', '120mm-15_StarShell#0'], v4Drop: ['533mm_Torpedo_Triple#0'], dropTubesWhere: (t) => t.x < -15 },
 };
