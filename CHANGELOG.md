@@ -2,6 +2,7 @@
 
 ## Unreleased — the hitches in the trees
 
+- Phone: the menu has a **Recharge** entry that hides (and brings back) the reload gauges of the followed ship; the choice is kept for the next visit.
 - The drops seen when the camera showed trees, and the jumps when it turned, had two causes (`tools/vegperf.mjs` measures them on the GPU: a camera in the trees, still and turning, a camera following a ship off the shore, the pass times, what the plants draw):
   - **The GPU meshes of a ship were made the first time it came into view**: the Kagero took 183 ms, the Yamato 111 ms, the Fletcher 25 ms (models of 6 MB of triangles). Now `Game.warmVisuals()` makes the meshes of the ships and of the aircraft of the battle while it is being set up, and `VegetationVisuals.warm()` the plant templates (30 ms each the first time).
   - **The distant forest was drawn with far too many triangles** (4.9 million in a view along a wooded shore, 8 ms of the main pass over a view without trees; small triangles are the slow ones on the GPU): the cells past 550 m keep 45 % of their plants and past 900 m 22 %, the super-cells keep 55 % up to 1.7 km, 28 % up to 3.2 km, 12 % beyond, their lumps grown to match. The same view draws 2.4 million, the main pass takes 6.4 ms instead of 11.1 (3 without trees), and the picture is the same to the eye.
