@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased — the hitches in the trees
+
+- The drops seen when the camera showed trees, and the jumps when it turned, had two causes (`tools/vegperf.mjs` measures them on the GPU: a camera in the trees, still and turning, a camera following a ship off the shore, the pass times, what the plants draw):
+  - **The GPU meshes of a ship were made the first time it came into view**: the Kagero took 183 ms, the Yamato 111 ms, the Fletcher 25 ms (models of 6 MB of triangles). Now `Game.warmVisuals()` makes the meshes of the ships and of the aircraft of the battle while it is being set up, and `VegetationVisuals.warm()` the plant templates (30 ms each the first time).
+  - **The distant forest was drawn with far too many triangles** (4.9 million in a view along a wooded shore, 8 ms of the main pass over a view without trees; small triangles are the slow ones on the GPU): the cells past 550 m keep 45 % of their plants and past 900 m 22 %, the super-cells keep 55 % up to 1.7 km, 28 % up to 3.2 km, 12 % beyond, their lumps grown to match. The same view draws 2.4 million, the main pass takes 6.4 ms instead of 11.1 (3 without trees), and the picture is the same to the eye.
+
 ## Unreleased — nothing has hit points any more
 
 - **Ships are lost to the water, to their structure and to their crew** (`sim/hull.js`, new). Every blow to the hull (shell, torpedo, bomb, burst, collision) opens a **hole** where it lands; a hole lets the water in only when it is under the waterline (a shell hole six metres up leaks when the ship has settled or heeled down to it); the shocks also wear the compartment's structure, and every quarter of a break opens a leak at the waterline. The water fills a compartment, then passes to its neighbours; damage control patches the leaks that run. **She is lost when the water takes her reserve of buoyancy** (30 % of the compartments for a destroyer, 50 % for a battleship), when she heels over too long, when her back breaks (two broken, flooded compartments amidships) or when her magazines go up. The `hp` of a ship is gone: `ship.condition` (reserve of buoyancy and crew) only serves the AI, the camera and the interface; `stats.hullStrength` (the old `maxHp`) stays as the scale of the blows and holes.
