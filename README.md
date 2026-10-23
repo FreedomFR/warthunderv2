@@ -22,7 +22,7 @@ fiche technique : aucun fichier de modèle 3D, aucun fichier audio.
 
 Il faut un Chrome (ou Edge) récent avec WebGPU et une carte graphique correcte.
 
-1. **Ouvrir `naval.html`** : un fichier autonome, il marche depuis le disque, sans serveur.
+1. **Ouvrir la page en ligne** : <https://freedomfr.github.io/warthunderv2/> (la version de `dev` est dans `/dev/`). Ou le fichier autonome `naval.html`, qui marche depuis le disque, sans serveur : il n'est plus dans le dépôt (trop gros pour GitHub), il est dans les *Releases* ou se construit avec `npm install` puis `npm run build`.
    (Depuis les sources : `npm install`, puis `npm start` et <http://localhost:8080/>.)
 2. Dans le panneau de gauche, choisir un scénario puis **Charger** (ou composer les équipes soi-même), puis **Faire apparaître les flottes**.
 3. Changer de caméra avec les touches `1` à `9`, regarder les navires de près, puis **Lancer le combat** : tous les navires sont pilotés par l'IA,
@@ -152,7 +152,7 @@ npm test                   # modèles, dégâts, son, aviation, batailles compl�
 npm run test:fast          # les tests rapides seulement (environ 25 s) : à lancer après chaque modification
 npm run lint               # ESLint : les noms qui n'existent pas dans des chemins que les tests n'exécutent pas
 npm run map                # régénère docs/CODEMAP.md, le plan du code (un fichier par ligne)
-npm run build              # régénère naval.html, la version en un seul fichier (esbuild)
+npm run build              # construit naval.html (non commité), la version en un seul fichier (esbuild)
 npm run check:shaders      # compile les shaders avec un vrai WebGPU (le serveur doit tourner)
 npm run smoke              # test de fumée dans le navigateur (le serveur doit tourner)
 ```

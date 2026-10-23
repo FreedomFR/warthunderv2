@@ -88,8 +88,8 @@ const run = (w, secs, f) => { const n = Math.round(secs / 0.1); for (let i = 0; 
   const w = new World(5); w.addTeam(0); w.addTeam(1);
   // the enemy: a battleship with two cruisers 3 km to the west of it, on the side the strike comes from
   const bb = w.addShip('yamato', 1, 0, 0, 0, { speed: 0, throttle: 0 });
-  w.addShip('cleveland', 1, -3000, -600, 0, { speed: 0, throttle: 0 });
-  w.addShip('cleveland', 1, -3200, 700, 0, { speed: 0, throttle: 0 });
+  w.addShip('norfolk', 1, -3000, -600, 0, { speed: 0, throttle: 0 });
+  w.addShip('norfolk', 1, -3200, 700, 0, { speed: 0, throttle: 0 });
   w.addShip('fletcher', 0, -40000, 0, 0, { speed: 0, throttle: 0 });
   const from = { x: -22000, z: 0 };
   const a = chooseApproach(w, 0, from, bb, 'torp', []);

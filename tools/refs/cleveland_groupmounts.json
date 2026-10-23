@@ -1,0 +1,142 @@
+{
+ "ship": "Cleveland",
+ "elements": [
+  {
+   "id": "t152a",
+   "type": "main",
+   "cal": 152,
+   "group": "main",
+   "template": {
+    "x": 57.07,
+    "z": 0,
+    "y": 8.81,
+    "x_range": [
+     -3.5,
+     10.0
+    ],
+    "z_range": [
+     -4.6,
+     4.6
+    ],
+    "below": 2.3,
+    "above": 3.5,
+    "min_part_tris": 1,
+    "materials": [
+     "152mm_Mk16_Triple"
+    ]
+   },
+   "split": true,
+   "barrel_len": 4.0,
+   "min_part_tris": 1
+  },
+  {
+   "id": "t152b",
+   "type": "main",
+   "cal": 152,
+   "group": "main",
+   "template": {
+    "x": 44.62,
+    "z": 0,
+    "y": 11.04,
+    "x_range": [
+     -3.5,
+     10.0
+    ],
+    "z_range": [
+     -4.6,
+     4.6
+    ],
+    "below": 2.3,
+    "above": 3.5,
+    "min_part_tris": 1,
+    "materials": [
+     "152mm_Mk16_Triple"
+    ]
+   },
+   "split": true,
+   "barrel_len": 4.0,
+   "min_part_tris": 1
+  },
+  {
+   "id": "s127",
+   "type": "sec",
+   "cal": 127,
+   "group": "sec",
+   "layout_match": {
+    "group": "sec",
+    "cal": 127
+   },
+   "x_range": [
+    -5,
+    8
+   ],
+   "radius_z": 6,
+   "below": 5.2,
+   "above": 4.5,
+   "min_part_tris": 1,
+   "materials": [
+    "127mm_Mk28_Twin"
+   ],
+   "split": true,
+   "barrel_len": 2.0
+  },
+  {
+   "id": "q40",
+   "type": "q40",
+   "cal": 40,
+   "group": "aa",
+   "materials": [
+    "40mm_Bofors"
+   ],
+   "cluster": {
+    "gap": 0.3,
+    "min_tris": 2000
+   },
+   "facing": "thin",
+   "thin_len": 0.9
+  },
+  {
+   "id": "o20",
+   "type": "o20",
+   "cal": 20,
+   "group": "aa",
+   "materials": [
+    "20mm_Oerlikon"
+   ],
+   "cluster": {
+    "gap": 0.1,
+    "min_tris": 300
+   },
+   "facing": "thin",
+   "thin_len": 0.6,
+   "skip_box": [
+    27.0,
+    30.0,
+    -8,
+    8
+   ]
+  },
+  {
+   "id": "o20t",
+   "type": "o20",
+   "cal": 20,
+   "group": "aa",
+   "materials": [
+    "20mm_Oerlikon"
+   ],
+   "cluster": {
+    "gap": 0.1,
+    "min_tris": 300
+   },
+   "facing": "thin",
+   "thin_len": 0.6,
+   "only_box": [
+    27.0,
+    30.0,
+    -8,
+    8
+   ]
+  }
+ ],
+ "layout": "refs/cleveland_v7/layout.json"
+}

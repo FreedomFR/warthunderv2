@@ -16,6 +16,11 @@ import * as RICHELIEU_V4 from './ships/richelieu_v4.js';
 import * as FLETCHER_V4 from './ships/fletcher_v4.js';
 import * as BEARN_V4 from './ships/bearn_v4.js';
 import * as GALISSONIERE_V4 from './ships/la_galissoniere_v4.js';
+import * as ALGERIE_V4 from './ships/algerie_v4.js';
+import * as CLEVELAND_V4 from './ships/cleveland_v4.js';
+import * as BALTIMORE_V4 from './ships/baltimore_v4.js';
+import * as FANTASQUE_V4 from './ships/fantasque_v4.js';
+import * as ESSEX_V4 from './ships/essex_v4.js';
 import { TADE_PB39_AA, KAGERO_1944_AA, SHOKAKU_1944_AA, GIOBERTI_1940_AA, GIOBERTI_1942_AA } from './ships/variants_aa.js';
 import { VARIANTS } from '../data/variants.js';
 import { GIOBERTI } from './ships/gioberti.js';
@@ -493,6 +498,12 @@ export const TWEAKS = {
     funnels: [{ lx: 6.0, lz: 3.4, h: 11.0, rake: 0.8, top: 0.95, pipes: false }],
     mastY0: { 1: 8.7 },
     cat: { f: 0.445, z: -7.7, yaw: 0, len: 21, y: 2.6, craneF: 0.545, craneY: 8.5, craneH: 3.0, craneLen: 18.6, craneDir: 1, craneAng: 0.44, craneSide: 0, craneW: 0.7 },
+    aa: [],      // the light mounts come from the model (4 twin 37 mm, 4 quadruple 13.2 mm)
+    v4: ALGERIE_V4,
+    tubeAt: [[-1.19, 5.0, 7.4], [-2.43, 5.0, -7.4]],      // the two triple mounts where the model has them (their height is 1.3 m low: the hand-made deckhouse slab, kept for the solids, spans that deck)
+    // four screws and a rudder where the model has them (the shafts and their brackets are the model's: the game's own shafts are left no length)
+    props: [{ f: 0.9152, z: 3.56, depth: 3.5, d: 3.3, blades: 3, toF: 0.9147 }, { f: 0.8412, z: 6.34, depth: 3.5, d: 3.4, blades: 3, toF: 0.8407 }],
+    rudders: [{ f: 0.9458, top: 0.6, bottom: 5.4, chord: 8.0, t: 0.5 }],
   },
   // Belfast (James Goulding's profile and plan of 1943 for Profile Publications, with a scale bar in feet; shared by the project owner, measured only: 4.7 px per metre, about
   // +-0.5 m): a long forecastle at 9.3 m at the stem and about 8.5 m aft to f 0.775, a quarterdeck at 4.9 m abaft; turrets A / B at 0.158 / 0.211 and X / Y at 0.771 / 0.823
@@ -629,7 +640,9 @@ export const TWEAKS = {
     dir0: { dx: 0, w: 2.0, l: 2.2, h: 1.2 },
     foremast: { dx: 0, y0: 9.2 },
     funnels: [{ lx: 2.9, lz: 2.4, y0: 0.4, h: 8.2, rake: 0.4, top: 0.92, pipes: false }, { lx: 2.9, lz: 2.4, y0: 0.4, h: 8.2, rake: 0.4, top: 0.92, pipes: false }],
-    mastY0: { 1: 4.6 },
+    mastY0: { 1: 4.6 }, aa: [],
+    tubeAt: [[2.4, 5.4, -4.3], [1.1, 5.4, 4.3]],      // the two triples of the 1944 fit, where the reference model has them
+    v4: FANTASQUE_V4,
   },
   // Soldati class (a profile and plan of the Camicia Nera, shared by the project owner, measured only: a small line drawing, 7.1 px per metre scaled to the 106.7 m length, about +-0.6 m):
   // a forecastle at 4.5 m at the stem falling to 3.6 m, the main deck 3.4 m, a quarterdeck at 1.4 m abaft f 0.88; the twin turrets at 0.218 and 0.83; the bridge block 0.26-0.375 (7 m,
@@ -709,7 +722,6 @@ export const TWEAKS = {
       { f: [0.603, 0.655], hw: 4.5, y: [0, 8.7], windows: true },          // after tower, 15.7 m
       { f: [0.615, 0.633], hw: 1.8, y: [8.7, 16.4], taper: 0.8 },          // the radar tower, 23.4 m
       { f: [0.64, 0.69], hw: 4.5, y: [0, 3.0] },                           // 10 m
-      { f: [0.838, 0.965], hw: 5.0, y: [0, 1.9] },                         // hangar roof, 9.6 m
     ],
     towerF: 0.372, towerY0: 14.0,
     tiers: [{ len: 3.0, w: 3.0, h: 0.1 }],
@@ -718,6 +730,13 @@ export const TWEAKS = {
     funnels: [{ lx: 6.0, lz: 4.4, y0: 6.8, h: 11.2, rake: 1.0, top: 0.95, pipes: false }, { lx: 6.0, lz: 4.4, y0: 6.8, h: 10.6, rake: 1.0, top: 0.95, pipes: false }],
     mastY0: { 1: 8.5 },
     cat: { f: 0.9, z: 4.5, yaw: 0, len: 20, y: 2.0, craneF: 0.965, craneY: 1.9, craneH: 7.0, craneLen: 9, craneDir: -1, craneAng: 0.5, craneSide: 0, craneW: 0.7 },
+    v4: CLEVELAND_V4, aa: [],      // hull, structure and parts from the reference model; its light mounts are the model's (aaAt: the ones it lacks)
+    // four screws and the rudder where the model has them (its shafts and brackets stay drawn; its own screws and rudder are left out)
+    props: [{ f: 0.8943, z: 4.7, depth: 5.35, d: 3.2, blades: 4, toF: 0.8938 }, { f: 0.8109, z: 8.2, depth: 5.3, d: 3.2, blades: 4, toF: 0.8104 }],
+    rudders: [{ f: 0.9336, top: 3.0, bottom: 7.3, chord: 7.4, t: 0.3 }],
+    // the light mounts the model lacks to make up the 1944 fit (4 quad + 6 twin 40 mm, 21 x 20 mm): 6 twin 40 mm and 8 single 20 mm on free deck, places and not measurements
+    aaAt: [{ k: 't40', x: 74, y: 7.0, z: 4.5 }, { k: 't40', x: 74, y: 7.0, z: -4.5 }, { k: 't40', x: -84, y: 7.0, z: 3.4 }, { k: 't40', x: -84, y: 7.0, z: -3.4 }, { k: 't40', x: -36, y: 6.6, z: 7.5 }, { k: 't40', x: -36, y: 6.6, z: -7.5 },
+      { k: 'o20', x: 80, y: 7.5, z: 3 }, { k: 'o20', x: 80, y: 7.5, z: -3 }, { k: 'o20', x: 52, y: 6.6, z: 6.5 }, { k: 'o20', x: 52, y: 6.6, z: -6.5 }, { k: 'o20', x: -47, y: 6.6, z: 7.5 }, { k: 'o20', x: -47, y: 6.6, z: -7.5 }, { k: 'o20', x: -30, y: 6.6, z: 7.8 }, { k: 'o20', x: -30, y: 6.6, z: -7.8 }],
   },
   // Baltimore class (Shipbucket drawing of USS Baltimore, Measure 33/16D, October 1944, with a 100 m scale bar and the waterline, plan from the TZoli drawing of the
   // class; shared by the project owner, measured only: 6.5 px per metre, about +-0.4 m): the forecastle 9.0 m at the stem, 7.2 m at f 0.125, 6.3 m from f 0.25 aft; turrets
@@ -753,7 +772,10 @@ export const TWEAKS = {
     foremast: { dx: -2.9, base: 7.0, apex: 0.66, platform: 0.75, spread: 2.6, back: 3.0, front: 1.5 },
     funnels: [{ lx: 6.5, lz: 4.4, y0: 6.8, h: 12.4, rake: 1.2, top: 0.8, pipes: false }, { lx: 5.8, lz: 4.4, y0: 6.8, h: 11.3, rake: 1.2, top: 0.9, pipes: false }],
     mastY0: { 1: 13.0 },
-    cat: { f: 0.885, z: 6.9, yaw: 0, len: 20, y: 1.7, craneF: 0.975, craneY: 0.5, craneH: 8.0, craneLen: 10.5, craneDir: 1, craneAng: 0.1, craneSide: 0, craneW: 0.7 },
+    cat: { f: 0.885, z: 6.9, yaw: 0, len: 20, y: 1.7, craneF: 0.975, craneY: 0.5, craneH: 8.0, craneLen: 10.5, craneDir: 1, craneAng: 0.1, craneSide: 0, craneW: 0.7 },    v4: BALTIMORE_V4, aa: [],      // hull, structure and parts from the reference model; its light mounts are the model's (12 quadruple 40 mm, 24 single 20 mm)
+    // four screws and the rudder where the model has them (its shafts and brackets stay drawn; its own screws and rudder are left out)
+    props: [{ f: 0.9125, z: 3.65, depth: 5.0, d: 3.6, blades: 4, toF: 0.9119 }, { f: 0.8385, z: 7.5, depth: 4.8, d: 3.6, blades: 4, toF: 0.8379 }],
+    rudders: [{ f: 0.9389, top: 2.5, bottom: 7.6, chord: 7.3, t: 0.4 }],
   },
   // Yamato (1945): measured on the profile and plan by Alexpl (Commons, CC BY-SA 3.0) with the builders' table (NH 111711). The profile is
   // drawn 10 % flatter than its length scale (checked on the builders' depth of 18.915 m and bow height of 20.4 m), so its heights are
@@ -932,32 +954,25 @@ export const TWEAKS = {
       { k: 't25', f: 0.7975, z: 15.8, y: -1.5, one: true, noTub: true },
     ],
   },
-  // Essex class (long hull): measured on the starboard broadside of Ticonderoga, 5 November 1944: flight deck 18.5 m above the water,
-  // a narrow island well forward of midships (body 11 m, bridges 14.5 m, funnel top 18.7 m, mast 35.8 m above the flight deck), the
-  // forward Mk 37 director on the island front, the after one by the funnel
+  // Essex class (long hull), drawn from a reference model (v4): flight deck 18.5 m above the waterline, 262 m long, 27.6 m wide at the bow and stern ends and up to 34 m
+  // amidships (the port edge 3.6 m wider than the starboard one); the island and its funnel at 0.45-0.5 of the length, a lattice mast at 0.455 (top 48 m); the centre-line
+  // lifts at 0.169 and 0.656 (16 x 14 m, 2 m to starboard of the centre line) and the deck-edge lift to port at 0.439 (19 x 10 m); four twin 5 in on sponsons to starboard,
+  // four single open ones to port; 10 quadruple 40 mm and 50 single 20 mm in the galleries and sponsons (the model's: the sheet's 17 quads are made up by `aaAt`)
   essex: {
-    mainVariant: { 2: 'mk28', 1: 'mk30' }, elevators: [0.25, 0.74, 0.43], deckEdge: true, flightDeckY: 18.5,
+    mainVariant: { 2: 'mk28', 1: 'mk30' }, elevators: [0.169, 0.656, 0.439], deckEdge: true, flightDeckY: 18.5, noGallery: true,
+    elevSize: [[8.05, 7.05], [8.05, 7.05], [9.46, 4.96]], elevZ: 2.0, edgeLift: { z: -20.08, hl: 9.46, hw: 4.96 },
+    // the deck outline of the model (half-widths; the model's is 3.6 m wider to port amidships, the aircraft are spotted inside the narrower side)
+    fdPlan: [[0, 11.0], [0.012, 12.8], [0.035, 13.4], [0.2, 13.6], [0.234, 14.0], [0.3, 14.5], [0.4, 15.0], [0.7, 14.5], [0.788, 13.8], [0.832, 13.8], [0.855, 13.6], [0.99, 13.3]],
     // long hull: the clipper stem 7.5 m ahead of the flight deck, the round stern under its after end (waterline length 250 m)
     bow: { rake: 9, pr: 1.3 }, stern: { overhang: 12, rise: 8 }, fdBowOver: -4.9,
-    // four shafts with four-bladed screws and a single rudder (positions estimated: no plan of the stern)
-    props: [{ f: 0.875, z: 9.5, depth: 5.6, d: 4.6, blades: 4, toF: 0.77, strutF: 0.865 }, { f: 0.905, z: 3.6, depth: 5.9, d: 4.6, blades: 4, toF: 0.80, strutF: 0.895 }],
-    rudders: [{ f: 0.935, top: 2.2, bottom: 7.6, chord: 6.0 }],
-    keel: [[0, 0.8], [0.05, 1], [0.84, 1], [0.89, 0.6], [0.94, 0.35], [1, 0.25]],   // estimated
-    island: { z: 12.6, hw: 3.0, funnelTop: 18.7, funnelLx: 9.5, funnelLz: 4.6, mastF: 0.393, mastTop: 35.8 },
-    // light AA (long hull, 1945): 17 quadruple Bofors in the usual arrangement (two on the bow, on the island fore and aft, in the deck
-    // edge sponsons of both sides, two on the stern) and Oerlikons along the galleries; positions estimated from photographs, no plan
-    aa: [
-      { k: 'q40', f: 0.02, z: 2.2, y: -6.0 }, { k: 'q40', f: 0.355, z: 12.6, y: 9.5, one: true }, { k: 'q40', f: 0.365, z: 12.6, y: 6.0, one: true },
-      { k: 'q40', f: 0.445, z: 12.6, y: 8.0, one: true }, { k: 'q40', f: 0.41, z: 12.6, y: 14.5, one: true }, { k: 'q40', f: 0.25, z: 17.8, y: -2.0, one: true }, { k: 'q40', f: 0.58, z: 17.8, y: -2.0, one: true },
-      { k: 'q40', f: 0.64, z: 17.8, y: -2.0, one: true }, { k: 'q40', f: 0.69, z: 17.8, y: -2.0, one: true },
-      ...[0.15, 0.26, 0.45, 0.55, 0.66].map((f) => ({ k: 'q40', f, z: -17.8, y: -2.0, one: true })),
-      { k: 'q40', f: 0.975, z: 4, y: -6.0 },
-      ...[0.1, 0.13, 0.18, 0.22, 0.29, 0.33, 0.48, 0.52, 0.6, 0.75, 0.8, 0.85, 0.9].map((f) => ({ k: 'o20', f, z: 17.6, y: -1.6 })),
-    ],
-    directors: [
-      { f: 0.374, z: 12.6, y: 14.5, w: 3.4, l: 3.4, h: 2.4, label: 'Directeur Mk 37 avant' },
-      { f: 0.44, z: 12.6, y: 11.0, ped: 1.2, w: 3.4, l: 3.4, h: 2.4, label: 'Directeur Mk 37 arrière' },
-    ],
+    // four screws and the rudder where the model has them (its shafts and brackets stay drawn; its own screws and rudder are left out)
+    props: [{ f: 0.884, z: 5.7, depth: 4.85, d: 4.6, blades: 4, toF: 0.8836 }, { f: 0.825, z: 9.4, depth: 5.3, d: 4.6, blades: 4, toF: 0.8246 }],
+    rudders: [{ f: 0.9077, top: 0.6, bottom: 6.4, chord: 8.5, t: 0.8 }],
+    keel: [[0, 0.8], [0.05, 1], [0.84, 1], [0.89, 0.6], [0.94, 0.35], [1, 0.25]],
+    island: { z: 12.7, hw: 3.0, funnelTop: 18.7, funnelLx: 9.5, funnelLz: 4.6, mastF: 0.455, mastTop: 29.5 },
+    v4: ESSEX_V4, aa: [],      // the light mounts come from the model (10 quadruple 40 mm, 50 single 20 mm; `aaAt`: the quads it lacks)
+    // four quadruple 40 mm more on the free sponsons of the stern (the sheet has 17, the model 10; the galleries are full elsewhere): places, not measurements
+    aaAt: [{ k: 'q40', x: -123.25, y: 16, z: -12.25 }],
   },
   // Illustrious (ONI 201 sheet, public domain: flight deck 40 ft and stack top 91.5 ft above the waterline printed on it, 4.17 px/m in the
   // profile, 2.26 px/m in the plan): flight deck 12.2 m above the waterline, from stem to stern, 28.6 m wide with a narrower stern box

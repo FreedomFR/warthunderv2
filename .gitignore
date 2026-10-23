@@ -21,3 +21,6 @@ Thumbs.db
 
 # 3D reference models given for measurement only (never committed)
 /modelTmp/
+
+# the game as one page (built by npm run build, over 90 MB: too big for GitHub; the Pages workflow builds it)
+/naval.html

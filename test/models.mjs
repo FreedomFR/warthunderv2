@@ -16,7 +16,7 @@ for (const spec of ALL_SHIPS) {
   check(mainGuns === spec.main.gunsTotal, `${spec.id}: main guns ${mainGuns} != spec ${spec.main.gunsTotal}`);
   const bb = m.mesh.aabb;
   check(bb[3] - bb[0] >= spec.loa * 0.95, `${spec.id}: model shorter than the real ship (${(bb[3] - bb[0]).toFixed(1)} vs ${spec.loa})`);
-  check(Math.abs(bb[5]) >= spec.beam / 2 * 0.9, `${spec.id}: model narrower than the real ship`);
+  check(Math.max(Math.abs(bb[5]), Math.abs(bb[2])) >= spec.beam / 2 * 0.9, `${spec.id}: model narrower than the real ship`);   // (the wider side counts: a deck-edge lift to port makes a model wider on one side)
   // baked ambient occlusion stays in range and actually darkens something; the vertex data of every group is finite
   {
     const dv = new DataView(m.mesh.vertices);

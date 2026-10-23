@@ -1,0 +1,9 @@
+{
+  "ship": "Essex",
+  "elements": [
+    { "id": "t127", "type": "main", "cal": 127, "group": "main", "materials": ["127mm_Mk28_Twin"], "cluster": { "gap": 0.05, "min_tris": 1500 }, "split": true, "barrel_len": 2.0, "unit_tris": 2070 },
+    { "id": "s127", "type": "main", "cal": 127, "group": "main", "materials": ["127mm_Mk30_Unshielded"], "cluster": { "gap": 0.3, "min_tris": 1500 }, "split": true, "barrel_len": 3.0, "barrel_ratio": 8 },
+    { "id": "q40", "type": "q40", "cal": 40, "group": "aa", "materials": ["40mm_Bofors_Quadruple"], "cluster": { "gap": 0.3, "min_tris": 2000 }, "facing": "thin", "thin_len": 0.9 },
+    { "id": "o20", "type": "o20", "cal": 20, "group": "aa", "materials": ["20mm_Oerlikon"], "cluster": { "gap": 0.1, "min_tris": 300 }, "facing": "thin", "thin_len": 0.6 }
+  ]
+}

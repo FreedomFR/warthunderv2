@@ -20,6 +20,18 @@ const boxOf = (d, k, o, yaw) => {            // the box (x0, y0, z0, x1, y1, z1)
 };
 for (const id of Object.keys(ELEMENTS)) {
   const el = ELEMENTS[id], spec = ALL_SHIPS.find((s) => s.id === id);
+  if (!spec) {
+    // a gun that is not a ship's (the Flakvierling of the bases): its guns elevate about a trunnion inside their own box, and the house stands on the ground
+    for (const [name, k] of Object.entries(el.KINDS)) {
+      const g = decodeBaked(k.guns, el.MOUNT_SCALE), h = decodeBaked(k.house, el.MOUNT_SCALE);
+      let lo = [1e9, 1e9, 1e9], hi = [-1e9, -1e9, -1e9];
+      for (let i = 0; i < g.pos.length; i += 3) for (let a = 0; a < 3; a++) { lo[a] = Math.min(lo[a], g.pos[i + a]); hi[a] = Math.max(hi[a], g.pos[i + a]); }
+      let hy = 1e9; for (let i = 1; i < h.pos.length; i += 3) hy = Math.min(hy, h.pos[i]);
+      ok(lo[0] < 0.1 && hi[0] > k.muzzle - 0.1 && lo[1] < 0.2 && hi[1] > 0.3, `${id}/${name}: the guns level about their trunnion (x ${lo[0].toFixed(2)}..${hi[0].toFixed(2)}, muzzle ${k.muzzle} m)`);
+      ok(Math.abs(hy) < 0.05 && k.trunnion[1] > 0.5 && k.trunnion[1] < 2.5, `${id}/${name}: the house stands on the ground and the trunnion is ${k.trunnion[1].toFixed(2)} m above it`);
+    }
+    continue;
+  }
   let worst = 0, n = 0, missing = 0; const gaps = [];
   for (const pl of el.PLACEMENTS) {
     const k = el.KINDS[pl.kind];

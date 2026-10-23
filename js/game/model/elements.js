@@ -12,5 +12,11 @@ import * as richelieu from './ships/richelieu_elements.js';
 import * as fletcher from './ships/fletcher_elements.js';
 import * as bearn from './ships/bearn_elements.js';
 import * as la_galissoniere from './ships/la_galissoniere_elements.js';
+import * as algerie from './ships/algerie_elements.js';
+import * as flak from './ships/flak_elements.js';
+import * as fantasque from './ships/fantasque_elements.js';
+import * as cleveland from './ships/cleveland_elements.js';
+import * as baltimore from './ships/baltimore_elements.js';
+import * as essex from './ships/essex_elements.js';
 
-export const ELEMENTS = { yamato, gioberti, graf_spee, shokaku, kagero, tade, adams, iowa, richelieu, fletcher, bearn, la_galissoniere };
+export const ELEMENTS = { yamato, gioberti, graf_spee, shokaku, kagero, tade, adams, iowa, richelieu, fletcher, bearn, la_galissoniere, flak, fantasque, cleveland, baltimore, algerie, essex};

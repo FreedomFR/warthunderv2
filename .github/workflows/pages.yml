@@ -1,5 +1,5 @@
 # Publishes two versions of the project on GitHub Pages: `main` at the root of the site and `dev` in /dev/.
-# Runs every time `main` or `dev` changes. The pages are rebuilt from the committed files (naval.html is built and committed with the code).
+# Runs every time `main` or `dev` changes. The pages are rebuilt from the committed files; naval.html is not committed (it is too big for GitHub): it is built here.
 # One-time settings: Settings > Pages > Source = "GitHub Actions"; the environment "github-pages" must allow the branches main and dev.
 name: Pages
 
@@ -40,6 +40,11 @@ jobs:
       # nothing is published if the tests of the pushed branch fail (the tests need no installed package)
       - run: npm test
         working-directory: src/${{ github.ref_name }}
+      # naval.html (the game as one page) is not in the repository: each version is built here (esbuild is the only dependency of the build)
+      - run: npm install --no-audit --no-fund && npm run build
+        working-directory: src/main
+      - run: npm install --no-audit --no-fund && npm run build
+        working-directory: src/dev
       - run: node tools/site.mjs --main src/main --dev src/dev --out _site
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3

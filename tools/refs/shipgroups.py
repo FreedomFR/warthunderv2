@@ -102,6 +102,8 @@ for k, p in enumerate(parts):
         for c in gcuts:
             x0, x1, y0, y1, z0, z1 = c['box']
             inb = (cen[:, 0] >= x0) & (cen[:, 0] <= x1) & (cen[:, 1] >= y0) & (cen[:, 1] <= y1) & (cen[:, 2] >= z0) & (cen[:, 2] <= z1) & ~taken
+            if c.get('max_ext'):      # max_ext: a triangle longer than this (a plate of the hull, a stay that crosses the box) stays where it was, whatever the place of its centre
+                Tc = P[I[t]]; inb &= (Tc.max(axis=1) - Tc.min(axis=1)).max(axis=1) <= float(c['max_ext'])
             if not c.get('drop'):      # drop: the triangles in the box are left out (the screws and rudders: the game draws and turns its own)
                 part_tris.setdefault(c['id'], {'rule': c, 'tris': []})['tris'].append(t[inb])
             taken |= inb

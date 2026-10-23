@@ -1,0 +1,163 @@
+{
+ "ship": "Essex",
+ "use_claimed": true,
+ "skip_material": [
+  "^Essex_Propellor$",
+  "^Essex_Rudder$"
+ ],
+ "cuts": [
+  {
+   "group": ".*",
+   "gre": true,
+   "id": "radar0",
+   "kind": "radar",
+   "label": "Radar de veille",
+   "box": [
+    14.0,
+    17.2,
+    39.6,
+    46.0,
+    10.0,
+    16.0
+   ],
+   "max_ext": 8,
+   "spin": true
+  },
+  {
+   "group": ".*",
+   "gre": true,
+   "id": "director0",
+   "kind": "director",
+   "label": "Directeur de tir Mk 37 avant",
+   "box": [
+    18.5,
+    22.4,
+    30.9,
+    38.2,
+    10.4,
+    15.5
+   ],
+   "max_ext": 8,
+   "track": true
+  },
+  {
+   "group": ".*",
+   "gre": true,
+   "id": "director1",
+   "kind": "director",
+   "label": "Directeur de tir Mk 37 arrière",
+   "box": [
+    -2.4,
+    1.6,
+    28.6,
+    36.2,
+    10.4,
+    15.5
+   ],
+   "max_ext": 8,
+   "track": true
+  },
+  {
+   "group": ".*",
+   "gre": true,
+   "id": "funnel0",
+   "kind": "funnel",
+   "label": "Cheminée",
+   "box": [
+    1.9,
+    13.2,
+    27.4,
+    36.6,
+    8.8,
+    16.2
+   ],
+   "max_ext": 8
+  },
+  {
+   "group": ".*",
+   "gre": true,
+   "id": "mast1",
+   "kind": "mast",
+   "label": "Mât radio",
+   "box": [
+    1.4,
+    4.2,
+    28.2,
+    39.5,
+    11.5,
+    14.5
+   ],
+   "max_ext": 8
+  },
+  {
+   "group": ".*",
+   "gre": true,
+   "id": "mast0",
+   "kind": "mast",
+   "label": "Mât de l'îlot",
+   "box": [
+    9.0,
+    19.0,
+    27.4,
+    49.0,
+    8.8,
+    16.6
+   ],
+   "max_ext": 8
+  },
+  {
+   "group": ".*",
+   "gre": true,
+   "id": "tower",
+   "kind": "bridge",
+   "label": "Îlot",
+   "box": [
+    -8.0,
+    36.5,
+    18.9,
+    31.6,
+    8.0,
+    17.6
+   ],
+   "max_ext": 8
+  }
+ ],
+ "rules": [
+  {
+   "match": "^Essex_Crane$",
+   "to": "part",
+   "id": "crane",
+   "cluster": 1.0,
+   "kind": "crane",
+   "label": "Grue"
+  },
+  {
+   "match": "^USA_MotorVessel",
+   "to": "part",
+   "id": "canots",
+   "cluster": 1.0,
+   "kind": "structure",
+   "label": "Canot"
+  },
+  {
+   "match": "^(MetalCable|Essex_Props|USA_Props|USA_Raft|USA_Optics)",
+   "to": "fine"
+  },
+  {
+   "group": "^Essex_Hull_Part(5#1|6#2|3#13|3#14|5#8|5#10|6#17|6#19)$",
+   "to": "static",
+   "cls": "flightdeck"
+  },
+  {
+   "match": "^Essex_Hull_Part",
+   "min_len": 60,
+   "to": "static",
+   "cls": "hull"
+  },
+  {
+   "match": ".*",
+   "to": "static",
+   "cls": "equip"
+  }
+ ]
+}

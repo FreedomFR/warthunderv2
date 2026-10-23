@@ -24,7 +24,7 @@ npm test                    # every test (models, damage, audio, manual control,
 node tools/runtests.mjs --only audio,ui   # some tests; --list: the tests and their times; --serial: one at a time; --verbose: the output of the ones that pass
 npm run check:shaders       # compiles the WGSL with a real WebGPU device (server must be running; from WSL with the Windows Node, see below)
 npm run smoke               # browser smoke test, offscreen mode (server must be running)
-npm run build               # js/ + index.html -> naval.html (single file); rebuild before committing changes under js/
+npm run build               # js/ + index.html -> naval.html (single file, git-ignored: over 90 MB, too big for GitHub; the Pages workflow builds it, so there is nothing to rebuild before a commit)
 ```
 
 A test that rests on a whole simulated battle is chaotic (any change of a model, of the AA of a ship or of the balance moves the outcome): judge the property over a few seeds and accept one that holds (see `test/homeward.mjs`, `test/airops.mjs`), never pin one seed.
@@ -100,7 +100,7 @@ Useful URLs: `?scenario=duel&start=1&seed=3`, `?preview=iowa,yamato&offscreen=1&
    the machinery rooms (spec `machinery`) are from published descriptions.
 5. Compare with the photographs from the same angles (`views.mjs` + `shots.mjs`), then film the salvo with the `firetest` scene
    (`--q mount=A`, `--q group=sec`). Add a livery in `livery.js` if needed.
-6. Run `npm test` and `npm run check:shaders`, rebuild `naval.html`, update CHANGELOG / README credits, commit.
+6. Run `npm test` and `npm run check:shaders`, update CHANGELOG / README credits, commit.
 
 ## 3D reference models given by the owner (`modelTmp/`)
 
@@ -113,7 +113,7 @@ The ships stay **hand-made** (spec + `tweaks.js` + `ships/<id>.js`); baking a wh
 **A model with no named groups** (a `.glb`, or a glTF merged by material): `python3 tools/refs/glb2gltf.py` unpacks it, then `bakeraw` (env `GLTF_MATNAME=tex` names the materials after their textures, `GLTF_DROP=<regex>` drops aircraft, nets, ocean), `bake.py --split=0 --tris=1000000000 --out=refs/<dir>/full_`, and `python3 tools/refs/splitparts.py refs/<dir>/bake [--merge=regex --family=regex --gap=0.04]` makes the groups (`<material>#k`, the connected objects). A model exported mirrored (island on the wrong side) needs `--mirror=1`; the generators flip the winding by themselves. Never pipe `shipgroups.py` into `head` (it stops before writing).
 **A model whose materials are merged (the KojfDiscord glTF, the Iowa)**: `splitparts.py` gives its connected pieces; `groupmounts.py` then picks whole pieces round the game's mount records (`layout_match`, `radius_x/z`, `x_range`, `z_range`, `materials`, `gun_materials`, `gun_min_len`, `gun_box` for a barrel welded to its house, `no_cradle`) or finds the copies of one instance by shape (`template`, a window round one instance; the copies are the same pieces at the same places, turned by a multiple of 90 degrees); `claimed.json` keeps those pieces out of the ship (`use_claimed`); write `<id>_shipgroups.json` from `refs/<dir>/layout.json` (`shiplayout.mjs`): the boxes of its `parts` as cuts, `drop` cuts for the `spinners`, `fine` rules by material (the small, many pieces), `min_len` for the hull. Check the model's waterline (the Adams is 6.9 m above its lowest point): compare the deck edge and the height of a gun with the game's.
 **Hit volumes**: a ship with `tw.v4` gets `model.hit` (`model/v4hit.js`): shells stop on the drawn surface (`probeDrawn` in `sim/damage.js`), the scar lies on it and has its normal; the mounts keep their own volumes; `test/hitbox.mjs` judges these ships apart.
-Done: the Yamato, the Shokaku, the Graf Spee, the Gioberti, the Kagero, the Tade, the Adams and the Iowa (see CHANGELOG). Next: the ships the owner gives.
+Done: the Yamato, the Shokaku, the Graf Spee, the Gioberti, the Kagero, the Tade, the Adams, the Iowa, the Richelieu, the Fletcher, the Béarn, the La Galissonnière, the Algérie, the Cleveland, the Baltimore, the Essex and the Fantasque (see CHANGELOG). Next: the ships the owner gives.
 
 ## Acceptance rules for every new ship (set by the owner)
 

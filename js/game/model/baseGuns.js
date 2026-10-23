@@ -15,7 +15,9 @@ const COASTAL_FAMILY = { Japan: 'type3_203', Germany: 'drh203', Italy: 'zara203'
 export function gunMountSpec(g, pal) {
   if (g.kind === 'aa') {
     const big = g.cal >= 37;
-    return { kind: 'aa', cal: g.cal, n: g.n, bore: g.cal >= 40 ? 56 : g.cal >= 37 ? 63 : 60, col: pal.roof2, variant: big ? 'bofors' : g.n >= 2 && g.cal <= 20 ? 'iijn25' : 'iijn25' };
+    // the quadruple 20 mm is the Flakvierling of the reference model (model/elements.js, `flak`)
+    const quad = g.cal === 20 && g.n >= 4;
+    return { kind: 'aa', cal: g.cal, n: g.n, bore: g.cal >= 40 ? 56 : g.cal >= 37 ? 63 : 60, col: pal.roof2, variant: big ? 'bofors' : 'iijn25', ...(quad ? { look: 'flak/flak4' } : {}) };
   }
   const variant = COASTAL_FAMILY[g.nation || ''] ;
   return { kind: 'turret', cal: g.cal, n: g.n, bore: 45, col: pal.roof2, variant };
@@ -40,8 +42,10 @@ export function buildEmplacement(g, pal, seed) {
   const b = new MeshBuilder();
   const conc = C(pal.conc), earth = C(pal.earth);
   if (g.kind === 'aa') {
-    const R = 3.1, sand = C('#8c8160');
+    const R = 3.1, sand = C('#8c8160'), quad = g.cal === 20 && g.n >= 4;
     b.group('body', () => {
+      // the Flakvierling stands on a low round platform in its pit (its carriage is wide and low: on the ground the sandbags would hide it)
+      if (quad) b.cyl(0, 0.05, 0, 2.1, 2.1, 2.0, 2.0, 0.85, shade(C(pal.conc), 0.95), MAT.CANVAS, { seg: 16, capTop: true, topCol: shade(C(pal.conc), 1.1) });
       disc(b, 0, 0.05, 0, R + 1.6, shade(C('#6a6650'), 1.0), MAT.CANVAS, null, 18);
       disc(b, 0, 0.09, 0, R - 0.1, shade(C('#6f6a58'), 1.0), MAT.CANVAS, null, 16);
       // three courses of sandbags with a gap at the back, each a little smaller than the one below
@@ -57,7 +61,7 @@ export function buildEmplacement(g, pal, seed) {
       b.cylinder(-1.5, 0.1, 1.4, 0.18, 0.18, 0.7, C('#6d7160'), MAT.HULL, { seg: 6 });
       b.cylinder(-1.9, 0.1, 1.1, 0.18, 0.18, 0.7, C('#7a6b50'), MAT.HULL, { seg: 6 });
     });
-    return { mesh: b.build(), mountY: 0.1, radius: R + 2 };
+    return { mesh: b.build(), mountY: quad ? 0.9 : 0.1, radius: R + 2 };
   }
   // heavy gun
   const d = mountDims({ kind: 'turret', cal: g.cal, n: g.n, bore: 45, variant: COASTAL_FAMILY[g.nation || ''] });
