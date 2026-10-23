@@ -100,7 +100,7 @@ export function hullHit(ship, o) {
   // the shock of the blows strains the seams of the compartment: every quarter of a break adds a leak at the waterline, however the blows came (blast, splinters, the whirl of
   // fire) and whatever height they were struck at
   c.leaks = c.leaks || 0;
-  while (c.leaks < Math.floor(c.struct / STRAIN) && ship.holes.length < 60) { c.leaks++; ship.holes.push({ i, x: c.xc, y: -0.6, z: (c.leaks % 2 ? 1 : -1) * 0.3 * st.B, rate: st.hullStrength * LEAK }); }
+  while (c.leaks < Math.floor(c.struct / STRAIN) && ship.holes.length < 60) { c.leaks++; ship.holes.push({ i, x: c.xc, y: -0.6, z: (c.leaks % 2 ? 1 : -1) * 0.3 * st.B, rate: st.hullStrength * LEAK * (o.holeScale ?? 1) }); }
   const k = HOLE[o.cause] ?? 0.004;
   const rate = energy * k * (o.holeScale ?? 1);
   if (rate > 0 && ship.holes.length < 60) ship.holes.push({ i, x: o.lx, y: o.ly, z: o.lz, rate });

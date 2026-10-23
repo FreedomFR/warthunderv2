@@ -75,7 +75,7 @@ for (const id of ['cleveland', 'fletcher', 'iowa']) {
   for (const c of s.comps) c.water[1] = 0.5 * SINK_FILL[s.stats.type];
   for (let i = 0; i < 600; i++) s.update(0.1);
   // (and brought near her limit: one more blow and she goes)
-  for (const c of s.comps) c.water[1] = Math.min(1, 1.7 * SINK_FILL[s.stats.type]);
+  for (const c of s.comps) c.water[1] = Math.min(1, (s.stats.type === 'DD' ? 0.8 : 1.7) * SINK_FILL[s.stats.type]);      // (a destroyer capsizes with less on one side)
   s.update(0.1);
   const before = { roll: s.roll, pitch: s.pitch, y: s.y };
   // finished by a torpedo on the port side
@@ -83,7 +83,7 @@ for (const id of ['cleveland', 'fletcher', 'iowa']) {
   resolveTorpedoHit(w, s, { warhead: 400, owner: null }, q[0], q[2]);
   for (let i = 0; i < 300 && s.state === 'afloat'; i++) s.update(0.1);
   ok(s.state === 'sinking' && Math.abs(before.pitch) + Math.abs(before.roll) + Math.abs(s.settleCur) > 0.15, `${id}: sunk by the second torpedo after leaning ${before.roll.toFixed(2)} rad, trimmed ${before.pitch.toFixed(2)} rad and sagging ${s.settleCur.toFixed(1)} m (${s.sinkMode})`);
-  let jumpRoll = 0, jumpPitch = 0, jumpY = 0, prev = { roll: before.roll, pitch: before.pitch, y: before.y }, reversed = false;
+  let jumpRoll = 0, jumpPitch = 0, jumpY = 0, prev = { roll: s.roll, pitch: s.pitch, y: s.y }, reversed = false;
   const dir = Math.sign(before.roll) || 1;
   for (let i = 0; i < 100 && s.state === 'sinking'; i++) {
     s.update(0.1);
