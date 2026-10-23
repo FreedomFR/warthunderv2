@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased — HD clip on the first screen
+
+- The first screen plays the **1080p** clip (`docs/loading-hd.mp4`, 13 MB, the first 40 s of the trailer, no sound, faststart so that it starts while it downloads) on a big screen (1280 px or more) with a good connection; a phone, a slow link (not 4g, or an estimate under 1 Mbit/s) and the browsers that ask to save data keep the light 540p clip (2.5 MB) or just the poster. The page picks one file, so only one is fetched. `tools/site.mjs` publishes it.
+
 ## Unreleased — fighters that fight as their aircraft do
 
 - **The turn of each fighter comes out of its flight model** (`airperf.js` `turnPerf`): the speed at which it holds the fastest turn for ever (the thrust pays the induced drag) and that rate, and the corner speed with the fastest turn there is for a moment. A Zero holds 19.8 deg/s at 76 m/s, a Hellcat 14.9 at 85, a Bf 109T 16.6, a MC.202 17.3 (`tools/turnrates.mjs` prints the table). Until now every fighter in combat was asked for the same bank and pitch rate at a fixed speed, so none of this showed: the Zero turned no better than the Hellcat.

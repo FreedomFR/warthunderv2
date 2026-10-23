@@ -13,7 +13,7 @@
 <body>
 <canvas id="c"></canvas>
 <div id="splash">
-  <video id="splash-v" muted loop playsinline autoplay preload="auto" poster="docs/loading-poster.jpg"><source src="docs/loading.mp4" type="video/mp4"></video>
+  <video id="splash-v" muted loop playsinline autoplay preload="auto" poster="docs/loading-poster.jpg"></video>
   <div class="shade"></div>
   <div class="box">
     <div class="t">Combat naval</div>
@@ -29,7 +29,16 @@
   var el = document.getElementById('splash'), qs = location.search;
   if (/[?&](splash=0|offscreen=1|preview=|trailer|bench|start=1)/.test(qs)) { el.remove(); window.__splash = { set: function () {}, hide: function () {}, off: true }; return; }
   var bar = document.getElementById('splash-bar'), lab = document.getElementById('splash-l'), skip = document.getElementById('splash-skip'), v = document.getElementById('splash-v');
-  try { if (navigator.connection && navigator.connection.saveData) v.remove(); else { var pr = v.play(); if (pr && pr.catch) pr.catch(function () {}); } } catch (e) { /* the poster stays */ }
+  // the clip: 1080p (13 MB) on a big screen with a good connection, 540p (2.5 MB) on a phone, a slow link, or when the browser asks to save data (the file is chosen here so that only one is fetched)
+  try {
+    var cn = navigator.connection;
+    if (cn && cn.saveData) v.remove();
+    else {
+      var hd = Math.max(screen.width, screen.height) >= 1280 && !(cn && ((cn.effectiveType && cn.effectiveType !== '4g') || (cn.downlink && cn.downlink < 1))) && !/Mobi|Android/.test(navigator.userAgent);
+      v.src = hd ? 'docs/loading-hd.mp4' : 'docs/loading.mp4';
+      var pr = v.play(); if (pr && pr.catch) pr.catch(function () {});
+    }
+  } catch (e) { /* the poster stays */ }
   var gone = false;
   window.__splash = {
     set: function (label, frac) { if (gone) return; lab.textContent = label; bar.style.width = Math.max(3, Math.min(100, Math.round(frac * 100))) + '%'; },

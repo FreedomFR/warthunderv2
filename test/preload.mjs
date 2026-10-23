@@ -22,9 +22,11 @@ const ok = (c, m) => { console.log(c ? 'PASS' : 'FAIL', m); if (!c) { fail++; pr
 // the first screen is in the page, skipped by the tools, and the files it shows exist
 {
   const html = fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8');
-  ok(html.includes('id="splash"') && html.includes('docs/loading.mp4') && html.includes('window.__splash'), 'index.html has the first screen: the trailer clip, a bar, window.__splash');
+  ok(html.includes('id="splash"') && html.includes('docs/loading.mp4') && html.includes('docs/loading-hd.mp4') && html.includes('window.__splash'), 'index.html has the first screen: the trailer clip (light and HD), a bar, window.__splash');
   ok(/splash=0\|offscreen=1/.test(html), 'the tools (?offscreen=1) and ?splash=0 skip it');
   ok(fs.existsSync(new URL('../docs/loading.mp4', import.meta.url)) && fs.statSync(new URL('../docs/loading.mp4', import.meta.url)).size < 6e6, 'the clip exists and is light (under 6 MB)');
   ok(fs.existsSync(new URL('../docs/loading-poster.jpg', import.meta.url)), 'and its poster');
+  const hd = new URL('../docs/loading-hd.mp4', import.meta.url);
+  ok(fs.existsSync(hd) && fs.statSync(hd).size < 20e6, 'the HD clip exists (under 20 MB, 1080p, shown on a big screen with a good connection)');
 }
 process.exit(fail ? 1 : 0);
