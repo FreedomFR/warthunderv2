@@ -1,5 +1,5 @@
 // (a plain grey background, the sun high and no clouds, so that the model is seen well; STUDIO=0 gives the sea sky of the game)
-// Pictures of a ship of the preview scene from chosen angles: node tools/previewshots.mjs <ship> <out prefix> "az,el,dist,lookX,lookY;..." (az 180 = starboard profile, lookX along the ship, bow +; on the GPU through the Windows Node)
+// Pictures of a ship of the preview scene from chosen angles: node tools/previewshots.mjs <ship> <out prefix> "az,el,dist,lookX,lookY[,lookZ];..." (az 180 = starboard profile, lookX along the ship, bow +; on the GPU through the Windows Node)
 import { chromium } from 'playwright-core';
 import fs from 'node:fs';
 import { launchOptions } from './browser.mjs';
@@ -12,8 +12,8 @@ await p.goto(`${process.env.BASE || "http://localhost:8080"}/index.html?preview=
 for (let i = 0; i < 240; i++) { await p.waitForTimeout(500); if ((await p.evaluate(() => (window.__engine ? window.__engine.frameIndex : -1)).catch(() => -1)) >= 6) break; }
 let k = 0;
 for (const v of views.split(';')) {
-  const [az, el, dist, lx, ly] = v.split(',').map(Number);
-  await p.evaluate((q) => window.__preview.set(q), { target: 0, heading: 90, dist, az, el, lookY: ly, lookX: lx });
+  const [az, el, dist, lx, ly, lz] = v.split(',').map(Number);
+  await p.evaluate((q) => window.__preview.set(q), { target: 0, heading: 90, dist, az, el, lookY: ly, lookX: lx, lookZ: lz || 0 });
   await p.waitForTimeout(1500);
   fs.writeFileSync(`${prefix}_${k++}.png`, Buffer.from(await p.evaluate(() => window.__engine.capture()), 'base64'));
 }
