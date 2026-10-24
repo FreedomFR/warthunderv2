@@ -45,21 +45,21 @@ export const PAINT = {
 // wing: {cr root chord, ct tip chord, x mid-chord position, y height, dih dihedral, gull inverted gull, sweep, t thickness}
 export const PLANES = {
   sbd: {      // measured on the model (tools/refs/planegroups.py --measures); the retractable undercarriage is drawn by the game (the model has it up)
-    name: 'SBD-3 Dauntless', nation: 'USA', role: 'dive', kind: 'mono', L: 9.84, span: 12.65, mass: 3.2, hp: 3.2, bombKg: 450,
+    name: 'SBD-3 Dauntless', nation: 'USA', role: 'dive', kind: 'mono', L: 9.84, span: 12.65, mass: 4.2, S: 30.2, hp: 3.2, bombKg: 450,
     fus: { r: 0.7, ar: 1.15, x: -0.2 }, engine: { type: 'radial', r: 0.76, len: 1.4 }, prop: { r: 1.6, n: 3, x: 0 },
     wing: { cr: 3.09, ct: 1.1, x: 0.52, y: -0.52, dih: 0.75, sweep: 0.24, t: 0.34 },
     tail: { x: -4.55, chord: 1.37, span: 5.33, fin: 2.0, finChord: 2.0, y: 0.41 }, canopy: [{ x0: 0.65, x1: 2.0, tx1: 1.7, h: 0.62 }, { x0: -0.55, x1: 0.6, tx1: 0.35, h: 0.5 }],
     gear: 'retract', ordnance: 'bomb', stripes: false, groundY: 1.9, v4: SBD_V4, paint: 'sbd', crease: 75,
   },
   tbf: {      // measured on the model (tools/refs/planegroups.py --measures); the retractable undercarriage is drawn by the game (the model has it up)
-    name: 'TBF-1 Avenger', nation: 'USA', role: 'torp', kind: 'mono', L: 12.21, span: 16.5, mass: 5.6, hp: 4.5,
+    name: 'TBF-1C Avenger', nation: 'USA', role: 'torp', kind: 'mono', L: 12.21, span: 16.5, mass: 7.0, S: 49.2, hp: 4.5,
     fus: { r: 0.9, ar: 1.1, x: -0.6 }, engine: { type: 'radial', r: 0.95, len: 1.5 }, prop: { r: 2.0, n: 3, x: 0 },
     wing: { cr: 3.58, ct: 1.3, x: 0.52, y: -0.03, dih: 0.85, sweep: 0.25, t: 0.42 },
     tail: { x: -5.9, chord: 2.1, span: 6.43, fin: 2.2, finChord: 2.6, y: 0.9 }, canopy: [{ x0: 0.8, x1: 2.3, tx1: 1.9, h: 1.0 }, { x0: -0.6, x1: 0.8, tx1: 0.4, h: 0.9 }],
     gear: 'retract', ordnance: 'torp', turret: true, groundY: 2.2, v4: TBF_V4, paint: 'tbf', crease: 75,
   },
   d3a: {      // measured on the model (tools/refs/planegroups.py --probe): the elliptic wing 3.5 m of chord at the root, the tailplane 4.3 m, the fixed spatted undercarriage, two canopies
-    name: 'Aichi D3A1 Type 99', nation: 'Japan', role: 'dive', kind: 'mono', L: 10.67, span: 14.365, mass: 3.6, hp: 2.8, bombKg: 250,
+    name: 'Aichi D3A1 Type 99', nation: 'Japan', role: 'dive', kind: 'mono', L: 10.67, span: 14.365, mass: 3.6, S: 34.9, hp: 2.8, bombKg: 250,
     fus: { r: 0.6, ar: 1.3, x: -0.4 }, engine: { type: 'radial', r: 0.64, len: 1.3 }, prop: { r: 1.46, n: 3, x: 0 },
     wing: { cr: 3.5, ct: 0.5, x: 0.77, y: -0.45, dih: 0.6, sweep: 0.3, t: 0.3, elliptic: true },
     tail: { x: -5.15, chord: 1.9, span: 4.32, fin: 1.8, finChord: 2.3, y: 0.0 }, canopy: [{ x0: 0.75, x1: 1.65, tx1: 1.35, h: 0.4 }, { x0: -0.46, x1: 0.7, tx1: 0.3, h: 0.4 }],
@@ -131,14 +131,14 @@ export const PLANES = {
   },
   // ---- fighters (the dimensions are the real ones, the rest estimated like the other aircraft) ----
   f6f: {
-    name: 'Grumman F6F-3 Hellcat', nation: 'USA', role: 'fighter', kind: 'mono', L: 10.2, span: 13.1, mass: 5.6, hp: 4.2,
+    name: 'Grumman F6F-3 Hellcat', nation: 'USA', role: 'fighter', kind: 'mono', L: 10.2, span: 13.1, mass: 5.6, S: 31.0, hp: 4.2,
     fus: { r: 0.7, ar: 1.1, x: -0.6 }, engine: { type: 'radial', r: 0.88, len: 1.4 }, prop: { r: 1.75, n: 3, x: 0 },
     wing: { cr: 3.0, ct: 1.4, x: 0.3, y: -0.38, dih: 0.3, sweep: 0.4, t: 0.38 },
     tail: { x: -4.6, chord: 1.5, span: 4.3, fin: 1.6, finChord: 1.9, y: 0.2 }, canopy: [{ x0: 0.1, x1: 1.9, tx1: 1.4, h: 0.55 }],
     gear: 'retract', ordnance: null,
   },
   a6m: {      // measured on the model (tools/refs/planegroups.py --measures); the retractable undercarriage is drawn by the game (the model has it up)
-    name: 'Mitsubishi A6M2 Zero', nation: 'Japan', role: 'fighter', kind: 'mono', L: 8.97, span: 12.0, mass: 2.8, hp: 2.4,
+    name: 'Mitsubishi A6M2 Zero', nation: 'Japan', role: 'fighter', kind: 'mono', L: 8.97, span: 12.0, mass: 2.45, S: 22.44, hp: 2.4,
     fus: { r: 0.62, ar: 1.1, x: -0.4 }, engine: { type: 'radial', r: 0.62, len: 1.3 }, prop: { r: 1.49, n: 3, x: 0 },
     wing: { cr: 2.5, ct: 0.9, x: 1.05, y: 0.0, dih: 0.1, sweep: 0.1, t: 0.3 },
     tail: { x: -3.6, chord: 1.7, span: 3.9, fin: 1.5, finChord: 2.2, y: 0.0 }, canopy: [{ x0: 0.1, x1: 1.5, tx1: 1.2, h: 0.7 }],
@@ -147,7 +147,7 @@ export const PLANES = {
   // The Ilyushin Il-2 Type 3 (a Soviet ground-attack aircraft: not in the air group of a fleet, the Soviet Union has no ships in the game yet), drawn from its model
   // (tools/refs/planegroups.py --measures): the span 14.6 m, the wing 3.5 m of chord at the root and 0.9 m at the tip, the tailplane 5.0 m, the fin 2.0 m over it
   il2: {
-    name: 'Ilyushin Il-2 Type 3', nation: 'USSR', role: 'attack', kind: 'mono', L: 12.12, span: 14.6, mass: 4.2, hp: 5.0, bombKg: 400,
+    name: 'Ilyushin Il-2 Type 3', nation: 'USSR', role: 'attack', kind: 'mono', L: 12.12, span: 14.6, mass: 6.1, S: 38.5, hp: 5.0, bombKg: 400,
     fus: { r: 0.6, ar: 1.2, x: -0.9 }, engine: { type: 'inline', r: 0.62, len: 2.4 }, prop: { r: 2.0, n: 3, x: 0 },
     wing: { cr: 3.5, ct: 0.9, x: 0.85, y: -0.4, dih: 0.3, sweep: 0.3, t: 0.3 },
     tail: { x: -5.4, chord: 2.0, span: 5.0, fin: 2.0, finChord: 2.4, y: 0.23 }, canopy: [{ x0: 0.5, x1: 1.7, tx1: 1.4, h: 0.72 }, { x0: -1.6, x1: -0.1, tx1: -0.6, h: 0.6 }],
@@ -161,7 +161,7 @@ export const PLANES = {
     gear: 'retract', ordnance: null,
   },
   bf109t: {      // drawn from the model of a Bf 109 F-4 (tools/refs/planegroups.py --measures): the T-2's longer wing tips are not modelled; the hook stays procedural, the undercarriage is the game's (the model has it up)
-    name: 'Messerschmitt Bf 109 T', nation: 'Germany', role: 'fighter', kind: 'mono', L: 8.85, span: 10.24, mass: 2.9, hp: 2.6,
+    name: 'Messerschmitt Bf 109 F-4', nation: 'Germany', role: 'fighter', kind: 'mono', L: 8.85, span: 10.24, mass: 2.9, S: 16.05, hp: 2.6,
     fus: { r: 0.55, ar: 1.0, x: -0.3 }, engine: { type: 'inline', r: 0.42, len: 1.8 }, prop: { r: 1.46, n: 3, x: 0 },
     wing: { cr: 1.9, ct: 0.45, x: 0.45, y: -0.12, dih: 0.3, sweep: 0.1, t: 0.2 },
     tail: { x: -4.4, chord: 0.9, span: 2.95, fin: 1.2, finChord: 1.5, y: 0.15 }, canopy: [{ x0: -0.75, x1: 1.4, tx1: 1.0, h: 0.63 }],

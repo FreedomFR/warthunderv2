@@ -22,7 +22,7 @@
 // the stall, approach and climb speeds and the ground runs are rounded from pilots' notes and are estimates where the sources give only a top speed.
 export const PERF = {
   sbd: { vmax: 112, vc: 78, vt: 100, vd: 112, vcl: 49, vp: 46, va: 37.5, vto: 36, vcomb: 0, bank: 55, pr: 0.34, asm: 300, roc: 7.5, roll: 1.0, nmax: 5.5, brakes: true },
-  tbf: { vmax: 124, vc: 78, vt: 57, vd: 100, vcl: 50, vp: 47, va: 41, vto: 37, vcomb: 0, bank: 50, pr: 0.28, asm: 280, roc: 5.8, roll: 0.8, nmax: 4.5, brakes: false },
+  tbf: { vmax: 121, vc: 78, vt: 57, vd: 100, vcl: 50, vp: 47, va: 41, vto: 37, vcomb: 0, bank: 50, pr: 0.28, asm: 280, roc: 7.2, roll: 0.8, nmax: 4.5, brakes: false },
   f6f: { vmax: 170, vc: 90, vt: 0, vd: 0, vcl: 60, vp: 52, va: 38.6, vto: 36, vcomb: 125, bank: 82, pr: 0.7, asm: 350, roc: 15.5, roll: 1.4, nmax: 6.5, brakes: false },
   d3a: { vmax: 108, vc: 82, vt: 90, vd: 103, vcl: 47, vp: 43, va: 36, vto: 31, vcomb: 0, bank: 60, pr: 0.38, asm: 300, roc: 7, roll: 0.9, nmax: 5.5, brakes: true },
   b5n: { vmax: 105, vc: 72, vt: 90, vd: 92, vcl: 46, vp: 42, va: 35, vto: 31, vcomb: 0, bank: 52, pr: 0.32, asm: 280, roc: 5.2, roll: 0.8, nmax: 4.5, brakes: false },
@@ -33,7 +33,7 @@ export const PERF = {
   fulmar: { vmax: 122, vc: 105, vt: 0, vd: 0, vcl: 50, vp: 52, va: 37.5, vto: 32, vcomb: 105, bank: 82, pr: 0.55, asm: 330, roc: 6, roll: 1.0, nmax: 6, brakes: false },
   ju87: { vmax: 104, vc: 80, vt: 95, vd: 140, vcl: 50, vp: 48, va: 36, vto: 37, vcomb: 0, bank: 55, pr: 0.34, asm: 300, roc: 5.5, roll: 0.8, nmax: 6, brakes: true },
   fi167: { vmax: 90, vc: 69, vt: 45, vd: 80, vcl: 40, vp: 38, va: 28, vto: 26, vcomb: 0, bank: 55, pr: 0.32, asm: 260, roc: 6, roll: 0.8, nmax: 4.5, brakes: false },
-  bf109t: { vmax: 156, vc: 110, vt: 0, vd: 0, vcl: 62, vp: 56, va: 41.5, vto: 38, vcomb: 125, bank: 82, pr: 0.7, asm: 350, roc: 15, roll: 1.5, nmax: 6.5, brakes: false },
+  bf109t: { vmax: 165, vc: 110, vt: 0, vd: 0, vcl: 62, vp: 56, va: 41.5, vto: 38, vcomb: 125, bank: 82, pr: 0.7, asm: 350, roc: 18, roll: 1.5, nmax: 6.5, brakes: false },      // F-4: 635 km/h at 6 000 m (about 595 km/h at the 2-3 km of the game), 19 m/s at sea level and 18.8 m/s at 3 000 m
   ln401: { vmax: 105, vc: 83, vt: 95, vd: 125, vcl: 48, vp: 44, va: 35, vto: 33, vcomb: 0, bank: 55, pr: 0.34, asm: 300, roc: 7, roll: 0.9, nmax: 5.5, brakes: false },
   pl10: { vmax: 61, vc: 42, vt: 38, vd: 64, vcl: 33, vp: 34, va: 28, vto: 27, vcomb: 0, bank: 45, pr: 0.25, asm: 250, roc: 3.5, roll: 0.6, nmax: 4, brakes: false },
   d520: { vmax: 152, vc: 105, vt: 0, vd: 0, vcl: 62, vp: 55, va: 41.5, vto: 39, vcomb: 125, bank: 82, pr: 0.7, asm: 350, roc: 12, roll: 1.4, nmax: 6.5, brakes: false },
@@ -72,7 +72,7 @@ export function aeroOf(typeKey, spec) {
   let a = aeroCache.get(typeKey);
   if (a) return a;
   const pf = PERF[typeKey] || PERF.sbd, bi = spec.kind === 'bi';
-  const S = spec.span * (spec.wing.cr + spec.wing.ct) / 2 * (bi ? 1.85 : 1), AR = spec.span * spec.span / S * (bi ? 1.85 : 1);
+  const S = spec.S ?? spec.span * (spec.wing.cr + spec.wing.ct) / 2 * (bi ? 1.85 : 1), AR = spec.span * spec.span / S * (spec.S ? 1 : bi ? 1.85 : 1);      // (`S`: the published wing area, when the sheet has it: the planform measured on a model leaves out the root fairings)
   const m = spec.mass * 1000, ci = 2 * G0 * G0 * (m / S) / (RHO * Math.PI * OSWALD * AR);
   const CL = bi ? 1.35 : spec.engines ? 1.4 : 1.45;
   const vs = Math.sqrt(2 * m * G0 / (RHO * S * CL));

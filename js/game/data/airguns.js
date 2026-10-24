@@ -35,7 +35,8 @@ export const BELTS = {
   jp20: { hei20t99a: 0.65, ap20: 0.35 },                                        // the Type 99 cannon: HE-I (the tracer is one too) and AP-T
   uk303: { ap303: 0.4, inc303: 0.4, ball303: 0.2 },                             // late 1941: half AP, half incendiary
   de792: { ball792: 1 },
-  de20ff: { mine20: 0.6, hei20ff: 0.3, ap20: 0.1 },                             // the MG FF/M: mostly Minengeschoss
+  de20ff: { mine20: 0.6, hei20ff: 0.3, ap20: 0.1 },
+  de20mg: { mine20: 0.55, hei20ff: 0.2, ap20: 0.25 },                             // the MG 151/20: Minengeschoss, high explosive and armour-piercing tracer                             // the MG FF/M: mostly Minengeschoss
   fr20: { hei20hs: 0.75, ap20: 0.25 },
   fr75: { ball75: 1 },
   it127: { breda127: 1 },
@@ -52,6 +53,7 @@ export const GUNS = {
   t99: { name: 'Type 99 Mk 1 (20 mm)', cal: 20, rpm: 520, v0: 600 },
   mg17: { name: 'MG 17 (7,92 mm)', cal: 7.92, rpm: 1000, v0: 785 },
   mgff: { name: 'MG FF/M (20 mm)', cal: 20, rpm: 540, v0: 585 },
+  mg151: { name: 'MG 151/20 (20 mm)', cal: 20, rpm: 700, v0: 705 },
   hs404: { name: 'Hispano HS.404 (20 mm)', cal: 20, rpm: 650, v0: 860 },
   mac: { name: 'MAC 1934 (7,5 mm)', cal: 7.5, rpm: 1200, v0: 830 },
   breda127: { name: 'Breda-SAFAT (12,7 mm)', cal: 12.7, rpm: 600, v0: 760 },
@@ -64,7 +66,7 @@ export const FIGHTER_GUNS = {
   f6f: [{ gun: 'm2', n: 6, rpg: 400, belt: 'us50' }],
   a6m: [{ gun: 't97', n: 2, rpg: 600, belt: 'jp77' }, { gun: 't99', n: 2, rpg: 60, belt: 'jp20' }],
   fulmar: [{ gun: 'b303', n: 8, rpg: 750, belt: 'uk303' }],
-  bf109t: [{ gun: 'mg17', n: 2, rpg: 500, belt: 'de792' }, { gun: 'mgff', n: 2, rpg: 60, belt: 'de20ff' }],
+  bf109t: [{ gun: 'mg17', n: 2, rpg: 500, belt: 'de792' }, { gun: 'mg151', n: 1, rpg: 200, belt: 'de20mg' }],      // the F-4: two MG 17 over the engine and the MG 151/20 through the hub
   d520: [{ gun: 'hs404', n: 1, rpg: 60, belt: 'fr20' }, { gun: 'mac', n: 4, rpg: 675, belt: 'fr75' }],
   mc202: [{ gun: 'breda127', n: 2, rpg: 370, belt: 'it127' }],
   il2: [{ gun: 'vya23', n: 2, rpg: 150, belt: 'ru23' }, { gun: 'shkas', n: 2, rpg: 750, belt: 'ru762' }],      // the guns of the wings (the ground attack: not simulated yet)

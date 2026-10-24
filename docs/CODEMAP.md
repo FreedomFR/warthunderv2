@@ -48,7 +48,7 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 
 ## js/game/data/
 
-- `airguns.js` (108) The guns of the aircraft and what they fire. [UNIT, AMMO, BELTS, GUNS, FIGHTER_GUNS, armamentOf, drawRound, beltMean, beltForGun] ← 4
+- `airguns.js` (110) The guns of the aircraft and what they fire. [UNIT, AMMO, BELTS, GUNS, FIGHTER_GUNS, armamentOf, drawRound, beltMean, beltForGun] ← 4
 - `balance.js` (88) Balance: multipliers of the damage done in the battle, so that it can be tuned without touching the code. [BALANCE_FIELDS, BALANCE_MIN, BALANCE, balanceNeutral, balanceOfFile, balanceNow, setBalance, setBalanceFile, balanceDiff, … +2] ← 8
 - `explosives.js` (40) Explosive fillers of torpedoes and their strength against a ship's hull, as kg of TNT per kg of filler. [EXPLOSIVE, tntEquivalent, AIR_TORPEDO, airTorpedoEq] ← 5
 - `loadouts.js` (147) What each aircraft can carry: the loads that were really hung under it, as lists of stores (a bomb of data/ordnance.js and how many, or the torpedo of the nation),… [LOADOUTS, loadoutsOf, loadKg, torpedoesIn, bombsIn, pickLoadout] ← 4
