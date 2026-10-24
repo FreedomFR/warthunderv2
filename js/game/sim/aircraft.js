@@ -7,6 +7,7 @@ import { clamp, wrapPi, D2R, G } from '../math.js';
 import { planeTypeFor, PLANES, groundY, GROUND_PITCH, hookBack } from '../model/planes.js';
 import { perfOf } from './airperf.js';
 import { chooseApproach, aaSources, density, refugeShip } from './routing.js';
+import { avoidTerrain, ditchHeading } from './terrainavoid.js';
 import { safeHeading, homeCourse } from './homeward.js';
 import { chooseSite, divert } from './landing.js';
 import { pickLoadout, bombsIn } from '../data/loadouts.js';
@@ -257,6 +258,8 @@ function launches(world, dt) {
     if (ship._parkT <= 0) { ship._parkT = 1; ship.updateParked(); }
     air.capCooldown -= dt;
     if (ship.deckWrecked) continue;
+    // (a carrier that lies alongside a quay does not fly her aircraft off: the harbour hills are all round her, and she has no wind over the deck)
+    if (ship.dock) continue;
     // the deck is either launching or recovering: not both at once
     const D = deckOf(ship);
     const deckBusy = D.landing.length || D.recovering || D.striking || D.circuit > 0 || D.pending.some((q) => !q.service) || launching(world, ship);
@@ -788,7 +791,7 @@ function stepPlane(world, p, dt) {
       break;
     }
     case 'ditch': {
-      hdg = p.heading; gam = clamp(-(p.y - 2) / 260, -0.12, 0); spd = pf.va * 1.2;
+      hdg = ditchHeading(world, p); gam = clamp(-(p.y - 2) / 260, -0.12, 0); spd = pf.va * 1.2;      // (down on the water, not on an island)
       p.gearDown = false;
       if (p.y <= 3) { ditch(world, p); return true; }
       break;
@@ -808,12 +811,8 @@ function stepPlane(world, p, dt) {
   if (p.phase === 'return' && p.carrierOkLast !== carrierOk) p.carrierOkLast = carrierOk;
   const prev = _prev; prev[0] = p.x; prev[1] = p.y; prev[2] = p.z;
   const T = world.terrain;
-  // an island ahead: the pilot climbs over it (not in a dive, on the approach to a deck or at the very low level of a torpedo run)
-  if (T && !LAND_BLIND.has(p.phase)) {
-    let top = -1e9;
-    for (const d of [300, 750, 1300, 2000]) top = Math.max(top, T.heightAt(p.x + Math.sin(p.heading) * d, p.z - Math.cos(p.heading) * d));
-    if (top + 35 > p.y) gam = Math.max(gam, clamp((top + 80 - p.y) / 420, 0.05, 0.3));
-  }
+  // an island ahead: the pilot climbs over it as far as the aircraft can, and turns away from what it cannot clear (not in a dive, on the approach to a deck, nor over the sea in a descent)
+  if (T && !LAND_BLIND.has(p.phase)) { const av = avoidTerrain(world, p, hdg, gam, pf); hdg = av.hdg; gam = av.gam; }
   guide(p, dt, hdg, gam, spd, o);
   p.x += p.vx * dt; p.y += p.vy * dt; p.z += p.vz * dt;
   if (T) {
@@ -828,7 +827,7 @@ function stepPlane(world, p, dt) {
   return collideShips(world, p, prev);
 }
 const _l2 = [0, 0, 0], _l3 = [0, 0, 0];
-const LAND_BLIND = new Set(['dive', 'rollin', 'pullout', 'ditch', 'floating', 'final', 'waveoff', 'pattern', 'run', 'ip', ...DECK_PHASES]);
+const LAND_BLIND = new Set(['dive', 'rollin', 'pullout', 'ditch', 'floating', 'final', 'waveoff', 'pattern', ...DECK_PHASES]);
 
 const _prev = [0, 0, 0];
 

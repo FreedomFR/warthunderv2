@@ -55,7 +55,7 @@ export function createUI(game) {
   const engine = game.engine, world = game.world;
   const root = document.getElementById('ui');
   const ui = {};
-  const state = { shipMore: innerHeight > 860, tipShown: false, hitLog: true, hits: [], tags: [], labels: true, reloads: true, hudHidden: false, selectedShip: null, killFeed: [], dirty: false, firstSpawn: false };
+  const state = { shipMore: innerHeight > 860, tipShown: false, hitLog: true, hits: [], tags: [], labels: true, teams: true, reloads: true, hudHidden: false, selectedShip: null, killFeed: [], dirty: false, firstSpawn: false };
 
   // =========================================================================================
   // Setup panel
@@ -210,13 +210,14 @@ export function createUI(game) {
   const toggleBtn = (label, title, get, set) => { const b = h('button', { class: 'btn tiny tg', title, onclick: () => { set(!get()); refreshToggles(); } }, label); b.get = get; return b; };
   const hitBtn = toggleBtn('Impacts', 'Journal des impacts (J)', () => state.hitLog, (v) => { state.hitLog = v; });
   const nameBtn = toggleBtn('Noms', 'Plaques de nom des navires (L)', () => state.labels, (v) => { state.labels = v; });
+  const teamBtn = toggleBtn('Équipes', 'Liste des flottes à droite : les deux camps et leurs navires (T)', () => state.teams, (v) => { state.teams = v; setHudVisible(game.state !== 'setup'); });
   const reloadBtn = toggleBtn('Recharge', 'Jauges de rechargement des tourelles, des tubes et des missiles du navire suivi (R)', () => state.reloads, (v) => { state.reloads = v; });
   const mapBtn = toggleBtn('Carte', 'Carte : clic = suivre un navire, molette = zoom (K : petite, grande, cachée)', () => minimap.visible, () => minimap.cycle());
   const setupBtn = h('button', { class: 'btn tiny tg', title: 'Composer les flottes', onclick: () => { const open = setup.classList.toggle('collapsed') === false; if (open) settings.classList.add('hidden'); refreshToggles(); } }, 'Flottes');
   const setBtn = h('button', { class: 'btn tiny tg', title: 'Réglages (H)', onclick: () => toggleSettings() }, 'Réglages');
   const helpBtn = h('button', { class: 'btn tiny tg', title: 'Aide (F1)', onclick: () => toggleHelp() }, '?');
   function refreshToggles() {
-    for (const b of [hitBtn, nameBtn, reloadBtn, mapBtn]) b.classList.toggle('on', !!b.get());
+    for (const b of [hitBtn, nameBtn, teamBtn, reloadBtn, mapBtn]) b.classList.toggle('on', !!b.get());
     scoreBtn.classList.toggle('on', !!state.scoreSticky);
     setupBtn.classList.toggle('on', !setup.classList.contains('collapsed'));
     setBtn.classList.toggle('on', !settings.classList.contains('hidden'));
@@ -224,7 +225,7 @@ export function createUI(game) {
   }
   const sep = () => h('span', { class: 'sep' });
   const topbar = h('div', { id: 'topbar', class: 'hud' }, clock, h('span', { class: 'sp' }, speedBtns), fpsEl, sep(),
-    hitBtn, nameBtn, reloadBtn, mapBtn, scoreBtn, sep(),
+    hitBtn, nameBtn, teamBtn, reloadBtn, mapBtn, scoreBtn, sep(),
     setupBtn,
     h('button', { class: 'btn tiny', id: 'btn-sound', title: 'Son (M)', onclick: () => toggleSound() }, 'Son'),
     setBtn, helpBtn);
@@ -287,7 +288,7 @@ export function createUI(game) {
       h('b', {}, 'Tab (maintenir)'), h('span', {}, 'Tableau de bord : coulés, obus tirés, touches, dégâts de chaque navire'),
       h('b', {}, 'R'), h('span', {}, 'Jauges de rechargement : un anneau par tourelle (secondes restantes, PRÊT), les tubes lance-torpilles et les missiles du navire suivi'),
       h('b', {}, 'J'), h('span', {}, 'Journal des impacts : obus, angle, blindage, pénétration et dégâts de chaque touche'),
-      h('b', {}, 'L  ·  M  ·  H  ·  G  ·  F1'), h('span', {}, 'Plaques de nom ; son ; réglages ; cacher toute l\'interface ; cette aide')),
+      h('b', {}, 'L  ·  T  ·  M  ·  H  ·  G  ·  F1'), h('span', {}, 'Plaques de nom ; liste des flottes ; son ; réglages ; cacher toute l\'interface ; cette aide')),
     h('div', { class: 'hint' }, 'Cliquer pour fermer'));
   function toggleHelp(on) { helpEl.classList.toggle('hidden', on === undefined ? !helpEl.classList.contains('hidden') : !on); refreshToggles(); }
 
@@ -401,7 +402,8 @@ export function createUI(game) {
   setHudVisible(false);
 
   function setHudVisible(v) {
-    for (const el of [topbar, teamsHud, camBar, caption, shipInfo, reloads.el, feed]) el.classList.toggle('hidden', !v || state.hudHidden);
+    for (const el of [topbar, teamsHud, camBar, caption, shipInfo, reloads.el, feed]) el.classList.toggle('hidden', !v || state.hudHidden || (el === teamsHud && !state.teams));
+    layoutRight();
     minimap.el.style.display = !v || state.hudHidden ? 'none' : '';
     planeInfo.classList.toggle('hidden', true);
   }
@@ -903,6 +905,7 @@ export function createUI(game) {
     else if (e.code === 'Period') { const steps = [0.5, 1, 2, 4, 8]; const i = steps.indexOf(game.timeScale); game.paused = false; game.setTimeScale(steps[Math.min(steps.length - 1, i + 1)] ?? 1); }
     else if (e.code === 'Comma') { const steps = [0.5, 1, 2, 4, 8]; const i = steps.indexOf(game.timeScale); game.paused = false; game.setTimeScale(steps[Math.max(0, i - 1)] ?? 1); }
     else if (e.code === 'KeyL') { state.labels = !state.labels; refreshToggles(); }
+    else if (e.code === 'KeyT') { state.teams = !state.teams; setHudVisible(game.state !== 'setup'); refreshToggles(); }
     else if (e.code === 'KeyJ') { state.hitLog = !state.hitLog; refreshToggles(); }
     else if (e.code === 'KeyR') { state.reloads = !state.reloads; refreshToggles(); updateShipInfo(); }
     else if (e.code === 'KeyM') toggleSound();

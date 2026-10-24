@@ -263,6 +263,10 @@
   {
    "file": "fixedguns.mjs",
    "args": []
+  },
+  {
+   "file": "terrainavoid.mjs",
+   "args": []
   }
  ],
  "tools": [

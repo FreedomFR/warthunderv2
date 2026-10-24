@@ -17,6 +17,7 @@ import { guide, setVel, stallSpeed } from './flight.js';
 import { repairPlane } from './planedamage.js';
 import { chooseSite, divert } from './landing.js';
 import { chooseApproach } from './routing.js';
+import { avoidTerrain } from './terrainavoid.js';
 import { genericBomb } from '../data/ordnance.js';
 
 const GROUND_STATES = new Set(['parked', 'taxiOut', 'holdshort', 'lineup', 'groundRun', 'lroll', 'taxiBack', 'park']);
@@ -786,11 +787,7 @@ function stepAir(world, p, dt, base, F, pf, T) {
   }
   const prev = [p.x, p.y, p.z];
   // an island ahead: the pilot climbs over it (not on the approach to the field or the take-off)
-  if (T && p.phase !== 'lfinal' && p.phase !== 'goaround' && p.phase !== 'climb') {
-    let top = -1e9;
-    for (const d of [300, 750, 1300, 2000]) top = Math.max(top, T.heightAt(p.x + Math.sin(p.heading) * d, p.z - Math.cos(p.heading) * d));
-    if (top + 35 > p.y) gam = Math.max(gam, clamp((top + 80 - p.y) / 420, 0.05, 0.3));
-  }
+  if (T && p.phase !== 'lfinal' && p.phase !== 'goaround' && p.phase !== 'climb') { const av = avoidTerrain(world, p, hdg, gam, pf); hdg = av.hdg; gam = av.gam; }
   guide(p, dt, hdg, gam, spd, o);
   advance(p, dt);
   const flr = p.phase === 'lfinal' ? clamp((groundY(p.spec) + 6 - (p.y - F.y)) / 5, 0, 1) : 0;

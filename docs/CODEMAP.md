@@ -20,7 +20,7 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 - `audio.js` (273) Game sound: positional playback of the procedurally synthesised sounds (see audio/synth.js). [GameAudio] ← 2
 - `device.js` (14) What kind of device the game runs on. Shared by the engine (pixel density), the game (quality) and the touch interface. [isMobile, maxPixelRatio] ← 4
 - `game.js` (477) Game orchestrator: ties the simulation world to the ocean engine (hooks), the ship / particle renderers, the camera rig and the UI. [Game] ← 1
-- `math.js` (157) Small math helpers shared by the game code (no allocations in the hot helpers). [D2R, R2D, TAU, KN, G, clamp, lerp, sat, smoothstep, … +11] ← 65
+- `math.js` (157) Small math helpers shared by the game code (no allocations in the hot helpers). [D2R, R2D, TAU, KN, G, clamp, lerp, sat, smoothstep, … +11] ← 66
 - `preload.js` (17) What can be built before the player has done anything, while the first screen plays: the meshes of every ship class (5 s of work in all, one model after another with… [preloadModels] ← 2
 - `scenarios.js` (47) Ready-made fleet compositions for the setup screen. [PRESETS] ← 6
 
@@ -206,8 +206,8 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 
 - `aadata.js` (13) Anti-aircraft data shared by the guns (sim/aircraft.js) and the aircraft that plan their way past them (sim/routing.js). [AA, FLAK_RANGE] ← 5
 - `accuracy.js` (165) Accuracy of naval gunfire: where each shell of a salvo goes. [systemOf, profileOf, rangingSigma, trackFor, ready, firingError, observeSplash] ← 3
-- `aircraft.js` (911) Carrier aircraft. A wave of dive bombers and torpedo bombers takes off from the flight deck, flies to the enemy, attacks (bombs are dropped from a steep dive,… [planeId, bombId, resetAirIds, arm, updateAir, FIGHT_CTX, dropTorpedo] ← 2
-- `airfield.js` (842) Air operations from the airfields of the islands. [initAirfield, killGroundPlane, stepBasePlane, stepAirfield] ← 3
+- `aircraft.js` (910) Carrier aircraft. A wave of dive bombers and torpedo bombers takes off from the flight deck, flies to the enemy, attacks (bombs are dropped from a steep dive,… [planeId, bombId, resetAirIds, arm, updateAir, FIGHT_CTX, dropTorpedo] ← 2
+- `airfield.js` (839) Air operations from the airfields of the islands. [initAirfield, killGroundPlane, stepBasePlane, stepAirfield] ← 3
 - `airhit.js` (80) The hit volume of an aircraft. An aircraft is a body (an ellipsoid the size of its fuselage), the planes of its wings (a biplane has two) and its tail: what a gun… [airframe, axes, presentedArea, extentToward, roundHitChance, lightAAHitRate] ← 5
 - `airperf.js` (123) How fast each aircraft flies. Speeds in m/s (airspeed), from the published performance of each type (CHANGELOG 0.1.2 has the table and the sources): vmax top speed… [PERF, perfOf, aeroOf, dragAcc, thrustAcc, turnPerf] ← 12
 - `ballistics.js` (104) Exterior ballistics: point-mass shells with altitude-dependent air drag. [gunBallistics, solve, stepShell] ← 6
@@ -236,10 +236,11 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 - `sensors.js` (154) Sensors: who can see whom. The horizon from the height of the eye and of the target, the visibility of the sea, the radars of each ship (data/gunnery.js) with their… [DEFAULT_VISIBILITY, horizonM, topHeight, eyeHeight, visibilityM, radarsOf, radarsAlive, radarOn, radarReach, … +5] ← 6
 - `ship.js` (726) A ship in the simulation: kinematics, wave response, damage state and weapon mounts. [makeCommand, Ship] ← 1
 - `shipdata.js` (115) Gameplay statistics derived from the real-ship spec sheets. [makeStats, cleanName, shipNames, pickName] ← 5
-- `terrain.js` (405) The islands. A few procedural islands sit in the sea, of every size and height: a rock a hundred metres wide, a hilly island, a mountain range ten kilometres long, a… [padWeight, Island, Terrain] ← 19
-- `theatre.js` (211) The great war: a theatre of war with two sides on a very large sea (data/theatre.js). [theatreNations, buildTheatre, Theatre] ← 3
+- `terrain.js` (405) The islands. A few procedural islands sit in the sea, of every size and height: a rock a hundred metres wide, a hilly island, a mountain range ten kilometres long, a… [padWeight, Island, Terrain] ← 20
+- `terrainavoid.js` (66) The pilot and the mountains: before the aircraft is flown, the ground ahead is looked at (about forty seconds of flight along the heading it wants), and what is… [avoidTerrain, ditchHeading] ← 3
+- `theatre.js` (211) The great war: a theatre of war with two sides on a very large sea (data/theatre.js). [theatreNations, buildTheatre, Theatre] ← 4
 - `weapons.js` (356) Gunnery (fire control, turret slewing, salvos) and torpedo launching. [recoilCurve, mountSolution, updateGunnery, shellChoice, interceptTime, torpedoSolution, updateTorpedoes] ← 7
-- `world.js` (461) The simulation world: ships, shells, torpedoes, aircraft, teams, events, victory. [TEAM_COLORS, World] ← 56
+- `world.js` (461) The simulation world: ships, shells, torpedoes, aircraft, teams, events, victory. [TEAM_COLORS, World] ← 57
 
 ## js/game/sim/controllers/
 
@@ -260,7 +261,7 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 - `mobileStyle.js` (89) Style of the touch interface (body.mobile). [MOBILE_CSS] ← 1
 - `reloads.js` (75) The reload gauges of the ship that is watched, laid out as in the naval HUD of War Thunder: one ring per gun mount that fills while the mount reloads (with the… [mountState, reloadGroups, createReloadHud] ← 2
 - `shipstate.js` (59) What the interface says of a ship's state, in place of a health bar (a ship has no hit points: see sim/hull.js): the reserve of buoyancy she has left, the share of… [shipStatus, LEVEL_COLOR, setMeters, planeText, planeLevel] ← 1
-- `ui.js` (935) DOM user interface (French): fleet setup, HUD, labels, kill feed, results, settings. [createUI] ← 1
+- `ui.js` (938) DOM user interface (French): fleet setup, HUD, labels, kill feed, results, settings. [createUI] ← 1
 
 ## js/viewer/
 
@@ -318,6 +319,7 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 - `flockshots.mjs` Pictures of the automatic camera's shots of aircraft in groups (formations in the air, attacks by several aircraft on one ship, two aircraft fighting), every view of…
 - `gunshots.mjs` Pictures of the defensive guns of every aircraft that has a gunner: the whole aircraft from the side, from above, from the rear quarter above and below, and the guns…
 - `hitstokill.mjs` How many hits of each kind of round it takes to bring down each aircraft (against the published anchors: about 35 .50 API hits for an American fighter, 11 Hispano…
+- `labelshots.mjs` The interface of a theatre with the names shown, hidden (L), the list of the fleets hidden (T) and the whole HUD hidden (G): node tools/labelshots.mjs <outDir>…
 - `modelbench.mjs` The time it takes to build every ship model, and a fingerprint of the result (the same fingerprint = the same models): node tools/modelbench.mjs
 - `perf.mjs` Where the time of a frame goes in a running battle: node tools/perf.mjs "<url>" [seconds] [profileSeconds] GPU=hardware WSLENV=GPU "/mnt/c/Program…
 - `portshots.mjs` Pictures of a port in a theatre of war: node tools/portshots.mjs <outDir> [seed=1] [large|medium=large] [width=1280] [height=720] Runs tools/baseshots.mjs on the war…
@@ -343,6 +345,7 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 - `site.mjs` Assemble the files of the published site into _site/: node tools/site.mjs this checkout, at the root of the site node tools/site.mjs --main <dir> --dev <dir> [--out…
 - `skyshots.mjs` Pictures of the sky and the clouds: node tools/skyshots.mjs <outDir> [extra url parameters] GPU=hardware WSLENV=GPU "/mnt/c/Program Files/nodejs/node.exe"…
 - `smoke.mjs` Browser smoke test: start a battle in headless Chromium (software WebGPU when there is no GPU), switch through the cameras and the quality presets and fail on any…
+- `terraincrash.mjs` How many aircraft fly into the ground that were not shot down: node tools/terraincrash.mjs [secs=7200] [seed=3] [nations=USA,Japan] A war is run without a camera;
 - `torptrace.mjs` What a torpedo bomber does after its drop: node tools/torptrace.mjs [carrier,carrier,...] [secs=700] [seed=1] For each torpedo aircraft: the phase it is in at the…
 - `traffic.mjs` The traffic of the runways of the island airfields: intervals between two take-offs and two landings, the closest two aircraft got, go-arounds.
 - `assemble.mjs` Edit and encode the trailer from the frames written by record.mjs.
@@ -418,6 +421,7 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 - `runways.mjs` The traffic of the runways and the decks: node test/runways.mjs An island airfield sends its aircraft down the runway one behind the other (a rolling start, the next…
 - `spin.mjs` What turns on a ship: node test/spin.mjs — the screws and the rudders, the radars, the directors, and the matrix they are drawn with.
 - `takeoff.mjs` Take-off from a carrier: an aircraft that leaves the bow must not sink towards the sea (it sagged 12-15 m and skimmed the waves when it went down to build the speed…
+- `terrainavoid.mjs` The pilots and the mountains: node test/terrainavoid.mjs — an aircraft that is flying at a mountain it cannot climb over turns away from it, one that can climb does,…
 - `theatre.mjs` The great war: node test/theatre.mjs — task forces put to sea from their ports, nobody sees what is not in sight, a contact brings the fleets together and they fight,…
 - `torpedoes.mjs` Torpedoes: the real power of each warhead (TNT equivalent), the damage that follows from it, the fixed bow tubes of a motor torpedo boat.
 - `ui.mjs` Finding one's way in the interface: node test/ui.mjs — the line that says what the camera shows, the area and the scale bar of the map.
