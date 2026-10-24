@@ -7,10 +7,11 @@ import { airPaintId } from './airpaint.js';
 
 const GLASS = rgb('#3d5560');
 
+let crease = null;      // (the crease angle of the skin pieces being drawn: a clustered mesh needs its normals smoothed over a wider angle)
 function add(b, v4, key, mat = MAT.AIRCRAFT, col = null) {
   const piece = v4.PLANE[key];
   if (!piece) return;
-  const d = decodeBaked(piece, v4.SCALE);
+  const d = decodeBaked(piece, v4.SCALE, mat === MAT.AIRPAINT ? (crease ?? 40) : 40);
   if (col) { const c = new Uint8Array(d.col.length); for (let i = 0; i < c.length; i += 3) { c[i] = col[0]; c[i + 1] = col[1]; c[i + 2] = col[2]; } b.raw(d.pos, d.nrm, c, d.idx, mat); return; }
   b.raw(d.pos, d.nrm, d.col, d.idx, mat);
 }
@@ -59,6 +60,7 @@ function finBand(b, s) {
 
 /** Draw `part` of the aircraft `s` (its sheet has `v4`: the module of the pieces) into the builder. The parts that stay procedural ('hook', 'ordnance') are not drawn here. */
 export function drawV4Plane(b, s, part) {
+  crease = s.crease ?? null;
   const v4 = s.v4, all = part === 'whole';
   // (an aircraft with a paint scheme is painted by the shader from the scheme table: the skin pieces carry its number, the model's own colours are not used)
   const id = s.paint ? airPaintId(s.paint) : -1;
@@ -78,6 +80,7 @@ export function drawV4Plane(b, s, part) {
  * charred nacelle drawn over a burning engine). The closed doors of the bay and the team band on the fin stay procedural: the model has the bay open.
  */
 export function drawV4Heavy(b, s, part) {
+  crease = s.crease ?? null;
   const v4 = s.v4, all = part === 'whole', X = (d) => s.cg - d;
   const pid = s.paint ? airPaintId(s.paint) : -1, skin = (key) => (pid >= 0 ? add(b, v4, key, MAT.AIRPAINT, [pid, 0, 0]) : add(b, v4, key));
   const closedBay = () => {

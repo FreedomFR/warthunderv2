@@ -6,7 +6,7 @@
 // markings are measured on the reference models (tools/refs/planepaint.py) or, where the model has none, taken from the published sizes and looked at on the aircraft; `est` marks a guess.
 //   upper, lower   the colours; `side` (optional): the colour of the upper flanks of the fuselage (a tricolour); `line`: the height of the line between the upper and the lower colour on the
 //   flanks (null: by the normal alone); `camo`: [{ col, scale, thr }] patches of colour on the upper surfaces (soft noise: a splinter or a blotch scheme); `mottle`: spots on the flanks;
-//   `cowl`, `glare`: the black-blue nose of the Japanese aircraft; `finish`: [roughness, metalness] of the paint (bare metal is gloss and metal).
+//   `hw`: half the width of the fuselage (m): inside it the line decides, outside it the normal (the wings); `cowl`, `glare`: the black-blue nose of the Japanese aircraft; `finish`: [roughness, metalness] of the paint (bare metal is gloss and metal).
 //   decals: a marking is placed on a `face` ('side': both flanks; 'top' / 'bottom' of the wings) at (x, y or z) and drawn from primitives in its own frame (u forward, v up on the flank, v
 //   outboard on a wing): { disc: r, col }, { star: r, col, rot }, { rect: [u0, u1, v0, v1], col }. `wing: 'both'` on both wings, 'port' / 'starboard' on one.
 
@@ -48,7 +48,7 @@ export const AIRPAINT = {
   },
   // Douglas SBD-3 Dauntless (1942-43): blue-gray over light gray, the star on a flank and on the upper port and lower starboard wings
   sbd: {
-    upper: '#4b5a6b', lower: '#adb1b3', line: -0.2, finish: [0.82, 0.0],
+    hw: 1.0, upper: '#4b5a6b', lower: '#adb1b3', line: -0.2, finish: [0.82, 0.0],
     decals: [
       { face: 'side', x: -2.0, y: 0.1, prims: usInsignia(0.4, false) },
       { face: 'top', wing: 'port', x: 0.5, z: 4.4, prims: usInsignia(0.55, true) },
@@ -57,7 +57,7 @@ export const AIRPAINT = {
   },
   // Grumman TBF-1C Avenger (1943): the tricolour, sea blue over intermediate blue over insignia white
   tbf: {
-    upper: '#202e46', side: '#4b6286', lower: '#e2e4de', line: -0.35, finish: [0.82, 0.0],
+    hw: 1.3, upper: '#202e46', side: '#4b6286', lower: '#e2e4de', line: -0.35, finish: [0.82, 0.0],
     decals: [
       { face: 'side', x: -3.2, y: 0.3, prims: usInsignia(0.5, false) },
       { face: 'top', wing: 'port', x: 0.55, z: 5.6, prims: usInsignia(0.75, true) },
@@ -66,8 +66,8 @@ export const AIRPAINT = {
   },
   // Ilyushin Il-2 (1942): 4BO green with black-green and brown blotches over light blue, red stars with a white edge
   il2: {
-    upper: '#4b5b35', lower: '#8fa3b6', line: -0.1, finish: [0.85, 0.0],
-    camo: [{ col: '#2b3224', scale: 0.8, thr: 0.5, seed: 3, sides: true }, { col: '#5d4b30', scale: 0.55, thr: 0.62, seed: 11, sides: true }],
+    hw: 1.0, upper: '#4b5b35', lower: '#8fa3b6', line: -0.1, finish: [0.85, 0.0],
+    camo: [{ col: '#2b3224', scale: 1.25, thr: 0.55, seed: 3, sides: true }, { col: '#5d4b30', scale: 0.9, thr: 0.64, seed: 11, sides: true }],
     decals: [
       { face: 'side', x: -3.0, y: 0.1, prims: redStar(0.45) },
       { face: 'top', wing: 'both', x: 1.4, z: 4.6, prims: redStar(0.65) },
@@ -78,7 +78,7 @@ export const AIRPAINT = {
   bf109: {
     upper: '#5c6350', side: '#93a2a6', lower: '#a8b7bc', line: -0.12, finish: [0.8, 0.0],
     camo: [{ col: '#6f7385', scale: 1.1, thr: 0.5, seed: 5 }],
-    mottle: { col: '#5f6753', scale: 6.0, thr: 0.62 },
+    mottle: { col: '#5f6753', scale: 5.0, thr: 0.74 },
     decals: [
       { face: 'side', x: -2.3, y: 0.3, prims: balkenkreuz(0.42) },
       { face: 'top', wing: 'both', x: 0.6, z: 3.5, prims: balkenkreuz(0.5) },
@@ -87,7 +87,7 @@ export const AIRPAINT = {
   },
   // Boeing B-29 Superfortress: bare aluminium, the star and bars on the fuselage and the upper port and lower starboard wings
   b29: {
-    upper: '#b7bbbd', lower: '#b7bbbd', line: null, finish: [0.36, 0.8],
+    hw: 1.55, upper: '#b7bbbd', lower: '#b7bbbd', line: null, finish: [0.36, 0.8],
     decals: [
       { face: 'side', x: -6.2, y: 0.3, prims: usInsignia(0.8, false) },
       { face: 'top', wing: 'port', x: 2.0, z: 13.0, prims: usInsignia(1.15, true) },
@@ -103,11 +103,11 @@ const f = (v) => (Math.abs(v) < 1e-9 ? '0.0' : String(+v.toFixed(4)).includes('.
 const col = (h) => { const n = parseInt(h.slice(1), 16); return `vec3f(${f(((n >> 16) & 255) / 255)}, ${f(((n >> 8) & 255) / 255)}, ${f((n & 255) / 255)})`; };
 
 /** One marking as WGSL statements that blend its primitives into `c`. */
-function decalCode(d) {
+function decalCode(d, hw) {
   const L = [];
   const sgn = d.wing === 'port' ? -1 : 1;
   let q, mask;
-  if (d.face === 'side') { q = `vec2f(p.x - ${f(d.x)}, p.y - ${f(d.y)})`; mask = `smoothstep(0.1, 0.3, abs(ng.z)) * (1.0 - smoothstep(0.8, 1.0, az))`; }
+  if (d.face === 'side') { q = `vec2f(p.x - ${f(d.x)}, p.y - ${f(d.y)})`; mask = `smoothstep(0.1, 0.3, abs(ng.z)) * (1.0 - smoothstep(${f(hw + 0.25)}, ${f(hw + 0.45)}, az))`; }
   else {
     const top = d.face === 'top', both = d.wing === 'both';
     const v = both ? `(az - ${f(d.z)})` : `(p.z * ${f(sgn)} - ${f(d.z)})`;      // (outboard on the wing the marking is on)
@@ -129,20 +129,20 @@ export function airPaintWgsl() {
   const cases = AIRPAINT_KEYS.map((k, i) => {
     const s = AIRPAINT[k];
     const L = [];
-    L.push(`      let sideMask = 1.0 - smoothstep(0.55, 0.75, az);`);
+    L.push(`      let sideMask = 1.0 - smoothstep(${f(s.hw ?? 0.55)}, ${f((s.hw ?? 0.55) + 0.2)}, az);`);
     L.push(`      let byN = smoothstep(-0.30, -0.05, n.y);`);
     if (s.line != null) {
       L.push(`      let byY = smoothstep(${f(s.line - 0.04)}, ${f(s.line + 0.04)}, p.y + 0.035 * sin(p.x * 2.6));`);
-      L.push(`      let upperK = mix(byN, mix(byY, byN, smoothstep(0.4, 0.8, abs(n.y))), sideMask);`);
+      L.push(`      let upperK = mix(byN, byY, sideMask);`);      // (on the fuselage the line alone decides: the normals of a decimated mesh are noisy)
     } else L.push(`      let upperK = byN;`);
     L.push(`      var top = ${col(s.upper)};`);
     if (s.side) L.push(`      top = mix(top, ${col(s.side)}, (1.0 - smoothstep(0.3, 0.65, abs(n.y))) * sideMask);`);
-    for (const cm of s.camo || []) L.push(`      top = mix(top, ${col(cm.col)}, smoothstep(${f(cm.thr - 0.06)}, ${f(cm.thr + 0.06)}, gnoise(vec2f(p.x * ${f(cm.scale)} + ${f(cm.seed ?? 0)}, p.z * ${f(cm.scale)} + p.y * ${f(cm.scale * 0.6)}))) * ${cm.sides ? '1.0' : 'smoothstep(0.3, 0.6, abs(n.y))'});`);
+    for (const cm of s.camo || []) L.push(`      top = mix(top, ${col(cm.col)}, smoothstep(${f(cm.thr - 0.06)}, ${f(cm.thr + 0.06)}, 0.5 + 0.9 * gnoise(vec2f(p.x * ${f(cm.scale)} + ${f(cm.seed ?? 0)}, p.z * ${f(cm.scale)} + p.y * ${f(cm.scale * 0.6)}))) * ${cm.sides ? '1.0' : 'smoothstep(0.3, 0.6, abs(n.y))'});`);
     L.push(`      var c = mix(${col(s.lower)}, top, upperK);`);
-    if (s.mottle) L.push(`      c = mix(c, ${col(s.mottle.col)}, smoothstep(${f(s.mottle.thr)}, ${f(s.mottle.thr + 0.06)}, gnoise(vec2f(p.x * ${f(s.mottle.scale)}, p.y * ${f(s.mottle.scale)} + p.z * ${f(s.mottle.scale * 0.5)}))) * (1.0 - smoothstep(0.3, 0.6, abs(n.y))) * sideMask);`);
+    if (s.mottle) L.push(`      c = mix(c, ${col(s.mottle.col)}, smoothstep(${f(s.mottle.thr)}, ${f(s.mottle.thr + 0.06)}, 0.5 + 0.9 * gnoise(vec2f(p.x * ${f(s.mottle.scale)}, p.y * ${f(s.mottle.scale)} + p.z * ${f(s.mottle.scale * 0.5)}))) * (1.0 - smoothstep(0.3, 0.6, abs(n.y))) * sideMask);`);
     if (s.glare) L.push(`      c = mix(c, ${col(s.glare.col)}, smoothstep(${f(s.glare.x0 - 0.04)}, ${f(s.glare.x0 + 0.04)}, p.x) * (1.0 - smoothstep(${f(s.glare.x1 - 0.04)}, ${f(s.glare.x1 + 0.04)}, p.x)) * (1.0 - smoothstep(${f(s.glare.hw - 0.03)}, ${f(s.glare.hw + 0.03)}, az)) * smoothstep(0.3, 0.6, n.y));`);
     if (s.cowl) L.push(`      c = mix(c, ${col(s.cowl.col)}, smoothstep(${f(s.cowl.x0 - 0.025)}, ${f(s.cowl.x0 + 0.025)}, p.x) * (1.0 - smoothstep(${f(s.cowl.hw - 0.05)}, ${f(s.cowl.hw)}, az)));`);
-    for (const d of s.decals || []) L.push(decalCode(d));
+    for (const d of s.decals || []) L.push(decalCode(d, s.hw ?? 0.55));
     L.push(`      return c;`);
     return `    case ${i}u: {\n${L.join('\n')}\n    }`;
   });

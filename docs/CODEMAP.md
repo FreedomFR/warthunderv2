@@ -110,7 +110,7 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 - `triangulate.js` (53) Triangulation of a polygon with holes (ear clipping after the holes are bridged into the outline), for the flat caps of the solids read from a reference model… [triangulate] ← 1
 - `tweaks.js` (1160) Per-ship hand tuning of the generated models (see shipbuilder.js for the options). [TWEAKS] ← 15
 - `v4hit.js` (113) The hit volumes of a ship drawn from a reference model (model/v4ship.js), made from what is drawn: a grid of 0.5 m cells that holds the surfaces of the hull plating,… [buildHitModel, addPartSurfaces, hitNormalAt] ← 2
-- `v4plane.js` (121) An aircraft drawn from the pieces of its reference model (aircraft/<key>_v4.js, tools/refs/planegroups.py): the body (fuselage, cowl, fixed undercarriage), the tail,… [drawV4Plane, drawV4Heavy] ← 1
+- `v4plane.js` (124) An aircraft drawn from the pieces of its reference model (aircraft/<key>_v4.js, tools/refs/planegroups.py): the body (fuselage, cowl, fixed undercarriage), the tail,… [drawV4Plane, drawV4Heavy] ← 1
 - `v4ship.js` (120) A ship drawn from the groups of a reference model (ships/<id>_v4.js, tools/refs/shipgroups.py): after the procedural build (which keeps giving the hit volumes, the… [reference, paintInto, applyV4] ← 2
 - `vegetation.js` (143) Where the plants grow. Pure functions of an island (no GPU): the climate of the island, how much of the ground is covered at a point (used both to scatter trees and… [SP, SPECIES, VARIANTS, STEP, climateOf, cover, scatter] ← 5
 

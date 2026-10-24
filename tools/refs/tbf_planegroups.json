@@ -85,10 +85,10 @@
  "drop_wires": true,
  "mirror_wings": "L",
  "budget": {
-  "body": 20000,
+  "body": 38000,
   "tail": 4000,
-  "wingL": 8000,
-  "wingR": 8000,
+  "wingL": 14000,
+  "wingR": 14000,
   "prop": 1800,
   "glass": 900,
   "canopy": 3500

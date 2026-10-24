@@ -260,6 +260,15 @@ for name in sorted(set(part) - {'drop'}):
     t = np.where(part == name)[0]
     if name == 'body' and cfg.get('body_overlap'):      # (the body also carries the first `body_overlap` metres of the wings, so that the cut between the pieces, eroded by the simplification, shows no gap)
         t = np.concatenate([t, np.where(np.isin(part, ['wingL', 'wingR']) & (np.abs(cen[:, 2]) < wz + cfg['body_overlap']))[0]])
+    sh = cfg.get('shell', {}).get(name)
+    if sh:      # keep only the outer skin where a model has layers one inside the other (a cowling and its baffles: they would fight for the same pixels): per slab of x and sector of angle round the axis, the triangles that are not within `margin` of the outermost
+        cc = cen[t]; rad = np.hypot(cc[:, 1], cc[:, 2]); ang = np.arctan2(cc[:, 2], cc[:, 1]); inx = (cc[:, 0] >= sh['x'][0]) & (cc[:, 0] <= sh['x'][1])
+        key = (np.floor(cc[:, 0] / sh.get('slab', 0.1)).astype(np.int64) * 64 + np.floor((ang + np.pi) / (2 * np.pi) * sh.get('sectors', 24)).astype(np.int64) % 64)
+        best = {}
+        for kk, rr in zip(key[inx], rad[inx]):
+            if rr > best.get(kk, 0): best[kk] = rr
+        inner = np.array([inx[i] and rad[i] < best[key[i]] - sh.get('margin', 0.04) for i in range(len(t))])
+        print(f'{name}: {int(inner.sum())} inner triangles dropped (shell)'); t = t[~inner]
     used = np.unique(I[t]); remap = -np.ones(nv, dtype=np.int64); remap[used] = np.arange(len(used))
     V, Cc, T = Q[used], C[used].astype(np.float64), remap[I[t]]
     V0, C0 = V, Cc
