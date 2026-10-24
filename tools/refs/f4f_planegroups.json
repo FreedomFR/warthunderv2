@@ -1,0 +1,26 @@
+{
+ "key": "f4f",
+ "name": "Grumman F4F-3 Wildcat",
+ "axis_deg": 90,
+ "scale": {"span": 11.58},
+ "hub_depth": 0.2,
+ "drop": "^mesh_(0|1|2|16|17|19|22|25|27)$",
+ "rules": [
+  {"part": "prop", "box": [3.05, 4.0, -2.0, 2.0, -2.0, 2.0]},
+  {"part": "glass", "material": "^mesh_29$", "box": [-0.4, 1.2, 0.4, 1.5, -0.75, 0.75]},
+  {"part": "drop", "material": "^mesh_29$"},
+  {"part": "drop", "box": [1.67, 2.6, -0.2, 0.5, 1.4, 2.1]},
+  {"part": "drop", "box": [1.67, 2.6, -0.2, 0.5, -2.1, -1.4]},
+  {"part": "tyres", "material": "^mesh_(3|4|5|6|7|8|9|10|11|12|13|14)$"}
+ ],
+ "shell": {"body": {"x": [1.8, 3.05], "slab": 0.08, "sectors": 36, "margin": 0.04}},
+ "wing_z": 1.0,
+ "tail_x": -3.2,
+ "body_overlap": 0.2,
+ "budget": {"body": 48000, "tail": 8000, "wingL": 10000, "wingR": 10000, "prop": 3000, "glass": 2500, "tyres": 6000},
+ "cluster": ["body", "wingL", "wingR", "tail", "tyres"],
+ "cluster_scale": {"wingL": [1, 5, 1], "wingR": [1, 5, 1], "tail": [1, 3, 3]},
+ "cluster_contraction": "Quadric",
+ "recolor": {"prop": [32, 32, 34], "tyres": [38, 38, 40]},
+ "nocolor": ["body", "tail", "wingL", "wingR"]
+}

@@ -16,6 +16,8 @@ const usInsignia = (r, wing) => [
   ...(wing ? [{ rect: [-r * 0.27, r * 0.27, r * 0.95, r * 2.0], col: '#f0eee6' }, { rect: [-r * 0.27, r * 0.27, -r * 2.0, -r * 0.95], col: '#f0eee6' }]
     : [{ rect: [r * 0.95, r * 2.0, -r * 0.27, r * 0.27], col: '#f0eee6' }, { rect: [-r * 2.0, -r * 0.95, -r * 0.27, r * 0.27], col: '#f0eee6' }]),
 ];
+/** The American national insignia of 1940-42 (a white star in a blue disc with a small red disc in its middle, no bars): the red was taken out in May 1942. */
+const usInsignia41 = (r) => [{ disc: r, col: '#1d3a78' }, { star: r * 0.8, col: '#f0eee6', rot: Math.PI / 2 }, { disc: r * 0.2, col: '#b3222a' }];
 /** The RAF roundel (`ring`: the yellow ring of the fuselage roundel): blue, white and red (the outer red of the early type is not worn by 1943 aircraft). */
 const raf = (r, ring) => [...(ring ? [{ disc: r * 1.25, col: '#e0b92b' }] : []), { disc: r, col: '#1f3a78' }, { disc: r * 0.66, col: '#eeece4' }, { disc: r * 0.33, col: '#b3222a' }];
 /** The Luftwaffe cross: a black cross with a white edge (`a`: the half length of an arm). */
@@ -80,6 +82,26 @@ export const AIRPAINT = {
       { face: 'side', x: -2.9, y: 0.15, prims: usInsignia(0.45, false) },
       { face: 'top', wing: 'port', x: 0.7, z: 4.2, prims: usInsignia(0.6, true) },
       { face: 'bottom', wing: 'starboard', x: 0.7, z: 4.2, prims: usInsignia(0.6, true) },
+    ],
+  },
+  // Grumman F4F-3 Wildcat (1941-42): non-specular blue-gray over light gray, the star in the blue disc with its red centre (and no bars) on the rear fuselage and on the upper port and lower
+  // starboard wings (places and sizes: the published drawings of the type, `est`: the models are painted by their textures, the game's colours replace them)
+  f4f: {
+    hw: 0.8, upper: '#4f5f73', lower: '#b4b8ba', line: -0.12, finish: [0.82, 0.0],
+    decals: [
+      { face: 'side', x: -2.35, y: 0.12, prims: usInsignia41(0.36) },
+      { face: 'top', wing: 'port', x: 0.55, z: 3.9, prims: usInsignia41(0.5) },
+      { face: 'bottom', wing: 'starboard', x: 0.55, z: 3.9, prims: usInsignia41(0.5) },
+    ],
+  },
+  // General Motors FM-2 Wildcat (1944-45, the escort carriers): overall glossy sea blue, the 1943 star and bars on the rear fuselage and on the upper port and lower starboard wings (places
+  // and sizes: the published drawings of the type, `est`: the model is painted by its texture, the game's colours replace it)
+  fm2: {
+    hw: 0.8, upper: '#1d2a40', lower: '#26354d', line: -0.15, finish: [0.45, 0.0],
+    decals: [
+      { face: 'side', x: -2.4, y: 0.12, prims: usInsignia(0.34, false) },
+      { face: 'top', wing: 'port', x: 0.55, z: 3.9, prims: usInsignia(0.5, true) },
+      { face: 'bottom', wing: 'starboard', x: 0.55, z: 3.9, prims: usInsignia(0.5, true) },
     ],
   },
   // Aichi D3A1: dark green over grey-green, a black-blue cowling, hinomaru as on the Zero

@@ -70,6 +70,7 @@ export const AA_GUNS = {
 /** The belts: the share of each round in the belt. */
 export const BELTS = {
   us50: { api50: 0.45, ap50: 0.2, ball50: 0.1, apit50: 0.25 },                  // the Navy's .50: API liked "because Japanese planes caught fire easily", a tracer in four
+  us50e: { ap50: 0.35, ball50: 0.3, apit50: 0.25, api50: 0.1 },               // the Navy's .50 of 1941-42 (the F4F-3): ball, AP and tracer, the API only coming in (est)
   jp77: { ball303: 0.6, ap303: 0.4 },                                           // the 7,7 mm Type 97: ball and AP, a tracer now and then
   jp20: { hei20t99a: 0.65, ap20: 0.35 },                                        // the Type 99 cannon: HE-I (the tracer is one too) and AP-T
   uk303: { ap303: 0.4, inc303: 0.4, ball303: 0.2 },                             // late 1941: half AP, half incendiary
@@ -112,6 +113,8 @@ export const GUNS = {
  */
 export const FIXED_GUNS = {
   f6f: [{ gun: 'm2', n: 6, rpg: 400, belt: 'us50', mount: 'wing', z: [2.33, 2.52, 2.71], conv: 275 }],                       // three .50 in each wing, outboard of the undercarriage (the stations of the muzzle ports on the model's leading edge)
+  f4f: [{ gun: 'm2', n: 4, rpg: 430, belt: 'us50e', mount: 'wing', z: [1.62, 1.93], conv: 275 }],                       // the F4F-3: two .50 in each wing, 430 rounds each (the six of the F4F-4 came later); the stations are those of the barrels on the model (1.62 and 1.93 m from the centre line)
+  fm2: [{ gun: 'm2', n: 4, rpg: 430, belt: 'us50', mount: 'wing', z: [2.16, 2.4], conv: 275 }],                         // two .50 in each wing, 430 rounds each; the stations are those of the muzzle ports taped over on the model (2.1-2.23 and 2.33-2.46 m from the centre line)
   a6m: [{ gun: 't97', n: 2, rpg: 600, belt: 'jp77', mount: 'cowl', z: [-0.22, 0.22], conv: 200 }, { gun: 't99', n: 2, rpg: 60, belt: 'jp20', mount: 'wing', z: [2.3], conv: 200 }],
   fulmar: [{ gun: 'b303', n: 8, rpg: 750, belt: 'uk303', mount: 'wing', z: [2.7, 3.1, 3.5, 3.9], conv: 230 }],            // four in each wing
   bf109t: [{ gun: 'mg17', n: 2, rpg: 500, belt: 'de792', mount: 'cowl', z: [-0.2, 0.2], conv: 250 }, { gun: 'mg151', n: 1, rpg: 200, belt: 'de20mg', mount: 'hub', conv: 250 }],      // the F-4: two MG 17 over the engine and the MG 151/20 through the hub

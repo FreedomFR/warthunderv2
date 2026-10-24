@@ -7,7 +7,7 @@ import { launchOptions } from './browser.mjs';
 const [outDir = 'out/cockpits', only] = process.argv.slice(2);
 fs.mkdirSync(outDir, { recursive: true });
 const base = 'http://localhost:8080/index.html?offscreen=1&w=640&h=360&ocean=1&alt=300';
-const types = only ? only.split(',') : 'sbd tbf d3a b5n swordfish skua ju87 fi167 ln401 pl10 re2001 re2001t f6f a6m fulmar bf109t d520 mc202 b17 b29 g4m lancaster he111 sm79 leo451'.split(' ');
+const types = only ? only.split(',') : 'sbd tbf d3a b5n swordfish skua ju87 fi167 ln401 pl10 re2001 re2001t f6f f4f fm2 a6m fulmar bf109t d520 mc202 b17 b29 g4m lancaster he111 sm79 leo451'.split(' ');
 const views = [['ahead', '0,-4'], ['left', '-70,-10'], ['right', '70,-10'], ['back-left', '-150,0'], ['back-right', '150,0'], ['down', '0,-55'], ['up', '0,60']];
 const b = await chromium.launch(launchOptions());
 const p = await b.newPage({ viewport: { width: 640, height: 360 } });

@@ -30,6 +30,8 @@ import * as HE111_V4 from './aircraft/he111_v4.js';
 import * as LANCASTER_V4 from './aircraft/lancaster_v4.js';
 import * as B5N_V4 from './aircraft/b5n_v4.js';
 import * as F6F_V4 from './aircraft/f6f_v4.js';
+import * as F4F_V4 from './aircraft/f4f_v4.js';
+import * as FM2_V4 from './aircraft/fm2_v4.js';
 import * as JU87_V4 from './aircraft/ju87_v4.js';
 import * as RO43_V4 from './aircraft/ro43_v4.js';
 
@@ -147,6 +149,20 @@ export const PLANES = {
     tail: { x: -4.93, chord: 1.63, span: 5.62, fin: 1.9, finChord: 2.4, y: 0.37 }, canopy: [{ x0: -0.4, x1: 1.1, tx1: 0.8, h: 0.7 }],
     gear: 'retract', ordnance: null, groundY: 2.35, tailWheel: 'game', v4: F6F_V4, paint: 'f6f',
   },
+  f4f: {      // measured on the model (tools/refs/planegroups.py --measures): the wing 2.44 m of chord at the root and 1.5 m at the tip (24 m2), the tailplane 4.15 m, the glass of the canopy, three blades of 1.6 m; the model has the gear up (the wheels lie in the fuselage): the game's wheels
+    name: 'Grumman F4F-3 Wildcat', nation: 'USA', role: 'fighter', kind: 'mono', L: 8.82, span: 11.58, mass: 3.4, S: 24.15, hp: 3.0,
+    fus: { r: 0.62, ar: 1.3, x: -0.5 }, engine: { type: 'radial', r: 0.62, len: 1.1 }, prop: { r: 1.6, n: 3, x: 0 },
+    wing: { cr: 2.44, ct: 1.5, x: 0.45, y: 0.07, dih: 0.35, sweep: 0.15, t: 0.3 },
+    tail: { x: -4.55, chord: 1.41, span: 4.15, fin: 1.5, finChord: 1.9, y: 0.61 }, canopy: [{ x0: -0.25, x1: 0.95, tx1: 0.7, h: 0.55 }],
+    gear: 'retract', ordnance: null, groundY: 1.95, tailWheel: 'game', v4: F4F_V4, paint: 'f4f',
+  },
+  fm2: {      // measured on the model (tools/refs/planegroups.py --measures): the wing 2.4 m of chord at the root and 1.5 m at the tip, the tailplane 4.2 m, the long sliding hood, three blades of 1.6 m; the model has the gear up (the wheels lie in the fuselage): the game's wheels
+    name: 'General Motors FM-2 Wildcat', nation: 'USA', role: 'fighter', kind: 'mono', L: 8.93, span: 11.58, mass: 3.75, S: 24.15, hp: 3.2,
+    fus: { r: 0.62, ar: 1.3, x: -0.5 }, engine: { type: 'radial', r: 0.66, len: 1.2 }, prop: { r: 1.6, n: 3, x: 0 },
+    wing: { cr: 2.4, ct: 1.5, x: 0.58, y: 0.04, dih: 0.3, sweep: 0.15, t: 0.3 },
+    tail: { x: -4.55, chord: 1.46, span: 4.22, fin: 1.45, finChord: 1.9, y: 0.54 }, canopy: [{ x0: -0.85, x1: 1.0, tx1: 0.75, h: 0.55 }],
+    gear: 'retract', ordnance: null, groundY: 1.95, tailWheel: 'game', v4: FM2_V4, paint: 'fm2',
+  },
   a6m: {      // measured on the model (tools/refs/planegroups.py --measures); the retractable undercarriage is drawn by the game (the model has it up)
     name: 'Mitsubishi A6M2 Zero', nation: 'Japan', role: 'fighter', kind: 'mono', L: 8.97, span: 12.0, mass: 2.45, S: 22.44, hp: 2.4,
     fus: { r: 0.62, ar: 1.1, x: -0.4 }, engine: { type: 'radial', r: 0.62, len: 1.3 }, prop: { r: 1.49, n: 3, x: 0 },
@@ -240,7 +256,7 @@ export function damageSites(spec) {
  * and from its airfields ('fighter' | 'level': land-based types come in as models are added, so list them under `base`).
  */
 const ROSTER = {
-  USA: { dive: ['sbd'], torp: ['tbf'], fighter: ['f6f'], level: ['b17'] }, Japan: { dive: ['d3a'], torp: ['b5n'], fighter: ['a6m'], level: ['g4m'] },
+  USA: { dive: ['sbd'], torp: ['tbf'], fighter: ['f6f', 'f4f', 'fm2'], level: ['b17'] }, Japan: { dive: ['d3a'], torp: ['b5n'], fighter: ['a6m'], level: ['g4m'] },
   UK: { dive: ['skua'], torp: ['swordfish'], fighter: ['fulmar'], level: ['lancaster'] }, USSR: { dive: ['il2'] },
   Germany: { dive: ['ju87'], torp: ['fi167'], fighter: ['bf109t'], level: ['he111'] }, France: { dive: ['ln401'], torp: ['pl10'], fighter: ['d520'], level: ['leo451'] },
   Italy: { dive: ['re2001'], torp: ['re2001t'], fighter: ['mc202'], level: ['sm79'] },

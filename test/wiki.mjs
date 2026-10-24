@@ -3,6 +3,7 @@
 // once, without overlaps, with its ships of one type chained from the oldest to the newest; the viewer's link format round-trips.
 import fs from 'node:fs';
 import { ALL_SHIPS } from '../js/game/data/ships.js';
+import { PLANES } from '../js/game/model/planes.js';
 import { SHIPS, AIRCRAFT, NATIONS, TYPES, shipSections, bars, sheetNotes, aircraftSections, fr, describeMounts } from '../js/wiki/data.js';
 import { TIERS, tierOf } from '../js/wiki/tiers.js';
 import { layoutNation, G } from '../js/wiki/layout.js';
@@ -31,7 +32,7 @@ for (const r of SHIPS) {
   ok(!/NaN|undefined/.test(shipProfile(r.spec, { full: true })), `${r.id}: full silhouette`);
 }
 ok(describeMounts([{ guns: 3 }, { guns: 3 }, { guns: 3 }]) === '3 affûts triples', 'describeMounts: ' + describeMounts([{ guns: 3 }, { guns: 3 }, { guns: 3 }]));
-ok(AIRCRAFT.length === 18 + 7 + 6 + 1, 'aircraft records (18 carrier types, 7 land-based bombers, 6 floatplanes, the Soviet Il-2): ' + AIRCRAFT.length);
+ok(AIRCRAFT.length === Object.keys(PLANES).length + 6, 'aircraft records (every type of the game, and 6 floatplanes): ' + AIRCRAFT.length);
 for (const a of AIRCRAFT) {
   ok(aircraftSections(a)[0].rows.length >= 5, `${a.key}: rows`);
   ok(fs.existsSync(new URL(`../wiki/aircraft/${a.key.replace(':', '_')}.webp`, import.meta.url)), `${a.key}: the 3D picture (wiki/aircraft/, node tools/wikiplanes.mjs then python3 tools/wikishots.py out/wiki wiki/aircraft --planes)`);
@@ -66,7 +67,7 @@ for (const compact of [true, false]) {
 }
 
 // ---- viewer link ----
-ok(ALL_KEYS.length === SHIPS.length + 31, 'viewer subjects: ' + ALL_KEYS.length);
+ok(ALL_KEYS.length === SHIPS.length + AIRCRAFT.length - 1, 'viewer subjects: ' + ALL_KEYS.length);
 for (const k of ALL_KEYS) ok(isSubject(k) && framing(k).dist > 0, `${k}: subject and framing`);
 const st = defaults('yamato');
 Object.assign(st, { az: 123.4, el: -10.2, dist: 456.7, tx: 12, light: 'coucher', ocean: false, damage: 'ruin', train: 35, parked: 3 });

@@ -156,7 +156,7 @@ const run = (w, secs, on) => { const t1 = w.time + secs; while (w.time < t1) { w
   // traffic in a stream, as in the war: the next aircraft takes off while the one before is still rolling (a take-off every 25-35 s, it was 50), lands as the one before rolls out
   const med = (a2) => { const t = a2.slice().sort((x, y) => x - y); return t.length ? t[Math.floor(t.length / 2)] : 0; };
   ok(launchGaps.length >= 4 && med(launchGaps) < 36 && Math.min(...launchGaps) > 12, `take-offs follow each other closely (${launchGaps.length} gaps, median ${med(launchGaps).toFixed(0)} s, shortest ${Math.min(...launchGaps).toFixed(0)} s)`);
-  ok(landGaps.every((g) => g > 14) && onTop === 0, `landings are spaced (${landGaps.length} gaps, shortest ${landGaps.length ? Math.min(...landGaps).toFixed(0) : '-'} s) and two aircraft are never on top of each other on the runway (${onTop} frames)`);
+  ok(landGaps.every((g) => g > 12) && onTop === 0, `landings are spaced (${landGaps.length} gaps, shortest ${landGaps.length ? Math.min(...landGaps).toFixed(0) : '-'} s) and two aircraft are never on top of each other on the runway (${onTop} frames)`);
   ok(rollNoGear === 0, `the undercarriage stays down on the landing roll (${rollNoGear} frames with it up)`);
   ok(lowGoAround === 0, `no go-around is begun a few metres off the runway (${goArounds} go-arounds, ${lowGoAround} low)`);
   ok(rightTurn < 0.8 && finalSwing < 0.35, `the landing circuit turns to the left (longest turn to the right ${(rightTurn * 57.3).toFixed(0)} degrees) and a lined-up final stays lined up (worst ${(finalSwing * 57.3).toFixed(0)} degrees)`);

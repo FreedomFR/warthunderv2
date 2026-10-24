@@ -8,7 +8,7 @@ const ok = (c, m) => { console.log(c ? 'PASS' : 'FAIL', m); if (!c) process.exit
 const D = Math.PI / 180, G = 9.81;
 const mk = (k, v, y = 2000) => ({ typeKey: k, spec: PLANES[k], x: 0, y, z: 0, vx: 0, vy: 0, vz: 0, heading: 0, pitch: 0, roll: 0, bank: 0, speed: v, lost: {} });
 const fly = (p, sec, f) => { const dt = 1 / 30; for (let t = 0; t < sec; t += dt) { f(p, dt, t); p.x += p.vx * dt; p.y += p.vy * dt; p.z += p.vz * dt; } return p; };
-const FIGHTERS = ['f6f', 'a6m', 'fulmar', 'bf109t', 'd520', 'mc202'], HEAVY = ['b17', 'g4m', 'lancaster', 'he111', 'sm79', 'leo451'];
+const FIGHTERS = ['f6f', 'f4f', 'fm2', 'a6m', 'fulmar', 'bf109t', 'd520', 'mc202'], HEAVY = ['b17', 'g4m', 'lancaster', 'he111', 'sm79', 'leo451'];
 const R = {};
 console.log('type        top m/s pub/sim   climb m/s pub/sim   turn deg/s (g, m/s, height lost)   bank 45 s   dive 70: brakes / clean m/s');
 for (const k of Object.keys(PERF)) {
@@ -30,6 +30,8 @@ ok(all.filter((k) => PERF[k].brakes).every((k) => Math.abs(R[k].db / PERF[k].vd 
 ok(all.every((k) => R[k].dc < 245), `no aircraft dives faster than about 880 km/h (the drag rise of compressibility; fastest ${Math.max(...all.map((k) => R[k].dc)).toFixed(0)} m/s)`);
 ok(all.every((k) => Math.abs(R[k].lost) < 30), 'a sustained turn at the limit is flown level');
 ok(FIGHTERS.every((k) => R[k].turn > 12) && HEAVY.every((k) => R[k].turn < 6), 'a fighter turns at more than 12 degrees a second, a heavy bomber at less than 6');
+ok(R.f4f.turn > R.f6f.turn && R.f4f.top < R.f6f.top && R.f4f.roc < R.f6f.roc, `the lighter Wildcat out-turns the Hellcat and is slower and climbs less (${R.f4f.turn.toFixed(1)} against ${R.f6f.turn.toFixed(1)} degrees a second)`);
+ok(R.fm2.roc > R.f4f.roc && R.fm2.top >= R.f4f.top - 1 && R.fm2.top < R.f6f.top, `the FM-2 climbs better than the F4F-3 (${R.fm2.roc.toFixed(1)} against ${R.f4f.roc.toFixed(1)} m/s) and is slower than the Hellcat`);
 ok(R.a6m.turn > R.f6f.turn && R.a6m.turn > R.bf109t.turn, `the Zero out-turns the Hellcat and the Bf 109 (${R.a6m.turn.toFixed(1)}, ${R.f6f.turn.toFixed(1)}, ${R.bf109t.turn.toFixed(1)} degrees a second)`);
 ok(FIGHTERS.every((k) => R[k].tb < 0.9) && HEAVY.every((k) => R[k].tb > 1.1), 'a fighter rolls into a turn in under a second, a heavy bomber takes longer');
 // the wing: slow, the aircraft cannot pull what it could fast
