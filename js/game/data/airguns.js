@@ -151,6 +151,10 @@ export const FIXED_GUNS = {
   // pairs at 0.1 and 0.24 m from the centre line, the rifle-calibre guns above them); the guns fire ahead for the pilot (no gunner)
   mosquito: [{ gun: 'hsmk2', n: 4, rpg: 300, belt: 'uk20', mount: 'at', at: [[0.64, -0.645, -0.105], [0.64, -0.645, 0.105], [0.88, -0.665, -0.243], [0.88, -0.665, 0.243]], where: 'sous le nez', drawn: true, conv: 230 },
     { gun: 'b303', n: 4, rpg: 500, belt: 'uk303', mount: 'at', at: [[-0.31, -0.216, -0.108], [-0.31, -0.216, 0.108], [-0.17, -0.25, -0.245], [-0.17, -0.25, 0.245]], where: 'dans le nez', drawn: true, conv: 230 }],
+  // the B-26B Invader (A-26B-50): eight .50 M2 in the solid nose in two columns of four (the muzzles at the places of the barrels on the model: 0.19 m each side of the centre line, the four rows between 0.25 m below and
+  // 0.3 m above the axis) and the four .50 of two two-gun pods under the wings (the pylons of the model, at 5.0 and 5.2 m from the centre line); the rounds (400 in the nose, 300 in a pod) are `est`
+  b26: [{ gun: 'm2', n: 8, rpg: 400, belt: 'us50a', mount: 'at', at: [[-0.03, 0.304, -0.19], [-0.03, 0.304, 0.19], [-0.12, 0.142, -0.19], [-0.12, 0.142, 0.19], [-0.17, -0.044, -0.19], [-0.17, -0.044, 0.19], [-0.18, -0.245, -0.19], [-0.18, -0.245, 0.19]], where: 'dans le nez', drawn: true, conv: 450 },
+    { gun: 'm2', n: 4, rpg: 300, belt: 'us50a', mount: 'at', at: [[4.44, 0.33, -5.2], [4.56, 0.33, -5.0], [4.44, 0.33, 5.0], [4.56, 0.33, 5.2]], where: 'dans les nacelles sous les ailes', drawn: true, conv: 300 }],
   sm79: [{ gun: 'breda127', n: 1, rpg: 350, belt: 'it127', mount: 'at', at: [[6.6, 1.85, 0]], conv: 300 }],           // the fixed 12,7 mm of the hump, firing ahead
 };
 export const FIGHTER_GUNS = FIXED_GUNS;

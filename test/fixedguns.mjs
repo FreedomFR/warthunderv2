@@ -12,8 +12,8 @@ const ok = (c, m) => { console.log(c ? 'PASS' : 'FAIL', m); if (!c) { fail++; pr
 const D = Math.PI / 180;
 
 // ---- what each type carried (barrels): the published fits ----
-const FIXED = { p38: 5, mosquito: 8, f6f: 6, f4f: 4, fm2: 4, f8f: 4, tdb1: 1, p40: 6, spitfire: 6, a6m: 4, fulmar: 8, bf109t: 3, d520: 5, mc202: 4, il2: 4, sbd: 2, tbf: 2, d3a: 2, swordfish: 1, skua: 4, ju87: 2, fi167: 1, ln401: 2, pl10: 1, re2001: 4, re2001t: 4, sm79: 1, b5n: 0 };
-const FLEX = { sbd: 2, tbf: 2, tdb1: 1, f8f: 0, d3a: 1, b5n: 1, swordfish: 1, skua: 1, ju87: 1, fi167: 1, pl10: 2, il2: 1, ln401: 0, re2001: 0, b17: 13, b29: 13, lancaster: 8, g4m: 5, he111: 5, sm79: 4, leo451: 3, f6f: 0, f4f: 0, fm2: 0, p40: 0, spitfire: 0, a6m: 0, p38: 0, mosquito: 0 };
+const FIXED = { p38: 5, mosquito: 8, b26: 12, f6f: 6, f4f: 4, fm2: 4, f8f: 4, tdb1: 1, p40: 6, spitfire: 6, a6m: 4, fulmar: 8, bf109t: 3, d520: 5, mc202: 4, il2: 4, sbd: 2, tbf: 2, d3a: 2, swordfish: 1, skua: 4, ju87: 2, fi167: 1, ln401: 2, pl10: 1, re2001: 4, re2001t: 4, sm79: 1, b5n: 0 };
+const FLEX = { b26: 4, sbd: 2, tbf: 2, tdb1: 1, f8f: 0, d3a: 1, b5n: 1, swordfish: 1, skua: 1, ju87: 1, fi167: 1, pl10: 2, il2: 1, ln401: 0, re2001: 0, b17: 13, b29: 13, lancaster: 8, g4m: 5, he111: 5, sm79: 4, leo451: 3, f6f: 0, f4f: 0, fm2: 0, p40: 0, spitfire: 0, a6m: 0, p38: 0, mosquito: 0 };
 for (const [k, n] of Object.entries(FIXED)) {
   const fit = FIXED_GUNS[k] || [], have = fit.reduce((a, g) => a + g.n, 0);
   ok(have === n, `${k}: ${have} fixed guns (the real aircraft: ${n})`);
@@ -54,6 +54,9 @@ ok(p38.every((g) => g.mz.every((m) => Math.abs(m.z) < 0.4 && m.x > 4.2 && m.x < 
 const mosq = armament('mosquito');
 ok(mosq.length === 2 && mosq.find((g) => g.cal === 20).mz.length === 4 && mosq.find((g) => g.cal === 20).rpg === 300 && mosq.find((g) => g.cal < 10).mz.length === 4 && mosq.find((g) => g.cal < 10).rpg === 500, 'the Mosquito FB VI has four 20 mm (300 rounds each) and four .303 (500 rounds each)');
 ok(mosq.every((g) => g.mz.every((m) => Math.abs(m.z) < 0.4 && m.x > 4.0 && m.x < PLANES.mosquito.L)) && mosq.find((g) => g.cal === 20).mz.every((m) => m.y < mosq.find((g) => g.cal < 10).mz[0].y), 'all its guns are in the nose, the cannons under the rifle-calibre guns');
+const b26 = armament('b26');
+ok(b26.length === 2 && b26.find((g) => g.mz.length === 8).rpg === 400 && b26.find((g) => g.mz.length === 4).rpg === 300 && b26.every((g) => g.cal === 12.7), 'the B-26B has eight .50 in the nose and four .50 in two pods under the wings');
+ok(b26.find((g) => g.mz.length === 8).mz.every((m) => Math.abs(Math.abs(m.z) - 0.19) < 0.02 && m.x > PLANES.b26.L * 0.42 - 0.3) && b26.find((g) => g.mz.length === 4).mz.every((m) => Math.abs(m.z) > 4.8 && Math.abs(m.z) < 5.4), 'its eight nose guns are in two columns of four at the tip of the nose, the four pod guns under the wings');
 ok(armament('a6m').some((g) => g.cal === 20 && g.mz.every((m) => Math.abs(m.z) > 1.5)) && armament('a6m').some((g) => g.cal < 10 && g.mz.every((m) => Math.abs(m.z) < 0.5)), 'the Zero: the cannons in the wings, the machine guns over the engine');
 const f8f = armament('f8f');
 ok(f8f.length === 1 && f8f[0].mz.length === 4 && f8f[0].mz.filter((m) => m.z > 0).length === 2 && f8f[0].mz.every((m) => Math.abs(m.z) > 2.2 && Math.abs(m.z) < 2.9) && f8f[0].rpg === 300, 'the Bearcat has two .50 in each wing with 300 rounds each, as muzzles');
@@ -83,6 +86,8 @@ const run = (planes, secs, extra = {}) => {
   ok(beam.fire.length === 0, 'a fighter on its beam is not shot at: the guns are fixed ahead');
   const own = run([mk('sbd'), enemy({ team: 0 })], 3);
   ok(own.fire.length === 0, 'nor a friend');
+  const inv = mk('b26'), ri = run([inv, enemy()], 4);
+  ok(ri.fire.length > 0 && ri.fire.some((e) => e.guns && e.guns.length >= 48) && inv.guns.reduce((a, g) => a + g.mz.length, 0) === 12, `an Invader fires its eight nose guns and four pod guns at a fighter crossing its nose (${ri.fire.length} bursts, ${ri.hits} hits)`);
   const rear = run([mk('b5n'), enemy()], 3);
   ok(rear.fire.length === 0, 'a Kate has no gun that fires ahead');
 }

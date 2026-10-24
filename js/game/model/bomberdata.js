@@ -237,4 +237,25 @@ export const HEAVY = {
     cutD: 9.75, insD: 8.0, mastD: 4.0,
     gearD: 4.0, tailWheelD: 11.4, gearGeom: { wr: 0.5, leg: 1.5 }, eyeD: [2.4, 0.55, -0.25],
   }),
+  // ---- USA: Douglas B-26B Invader (the A-26B-50 of 1945: 15.62 m, 21.34 m, 5.6 m high; wing 50.2 m2; two Pratt & Whitney R-2800-79, 3.96 m three-blade propellers; a solid nose with eight .50, a remote
+  // dorsal and a remote ventral turret of two .50, a bomb bay for 4 000 lb and four two-gun pods under the wings), drawn from its model (the model is 15.63 m long and 21.34 m across): the fuselage, the
+  // wings with their nacelles and engines, the tail, the propeller and the panes are the model's pieces (model/v4plane.js); this sheet gives the frame the game works in (the stations, the engines, the
+  // planform for the hit volume, the places of the turrets, the bay and the eye) ----
+  b26: finalize({
+    name: 'Douglas B-26B Invader', nation: 'USA', role: 'level', kind: 'mono', L: 15.62, span: 21.34, mass: 12.5, S: 50.17, hp: 8, bombKg: 1814,
+    cg: 6.56, paint: { top: '#b9bdbf', bot: '#b9bdbf', acc: '#e8e6dc' },
+    body: [[0, 0.1, 0.1, 0.0], [0.4, 0.45, 0.45, -0.03], [0.8, 0.63, 0.63, -0.05], [1.5, 0.72, 0.74, -0.01], [2.25, 0.84, 0.78, -0.1], [3.0, 0.92, 0.79, 0.19], [4.5, 0.91, 0.79, 0.2],
+      [6.0, 0.91, 0.79, 0.21], [7.5, 0.95, 0.77, 0.3], [9.0, 0.95, 0.76, 0.27], [9.75, 0.94, 0.75, 0.33], [10.5, 0.7, 0.75, 0.36], [11.25, 0.68, 0.72, 0.44], [12.0, 0.7, 0.66, 0.55],
+      [12.75, 0.65, 0.52, 0.7], [13.5, 0.55, 0.4, 0.78], [14.3, 0.42, 0.28, 0.82], [15.1, 0.25, 0.16, 0.86], [15.62, 0.08, 0.06, 0.88]],
+    cabin: [{ d0: 2.3, d1: 4.2, y0: 0.5, h: 0.4, hw: 0.55 }],
+    guns: [{ t: 'dome', d: 7.2, r: 0.45, n: 2, pivot: [-0.7, 1.15, 0], nowin: true }, { t: 'ball', d: 8.9, r: 0.4, n: 2, pivot: [-2.4, -0.72, 0], nowin: true }],
+    engines: [{ d: 2.23, z: -2.92, y: 0.0, r: 0.78, len: 1.6, aft: 9.3, type: 'radial' }, { d: 2.23, z: 2.92, y: 0.0, r: 0.78, len: 1.6, aft: 9.3, type: 'radial' }],
+    prop: { r: 1.98, n: 3 },
+    wing: { plan: [[0, 4.35, 7.7], [0.25, 4.4, 7.3], [0.5, 4.5, 6.95], [1.0, 4.69, 6.23]], y: 0.55, dih: 0.55, tc: 0.17, flaps: [0.1, 0.55], ail: [0.62, 0.97] },
+    tail: { tp: { le0: 13.1, te0: 15.1, le1: 13.55, te1: 14.57 }, span: 7.0, y: 1.0,
+      fins: [{ z: 0, th: 0.2, sec: [[1.0, 12.4, 15.5], [2.0, 13.08, 15.43], [3.0, 13.35, 15.28], [3.9, 13.7, 15.1], [4.01, 13.9, 15.0]] }],
+      band: [[-7.2, 2.0, 0.12, -8.6, -8.4, 3.4, 0.09, -7.6]] },
+    cutD: 11.56, insD: 11.0, mastD: 4.8, bay: { d0: 4.9, d1: 7.7, hw: 0.45, n: 8, kg: 227, cols: 2, doors: [[5.0, 7.6]] },
+    gearD: 4.8, noseGear: { d: 1.9, wr: 0.3 }, tailWheelD: 14.0, gearGeom: { wr: 0.55, leg: 1.8 }, eyeD: [3.0, 0.75, -0.25], groundPitch: 0,
+  }),
 };

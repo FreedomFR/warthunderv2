@@ -257,6 +257,17 @@ export const AIRPAINT = {
       { face: 'bottom', wing: 'both', x: 1.5, z: 5.3, prims: raf(0.6, false) },
     ],
   },
+  // Douglas B-26B Invader (the A-26B of the 9th and 5th Air Forces, 1945): bare natural-metal aluminium all over with a black anti-glare panel over the nose, the star and bars on the rear fuselage and
+  // on the upper port and lower starboard wings (places and sizes: the published drawings and the model's wing and fuselage; `est`: the model's own paint and markings are not used)
+  b26: {
+    hw: 0.8, upper: '#bdc0c1', lower: '#bdc0c1', line: null, finish: [0.38, 0.78],
+    glare: { x0: 4.4, x1: 6.6, hw: 0.55, col: '#232420' },
+    decals: [
+      { face: 'side', x: -4.4, y: 0.38, prims: usInsignia(0.5, false) },
+      { face: 'top', wing: 'port', x: 0.9, z: 7.3, prims: usInsignia(0.8, true) },
+      { face: 'bottom', wing: 'starboard', x: 0.9, z: 7.3, prims: usInsignia(0.8, true) },
+    ],
+  },
 };
 
 export const AIRPAINT_KEYS = Object.keys(AIRPAINT);
