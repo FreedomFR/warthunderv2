@@ -94,6 +94,17 @@ export const AIRPAINT = {
       { face: 'bottom', wing: 'starboard', x: 0.7, z: 13.0, prims: usInsignia(1.15, true) },
     ],
   },
+  // Boeing B-17G Flying Fortress (the natural-metal finish of the late 1943 aircraft): bare aluminium with an olive-drab glare panel on the nose, the star and bars on the fuselage and on the
+  // upper port and lower starboard wings (measured on the model: the wing star at 11.9 m of the span and mid-chord; the fuselage star between the waist windows and the tailplane)
+  b17: {
+    hw: 1.5, upper: '#b9bdbf', lower: '#b9bdbf', line: null, finish: [0.38, 0.78],
+    glare: { x0: 6.9, x1: 9.3, hw: 0.5, col: '#4a4c36' },
+    decals: [
+      { face: 'side', x: -6.5, y: 0.15, prims: usInsignia(0.55, false) },
+      { face: 'top', wing: 'port', x: 1.8, z: 11.85, prims: usInsignia(0.85, true) },
+      { face: 'bottom', wing: 'starboard', x: 1.8, z: 11.85, prims: usInsignia(0.85, true) },
+    ],
+  },
 };
 
 export const AIRPAINT_KEYS = Object.keys(AIRPAINT);

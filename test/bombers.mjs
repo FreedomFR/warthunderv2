@@ -71,7 +71,7 @@ for (const k of keys) {
   ok((ez.length === 0 || wl[2] <= Math.min(...ez) + 0.01) && (er.length === 0 || wr[5] >= Math.max(...er) - 0.01) && wl[5] <= 0.3 && wr[2] >= -0.3, `${k}: each wing has the nacelles on its side`);
   // the single propeller has its hub at the origin and the right size, and there is a mount for each engine
   const pa = M.prop.aabb;
-  ok(Math.abs(pa[4] - s.prop.r) < 0.25 && pa[3] - pa[0] < (s.v4 ? 0.9 : 0.6) && Math.abs(pa[2] + pa[5]) < s.prop.r * 0.6, `${k}: the propeller (${(pa[4] * 2).toFixed(2)} m across) is built round its hub`);
+  ok(Math.abs(Math.max(pa[4], -pa[1], pa[5], -pa[2]) - s.prop.r) < 0.25 && pa[3] - pa[0] < (s.v4 ? 0.9 : 0.6) && Math.abs(pa[2] + pa[5]) < s.prop.r * 0.6, `${k}: the propeller (${(pa[4] * 2).toFixed(2)} m across) is built round its hub`);
   const mt = propsOf(s);
   ok(mt.length === n && mt.every((m, i) => Math.abs(m.z - s.engines[i].z) < 1e-9 && Math.abs(m.dir) === 1) && Math.abs(mt.reduce((a, m) => a + m.z, 0)) < 1e-6, `${k}: one propeller mount per engine, symmetric about the centre line, ${mt.map((m) => m.dir).join('/')} the senses of rotation`);
   // the engines are on the wings (clear of the fuselage) except a nose engine

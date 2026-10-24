@@ -23,6 +23,7 @@ import * as TBF_V4 from './aircraft/tbf_v4.js';
 import * as IL2_V4 from './aircraft/il2_v4.js';
 import * as BF109_V4 from './aircraft/bf109_v4.js';
 import * as B29_V4 from './aircraft/b29_v4.js';
+import * as B17_V4 from './aircraft/b17_v4.js';
 
 const PI = Math.PI;
 const D2R = PI / 180;
@@ -184,6 +185,7 @@ export const PLANES = {
   },
   // ---- land-based bombers: several engines, built by heavy.js from the sheets of bomberdata.js ----
   ...HEAVY,
+  b17: { ...HEAVY.b17, paintRGB: HEAVY.b17.paint, v4: B17_V4, paint: 'b17' },          // the B-17 is drawn from the pieces of its model, like the B-29
   b29: { ...HEAVY.b29, groundY: 3.0, v4: B29_V4, paint: 'b29' },          // the B-29 is drawn from the pieces of its model (model/v4plane.js drawV4Heavy)
 };
 

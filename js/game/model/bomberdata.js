@@ -46,26 +46,30 @@ function finalize(s) {
 }
 
 export const HEAVY = {
-  // ---- USA: B-17G (22.66 m, 31.62 m, 5.82 m; wing 131.9 m2; four Wright R-1820, 3.5 m propellers) ----
+  // ---- USA: B-17G (22.66 m, 31.62 m, 5.82 m; wing 131.9 m2; four Wright R-1820, 3.5 m propellers), drawn from its model (model/v4plane.js; the model is 23.4 m long with the barrels of its tail guns and
+  // 7 m high on its wheels): the stations of the body are the drawing's, the places of the engines, the turrets, the windows, the tail and the fin the model's ----
   b17: finalize({
     name: 'Boeing B-17G Flying Fortress', nation: 'USA', role: 'level', kind: 'mono', L: 22.66, span: 31.62, mass: 24.5, hp: 14, bombKg: 2700,
-    cg: 8.6, paint: { top: '#5b5f3f', bot: '#a9aba0', acc: '#e8e6dc' },
+    cg: 9.84, paint: { top: '#b9bdbf', bot: '#a9aba0', acc: '#e8e6dc' },
     body: [[0, 0.1, 0.08, -0.2], [0.5, 0.62, 0.52, -0.2], [1.0, 0.9, 0.73, -0.2], [1.5, 1.1, 0.9, -0.12], [2.0, 1.12, 0.92, -0.1], [2.5, 1.1, 1.0, -0.12], [3.0, 1.15, 1.07, -0.07],
       [3.5, 1.3, 1.12, 0.02], [4.5, 1.34, 1.18, 0.01], [7.0, 1.35, 1.2, 0.0], [9.0, 1.27, 1.2, -0.1], [10.5, 1.18, 1.2, -0.2], [12.0, 1.1, 1.17, -0.22], [14.0, 1.0, 0.93, -0.23],
       [16.0, 0.85, 0.78, -0.2], [18.0, 0.72, 0.65, -0.16], [19.5, 0.62, 0.58, -0.12], [21.0, 0.45, 0.41, -0.15], [22.0, 0.3, 0.29, -0.15], [22.5, 0.1, 0.1, -0.15]],
     glass: [{ d0: 0.3, d1: 2.9, a0: -30, a1: 82, sym: true, nu: 3, nv: 3 }],
     cabin: [{ d0: 3.4, d1: 6.0, y0: 0.82, h: 0.5, hw: 0.78 }],
     windows: [{ d: 2.9, y: 0.1, w: 0.4, h: 0.3 }, { d: 3.4, y: 0.1, w: 0.4, h: 0.3 }],
-    guns: [{ t: 'chin', d: 1.9, r: 0.42 }, { t: 'cheek', d: 1.5, y: 0.05, side: -1 }, { t: 'dome', d: 5.3, r: 0.5, n: 2, len: 1.2 }, { t: 'ball', d: 10.9, r: 0.62 },
-      { t: 'beam', d: 13.1, y: 0.15, side: 1, w: 0.8, h: 0.55 }, { t: 'beam', d: 14.4, y: 0.15, side: -1, w: 0.8, h: 0.55 }, { t: 'tail', d: 21.38, r: 0.4, n: 2, len: 0.8 },
-      { t: 'cheek', d: 1.5, y: 0.05, side: 1 }, { t: 'hatch', d: 9.7 }],      // the B-17G has thirteen .50: the two cheek guns of the nose and the gun of the radio room are the last three
-    engines: [{ d: 3.0, z: -6.5, y: -0.1, r: 0.76, len: 1.15, aft: 6.9, type: 'radial', gear: false }, { d: 2.7, z: -2.9, y: -0.28, r: 0.76, len: 1.15, aft: 7.3, type: 'radial' },
-      { d: 2.7, z: 2.9, y: -0.28, r: 0.76, len: 1.15, aft: 7.3, type: 'radial' }, { d: 3.0, z: 6.5, y: -0.1, r: 0.76, len: 1.15, aft: 6.9, type: 'radial', gear: false }],
+    guns: [{ t: 'chin', d: 1.2, r: 0.42, pivot: [8.6, -0.9, 0] }, { t: 'cheek', d: 1.95, y: 0.05, side: -1, pivot: [7.9, 0.4, -0.95] }, { t: 'dome', d: 5.34, r: 0.5, n: 2, len: 1.2, pivot: [4.5, 1.6, 0] },
+      { t: 'ball', d: 11.9, r: 0.55, pivot: [-2.05, -0.95, 0], nowin: true },
+      { t: 'beam', d: 14.1, y: 0.15, side: 1, w: 0.8, h: 0.55, pivot: [-4.3, 0.5, 1.05] }, { t: 'beam', d: 12.55, y: 0.15, side: -1, w: 0.8, h: 0.55, pivot: [-2.72, 0.5, -1.0] },
+      { t: 'tail', d: 22.0, r: 0.4, n: 2, len: 0.8, pivot: [-12.0, 0.95, 0] },
+      { t: 'cheek', d: 1.2, y: 0.05, side: 1, pivot: [8.65, 0.4, 0.8] }, { t: 'hatch', d: 9.5, pivot: [0.3, 1.55, 0] }],      // the B-17G has thirteen .50: the two cheek guns of the nose and the gun of the radio room are the last three (the pivots are the places of the turrets and the windows on the model)
+    engines: [{ d: 3.59, z: -6.57, y: 0.0, r: 0.78, len: 1.15, aft: 10.5, type: 'radial', gear: false }, { d: 2.94, z: -3.05, y: -0.25, r: 0.78, len: 1.15, aft: 10.5, type: 'radial' },
+      { d: 2.94, z: 3.05, y: -0.25, r: 0.78, len: 1.15, aft: 10.5, type: 'radial' }, { d: 3.59, z: 6.57, y: 0.0, r: 0.78, len: 1.15, aft: 10.5, type: 'radial', gear: false }],
     prop: { r: 1.76, n: 3 },
-    wing: { plan: [[0, 4.7, 10.4], [0.3, 5.0, 9.8], [1.0, 6.75, 8.2]], y: -0.45, dih: 1.0, tc: 0.18, flaps: [0.1, 0.55], ail: [0.62, 0.97], boots: [0.05, 0.98] },
-    tail: { tp: { le0: 16.4, te0: 19.5, le1: 17.9, te1: 19.1 }, span: 12.6, y: 0.3, fins: [{ z: 0, th: 0.18, sec: [[0.4, 8.5, 21.0], [1.4, 11.0, 20.8], [2.9, 14.9, 20.5], [3.9, 17.4, 20.2], [4.45, 18.4, 19.9]] }] },
-    cutD: 15.6, insD: 15.0, mastD: 5.2, bay: { d0: 6.6, d1: 10.6, hw: 0.45, n: 12, kg: 227, cols: 3 },
-    gearD: 6.4, tailWheelD: 21.0, gearGeom: { wr: 0.56, leg: 2.09 }, eyeD: [4.1, 1.1, -0.42],
+    wing: { plan: [[0, 4.87, 10.77], [0.3, 5.34, 10.44], [1.0, 7.2, 9.05]], y: 0.15, dih: 0.7, tc: 0.18, flaps: [0.1, 0.55], ail: [0.62, 0.97], boots: [0.05, 0.98] },
+    tail: { tp: { le0: 17.44, te0: 20.34, le1: 18.74, te1: 19.64 }, span: 13.1, y: 0.7, fins: [{ z: 0, th: 0.2, sec: [[0.9, 14.5, 21.8], [1.5, 16.0, 21.75], [3.0, 18.17, 21.46], [4.0, 18.73, 21.29], [5.0, 19.53, 20.45], [5.07, 19.9, 20.3]] }],
+      band: [[-9.5, 3.3, 0.19, -11.3, -11.0, 4.6, 0.13, -9.9]] },
+    cutD: 17.34, insD: 15.0, mastD: 5.2, bay: { d0: 6.6, d1: 10.6, hw: 0.45, n: 12, kg: 227, cols: 3, modelDoors: true },
+    gearD: 6.4, tailWheelD: 21.0, gearGeom: { wr: 0.56, leg: 2.09 }, eyeD: [4.7, 1.1, -0.42],
   }),
 
   // ---- USA: B-29 Superfortress (30.18 m, 43.05 m, 8.46 m; wing 161.3 m2; four Wright R-3350, 5.0 m propellers), measured on its model (the stations and the planform are read there; the

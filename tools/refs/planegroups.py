@@ -76,7 +76,8 @@ zw = Q[wingm[VM] & keep_v][:, 2]
 zc = (zw.max() + zw.min()) / 2
 hub = Q[vn & keep_v & (Q[:, 0] > xn - cfg.get('hub_depth', 0.5 if cfg.get('nose') else 0.35))]      # (hub_depth: how far behind the tip of the nose the centre of the spinner is read: not so far that the blades count, they are not about the axis)
 ax = float(cfg['axis_y']) if 'axis_y' in cfg else float((hub[:, 1].max() + hub[:, 1].min()) / 2)
-Q[:, 0] -= xn - 0.42 * L; Q[:, 1] -= ax; Q[:, 2] -= zc
+ON = cfg['origin_nose'] if 'origin_nose' in cfg else 0.42 * L      # (origin_nose: where the nose is in the game's frame, when the model has things beyond its ends that are dropped: the barrels of its tail guns)
+Q[:, 0] -= xn - ON; Q[:, 1] -= ax; Q[:, 2] -= zc
 low = Q[keep_v][:, 1].min()
 print(f'turned {np.degrees(np.arctan2(uz, ux)):.1f} deg, scale {scale:.4f}, length {L:.2f} m, span {zw.max() - zw.min():.2f} m, axis {ax:.2f} m above the lowest point, ground {-low:.2f} m under the axis (origin x: nose at {0.42 * L:.2f})')
 
