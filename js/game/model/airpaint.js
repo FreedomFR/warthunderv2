@@ -27,6 +27,29 @@ const balkenkreuz = (a) => [
 const redStar = (r) => [{ star: r * 1.12, col: '#e8e4d8', rot: Math.PI / 2 }, { star: r, col: '#c42a24', rot: Math.PI / 2 }];
 
 export const AIRPAINT = {
+  // IMAM Ro.43 of the Regia Marina (1940-41): the light blue-grey of the catapult aircraft over the whole airframe, the black fascio on the upper wings, the tricolour and the white Savoy cross
+  // on the rudder (places and sizes: the published drawings, `est`: the model carries no marking)
+  ro43: {
+    hw: 1.0, upper: '#737f85', lower: '#97a1a4', line: -0.3, finish: [0.82, 0.0],
+    decals: [
+      { face: 'top', wing: 'both', x: 0.6, z: 3.9, prims: [{ disc: 0.55, col: '#e8e6dc' }, { rect: [-0.07, 0.07, -0.4, 0.4], col: '#141414' }, { rect: [-0.07, 0.2, 0.18, 0.34], col: '#141414' }] },
+      { face: 'side', x: -5.4, y: 1.5, prims: [{ rect: [-0.22, -0.07, -0.5, 0.5], col: '#2f6b3a' }, { rect: [-0.07, 0.08, -0.5, 0.5], col: '#e8e6dc' }, { rect: [0.08, 0.23, -0.5, 0.5], col: '#b0292b' }] },
+    ],
+  },
+  // Junkers Ju 87 B-2 (the Western campaign of 1940): RLM 70 black-green and RLM 71 dark green splinter over RLM 65 light blue, yellow cowling and wing tips, the Balkenkreuz on the rear fuselage
+  // and under and over the outer wings (places and sizes: the published drawings of the type, `est`: the model has no marking of its own to measure)
+  ju87: {
+    hw: 0.95, upper: '#3d4536', lower: '#8fa5b8', line: -0.1, finish: [0.82, 0.0],
+    camo: [{ col: '#506039', scale: 1.7, thr: 0.56, seed: 7, sides: true }],
+    cowl: { x0: 3.3, col: '#d3b21c', hw: 0.9 },
+    decals: [
+      { face: 'side', x: -2.9, y: 0.4, prims: balkenkreuz(0.36) },
+      { face: 'top', wing: 'both', x: 0.9, z: 4.9, prims: balkenkreuz(0.62) },
+      { face: 'bottom', wing: 'both', x: 0.9, z: 4.9, prims: balkenkreuz(0.62) },
+      { face: 'top', wing: 'both', x: 1.0, z: 6.6, prims: [{ rect: [-1.6, 1.6, -0.3, 0.3], col: '#d3b21c' }] },
+      { face: 'bottom', wing: 'both', x: 1.0, z: 6.6, prims: [{ rect: [-1.6, 1.6, -0.3, 0.3], col: '#d3b21c' }] },
+    ],
+  },
   // Mitsubishi A6M2: overall grey-green, a black-blue cowling and anti-glare panel, red hinomaru on the flanks and on the wings
   a6m: {
     upper: '#a6a690', lower: '#b2b19e', line: null,
