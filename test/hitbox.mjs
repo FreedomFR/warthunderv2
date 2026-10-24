@@ -180,7 +180,7 @@ ok(offRate < 0.07, `hits more than 6 m from the drawn surface: ${(100 * offRate)
 // ---- the shells burst and leave their scars on the drawn surface ----
 {
   let n = 0, near = 0, errors = 0, tried = 0, nV = 0, nearV = 0;      // (the ships drawn from a reference model are judged apart: their hit volumes are the hand-made ones)
-  for (const id of ['iowa', 'fletcher', 'essex', 'yamato', 'belfast', 'cleveland', 'baltimore', 'norfolk', 'hawaii', 'bismarck', 'tirpitz']) {
+  for (const id of ['iowa', 'fletcher', 'essex', 'yamato', 'belfast', 'cleveland', 'baltimore', 'norfolk', 'hawaii', 'bismarck', 'tirpitz', 'enterprise']) {
     const isV4 = !!TWEAKS[id]?.v4; const n0 = isV4 ? nV : n, near0 = isV4 ? nearV : near;
     const w = new World(3); w.addTeam(0); w.addTeam(1);
     const ship = w.addShip(id, 0, 0, 0, 0);

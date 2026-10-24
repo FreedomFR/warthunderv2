@@ -1061,7 +1061,7 @@ export const TWEAKS = {
     rudders: [{ f: 0.9135, top: 2.7, bottom: 7.8, chord: 8.8, t: 0.6 }],
     keel: [[0, 0.7], [0.04, 0.95], [0.84, 1], [0.89, 0.78], [0.94, 0.5], [1, 0.28]],
     island: { z: 11.2, hw: 4.5, funnelTop: 17.7, funnelLx: 9.5, funnelLz: 4.6, mastF: 0.4294, mastTop: 33.8 },
-    v4: ENTERPRISE_V4, aa: [],      // the light mounts come from the model (4 quadruple 1.1 in, 37 single 20 mm)
+    v4: ENTERPRISE_V4, v4Lifts: true, aa: [],      // the light mounts come from the model (4 quadruple 1.1 in, 37 single 20 mm)
   },
   // Illustrious (ONI 201 sheet, public domain: flight deck 40 ft and stack top 91.5 ft above the waterline printed on it, 4.17 px/m in the
   // profile, 2.26 px/m in the plan): flight deck 12.2 m above the waterline, from stem to stern, 28.6 m wide with a narrower stern box

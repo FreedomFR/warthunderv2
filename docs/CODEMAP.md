@@ -48,14 +48,14 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 
 ## js/game/data/
 
-- `airguns.js` (189) The guns of the aircraft and what they fire. [UNIT, AMMO, AA_GUNS, BELTS, GUNS, FIXED_GUNS, FIGHTER_GUNS, armamentOf, drawRound, … +2] ← 8
+- `airguns.js` (191) The guns of the aircraft and what they fire. [UNIT, AMMO, AA_GUNS, BELTS, GUNS, FIXED_GUNS, FIGHTER_GUNS, armamentOf, drawRound, … +2] ← 8
 - `balance.js` (88) Balance: multipliers of the damage done in the battle, so that it can be tuned without touching the code. [BALANCE_FIELDS, BALANCE_MIN, BALANCE, balanceNeutral, balanceOfFile, balanceNow, setBalance, setBalanceFile, balanceDiff, … +2] ← 8
 - `explosives.js` (40) Explosive fillers of torpedoes and their strength against a ship's hull, as kg of TNT per kg of filler. [EXPLOSIVE, tntEquivalent, AIR_TORPEDO, airTorpedoEq] ← 5
 - `gunmasks.js` (20) The directions that the aircraft's own structure blocks for each defensive gun position: { type: { position id: [[pitch, yaw from, yaw to], ...] } } in degrees, in… [GUN_MASKS] ← 1
-- `gunnery.js` (216) Gunnery data: how scattered the fall of shot of each gun is, and what each ship had to lay it on a target (rangefinders, director, computer, radars with their years). [GUNS, gunProfile, RADARS, SYSTEMS, FIT, fitOf] ← 3
+- `gunnery.js` (218) Gunnery data: how scattered the fall of shot of each gun is, and what each ship had to lay it on a target (rangefinders, director, computer, radars with their years). [GUNS, gunProfile, RADARS, SYSTEMS, FIT, fitOf] ← 3
 - `loadouts.js` (154) What each aircraft can carry: the loads that were really hung under it, as lists of stores (a bomb of data/ordnance.js and how many, or the torpedo of the nation),… [LOADOUTS, loadoutsOf, loadKg, torpedoesIn, bombsIn, pickLoadout] ← 4
 - `ordnance.js` (99) The bombs of the aircraft in the game, with what makes a bomb what it is: its mass, how much of it is explosive (the rest is the case), what the explosive is worth… [FILL, BOMBS, blastTNT, fillerTNT, aircraftRadii, killChance, shockMPa, genericBomb] ← 8
-- `protection.js` (74) Protection and survivability data that the spec sheets do not carry: how the armour is laid out (belt inclination, the thin weather deck above the armoured one), the… [NAVY, PROTECTION, protectionOf, navyOf] ← 1
+- `protection.js` (75) Protection and survivability data that the spec sheets do not carry: how the armour is laid out (belt inclination, the thin weather deck above the armoured one), the… [NAVY, PROTECTION, protectionOf, navyOf] ← 1
 - `shellfill.js` (35) What is inside a naval shell: the explosive as a share of the mass of the shell, by nation and calibre (NavWeaps' pages of every gun; [burstFactor] ← 1
 - `ships.js` (38) Ship roster: the six nations' spec sheets (real-ship data) indexed by id / nation / type. [NATIONS, OTHER_NATIONS, ALL_NATIONS, TYPES, ALL_SHIPS, BY_ID, typeName, nationName, shipsOf] ← 42
 - `theatre.js` (72) The great war: two sides on one very large sea, the Axis (Japan, Germany, Italy) against the Allies (USA, United Kingdom, France). [THEATRES, THEATRE, TASK_FORCES] ← 5
@@ -68,7 +68,7 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 - `italy.js` (12) Real ship spec sheet — Italy. Compiled from Wikipedia, NavWeaps and Navypedia (see "sources" in each entry). [NOTES, SHIPS] ← 1
 - `japan.js` (12) Real ship spec sheet — Japan. Compiled from Wikipedia, NavWeaps and Navypedia (see "sources" in each entry). [NOTES, SHIPS] ← 1
 - `uk.js` (11) Real ship spec sheet — UK. Compiled from Wikipedia, NavWeaps and Navypedia (see "sources" in each entry). [NOTES, SHIPS] ← 1
-- `usa.js` (13) Real ship spec sheet — USA. Compiled from Wikipedia, NavWeaps and Navypedia (see "sources" in each entry). [NOTES, SHIPS] ← 1
+- `usa.js` (14) Real ship spec sheet — USA. Compiled from Wikipedia, NavWeaps and Navypedia (see "sources" in each entry). [NOTES, SHIPS] ← 1
 
 ## js/game/model/aircraft/
 
@@ -108,7 +108,7 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 - `clearance.js` (255) What each gun can bear on. A mount stands on a deck among towers, funnels, masts and other turrets, so the barrel cannot be trained or raised through them: for every… [CLR_STEP, CLR_N, inFoot, computeClearance, clearElev, clearMax, barrelBlocked, pathClear, inArcRel, … +2] ← 9
 - `cockpit.js` (376) The cockpit seen from the pilot's seat: the instrument panel with working dials (airspeed, artificial horizon, altimeter, compass, climb, revolutions, clock and… [cockpitEye, canopyFrame, GAUGE, buildCockpit, getCockpit] ← 6
 - `details.js` (183) Fine detail for the ship models: lifelines, boats on their davits, life rafts, ventilators, anchors and hawse pipes, rigging, searchlight platforms, depth charge… [lifelines, roofRail, launch, raft, vent, anchorAndHawse, stay, depthCharges, mooring, … +4] ← 3
-- `elements.js` (25) Elements copied from the reference models, by ship id (tools/refs/groupmounts.py wrote ships/<id>_elements.js): { MOUNT_SCALE, KINDS: { id: { house, guns, trunnion,… [ELEMENTS] ← 3
+- `elements.js` (26) Elements copied from the reference models, by ship id (tools/refs/groupmounts.py wrote ships/<id>_elements.js): { MOUNT_SCALE, KINDS: { id: { house, guns, trunnion,… [ELEMENTS] ← 3
 - `fixedGuns.js` (107) The fixed guns of an aircraft: where each muzzle is (in the frame of the aircraft: x forward, y up, z to starboard) and how it is drawn. [wingLE, fixedMuzzles, drawFixedGuns] ← 3
 - `glyphs.js` (59) 5x7 bitmap font for hull numbers (digits, capital letters, dash). [GLYPH_CHARS, GLYPH_BITS, glyphIndex] ← 3
 - `heavy.js` (482) The multi-engine land-based bombers (B-17, G4M, Lancaster, He 111, SM.79, LeO 451): the generator for aircraft with `spec.engines`. [frameOf, bayPivot, propMounts, drawHeavy] ← 5
@@ -124,13 +124,13 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 - `planeGuns.js` (205) The defensive guns of an aircraft, one entry per gun position: where it pivots, what it can bear on, its calibre and its barrels. [GUN_DIMS, gunDims, GUN_RATE, planeGuns, inField, isBlocked, inArc, muzzleOf, drawGunHead] ← 8
 - `planes.js` (865) Procedural WWII carrier aircraft. One generator for monoplanes and biplanes driven by a spec sheet (dimensions of the real aircraft). [PAINT, PLANES, groundY, propsOf, floatplaneSpec, damageSites, ROSTER_BASE, planeTypeFor, planeTypesFor, … +17] ← 38
 - `screws.js` (25) The screws and the rudder of the ships whose underwater body was not measured on a plan (tweaks.props / tweaks.rudders): drawn from the number of shafts the class… [defaultScrews] ← 1
-- `shipbuilder.js` (1002) Spec-driven ship builder. Reads a real-ship spec sheet (dimensions, turret / funnel / mast positions as fractions of the overall length, class, paint) and builds the… [pagodaTiers, buildShipModel] ← 14
+- `shipbuilder.js` (1004) Spec-driven ship builder. Reads a real-ship spec sheet (dimensions, turret / funnel / mast positions as fractions of the overall length, class, paint) and builds the… [pagodaTiers, buildShipModel] ← 14
 - `treeMeshes.js` (506) The plants as meshes: eight species (oak, fir, palm, tropical canopy tree, acacia, cypress, shrub, boulder), three variants each, at four levels of detail. [FAM, SHAPE, getTemplate, ROCK_TINT, stampPlants] ← 2
 - `triangulate.js` (53) Triangulation of a polygon with holes (ear clipping after the holes are bridged into the outline), for the flat caps of the solids read from a reference model… [triangulate] ← 1
-- `tweaks.js` (1160) Per-ship hand tuning of the generated models (see shipbuilder.js for the options). [TWEAKS] ← 15
+- `tweaks.js` (1177) Per-ship hand tuning of the generated models (see shipbuilder.js for the options). [TWEAKS] ← 15
 - `v4hit.js` (113) The hit volumes of a ship drawn from a reference model (model/v4ship.js), made from what is drawn: a grid of 0.5 m cells that holds the surfaces of the hull plating,… [buildHitModel, addPartSurfaces, hitNormalAt] ← 2
 - `v4plane.js` (129) An aircraft drawn from the pieces of its reference model (aircraft/<key>_v4.js, tools/refs/planegroups.py): the body (fuselage, cowl, fixed undercarriage), the tail,… [drawV4Plane, drawV4Heavy] ← 1
-- `v4ship.js` (120) A ship drawn from the groups of a reference model (ships/<id>_v4.js, tools/refs/shipgroups.py): after the procedural build (which keeps giving the hit volumes, the… [reference, paintInto, applyV4] ← 2
+- `v4ship.js` (129) A ship drawn from the groups of a reference model (ships/<id>_v4.js, tools/refs/shipgroups.py): after the procedural build (which keeps giving the hit volumes, the… [reference, paintInto, applyV4] ← 2
 - `vegetation.js` (143) Where the plants grow. Pure functions of an island (no GPU): the climate of the island, how much of the ground is covered at a point (used both to scatter trees and… [SP, SPECIES, VARIANTS, STEP, climateOf, cover, scatter] ← 5
 
 ## js/game/model/ships/
@@ -148,6 +148,8 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 - `bismarck_v4.js` (4) The Bismarck built from its reference model (see docs/CREDITS.md; [SCALE, SHIP] ← 1
 - `cleveland_elements.js` (5) Mounts of the Cleveland copied from its reference model, one element at a time (see docs/CREDITS.md; [MOUNT_SCALE, KINDS, PLACEMENTS] ← 1
 - `cleveland_v4.js` (4) The Cleveland built from its reference model (see docs/CREDITS.md; [SCALE, SHIP] ← 1
+- `enterprise_elements.js` (5) Mounts of the Enterprise copied from its reference model, one element at a time (see docs/CREDITS.md; [MOUNT_SCALE, KINDS, PLACEMENTS] ← 1
+- `enterprise_v4.js` (4) The Enterprise built from its reference model (see docs/CREDITS.md; [SCALE, SHIP] ← 1
 - `essex_elements.js` (5) Mounts of the Essex copied from its reference model, one element at a time (see docs/CREDITS.md; [MOUNT_SCALE, KINDS, PLACEMENTS] ← 1
 - `essex_v4.js` (4) The Essex built from its reference model (see docs/CREDITS.md; [SCALE, SHIP] ← 1
 - `fantasque_elements.js` (5) Mounts of the Le Malin copied from its reference model, one element at a time (see docs/CREDITS.md; [MOUNT_SCALE, KINDS, PLACEMENTS] ← 1
@@ -211,7 +213,7 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 
 ## js/game/sim/
 
-- `aadata.js` (32) Anti-aircraft data shared by the guns (sim/aircraft.js) and the aircraft that plan their way past them (sim/routing.js). [AA, FLAK_RANGE] ← 5
+- `aadata.js` (33) Anti-aircraft data shared by the guns (sim/aircraft.js) and the aircraft that plan their way past them (sim/routing.js). [AA, FLAK_RANGE] ← 5
 - `accuracy.js` (165) Accuracy of naval gunfire: where each shell of a salvo goes. [systemOf, profileOf, rangingSigma, trackFor, ready, firingError, observeSplash] ← 3
 - `aircraft.js` (910) Carrier aircraft. A wave of dive bombers and torpedo bombers takes off from the flight deck, flies to the enemy, attacks (bombs are dropped from a steep dive,… [planeId, bombId, resetAirIds, arm, updateAir, FIGHT_CTX, dropTorpedo] ← 2
 - `airfield.js` (852) Air operations from the airfields of the islands. [initAirfield, killGroundPlane, stepBasePlane, stepAirfield] ← 3

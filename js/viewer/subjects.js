@@ -7,7 +7,7 @@ export const ROLE_NAMES = { attack: 'Avion d\'attaque au sol', dive: 'Bombardier
 
 // Display names of the 30 classes (the spec sheets carry the English class names).
 export const SHIP_NAMES = {
-  fletcher: 'Fletcher', cleveland: 'Cleveland', baltimore: 'Baltimore', iowa: 'Iowa', essex: 'Essex',
+  fletcher: 'Fletcher', cleveland: 'Cleveland', baltimore: 'Baltimore', iowa: 'Iowa', essex: 'Essex', enterprise: 'Yorktown (Enterprise)',
   kagero: 'Kagerō', agano: 'Agano', takao: 'Takao', yamato: 'Yamato', shokaku: 'Shōkaku',
   tribal: 'Tribal', belfast: 'Town (Belfast)', norfolk: 'County (Norfolk)', kgv: 'King George V', illustrious: 'Illustrious',
   type1936a_mob: 'Type 1936A (Mob)', koenigsberg: 'Königsberg', admiral_hipper: 'Admiral Hipper', bismarck: 'Bismarck', tirpitz: 'Tirpitz', graf_zeppelin: 'Graf Zeppelin',

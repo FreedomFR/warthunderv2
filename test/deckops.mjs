@@ -8,7 +8,7 @@ import { wrapPi, G } from '../js/game/math.js';
 let fail = 0;
 const ok = (c, m) => { console.log(c ? 'PASS' : 'FAIL', m); if (!c) { fail++; process.exitCode = 1; } };
 const parse = (s) => s.split(',').map((t) => { const [id, c] = t.split(':'); return { id, count: Number(c || 1) }; });
-const ids = process.argv.length > 2 ? process.argv.slice(2) : ['essex', 'shokaku', 'illustrious', 'graf_zeppelin', 'bearn', 'aquila'];
+const ids = process.argv.length > 2 ? process.argv.slice(2) : ['essex', 'enterprise', 'shokaku', 'illustrious', 'graf_zeppelin', 'bearn', 'aquila'];
 // the enemy is one destroyer, far away: nothing else happens on the carrier's deck but its own operations
 
 for (const id of ids) {

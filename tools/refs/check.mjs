@@ -20,7 +20,7 @@ for (const v of ['side', 'top']) if (cfg[v] && !cfg.camera[v]) cfg.camera[v] = {
 const b = await chromium.launch(launchOptions());
 const p = await b.newPage({ viewport: { width: W, height: H } });
 p.on('pageerror', (e) => console.log('[pageerror] ' + e.message.slice(0, 400)));
-await p.goto(`http://localhost:8080/index.html?preview=${ship}&offscreen=1&w=${W}&h=${H}&parked=0&fov=${(cfg.camera.side || cfg.camera.top).fov}&ocean=0&matte=${mode === 'matte' ? 1 : 0}&flags=0`);
+await p.goto(`${process.env.BASE || 'http://localhost:8080'}/index.html?preview=${ship}&offscreen=1&w=${W}&h=${H}&parked=0&fov=${(cfg.camera.side || cfg.camera.top).fov}&ocean=0&matte=${mode === 'matte' ? 1 : 0}&flags=0`);
 for (let i = 0; i < 120; i++) { await p.waitForTimeout(500); if ((await p.evaluate(() => (window.__engine ? window.__engine.frameIndex : -1)).catch(() => -1)) >= 6) break; }
 await p.evaluate(() => { Object.assign(__engine.P, { sunElev: 35, sunAzim: 180, bloom: 0, vignette: 0, clouds: 0 }); __engine.markDirty('lut'); });
 for (const [view, c] of Object.entries(cfg.camera)) {
