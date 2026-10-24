@@ -126,6 +126,15 @@ Done: the Yamato, the Shokaku, the Graf Spee, the Gioberti, the Kagero, the Tade
 
 Faithful to the reference as far as it can be measured; **every weapon must work in the game whatever the ship's era** (guns, AA, tubes, aircraft, and missiles / rockets too: a launcher that is only drawn is a bug); the skin, the firing arcs (`tools/audit/arcs.mjs`, `test/arcs.mjs`) and the visuals (nine views, pairs with the reference, wiki picture) checked. Full list: `tools/refs/WORKFLOW.md`.
 
+## Acceptance rules for every new or changed aircraft, weapon or element (set by the owner: apply them every time, without being asked)
+
+These are the same standards as for a ship (above), for anything the game draws or simulates; when an existing element is modified, re-check the list for what the change touches.
+1. **Faithful to the reference**: dimensions measured in metres on the model (`--measures`), the shape looked at from every side on a plain background (propeller, glass, gear, bays and loads, no shards, no white or black parts), the wiki picture redone. The paint is the game's (a scheme of `airpaint.js` with the real national markings of the period), never the model's colours.
+2. **Every weapon exists, is drawn, and fires**: all the guns of the real fit (count, calibre, rounds, belt, rate), each gun fires from its own barrel on its own line; the fixed guns are harmonised (`FIXED_GUNS` `conv`), every defensive position has its field of fire checked against the aircraft's own structure (`tools/audit/gunarcs.mjs --write` / `--check`, `data/gunmasks.js`), the arcs of ships' mounts likewise (`tools/audit/arcs.mjs`). A gun, a launcher or a load that is only drawn is a bug.
+3. **The sim uses the real data, never a flat class figure**: the number of barrels, the calibre, the rate of fire and the **type of round** (mass, filler, incendiary or armour-piercing: `AMMO`, `AA_GUNS`, `data/ordnance.js`) drive the rate of hits and what a hit does (damage, fire, blast). A new gun gets its own entry with its sources (`est` marks a guess), not the figure of the nearest class. A change in the count of barrels or guns must not change the firepower silently: re-measure it (`tools/airtest.mjs`, tests `aadata`, `airguns`).
+4. **Flight and handling**: `PERF` with the published figures and their source (`test/flight.mjs` reproduces them), the load, the take-off and the landing (hook and deck, or runway) checked in a short battle; the type is in `ROSTER` / `ROSTER_BASE` of `planes.js` (a carrier or an airfield picks one of the types of its nation by its name), the preload, the wiki and the viewer list it.
+5. **Tests and records**: a check for the new element in the matching test (never pin one seed), `npm run map`, `npm test` green, CHANGELOG, `docs/CREDITS.md` (author and licence of the model; "à confirmer" when the file carries none), TODO for what is left; the final report says what was verified and what differs from the real thing.
+
 ## Conventions
 
 - Match the surrounding code: short English comments that say why, no model or tool names in repository files.

@@ -62,7 +62,7 @@ The game must be served: `node server.mjs 8080` (it is already running in the ow
   new mount family or a builder option is needed, make a **small additive edit** to `mounts.js` / `shipbuilder.js` / `parts.js` (re-read the file just before, never reformat, never rename). Run
   `node --check` on a file after you edit it: a syntax error breaks everybody's previews. Do not run `git commit`, `git add`, `npm run build` or the whole `npm test`: the owner's main session does.
 
-## Acceptance checklist (rules of the owner, for every new ship)
+## Acceptance checklist (rules of the owner, for every new ship; the aircraft, weapons and any other element follow CLAUDE.md "Acceptance rules for every new or changed aircraft, weapon or element")
 
 1. As faithful as possible to the reference (measured, +-0.2 m on a destroyer).
 2. **Every weapon works in the game, whatever the era**: guns, AA, tubes, aircraft and also missiles / rockets / mortars. A launcher that is only drawn is a bug: simulate it (damage, range, arcs, stock, reload) and add a test.
