@@ -104,6 +104,17 @@ export const AIRPAINT = {
       { face: 'bottom', wing: 'starboard', x: 0.55, z: 3.9, prims: usInsignia(0.5, true) },
     ],
   },
+  // Douglas TBD-1 Devastator (1941-42): non-specular blue-gray over light gray (the yellow wings and the colours of the squadrons are those of the fleet before 1941), the national star in its
+  // blue disc with the red centre disc (no bars, as before May 1942) on the rear fuselage and on the upper port and lower starboard wings (places and sizes: the published drawings of the
+  // type, `est`: the model is painted by its texture, the game's colours replace it)
+  tdb1: {
+    hw: 0.9, upper: '#4f5f73', lower: '#b4b8ba', line: -0.2, finish: [0.82, 0.0],
+    decals: [
+      { face: 'side', x: -3.3, y: 0.2, prims: usInsignia41(0.4) },
+      { face: 'top', wing: 'port', x: 0.4, z: 5.4, prims: usInsignia41(0.7) },
+      { face: 'bottom', wing: 'starboard', x: 0.4, z: 5.4, prims: usInsignia41(0.7) },
+    ],
+  },
   // Grumman F8F-1 Bearcat (1945): overall glossy sea blue (FS 15042), the 1943 star and bars (no red border: it came in January 1947) on the rear fuselage and on the upper port and lower
   // starboard wings (places and sizes: the stars of the model; the model is painted by its texture, the game's colours replace it)
   f8f: {

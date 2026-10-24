@@ -48,12 +48,12 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 
 ## js/game/data/
 
-- `airguns.js` (182) The guns of the aircraft and what they fire. [UNIT, AMMO, AA_GUNS, BELTS, GUNS, FIXED_GUNS, FIGHTER_GUNS, armamentOf, drawRound, … +2] ← 8
+- `airguns.js` (186) The guns of the aircraft and what they fire. [UNIT, AMMO, AA_GUNS, BELTS, GUNS, FIXED_GUNS, FIGHTER_GUNS, armamentOf, drawRound, … +2] ← 8
 - `balance.js` (88) Balance: multipliers of the damage done in the battle, so that it can be tuned without touching the code. [BALANCE_FIELDS, BALANCE_MIN, BALANCE, balanceNeutral, balanceOfFile, balanceNow, setBalance, setBalanceFile, balanceDiff, … +2] ← 8
 - `explosives.js` (40) Explosive fillers of torpedoes and their strength against a ship's hull, as kg of TNT per kg of filler. [EXPLOSIVE, tntEquivalent, AIR_TORPEDO, airTorpedoEq] ← 5
-- `gunmasks.js` (20) The directions that the aircraft's own structure blocks for each defensive gun position: { type: { position id: [[pitch, yaw from, yaw to], ...] } } in degrees, in… [GUN_MASKS] ← 1
+- `gunmasks.js` (21) The directions that the aircraft's own structure blocks for each defensive gun position: { type: { position id: [[pitch, yaw from, yaw to], ...] } } in degrees, in… [GUN_MASKS] ← 1
 - `gunnery.js` (216) Gunnery data: how scattered the fall of shot of each gun is, and what each ship had to lay it on a target (rangefinders, director, computer, radars with their years). [GUNS, gunProfile, RADARS, SYSTEMS, FIT, fitOf] ← 3
-- `loadouts.js` (147) What each aircraft can carry: the loads that were really hung under it, as lists of stores (a bomb of data/ordnance.js and how many, or the torpedo of the nation),… [LOADOUTS, loadoutsOf, loadKg, torpedoesIn, bombsIn, pickLoadout] ← 4
+- `loadouts.js` (153) What each aircraft can carry: the loads that were really hung under it, as lists of stores (a bomb of data/ordnance.js and how many, or the torpedo of the nation),… [LOADOUTS, loadoutsOf, loadKg, torpedoesIn, bombsIn, pickLoadout] ← 4
 - `ordnance.js` (99) The bombs of the aircraft in the game, with what makes a bomb what it is: its mass, how much of it is explosive (the rest is the case), what the explosive is worth… [FILL, BOMBS, blastTNT, fillerTNT, aircraftRadii, killChance, shockMPa, genericBomb] ← 8
 - `protection.js` (74) Protection and survivability data that the spec sheets do not carry: how the armour is laid out (belt inclination, the thin weather deck above the armoured one), the… [NAVY, PROTECTION, protectionOf, navyOf] ← 1
 - `shellfill.js` (35) What is inside a naval shell: the explosive as a share of the mass of the shell, by nation and calibre (NavWeaps' pages of every gun; [burstFactor] ← 1
@@ -91,10 +91,11 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 - `sbd_v4.js` (5) The Douglas SBD-3 Dauntless built from its reference model (see docs/CREDITS.md; [SCALE, MEASURES, PLANE] ← 1
 - `spitfire_v4.js` (5) The Supermarine Spitfire Mk XII built from its reference model (see docs/CREDITS.md; [SCALE, MEASURES, PLANE] ← 1
 - `tbf_v4.js` (5) The Grumman TBF-1 Avenger built from its reference model (see docs/CREDITS.md; [SCALE, MEASURES, PLANE] ← 1
+- `tdb1_v4.js` (5) The Douglas TDB-1 Devastator built from its reference model (see docs/CREDITS.md; [SCALE, MEASURES, PLANE] ← 1
 
 ## js/game/model/
 
-- `airpaint.js` (310) The paint schemes of the aircraft drawn from their models: the colours of the upper and the lower surfaces, the flanks, the camouflage patches, the cowling, the… [AIRPAINT, AIRPAINT_KEYS, airPaintId, airPaintWgsl] ← 2
+- `airpaint.js` (321) The paint schemes of the aircraft drawn from their models: the colours of the upper and the lower surfaces, the flanks, the camouflage patches, the cowling, the… [AIRPAINT, AIRPAINT_KEYS, airPaintId, airPaintWgsl] ← 2
 - `ao.js` (110) Baked ambient occlusion for the procedural ship meshes. [bakeAO] ← 1
 - `bakedmesh.js` (72) Reading the baked reference meshes (ships/<id>_baked.js, ships/<id>_mounts_baked.js, made by tools/refs/bake*.py): base64 pieces -> positions in metres, smooth… [decodeBaked, decodeBakedGeometry, cutBaked] ← 7
 - `baseGuns.js` (104) The guns of the bases: the mount of each gun (the same meshes as on the ships, see mounts.js) and what it stands on - a concrete emplacement with a ring wall, an… [gunMountSpec, buildEmplacement] ← 2
@@ -120,8 +121,8 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 - `mounts.js` (680) Articulated gun mounts. Every mount produces two meshes that are drawn as separate instances so they can move independently: house : the rotating gun house / shield /… [mountDims, getMountModel] ← 11
 - `ordnance_v4.js` (4) Bombs and torpedoes of the aircraft, drawn from their reference models (see docs/CREDITS.md; [SCALE, ORDNANCE] ← 1
 - `parts.js` (543) Reusable ship parts. All functions draw into a MeshBuilder in model space (+x bow, +y up from the waterline, +z starboard). [OPT, barbette, funnel, funnelRuin, windowBand, tower, poleMast, tripod, cageMast, … +22] ← 2
-- `planeGuns.js` (205) The defensive guns of an aircraft, one entry per gun position: where it pivots, what it can bear on, its calibre and its barrels. [GUN_DIMS, gunDims, GUN_RATE, planeGuns, inField, isBlocked, inArc, muzzleOf, drawGunHead] ← 8
-- `planes.js` (869) Procedural WWII carrier aircraft. One generator for monoplanes and biplanes driven by a spec sheet (dimensions of the real aircraft). [PAINT, PLANES, groundY, propsOf, floatplaneSpec, damageSites, planeTypeFor, planeTypesFor, upperWingY, … +16] ← 37
+- `planeGuns.js` (206) The defensive guns of an aircraft, one entry per gun position: where it pivots, what it can bear on, its calibre and its barrels. [GUN_DIMS, gunDims, GUN_RATE, planeGuns, inField, isBlocked, inArc, muzzleOf, drawGunHead] ← 8
+- `planes.js` (879) Procedural WWII carrier aircraft. One generator for monoplanes and biplanes driven by a spec sheet (dimensions of the real aircraft). [PAINT, PLANES, groundY, propsOf, floatplaneSpec, damageSites, planeTypeFor, planeTypesFor, upperWingY, … +16] ← 37
 - `screws.js` (25) The screws and the rudder of the ships whose underwater body was not measured on a plan (tweaks.props / tweaks.rudders): drawn from the number of shafts the class… [defaultScrews] ← 1
 - `shipbuilder.js` (1002) Spec-driven ship builder. Reads a real-ship spec sheet (dimensions, turret / funnel / mast positions as fractions of the overall length, class, paint) and builds the… [pagodaTiers, buildShipModel] ← 14
 - `treeMeshes.js` (506) The plants as meshes: eight species (oak, fir, palm, tropical canopy tree, acacia, cypress, shrub, boulder), three variants each, at four levels of detail. [FAM, SHAPE, getTemplate, ROCK_TINT, stampPlants] ← 2
@@ -215,7 +216,7 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 - `aircraft.js` (910) Carrier aircraft. A wave of dive bombers and torpedo bombers takes off from the flight deck, flies to the enemy, attacks (bombs are dropped from a steep dive,… [planeId, bombId, resetAirIds, arm, updateAir, FIGHT_CTX, dropTorpedo] ← 2
 - `airfield.js` (839) Air operations from the airfields of the islands. [initAirfield, killGroundPlane, stepBasePlane, stepAirfield] ← 3
 - `airhit.js` (80) The hit volume of an aircraft. An aircraft is a body (an ellipsoid the size of its fuselage), the planes of its wings (a biplane has two) and its tail: what a gun… [airframe, axes, presentedArea, extentToward, roundHitChance, lightAAHitRate] ← 5
-- `airperf.js` (133) How fast each aircraft flies. Speeds in m/s (airspeed), from the published performance of each type (CHANGELOG 0.1.2 has the table and the sources): vmax top speed… [PERF, perfOf, aeroOf, dragAcc, thrustAcc, turnPerf] ← 12
+- `airperf.js` (135) How fast each aircraft flies. Speeds in m/s (airspeed), from the published performance of each type (CHANGELOG 0.1.2 has the table and the sources): vmax top speed… [PERF, perfOf, aeroOf, dragAcc, thrustAcc, turnPerf] ← 12
 - `ballistics.js` (104) Exterior ballistics: point-mass shells with altitude-dependent air drag. [gunBallistics, solve, stepShell] ← 6
 - `baseops.js` (443) What the bases do during a battle: the coastal batteries shell the enemy ships in range, the anti-aircraft guns fire at the aircraft, the shells and the bombs that… [coastalGunOf, BaseSim, damageBase, shellHitsBase, shellGround, bombHitsBase, buildBases, updateBases] ← 5
 - `bases.js` (420) Military bases on the islands: an airfield (a runway, the apron, hangars, a control tower, fuel tanks, barracks, a radar, anti-aircraft guns and the places where the… [placeTheatreBases, placeBases, BaseState] ← 4

@@ -33,6 +33,7 @@ ok(FIGHTERS.every((k) => R[k].turn > 12) && HEAVY.every((k) => R[k].turn < 6), '
 ok(R.f4f.turn > R.f6f.turn && R.f4f.top < R.f6f.top && R.f4f.roc < R.f6f.roc, `the lighter Wildcat out-turns the Hellcat and is slower and climbs less (${R.f4f.turn.toFixed(1)} against ${R.f6f.turn.toFixed(1)} degrees a second)`);
 ok(R.fm2.roc > R.f4f.roc && R.fm2.top >= R.f4f.top - 1 && R.fm2.top < R.f6f.top, `the FM-2 climbs better than the F4F-3 (${R.fm2.roc.toFixed(1)} against ${R.f4f.roc.toFixed(1)} m/s) and is slower than the Hellcat`);
 ok(R.f8f.roc > R.f6f.roc && R.f8f.top > R.f6f.top && R.f8f.turn > R.f6f.turn, `the Bearcat climbs, flies and turns better than the Hellcat (${R.f8f.roc.toFixed(1)} against ${R.f6f.roc.toFixed(1)} m/s of climb, ${R.f8f.top.toFixed(0)} against ${R.f6f.top.toFixed(0)} m/s, ${R.f8f.turn.toFixed(1)} against ${R.f6f.turn.toFixed(1)} degrees a second)`);
+ok(R.tdb1.top < R.tbf.top && R.tdb1.roc < 0.6 * R.tbf.roc && R.tdb1.top > PERF.swordfish.vmax, `the Devastator is slower and climbs much worse than the Avenger, and flies faster than the Swordfish (${R.tdb1.top.toFixed(0)} m/s, ${R.tdb1.roc.toFixed(1)} m/s of climb)`);
 ok(R.a6m.turn > R.f6f.turn && R.a6m.turn > R.bf109t.turn, `the Zero out-turns the Hellcat and the Bf 109 (${R.a6m.turn.toFixed(1)}, ${R.f6f.turn.toFixed(1)}, ${R.bf109t.turn.toFixed(1)} degrees a second)`);
 ok(FIGHTERS.every((k) => R[k].tb < 0.9) && HEAVY.every((k) => R[k].tb > 1.1), 'a fighter rolls into a turn in under a second, a heavy bomber takes longer');
 // the wing: slow, the aircraft cannot pull what it could fast
