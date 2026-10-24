@@ -5,6 +5,7 @@ import { spawnFleet, teamStart } from '../js/game/sim/formation.js';
 import { BY_ID } from '../js/game/data/ships.js';
 import { AA } from '../js/game/sim/aadata.js';
 import { AA_GUNS, AMMO } from '../js/game/data/airguns.js';
+import { planeTypeFor } from '../js/game/model/planes.js';
 
 let fail = 0;
 const ok = (c, m) => { console.log(c ? 'PASS' : 'FAIL', m); if (!c) { fail++; process.exitCode = 1; } };
@@ -29,6 +30,9 @@ ok(cv0.aaMounts.length === 41, 'no other light mount (the 40 mm Bofors came only
 const g = AA_GUNS.m1_28, r = AMMO[g.round];
 ok(g.cal === 28 && g.rpm === 150 && g.v0 === 823 && r.cal === 28 && r.dmg > AMMO.hei20ok.dmg && r.dmg < AMMO.hei37fl.dmg, 'the 1.1 in gun: 28 mm, 150 rpm a barrel, 823 m/s, a round between the 20 mm and the 37 mm');
 ok(AA.m1_28.rps < g.rpm / 60 && AA.m1_28.turn === 30 && AA.m1_28.range > AA.oerlikon20.range * 0.8 && AA.m1_28.range < AA.bofors40.range, 'its data: a feed that jams (under the cyclic rate), 30 deg/s train, a range between the Oerlikon and the Bofors');
+
+// the air group of 1942: Wildcats, Dauntlesses, Avengers (the Hellcat came in 1943)
+ok(cv0.name === 'USS Enterprise' && planeTypeFor('USA', 'fighter', cv0.name) === 'f4f' && planeTypeFor('USA', 'dive', cv0.name) === 'sbd' && planeTypeFor('USA', 'torp', cv0.name) === 'tbf', `${cv0.name} flies the F4F, the SBD and the TBF`);
 
 // ---- the deck ----
 {

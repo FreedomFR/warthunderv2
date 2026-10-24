@@ -48,7 +48,7 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 
 ## js/game/data/
 
-- `airguns.js` (191) The guns of the aircraft and what they fire. [UNIT, AMMO, AA_GUNS, BELTS, GUNS, FIXED_GUNS, FIGHTER_GUNS, armamentOf, drawRound, … +2] ← 8
+- `airguns.js` (191) The guns of the aircraft and what they fire. [UNIT, AMMO, AA_GUNS, BELTS, GUNS, FIXED_GUNS, FIGHTER_GUNS, armamentOf, drawRound, … +2] ← 9
 - `balance.js` (88) Balance: multipliers of the damage done in the battle, so that it can be tuned without touching the code. [BALANCE_FIELDS, BALANCE_MIN, BALANCE, balanceNeutral, balanceOfFile, balanceNow, setBalance, setBalanceFile, balanceDiff, … +2] ← 8
 - `explosives.js` (40) Explosive fillers of torpedoes and their strength against a ship's hull, as kg of TNT per kg of filler. [EXPLOSIVE, tntEquivalent, AIR_TORPEDO, airTorpedoEq] ← 5
 - `gunmasks.js` (20) The directions that the aircraft's own structure blocks for each defensive gun position: { type: { position id: [[pitch, yaw from, yaw to], ...] } } in degrees, in… [GUN_MASKS] ← 1
@@ -57,7 +57,7 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 - `ordnance.js` (99) The bombs of the aircraft in the game, with what makes a bomb what it is: its mass, how much of it is explosive (the rest is the case), what the explosive is worth… [FILL, BOMBS, blastTNT, fillerTNT, aircraftRadii, killChance, shockMPa, genericBomb] ← 8
 - `protection.js` (75) Protection and survivability data that the spec sheets do not carry: how the armour is laid out (belt inclination, the thin weather deck above the armoured one), the… [NAVY, PROTECTION, protectionOf, navyOf] ← 1
 - `shellfill.js` (35) What is inside a naval shell: the explosive as a share of the mass of the shell, by nation and calibre (NavWeaps' pages of every gun; [burstFactor] ← 1
-- `ships.js` (38) Ship roster: the six nations' spec sheets (real-ship data) indexed by id / nation / type. [NATIONS, OTHER_NATIONS, ALL_NATIONS, TYPES, ALL_SHIPS, BY_ID, typeName, nationName, shipsOf] ← 42
+- `ships.js` (38) Ship roster: the six nations' spec sheets (real-ship data) indexed by id / nation / type. [NATIONS, OTHER_NATIONS, ALL_NATIONS, TYPES, ALL_SHIPS, BY_ID, typeName, nationName, shipsOf] ← 43
 - `theatre.js` (72) The great war: two sides on one very large sea, the Axis (Japan, Germany, Italy) against the Allies (USA, United Kingdom, France). [THEATRES, THEATRE, TASK_FORCES] ← 5
 - `variants.js` (68) Other fits of a ship the game already has (same model, another date: other guns, other light mounts). [VARIANTS, deriveSpec] ← 2
 
@@ -115,14 +115,14 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 - `hull.js` (246) Parametric hull lofting. The hull is a parametric surface P(t, k): t runs from the bow (0) to the stern (1) along each horizontal "level" k (k < 0 below the… [pchip, buildHull] ← 1
 - `islandMesh.js` (102) The mesh of an island: the height field of sim/terrain.js turned into triangles, coloured by height and slope (beach, grass or forest, bare rock, ash), with smooth… [groundColour, buildIslandMesh] ← 1
 - `layout.js` (106) How the gun houses sit among the structures round them. [houseBox, houseRect, obstacles, buriedIn, clearHouses] ← 3
-- `livery.js` (69) Ship liveries: camouflage patterns, palettes and the hull number / ensign data used by the ship shader. [CAMO, NATION_ID, PALETTES, LIVERY, MARKS, hullNumber, hex, paintOf] ← 3
+- `livery.js` (71) Ship liveries: camouflage patterns, palettes and the hull number / ensign data used by the ship shader. [CAMO, NATION_ID, PALETTES, LIVERY, MARKS, hullNumber, hex, paintOf] ← 3
 - `meshbuilder.js` (575) Procedural mesh builder used to model the warships (no external assets). [MAT, VERTEX_STRIDE, DETAIL, rgb, shade, mix, MeshBuilder] ← 27
 - `mountdata.js` (8) The gun houses of the mounts that were read on a reference model (tools/refs/solids.py --local --skin: the cross-sections of the house in its own frame): for each… [HOUSE_DATA] ← 1
 - `mounts.js` (680) Articulated gun mounts. Every mount produces two meshes that are drawn as separate instances so they can move independently: house : the rotating gun house / shield /… [mountDims, getMountModel] ← 11
 - `ordnance_v4.js` (4) Bombs and torpedoes of the aircraft, drawn from their reference models (see docs/CREDITS.md; [SCALE, ORDNANCE] ← 1
 - `parts.js` (543) Reusable ship parts. All functions draw into a MeshBuilder in model space (+x bow, +y up from the waterline, +z starboard). [OPT, barbette, funnel, funnelRuin, windowBand, tower, poleMast, tripod, cageMast, … +22] ← 2
 - `planeGuns.js` (205) The defensive guns of an aircraft, one entry per gun position: where it pivots, what it can bear on, its calibre and its barrels. [GUN_DIMS, gunDims, GUN_RATE, planeGuns, inField, isBlocked, inArc, muzzleOf, drawGunHead] ← 8
-- `planes.js` (865) Procedural WWII carrier aircraft. One generator for monoplanes and biplanes driven by a spec sheet (dimensions of the real aircraft). [PAINT, PLANES, groundY, propsOf, floatplaneSpec, damageSites, ROSTER_BASE, planeTypeFor, planeTypesFor, … +17] ← 38
+- `planes.js` (869) Procedural WWII carrier aircraft. One generator for monoplanes and biplanes driven by a spec sheet (dimensions of the real aircraft). [PAINT, PLANES, groundY, propsOf, floatplaneSpec, damageSites, ROSTER_BASE, planeTypeFor, planeTypesFor, … +17] ← 39
 - `screws.js` (25) The screws and the rudder of the ships whose underwater body was not measured on a plan (tweaks.props / tweaks.rudders): drawn from the number of shafts the class… [defaultScrews] ← 1
 - `shipbuilder.js` (1004) Spec-driven ship builder. Reads a real-ship spec sheet (dimensions, turret / funnel / mast positions as fractions of the overall length, class, paint) and builds the… [pagodaTiers, buildShipModel] ← 14
 - `treeMeshes.js` (506) The plants as meshes: eight species (oak, fir, palm, tropical canopy tree, acacia, cypress, shrub, boulder), three variants each, at four levels of detail. [FAM, SHAPE, getTemplate, ROCK_TINT, stampPlants] ← 2
@@ -213,7 +213,7 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 
 ## js/game/sim/
 
-- `aadata.js` (33) Anti-aircraft data shared by the guns (sim/aircraft.js) and the aircraft that plan their way past them (sim/routing.js). [AA, FLAK_RANGE] ← 5
+- `aadata.js` (33) Anti-aircraft data shared by the guns (sim/aircraft.js) and the aircraft that plan their way past them (sim/routing.js). [AA, FLAK_RANGE] ← 6
 - `accuracy.js` (165) Accuracy of naval gunfire: where each shell of a salvo goes. [systemOf, profileOf, rangingSigma, trackFor, ready, firingError, observeSplash] ← 3
 - `aircraft.js` (910) Carrier aircraft. A wave of dive bombers and torpedo bombers takes off from the flight deck, flies to the enemy, attacks (bombs are dropped from a steep dive,… [planeId, bombId, resetAirIds, arm, updateAir, FIGHT_CTX, dropTorpedo] ← 2
 - `airfield.js` (852) Air operations from the airfields of the islands. [initAirfield, killGroundPlane, stepBasePlane, stepAirfield] ← 3
@@ -230,7 +230,7 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 - `fighters.js` (561) Carrier fighters. A wave of bombers is escorted by a section of fighters; [FIGHT_PHASES, fighterSteer, armament, strikeGuns, ammoLeft, fighterFields, rearm, bomberDefense, markHunted] ← 4
 - `fleet.js` (148) The captain of a fleet. Before, every ship fought alone: it picked its own target, circled at its own range in a random direction and went where it liked. [stationPlan, FleetCommand] ← 3
 - `flight.js` (98) The flight dynamics of an aircraft, one step: heading, flight-path angle and speed towards the commanded values, with the thrust, the drag, the lift, the stall and… [setVel, stallSpeed, guide] ← 5
-- `formation.js` (44) Fleet placement: the ships start in the order of battle of sim/fleet.js (destroyers screening ahead, the line in column behind the flagship, carriers at the back),… [spawnFleet, teamStart] ← 44
+- `formation.js` (44) Fleet placement: the ships start in the order of battle of sim/fleet.js (destroyers screening ahead, the line in column behind the flagship, carriers at the back),… [spawnFleet, teamStart] ← 45
 - `homeward.js` (77) The way home after the attack. An aircraft that has dropped its bomb or its torpedo does not fly straight home over the guns it has just run the gauntlet of: it looks… [safeHeading, homeLeader, formOn, straggle, homeCourse] ← 3
 - `hull.js` (238) What keeps a ship afloat and fighting: holes in the hull that let the water in once they are under the waterline, the structure of each compartment, and the crew at… [SINK_FILL, MIN_CREW, initHull, crewOf, blastCasualties, compAt, hullHit, updateHoles, updateCrew, … +1] ← 13
 - `landing.js` (93) Where an aircraft that is going home lands. [carrierCapable, chooseSite, divert] ← 3
@@ -249,7 +249,7 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 - `terrainavoid.js` (66) The pilot and the mountains: before the aircraft is flown, the ground ahead is looked at (about forty seconds of flight along the heading it wants), and what is… [avoidTerrain, ditchHeading] ← 3
 - `theatre.js` (211) The great war: a theatre of war with two sides on a very large sea (data/theatre.js). [theatreNations, buildTheatre, Theatre] ← 4
 - `weapons.js` (356) Gunnery (fire control, turret slewing, salvos) and torpedo launching. [recoilCurve, mountSolution, updateGunnery, shellChoice, interceptTime, torpedoSolution, updateTorpedoes] ← 7
-- `world.js` (461) The simulation world: ships, shells, torpedoes, aircraft, teams, events, victory. [TEAM_COLORS, World] ← 58
+- `world.js` (461) The simulation world: ships, shells, torpedoes, aircraft, teams, events, victory. [TEAM_COLORS, World] ← 59
 
 ## js/game/sim/controllers/
 
@@ -288,7 +288,7 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 - `ocean.js` (315) Ocean surface + sky background rendering. [SKY_BG, OCEAN, WATER_PROBE] ← 1
 - `particles.js` (251) Camera-facing particle quads: smoke, fire, spray, tracers, flashes. [PARTICLES] ← 2
 - `post.js` (130) Bloom (dual-filter chain) and final composite with AgX tonemapping. [BLOOM_DOWN, BLOOM_UP, COMPOSITE] ← 1
-- `ship.js` (853) Warship surface shader. Lit with the same sky / sun / aerial-perspective model as the ocean so ships sit in the scene. [SHIP, SHIP_SHADOW] ← 1
+- `ship.js` (856) Warship surface shader. Lit with the same sky / sun / aerial-perspective model as the ocean so ships sit in the scene. [SHIP, SHIP_SHADOW] ← 1
 - `sim.js` (444) FFT ocean simulation (Tessendorf) — 4 cascades of 256^2. [SIM_INIT, SIM_EVOLVE, FFT_ROWS, FFT_COLS, SIM_MIPS, FOAM_TEX, RGBA8_MIPS, FOAM_RES, FOAM_UPDATE, … +1] ← 1
 - `sky.js` (503) Physically based atmosphere (Hillaire 2020 style LUTs) + procedural cloud deck. [TRANS_LUT, MS_LUT, SKYVIEW_LUT, SKY_RENDER_FUNCS, SKY_CLOUD_FUNCS, ENV_CUBE, CUBE_MIPS, SUN_VIS] ← 5
 
@@ -397,6 +397,7 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 - `dogfight.mjs` Fighter against fighter: node test/dogfight.mjs The turning performance comes out of the flight model (a light wing turns faster at a lower speed than a heavy one),…
 - `effects.mjs` The visual effects fed by a real battle (no GPU: the particle pool and the foam are stubs): node test/effects.mjs Every kind of event of a fleet fight with carriers…
 - `elements.mjs` The elements copied from a reference model stand where the model has them: for every placement, the bounding box of the copy (house and guns at rest) placed in the…
+- `enterprise.mjs` USS Enterprise (CV-6, 1942 fit), drawn from a reference model: the fit is the real one (8 single 5 in/38, 4 quadruple 1.1 in/75, 37 single 20 mm), every gun is a real…
 - `fighters.mjs` Carrier fighters: node test/fighters.mjs Two carrier groups: the strikes leave with fighters as escort, a patrol goes up when enemy aircraft come near the fleet, the…
 - `fixedguns.mjs` The guns of the aircraft: node test/fixedguns.mjs — every aircraft has the guns the real one carried (fixed and flexible), each gun has its muzzle on the model (in…
 - `fleet.mjs` The order of battle of a fleet: node test/fleet.mjs
