@@ -32,6 +32,7 @@ import * as B5N_V4 from './aircraft/b5n_v4.js';
 import * as F6F_V4 from './aircraft/f6f_v4.js';
 import * as F4F_V4 from './aircraft/f4f_v4.js';
 import * as P38_V4 from './aircraft/p38_v4.js';
+import * as MOSQUITO_V4 from './aircraft/mosquito_v4.js';
 import * as FM2_V4 from './aircraft/fm2_v4.js';
 import * as JU87_V4 from './aircraft/ju87_v4.js';
 import * as RO43_V4 from './aircraft/ro43_v4.js';
@@ -214,6 +215,7 @@ export const PLANES = {
   lancaster: { ...HEAVY.lancaster, paintRGB: HEAVY.lancaster.paint, v4: LANCASTER_V4, paint: 'lancaster' },
   he111: { ...HEAVY.he111, paintRGB: HEAVY.he111.paint, v4: HE111_V4, paint: 'he111' },
   p38: { ...HEAVY.p38, paintRGB: HEAVY.p38.paint, groundY: 2.1, v4: P38_V4, paint: 'p38' },          // the P-38 (an interceptor of the airfields) is drawn from the pieces of its model, its undercarriage by the sheet
+  mosquito: { ...HEAVY.mosquito, paintRGB: HEAVY.mosquito.paint, groundY: 2.25, v4: MOSQUITO_V4, paint: 'mosquito' },          // the Mosquito (an interceptor of the airfields), on its tail wheel
   b29: { ...HEAVY.b29, groundY: 3.0, v4: B29_V4, paint: 'b29' },          // the B-29 is drawn from the pieces of its model (model/v4plane.js drawV4Heavy)
 };
 
@@ -265,6 +267,7 @@ const ROSTER = {
 };
 const ROSTER_BASE = {      // the same shape: the roles that an airfield fills differently from a carrier ('interceptor': the twin-engine fighters that scramble from the airfields)
   USA: { interceptor: ['p38'] },
+  UK: { interceptor: ['mosquito'] },
 };
 
 /** A stable number in [0, 1) from a name: the same carrier or airfield always flies the same type of a role. */

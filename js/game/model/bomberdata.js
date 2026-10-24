@@ -216,4 +216,25 @@ export const HEAVY = {
     cutD: 6.1, insD: 3.8, mastD: 3.5,
     gearD: 3.4, noseGear: { d: 1.1, wr: 0.26 }, tailWheelD: 6.0, gearGeom: { wr: 0.36, leg: 1.8 }, eyeD: [3.3, 0.55, 0], groundPitch: 0,
   }),
+
+  // ---- UK: De Havilland Mosquito FB Mk VI, a land-based interceptor (12.34 m, 16.52 m, 3.81 m high; wing 42.2 m2; two Rolls-Royce Merlin 21/23, 3.8 m three-blade propellers; a wooden aircraft; four 20 mm
+  // Hispano under the nose and four .303 in it), drawn from its model (the model is 12.5 m long and 16.52 m across): the fuselage and the wings with their nacelles are the model's pieces (model/v4plane.js);
+  // this sheet gives the frame the game works in (the stations of the fuselage, the engines, the planform for the hit volume, the places of the guns and the eye) ----
+  mosquito: finalize({
+    name: 'De Havilland Mosquito FB Mk VI', nation: 'UK', role: 'interceptor', kind: 'mono', L: 12.34, span: 16.52, mass: 9.0, S: 42.18, hp: 4.5, bombKg: 0,
+    cg: 5.0, paint: { top: '#3d4a33', bot: '#8a979b', acc: '#e8e6dc' },
+    body: [[0, 0.1, 0.1, -0.13], [0.2, 0.3, 0.34, -0.11], [0.6, 0.485, 0.51, -0.115], [1.0, 0.615, 0.61, -0.115], [1.5, 0.72, 0.65, -0.12], [2.5, 0.915, 0.63, 0.035], [3.5, 0.945, 0.63, 0.055],
+      [4.5, 0.825, 0.63, -0.065], [5.0, 0.825, 0.64, -0.075], [6.0, 0.78, 0.63, -0.08], [7.0, 0.685, 0.59, -0.045], [8.0, 0.6, 0.53, -0.02], [9.0, 0.515, 0.47, 0.015], [10.0, 0.425, 0.4, 0.045],
+      [11.0, 0.325, 0.29, 0.105], [12.0, 0.195, 0.14, 0.155], [12.34, 0.1, 0.07, 0.16]],
+    cabin: [{ d0: 1.36, d1: 3.69, y0: 0.45, h: 0.5, hw: 0.5 }],
+    guns: [],
+    engines: [{ d: 0.4, z: -2.512, y: 0.0, r: 0.47, len: 1.8, aft: 6.2, type: 'inline', dir: -1 }, { d: 0.4, z: 2.512, y: 0.0, r: 0.47, len: 1.8, aft: 6.2, type: 'inline', dir: -1 }],      // (both Merlins turn the same way: the top of the disc to port)
+    prop: { r: 1.95, n: 3 },
+    wing: { plan: [[0, 2.0, 6.0], [0.25, 2.3, 5.65], [0.476, 2.37, 4.95], [0.607, 2.39, 4.63], [0.728, 2.42, 4.3], [0.854, 2.48, 3.95], [0.98, 2.63, 3.46]], y: 0.04, dih: 0.38, tc: 0.14, flaps: [0.1, 0.55], ail: [0.6, 0.97] },
+    tail: { tp: { le0: 10.66, te0: 12.26, le1: 11.4, te1: 11.97 }, span: 6.8, y: 0.17,
+      fins: [{ z: 0, th: 0.14, sec: [[0.4, 9.81, 11.92], [1.0, 9.97, 11.55], [1.6, 10.22, 11.5], [2.2, 10.54, 11.36], [2.55, 10.8, 11.15]] }],
+      band: [[-5.05, 1.1, 0.1, -6.5, -6.42, 2.0, 0.085, -5.45]] },
+    cutD: 9.75, insD: 8.0, mastD: 4.0,
+    gearD: 4.0, tailWheelD: 11.4, gearGeom: { wr: 0.5, leg: 1.5 }, eyeD: [2.4, 0.55, -0.25],
+  }),
 };

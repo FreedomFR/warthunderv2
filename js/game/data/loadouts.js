@@ -114,6 +114,9 @@ export const LOADOUTS = {
   p38: [
     L('2x1000', '2 bombes de 1 000 lb sous les ailes', [{ ord: 'anm65', n: 2 }], ['alt']),
   ],
+  mosquito: [
+    L('4x500', '4 bombes de 500 lb (2 en soute, 2 sous les ailes)', [{ ord: 'uk500', n: 4 }], ['alt']),
+  ],
 };
 
 /** The loads of an aircraft type (an empty list for a type with none). */

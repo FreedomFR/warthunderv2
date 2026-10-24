@@ -65,6 +65,9 @@ export const PERF = {
   // weight of a sortie (7.1 t), ceiling 11 900 m; stall about 170 km/h with the Fowler flaps down, take-off run about 750 m. The ailerons are not boosted (the boost came with the J-25 and the L): a good roll at the speeds of the fight,
   // a heavy stick above 450 km/h; a wing loading of 233 kg/m2 gives a turning fight that is flown with the speed (the flaps in manoeuvre)
   p38: { vmax: 163, vc: 110, vt: 0, vd: 0, vcl: 76, vp: 65, va: 56, vto: 50, vcomb: 125, bank: 82, pr: 0.55, asm: 350, runLen: 750, landRun: 650, roc: 12.5, roll: 1.1, nmax: 6, brakes: false },
+  // Mosquito FB Mk VI: 380 mph (610 km/h) at 13 000 ft, about 335 mph (540 km/h) at sea level and 360 mph (580 km/h, 161 m/s) at the 3 km of the game, 2 850 ft/min (14.5 m/s) at sea level at the 8-9 t of a sortie
+  // (about 13.5 m/s here), ceiling 9 000 m, stall about 160 km/h with the flaps down; the ailerons are light at low speed and heavy at the speeds of the fight; take-off run about 650 m
+  mosquito: { vmax: 161, vc: 118, vt: 0, vd: 0, vcl: 76, vp: 66, va: 55, vto: 48, vcomb: 130, bank: 82, pr: 0.5, asm: 350, runLen: 650, landRun: 550, roc: 13.5, roll: 1.0, nmax: 5.5, brakes: false },
 };
 export const perfOf = (p) => PERF[p.typeKey] || PERF.sbd;
 

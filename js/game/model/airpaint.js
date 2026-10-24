@@ -202,6 +202,17 @@ export const AIRPAINT = {
       { face: 'bottom', wing: 'starboard', x: 0.55, z: 5.5, prims: usInsignia(0.5, true) },
     ],
   },
+  // De Havilland Mosquito FB Mk VI (1943-44, the day fighter scheme): dark green and ocean gray disruptive pattern over medium sea gray, the fuselage roundel with its yellow ring on the rear fuselage and
+  // the roundels on both faces of both wings (places and sizes: the published drawings; `est`: the model's own paint is not used)
+  mosquito: {
+    hw: 3.0, upper: '#3d4a33', lower: '#8a979b', line: -0.3, finish: [0.82, 0.0],
+    camo: [{ col: '#68717a', scale: 0.6, thr: 0.54, seed: 9, sides: true }],
+    decals: [
+      { face: 'side', x: -3.1, y: -0.02, prims: raf(0.34, true) },
+      { face: 'top', wing: 'both', x: 1.5, z: 5.3, prims: raf(0.6, false) },
+      { face: 'bottom', wing: 'both', x: 1.5, z: 5.3, prims: raf(0.6, false) },
+    ],
+  },
 };
 
 export const AIRPAINT_KEYS = Object.keys(AIRPAINT);
