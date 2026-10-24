@@ -418,9 +418,16 @@ export function updateBases(world, dt) {
   const running = world.state === 'running';
   for (const base of bases) {
     const active = running && !base.inert;
+    // (nothing to shoot at within reach of the guns: they only settle; a theatre of war has dozens of bases)
+    let air = false, sea = false;
+    if (active) {
+      const L = base.layout, ra = base.reach + 14000, rs = (base.gun ? base.gun.maxRange : 0) + 600;
+      for (const p of world.planes) if (p.team !== base.team && !p.ground && !p.gone && Math.abs(p.x - L.x) < ra && Math.abs(p.z - L.z) < ra) { air = true; break; }
+      if (rs > 600) for (const s of world.ships) if (s.team !== base.team && s.state === 'afloat' && Math.hypot(s.x - L.x, s.z - L.z) < rs) { sea = true; break; }
+    }
     for (const g of base.guns) {
-      if (g.kind === 'coastal') stepCoastal(world, base, g, dt, active);
-      else stepAA(world, base, g, dt, world.planes, active);
+      if (g.kind === 'coastal') { if (sea || g.target || g.fireT < 8) stepCoastal(world, base, g, dt, active); else { g.fireT += dt; g.recoil = recoilCurve(g.fireT); g.flash = Math.max(0, g.flash - dt * 5); } }
+      else if (air || g.target || g.flash > 0.01 || g.recoil > 0.01) stepAA(world, base, g, dt, world.planes, active);
     }
     for (let i = base.fires.length - 1; i >= 0; i--) { base.fires[i].t -= dt; if (base.fires[i].t <= 0) base.fires.splice(i, 1); }
     if (base.layout.kind === 'airfield') stepAirfield(world, base, dt);

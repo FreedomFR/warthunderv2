@@ -151,7 +151,7 @@ export class Game {
     w.clear();
     this.particles.n = 0;
     w.rng = makeRng(this.config.seed);
-    buildTheatre(w, this.config.seed);
+    buildTheatre(w, this.config.seed, { id: this.config.theatre });
     w.timeLimit = 6 * 3600;
     this.islandVisuals.set(w.terrain);
     this.baseVisuals.set(w.terrain);

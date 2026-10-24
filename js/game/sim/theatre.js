@@ -4,7 +4,7 @@
 // the war. The fighting itself is still done by the captains of the ships (controllers/ai.js) and by the air operations.
 import { Terrain } from './terrain.js';
 import { spawnFleet } from './formation.js';
-import { THEATRE, TASK_FORCES } from '../data/theatre.js';
+import { THEATRE, THEATRES, TASK_FORCES } from '../data/theatre.js';
 import { portsOf, nearestPort } from './ports.js';
 import { BY_ID } from '../data/ships.js';
 import { clamp } from '../math.js';
@@ -13,8 +13,8 @@ const VALUE = { DD: 1.0, CL: 1.3, CA: 1.8, BB: 2.5, CV: 2.3 };
 const hdgOf = (ang) => Math.atan2(Math.cos(ang), -Math.sin(ang));
 
 /** The nations of the theatre as the terrain generator wants them: [{ nation, team, home, ports, batteries }]. */
-export function theatreNations() {
-  return Object.entries(THEATRE.nations).map(([nation, n]) => ({ nation, team: n.side, home: n.home, ports: 2, batteries: 2 }));
+export function theatreNations(theatre = THEATRE) {
+  return Object.entries(theatre.nations).map(([nation, n]) => ({ nation, team: n.side, home: n.home, ports: 2, batteries: 2 }));
 }
 
 /**
@@ -22,10 +22,12 @@ export function theatreNations() {
  * Returns the Theatre.
  */
 export function buildTheatre(world, seed, o = {}) {
-  THEATRE.sides.forEach((s, i) => world.addTeam(i, s.name, s.rgb));
-  const nations = theatreNations().filter((n) => !o.only || o.only.includes(n.nation));
-  world.terrain = Terrain.generateTheatre(seed, THEATRE, { nations });
+  const theatre = typeof o.id === 'string' ? THEATRES[o.id] || THEATRE : THEATRE;
+  theatre.sides.forEach((s, i) => world.addTeam(i, s.name, s.rgb));
+  const nations = theatreNations(theatre).filter((n) => !o.only || o.only.includes(n.nation));
+  world.terrain = Terrain.generateTheatre(seed, theatre, { nations });
   const th = new Theatre(world);
+  th.id = theatre.id;
   world.theatre = th;
   world.fog = true;
   world.timeLimit = o.timeLimit ?? 6 * 3600;

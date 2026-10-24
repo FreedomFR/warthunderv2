@@ -122,6 +122,13 @@ export class World {
     const c = this.theatre.contacts(team).get(e.id);
     return !!c && this.time - c.t < 20;
   }
+  /** The enemy ships `team` has a contact on that is not older than `maxAge` seconds (the air strikes are sent against these; in a battle: every enemy ship). */
+  knownShips(team, maxAge = 240) {
+    if (!this.fog || !this.theatre) return this.ships.filter((s) => s.team !== team && s.alive);
+    const out = [];
+    for (const c of this.theatre.contacts(team).values()) if (c.ship.alive && this.time - c.t < maxAge) out.push(c.ship);
+    return out;
+  }
   /** A contact of `team` on enemy ship `e` that is not older than `maxAge` seconds (the aircraft of a strike go for what their side has seen lately). */
   hasContact(team, e, maxAge = 240) {
     if (!this.fog || !this.theatre) return true;

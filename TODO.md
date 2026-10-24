@@ -186,3 +186,5 @@ Le propriétaire demande cette liste quand il veut savoir s'il n'a rien oublié.
 - Les modèles sont **construits par le programme** (formes simples, pas de sculpture à la main) : ils suivront de près les proportions, mais ne seront jamais aussi détaillés qu'un modèle fait sous Blender.
 - Les références viennent uniquement de **Wikimedia Commons** (domaine public, Bundesarchiv CC BY-SA 3.0 de) ; les mesures sont relevées à l'œil sur des photos, donc approximatives.
 - Le rendu a été contrôlé en **rendu logiciel** seulement.
+
+- [ ] **Grande guerre : à faire** (voir `docs/ARCHITECTURE.md`, « La grande guerre ») : le carburant des navires n'est pas simulé ; les avions perdus des aérodromes ne sont pas remplacés (pas de renforts) ; le commandement stratégique est simple (un but par escadre : patrouille, contact, bombardement d'une base, retour) : pas de convois, pas de débarquement, pas de reconnaissance dessinée (les avions de patrouille sont abstraits) ; les ports ne sont pas défendus par des navires ; pas d'USSR (aucun navire) ; la performance au-delà de 8× (une soixantaine de navires et 200 avions : environ 90 à 300 ms par seconde de jeu).

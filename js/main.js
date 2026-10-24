@@ -2,6 +2,7 @@
 import { createEngine } from './engine.js';
 import { Game } from './game/game.js';
 import { PRESETS } from './game/scenarios.js';
+import { THEATRES } from './game/data/theatre.js';
 import { TEAM_COLORS } from './game/sim/world.js';
 import { isMobile, maxPixelRatio } from './game/device.js';
 import { setBalanceFile, setBalance } from './game/data/balance.js';
@@ -61,9 +62,9 @@ if (qs.has('preview')) {
   }
   // quick start from the URL: ?scenario=duel&start=1&cam=orbit
   const preset = PRESETS.find((p) => p.id === qs.get('scenario'));
-  if (qs.get('scenario') === 'war') {
-    // the great war: ?scenario=war&start=1&mode=tactical
-    game.config.theatre = true;
+  if (THEATRES[qs.get('scenario')]) {
+    // a war on a very large sea: ?scenario=war (or pacific, atlantic, med)&start=1&mode=tactical
+    game.config.theatre = qs.get('scenario');
     game.spawn();
     if (qs.get('start') === '1') game.start();
     if (qs.has('mode')) game.camera.setMode(qs.get('mode'));

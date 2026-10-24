@@ -7,25 +7,37 @@
 //   map            the sea: x from -w/2 to w/2 (west to east), z from -h/2 to h/2 (north to south), metres
 //   sides          the teams
 //   nations        home (centre of the nation's islands), its task forces: { name, role, ships: [{ id, count }], from: 'port index' }
-export const THEATRE = {
-  map: { w: 190000, h: 120000 },
-  sides: [
-    { name: 'Axe', rgb: [225, 70, 60], nations: ['Japan', 'Germany', 'Italy'] },
-    { name: 'Alliés', rgb: [60, 130, 235], nations: ['USA', 'UK', 'France'] },
-  ],
-  // the islands of each nation's home (a large one for the large airfield, small ones for the medium airfield, the ports and the batteries, rocks) and of the open sea
-  cluster: ['large', 'large', 'small', 'small', 'small', 'rock', 'rock'],
-  open: ['large', 'large', 'large', 'large', 'small', 'small', 'small', 'small', 'small', 'small', 'small', 'rock', 'rock', 'rock', 'rock', 'rock', 'rock', 'rock'],
-  homeRadius: 16000,
-  nations: {
-    Japan:   { home: { x: -66000, z: 0 },      side: 0 },
-    Germany: { home: { x: -50000, z: -38000 }, side: 0 },
-    Italy:   { home: { x: -50000, z: 38000 },  side: 0 },
-    USA:     { home: { x: 66000, z: 0 },       side: 1 },
-    UK:      { home: { x: 50000, z: -38000 },  side: 1 },
-    France:  { home: { x: 50000, z: 38000 },   side: 1 },
+const OPEN = ['large', 'large', 'large', 'large', 'small', 'small', 'small', 'small', 'small', 'small', 'small', 'rock', 'rock', 'rock', 'rock', 'rock', 'rock', 'rock'];
+const CLUSTER = ['large', 'large', 'small', 'small', 'small', 'rock', 'rock'];
+const AXIS = { name: 'Axe', rgb: [225, 70, 60] }, ALLIES = { name: 'Alliés', rgb: [60, 130, 235] };
+
+/** The wars that can be fought. `id` goes in the URL (`?scenario=` and the setup panel); `nations` say where each nation's home is and which side it is on. */
+export const THEATRES = {
+  war: {
+    id: 'war', name: 'Grande guerre : Axe contre Alliés', map: { w: 190000, h: 120000 }, cluster: CLUSTER, open: OPEN, homeRadius: 16000,
+    sides: [{ ...AXIS, nations: ['Japan', 'Germany', 'Italy'] }, { ...ALLIES, nations: ['USA', 'UK', 'France'] }],
+    nations: {
+      Japan: { home: { x: -66000, z: 0 }, side: 0 }, Germany: { home: { x: -50000, z: -38000 }, side: 0 }, Italy: { home: { x: -50000, z: 38000 }, side: 0 },
+      USA: { home: { x: 66000, z: 0 }, side: 1 }, UK: { home: { x: 50000, z: -38000 }, side: 1 }, France: { home: { x: 50000, z: 38000 }, side: 1 },
+    },
+  },
+  pacific: {
+    id: 'pacific', name: 'Pacifique : États-Unis contre Japon', map: { w: 150000, h: 100000 }, cluster: CLUSTER, open: OPEN.slice(0, 14), homeRadius: 15000,
+    sides: [{ name: 'Japon', rgb: [225, 70, 60], nations: ['Japan'] }, { name: 'États-Unis', rgb: [60, 130, 235], nations: ['USA'] }],
+    nations: { Japan: { home: { x: -50000, z: 0 }, side: 0 }, USA: { home: { x: 50000, z: 0 }, side: 1 } },
+  },
+  atlantic: {
+    id: 'atlantic', name: 'Atlantique : Royaume-Uni contre Allemagne', map: { w: 150000, h: 100000 }, cluster: CLUSTER, open: OPEN.slice(0, 14), homeRadius: 15000,
+    sides: [{ name: 'Allemagne', rgb: [225, 70, 60], nations: ['Germany'] }, { name: 'Royaume-Uni', rgb: [60, 130, 235], nations: ['UK'] }],
+    nations: { Germany: { home: { x: -50000, z: 0 }, side: 0 }, UK: { home: { x: 50000, z: 0 }, side: 1 } },
+  },
+  med: {
+    id: 'med', name: 'Méditerranée : Axe (Italie, Allemagne) contre France et Royaume-Uni', map: { w: 160000, h: 100000 }, cluster: CLUSTER, open: OPEN.slice(0, 16), homeRadius: 15000,
+    sides: [{ ...AXIS, nations: ['Italy', 'Germany'] }, { ...ALLIES, nations: ['France', 'UK'] }],
+    nations: { Italy: { home: { x: -52000, z: 14000 }, side: 0 }, Germany: { home: { x: -48000, z: -30000 }, side: 0 }, France: { home: { x: 52000, z: 14000 }, side: 1 }, UK: { home: { x: 48000, z: -30000 }, side: 1 } },
   },
 };
+export const THEATRE = THEATRES.war;
 
 /**
  * The task forces of each nation (a big navy has more of them). Each is a fleet that sails, fights and goes back to a port as one: `role` 'battle' (the line), 'carrier' (an air group

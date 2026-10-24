@@ -206,6 +206,23 @@ moteurs d'avions avec effet Doppler, sirène du Stuka en piqué, avion qui tombe
 - **Végétation** (`model/vegetation.js`, `model/treeMeshes.js`, `render/vegetationVisual.js`) : chênes, sapins, cocotiers, arbres de canopée tropicale, acacias, cyprès, buissons et rochers poussent selon le climat de l'île (tempéré avec des conifères en altitude, tropical avec des palmiers sur la plage, savane aride, îles rocheuses nues, broussailles volcaniques), moins serrés en altitude et sur les fortes pentes, avec des clairières ; environ un végétal pour 50 m² de forêt, tiré de la graine (la même bataille a les mêmes forêts). Chaque végétal est un modèle procédural (tronc effilé, branches récursives, houppier en touffes de feuillage et cartes de feuilles découpées : folioles, aiguilles, palmes) à quatre niveaux de détail ; le shader use le bord des houppiers en feuilles, les éclaire par transparence, creuse l'écorce, mouchette les rochers de mousse, et une rafale traverse l'île en faisant bouger le feuillage. De près (105 m) chaque arbre est une instance, au-delà il est assemblé par carrés de 80 m puis de 640 m. `?trees=0` supprime les végétaux.
 - **Mer** : les navires flottent sur la houle FFT (roulis, tangage, pilonnement) et laissent un sillage d'écume (vague d'étrave, ligne d'écume à la flottaison, remous des hélices puis longue traînée blanche, d'autant plus marquée que le navire va vite).
 
+## La grande guerre : un théâtre d'opérations
+
+Le bouton **« Grande guerre : Axe contre Alliés »** (ou `?scenario=war&start=1`) lance une guerre sur une mer de 190 × 120 km parsemée de 60 îles : l'**Axe** (Japon, Allemagne, Italie) contre les **Alliés**
+(États-Unis, Royaume-Uni, France). Rien n'est rendu égal : les flottes ont les proportions des vraies marines (57 navires en tout : 18 américains, 14 japonais, 8 britanniques, 7 allemands, 6 italiens, 4 français ; `js/game/data/theatre.js`).
+
+- **Chaque nation a son foyer** : un archipel (une grande île, deux grandes, des petites, des rochers) avec **un grand aérodrome** (piste de 2 000 m, quatre rangées d'avions) **et un aérodrome moyen** (piste de 1 300 m), des **ports**, deux batteries
+  côtières et ses **escadres** (task forces) : des groupes aéronavals, des lignes de bataille, des divisions de croiseurs. Les bases gardent le style de leur nation (peintures, DCA, canons côtiers).
+- **Les ports** (`sim/ports.js`, `model/basePort.js`) : une jetée de 500 m avec un quai des deux côtés, un mouillage, des entrepôts, des réservoirs, des soutes, des arsenaux et des grues. Un navire **qui n'a presque plus d'obus** (un cinquième de sa
+  batterie principale, ou les avions d'un porte-avions) **ou qui est trop touché** (eau dans la coque, voies d'eau, machines, canons, équipage, pont d'envol) **fait route vers le port allié le plus proche**, est pris en charge par les remorqueurs,
+  amarré, **réarmé et réparé** (incendies éteints, eau pompée, brèches colmatées, machines, tourelles, directeurs et radars remis en état, postes regarnis, torpilles, missiles et avions restitués) au rythme du chantier, puis relâché. **Le temps est
+  comprimé** (15 minutes pour refaire les munitions d'un cuirassé, 25 pour le réparer s'il est dévasté, au lieu de jours et de semaines) ; un grand port répare deux fois plus vite qu'un moyen, le chantier travaille à hauteur de ce qui reste debout de ses
+  bâtiments, le mouillage sert deux fois moins vite. Les Alliés se servent de leurs ports respectifs. (Le carburant n'est pas simulé : sur 190 km, aucun navire n'en manque ; les autonomies réelles vont de 3 000 à 15 000 milles.)
+- **Le brouillard** : personne ne voit ce qu'aucun navire, avion, radar ou tour de son camp ne voit (`sim/detect.js` sur `sim/sensors.js` : l'horizon du mât et de la cible, la visibilité du jour, les radars de chaque navire, les îles qui cachent). Les avions de
+  patrouille des aérodromes et des porte-avions balaient la mer autour d'eux (leurs vols ne sont pas dessinés). Les capitaines ne tirent que sur ce qu'ils suivent ; les raids aériens partent contre les navires que leur camp a repérés récemment.
+- **Le commandement** (`sim/theatre.js`) : chaque escadre a un but (patrouille, contact à intercepter, base ennemie à bombarder, retour au port quand elle a perdu plus de 60 % de sa force), file à 22 nœuds dans son ordre de bataille, et combat quand un ennemi est à
+  portée (`sim/fleet.js` : plusieurs flottes par camp, `cruise`). Tests : `test/ports.mjs`, `test/theatre.mjs`.
+
 ## Détection et précision du tir
 
 Deux modules sans équilibrage entre nations : chaque canon et chaque système de conduite de tir vaut ce que disent les sources (`data/gunnery.js`, les valeurs

@@ -6,7 +6,7 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 ## js/
 
 - `engine.js` (1244) WebGPU ocean engine — derived from Noniv/web-ocean (MIT), restructured so a game can sit on top. [P, SLIDERS, MAX_PROBE, MAX_STAMPS, createEngine] ← 3
-- `main.js` (84) Entry point. ← 0
+- `main.js` (85) Entry point. ← 0
 - `preview.js` (130) Model preview: ?preview=<shipId>[,<shipId>|plane:<type>...] renders models on the ocean with an orbit camera. [runPreview] ← 1
 - `trailer.js` (216) Trailer director: scripted scenes recorded frame by frame with the offline recorder (tools/trailer/record.mjs). [FPS, LOOKS, Trailer, mv] ← 3
 - `trailerMusic.js` (175) Procedural score for the trailer, rendered offline with Web Audio: drone, string pad, taiko / snare / hats, a brass motif, risers and big hits placed on the cuts. [renderMusic, wavBase64] ← 1
@@ -57,7 +57,7 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 - `protection.js` (74) Protection and survivability data that the spec sheets do not carry: how the armour is laid out (belt inclination, the thin weather deck above the armoured one), the… [NAVY, PROTECTION, protectionOf, navyOf] ← 1
 - `shellfill.js` (35) What is inside a naval shell: the explosive as a share of the mass of the shell, by nation and calibre (NavWeaps' pages of every gun; [burstFactor] ← 1
 - `ships.js` (38) Ship roster: the six nations' spec sheets (real-ship data) indexed by id / nation / type. [NATIONS, OTHER_NATIONS, ALL_NATIONS, TYPES, ALL_SHIPS, BY_ID, typeName, nationName, shipsOf] ← 42
-- `theatre.js` (60) The great war: two sides on one very large sea, the Axis (Japan, Germany, Italy) against the Allies (USA, United Kingdom, France). [THEATRE, TASK_FORCES] ← 3
+- `theatre.js` (72) The great war: two sides on one very large sea, the Axis (Japan, Germany, Italy) against the Allies (USA, United Kingdom, France). [THEATRES, THEATRE, TASK_FORCES] ← 5
 - `variants.js` (68) Other fits of a ship the game already has (same model, another date: other guns, other light mounts). [VARIANTS, deriveSpec] ← 2
 
 ## js/game/data/specs/
@@ -202,7 +202,7 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 - `airhit.js` (80) The hit volume of an aircraft. An aircraft is a body (an ellipsoid the size of its fuselage), the planes of its wings (a biplane has two) and its tail: what a gun… [airframe, axes, presentedArea, extentToward, roundHitChance, lightAAHitRate] ← 5
 - `airperf.js` (123) How fast each aircraft flies. Speeds in m/s (airspeed), from the published performance of each type (CHANGELOG 0.1.2 has the table and the sources): vmax top speed… [PERF, perfOf, aeroOf, dragAcc, thrustAcc, turnPerf] ← 12
 - `ballistics.js` (104) Exterior ballistics: point-mass shells with altitude-dependent air drag. [gunBallistics, solve, stepShell] ← 6
-- `baseops.js` (428) What the bases do during a battle: the coastal batteries shell the enemy ships in range, the anti-aircraft guns fire at the aircraft, the shells and the bombs that… [coastalGunOf, BaseSim, damageBase, shellHitsBase, shellGround, bombHitsBase, buildBases, updateBases] ← 5
+- `baseops.js` (435) What the bases do during a battle: the coastal batteries shell the enemy ships in range, the anti-aircraft guns fire at the aircraft, the shells and the bombs that… [coastalGunOf, BaseSim, damageBase, shellHitsBase, shellGround, bombHitsBase, buildBases, updateBases] ← 5
 - `bases.js` (406) Military bases on the islands: an airfield (a runway, the apron, hangars, a control tower, fuel tanks, barracks, a radar, anti-aircraft guns and the places where the… [placeTheatreBases, placeBases, BaseState] ← 4
 - `damage.js` (624) Impact resolution against ships: shells, bombs, torpedoes and crashing aircraft. [insideHull, segmentNearShip, segmentHit, resolveShellHit, resolveBombHit, resolveNearMiss, resolveCrashHit, torpedoReach, resolveTorpedoHit] ← 10
 - `debris.js` (95) Flying wreckage: funnels, masts, turrets and scrap torn off ships, pieces of broken aircraft. [spawnPartDebris, spawnMountDebris, spawnScrap, spawnPlaneDebris, stepDebris] ← 4
@@ -228,13 +228,13 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 - `ship.js` (726) A ship in the simulation: kinematics, wave response, damage state and weapon mounts. [makeCommand, Ship] ← 1
 - `shipdata.js` (115) Gameplay statistics derived from the real-ship spec sheets. [makeStats, cleanName, shipNames, pickName] ← 5
 - `terrain.js` (405) The islands. A few procedural islands sit in the sea, of every size and height: a rock a hundred metres wide, a hilly island, a mountain range ten kilometres long, a… [padWeight, Island, Terrain] ← 19
-- `theatre.js` (191) The great war: a theatre of war with two sides on a very large sea (data/theatre.js). [theatreNations, buildTheatre, Theatre] ← 3
-- `weapons.js` (353) Gunnery (fire control, turret slewing, salvos) and torpedo launching. [recoilCurve, mountSolution, updateGunnery, shellChoice, interceptTime, torpedoSolution, updateTorpedoes] ← 7
-- `world.js` (454) The simulation world: ships, shells, torpedoes, aircraft, teams, events, victory. [TEAM_COLORS, World] ← 55
+- `theatre.js` (193) The great war: a theatre of war with two sides on a very large sea (data/theatre.js). [theatreNations, buildTheatre, Theatre] ← 3
+- `weapons.js` (356) Gunnery (fire control, turret slewing, salvos) and torpedo launching. [recoilCurve, mountSolution, updateGunnery, shellChoice, interceptTime, torpedoSolution, updateTorpedoes] ← 7
+- `world.js` (461) The simulation world: ships, shells, torpedoes, aircraft, teams, events, victory. [TEAM_COLORS, World] ← 55
 
 ## js/game/sim/controllers/
 
-- `ai.js` (285) Autonomous captain. Writes a ShipCommand (see ship.js) every ~0.5 s: picks targets, chooses a fighting range and heading, launches torpedoes and air strikes, avoids… [AIController, steer] ← 3
+- `ai.js` (292) Autonomous captain. Writes a ShipCommand (see ship.js) every ~0.5 s: picks targets, chooses a fighting range and heading, launches torpedoes and air strikes, avoids… [AIController, steer] ← 3
 - `manual.js` (32) Manual controller (prepared, not wired into the UI yet). [ManualController] ← 2
 - `posture.js` (59) How a captain turns his ship to the enemy's fire: broadside gives every gun a bearing and the enemy the whole length to hit; [chooseOffset] ← 2
 
@@ -251,7 +251,7 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 - `mobileStyle.js` (89) Style of the touch interface (body.mobile). [MOBILE_CSS] ← 1
 - `reloads.js` (75) The reload gauges of the ship that is watched, laid out as in the naval HUD of War Thunder: one ring per gun mount that fills while the mount reloads (with the… [mountState, reloadGroups, createReloadHud] ← 2
 - `shipstate.js` (56) What the interface says of a ship's state, in place of a health bar (a ship has no hit points: see sim/hull.js): the reserve of buoyancy she has left, the share of… [shipStatus, LEVEL_COLOR, setMeters, planeText, planeLevel] ← 1
-- `ui.js` (932) DOM user interface (French): fleet setup, HUD, labels, kill feed, results, settings. [createUI] ← 1
+- `ui.js` (935) DOM user interface (French): fleet setup, HUD, labels, kill feed, results, settings. [createUI] ← 1
 
 ## js/viewer/
 
@@ -344,6 +344,7 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 - `unused.mjs` Exports that nothing imports: node tools/unused.mjs (the candidates for dead code: check each before removing it;
 - `vegperf.mjs` What the plants cost: node tools/vegperf.mjs [url] A free camera is put in the trees of an island (still, then turning) and the frame time is read with the plants…
 - `warload.mjs` How long the great war takes to come up in the browser, and what it looks like: node tools/warload.mjs [seconds to run] [out.png]
+- `warshots.mjs` Pictures of the interface of the great war: node tools/warshots.mjs <outDir> [width] [height] [seconds of war before the pictures] GPU=hardware WSLENV=GPU…
 - `wgslcheck.mjs` Compile the WGSL shaders with a real WebGPU device (headless Chromium) and print the compiler messages.
 - `wikiplanes.mjs` The 3D picture of each aircraft of the wiki (wiki/aircraft/<key>.webp, the key with ':' as '_'): the model seen from the front, to the right and a little above, on a…
 - `wikishots.mjs` The side view of each ship's model, for the wiki (wiki/ships/<id>.webp): every ship is rendered twice from the starboard beam, on a black and on a white background,…

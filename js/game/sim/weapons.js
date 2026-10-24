@@ -91,6 +91,9 @@ const TYPE_VALUE = { DD: 1.0, CL: 1.3, CA: 1.8, BB: 2.5, CV: 2.3, BASE: 1.4 };
 /** Can mount `m` engage `target` now: a firing solution, the range, the sight and, above all, a bearing inside the mount's arc? Fills `out`. */
 function feasible(ship, m, target, out) {
   if (!target || !target.alive) return false;
+  // (a target far beyond the reach of the gun: no need to work out a solution; a theatre of war has many ships and bases that are tens of kilometres away)
+  const gx = target.x - ship.x, gz = target.z - ship.z, gr = m.gun.maxRange + 400;
+  if (gx * gx + gz * gz > gr * gr) return false;
   if (!mountSolution(ship, m, target, out)) return false;
   if (out.range > m.gun.maxRange * 0.97 || out.range > engageRange(ship, target)) return false;
   const rel = inArcRel(m.rec, wrapPi(out.bearing - ship.heading - m.rec.arcC));

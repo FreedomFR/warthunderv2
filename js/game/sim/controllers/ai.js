@@ -56,7 +56,7 @@ export class AIController {
     if (fleet && fleet.circle) this.circle = fleet.circle;
     const enemies = world.enemiesOf(ship);
     if (!enemies.length) {
-      cmd.throttle = 0.35; cmd.torpedo.fire = false; cmd.air.launch = false;
+      cmd.throttle = 0.35; cmd.torpedo.fire = false; cmd.air.launch = !!(ship.air && ship.air.ready >= 4 && airReach(ship, world));
       if (ship.dock) { cmd.throttle = 0; cmd.desiredHeading = null; return; }
       if (ship.mission && missionNav(ship, world, cmd)) return;
       // no enemy ship left: the guns still work on a base in reach
@@ -110,7 +110,7 @@ export class AIController {
     cmd.torpedo.fire = !!torpTarget;
 
     // ---- air strike ----
-    cmd.air.launch = !!(ship.air && nearest._d < 75000 && ship.air.ready >= 4);
+    cmd.air.launch = !!(ship.air && ship.air.ready >= 4 && (nearest._d < 75000 || airReach(ship, world)));
 
     // ---- a fleet on passage (a theatre of war: nobody to fight within reach) ----
     if (fleet && fleet.cruise && ship.station) { cruiseNav(ship, world, fleet, cmd); return; }
@@ -210,6 +210,13 @@ export class AIController {
  * The heading and the throttle a ship takes for what she wants to do (`want`, `thr`): her wish bent away from the ships that will be too close, from the shallows and the land, and
  * from the edge of the map. Used by a fight and by a fleet on passage alike. Returns { heading, throttle }.
  */
+/** Is there an enemy ship her side knows of (not tracked by her own sensors: seen lately by anyone) within the range of her aircraft? (a theatre of war) */
+function airReach(ship, world) {
+  if (!world.fog) return false;
+  for (const e of world.knownShips(ship.team, 240)) if (Math.hypot(e.x - ship.x, e.z - ship.z) < 75000) return true;
+  return false;
+}
+
 export function steer(ship, world, want, thr) {
   const st = ship.stats, T = world.terrain;
   let vx = Math.sin(want), vz = -Math.cos(want);
