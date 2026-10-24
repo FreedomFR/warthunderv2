@@ -82,6 +82,16 @@ export const AIRPAINT = {
       { face: 'bottom', wing: 'starboard', x: 0.7, z: 4.2, prims: usInsignia(0.6, true) },
     ],
   },
+  // Curtiss P-40E Warhawk (1942): olive drab 41 over neutral gray 43, the star and bars on the rear fuselage and on the upper port and lower starboard wings (places and sizes: the published
+  // drawings of the type, `est`: the model is an AVG aircraft with Chinese markings)
+  p40: {
+    hw: 1.0, upper: '#55563d', lower: '#8d9193', line: -0.25, finish: [0.82, 0.0],
+    decals: [
+      { face: 'side', x: -2.7, y: 0.0, prims: usInsignia(0.4, false) },
+      { face: 'top', wing: 'port', x: 0.4, z: 4.3, prims: usInsignia(0.55, true) },
+      { face: 'bottom', wing: 'starboard', x: 0.4, z: 4.3, prims: usInsignia(0.55, true) },
+    ],
+  },
   // Aichi D3A1: dark green over grey-green, a black-blue cowling, hinomaru as on the Zero
   d3a: {
     upper: '#46563a', lower: '#a9ad9a', line: -0.02,

@@ -28,6 +28,7 @@ import * as HE111_V4 from './aircraft/he111_v4.js';
 import * as LANCASTER_V4 from './aircraft/lancaster_v4.js';
 import * as B5N_V4 from './aircraft/b5n_v4.js';
 import * as F6F_V4 from './aircraft/f6f_v4.js';
+import * as P40_V4 from './aircraft/p40_v4.js';
 import * as JU87_V4 from './aircraft/ju87_v4.js';
 import * as RO43_V4 from './aircraft/ro43_v4.js';
 
@@ -168,6 +169,13 @@ export const PLANES = {
     tail: { x: -5.4, chord: 1.6, span: 4.7, fin: 1.6, finChord: 2.0, y: 0.2 }, canopy: [{ x0: 0.1, x1: 1.5, tx1: 1.1, h: 0.55 }, { x0: -1.9, x1: -0.7, tx1: -0.9, h: 0.5 }],
     gear: 'retract', ordnance: null,
   },
+  p40: {      // measured on the model of a P-40E (tools/refs/planegroups.py --measures): the wing 2.5 m of chord at the root and 0.9 m at the tip, the tailplane 3.9 m across, the glass of the canopy, three blades of 1.64 m; the model stands on its wheels with the nose up at 12.8 degrees (the tail-down attitude of the real aircraft: groundPitch) and the tail wheel is part of the tail
+    name: 'Curtiss P-40E Warhawk', nation: 'USA', role: 'fighter', kind: 'mono', L: 9.68, span: 11.38, mass: 3.8, S: 21.97, hp: 3.4,
+    fus: { r: 0.5, ar: 1.4, x: -0.4 }, engine: { type: 'inline', r: 0.42, len: 1.9 }, prop: { r: 1.64, n: 3, x: 0 },
+    wing: { cr: 2.7, ct: 0.9, x: -0.08, y: -0.6, dih: 0.42, sweep: 0.55, t: 0.35 },
+    tail: { x: -4.65, chord: 1.35, span: 3.93, fin: 1.2, finChord: 2.0, y: 0.26 }, canopy: [{ x0: -1.7, x1: 0.62, tx1: 0.1, h: 0.5 }],
+    gear: 'retract', ordnance: null, groundY: 1.86, groundPitch: 0.223, v4: P40_V4, paint: 'p40',
+  },
   bf109t: {      // drawn from the model of a Bf 109 F-4 (tools/refs/planegroups.py --measures): the T-2's longer wing tips are not modelled; the hook stays procedural, the undercarriage is the game's (the model has it up)
     name: 'Messerschmitt Bf 109 F-4', nation: 'Germany', role: 'fighter', kind: 'mono', L: 8.85, span: 10.24, mass: 2.9, S: 16.05, hp: 2.6,
     fus: { r: 0.55, ar: 1.0, x: -0.3 }, engine: { type: 'inline', r: 0.42, len: 1.8 }, prop: { r: 1.46, n: 3, x: 0 },
@@ -243,7 +251,9 @@ const ROSTER = {
   Germany: { dive: ['ju87'], torp: ['fi167'], fighter: ['bf109t'], level: ['he111'] }, France: { dive: ['ln401'], torp: ['pl10'], fighter: ['d520'], level: ['leo451'] },
   Italy: { dive: ['re2001'], torp: ['re2001t'], fighter: ['mc202'], level: ['sm79'] },
 };
-const ROSTER_BASE = {};      // the same shape: the roles that an airfield fills differently from a carrier
+const ROSTER_BASE = {      // the same shape: the roles that an airfield fills differently from a carrier
+  USA: { fighter: ['p40', 'f6f'] },
+};
 
 /** A stable number in [0, 1) from a name: the same carrier or airfield always flies the same type of a role. */
 function pickOf(name) {
@@ -263,9 +273,9 @@ export function planeTypeFor(nation, role, who, site) {
   return list.length === 1 || who == null ? list[0] : list[Math.floor(pickOf(role + ':' + who) * list.length)];
 }
 
-/** Every type a nation can field for a role (carrier and airfield): to prepare the pictures, to list who flies what. */
-export function planeTypesFor(nation, role) {
-  const out = new Set([...(ROSTER[nation] && ROSTER[nation][role] || []), ...(ROSTER_BASE[nation] && ROSTER_BASE[nation][role] || [])]);
+/** Every type a nation can field for a role (carrier and airfield; `site` 'carrier' only the carriers' types): to prepare the pictures, to list who flies what. */
+export function planeTypesFor(nation, role, site) {
+  const out = new Set([...(ROSTER[nation] && ROSTER[nation][role] || []), ...(site === 'carrier' ? [] : ROSTER_BASE[nation] && ROSTER_BASE[nation][role] || [])]);
   return [...out];
 }
 
