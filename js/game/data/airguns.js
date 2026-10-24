@@ -73,6 +73,7 @@ export const GUNS = {
  */
 export const FIXED_GUNS = {
   f6f: [{ gun: 'm2', n: 6, rpg: 400, belt: 'us50', mount: 'wing', z: [2.33, 2.52, 2.71], conv: 275 }],                       // three .50 in each wing, outboard of the undercarriage (the stations of the muzzle ports on the model's leading edge)
+  f4f: [{ gun: 'm2', n: 4, rpg: 430, belt: 'us50', mount: 'wing', z: [1.62, 1.93], conv: 275 }],                       // the F4F-3: two .50 in each wing, 430 rounds each (the six of the F4F-4 came later); the stations are those of the barrels on the model (1.62 and 1.93 m from the centre line)
   a6m: [{ gun: 't97', n: 2, rpg: 600, belt: 'jp77', mount: 'cowl', z: [-0.22, 0.22], conv: 200 }, { gun: 't99', n: 2, rpg: 60, belt: 'jp20', mount: 'wing', z: [2.3], conv: 200 }],
   fulmar: [{ gun: 'b303', n: 8, rpg: 750, belt: 'uk303', mount: 'wing', z: [2.7, 3.1, 3.5, 3.9], conv: 230 }],            // four in each wing
   bf109t: [{ gun: 'mg17', n: 2, rpg: 500, belt: 'de792', mount: 'cowl', z: [-0.2, 0.2], conv: 250 }, { gun: 'mg151', n: 1, rpg: 200, belt: 'de20mg', mount: 'hub', conv: 250 }],      // the F-4: two MG 17 over the engine and the MG 151/20 through the hub

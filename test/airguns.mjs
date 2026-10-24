@@ -37,7 +37,7 @@ const ok = (c, m) => { console.log(c ? 'PASS' : 'FAIL', m); if (!c) { fail++; pr
   w.terrain = Terrain.generate(3, 2, starts.map((q) => ({ x: q.x, z: q.z, r: 4800 })), [starts[0].x, starts[0].z, starts[1].x, starts[1].z], 17000, { bases: 1, starts });
   w.start();
   const kill = (team, typeKey, ammo, N = 60) => {
-    const af = w.bases.find((b) => b.layout.kind === 'airfield' && b.team === team), proto = af.parked.find((p) => p && p.typeKey === typeKey);
+    const af = w.bases.find((b) => b.layout.kind === 'airfield' && b.team === team), proto = af.parked.find((p) => p && p.typeKey === typeKey) || { typeKey, spec: PLANES[typeKey] };      // (an airfield flies one of the types of its nation: not always this one)
     let tot = 0;
     for (let k = 0; k < N; k++) {
       const p = { ...proto, parts: null, dying: false, fire: 0, fireOut: false, ctlOut: null, lost: { wingL: false, wingR: false, tail: false, engine: false }, smoke: 0, ground: false, base: null, phase: 'cruise', owner: null, x: 0, y: 800, z: 0, heading: 0, cond: 1, fd: null };
