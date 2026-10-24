@@ -53,6 +53,6 @@ ok(R.bad === 0, 'no aircraft with a non-finite state');
 ok(R.fights >= 20, `${R.fights} duels flown`);
 ok(R.fired > 100, `shots are fired (${R.fired} bursts)`);
 ok(R.kills >= 3, `aircraft fall (${R.kills} in ${R.fights} duels: ${R.hellKills} Zeros, ${R.zeroKills} Hellcats)`);
-ok(['f6f', 'f4f', 'fm2'].some((k) => R.modes.has(k + ':extend') || R.modes.has(k + ':defend')), `the Hellcat (or the Wildcat the carrier flies) draws away from a fight it would lose by turning (${[...R.modes].sort().join(', ')})`);
+ok(['f6f', 'f4f', 'fm2', 'f8f'].some((k) => R.modes.has(k + ':extend') || R.modes.has(k + ':defend')), `the Hellcat (or the Wildcat the carrier flies) draws away from a fight it would lose by turning (${[...R.modes].sort().join(', ')})`);
 ok(R.modes.has('a6m:defend') || R.modes.has('a6m:attack'), 'the Zero turns and fights');
 if (fail) process.exit(1);

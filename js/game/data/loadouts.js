@@ -50,6 +50,12 @@ export const LOADOUTS = {
     L('1000ap', '1 bombe perforante de 1 000 lb', [{ ord: 'anmk33', n: 1 }], ['alt']),
     L('2000', '1 bombe de 2 000 lb', [{ ord: 'anm66', n: 1 }], ['base']),
   ],
+  tdb1: [
+    L('torp', '1 torpille Mk 13', [{ torp: 1 }], ['ship', 'armor']),
+    L('3x500', '3 bombes de 500 lb', [{ ord: 'anm64', n: 3 }], ['base']),
+    L('1000', '1 bombe de 1 000 lb', [{ ord: 'anm65', n: 1 }], ['alt', 'base']),
+    L('12x100', '12 bombes de 100 lb', [{ ord: 'anm30', n: 12 }], ['base']),
+  ],
   b5n: [
     L('torp', '1 torpille Type 91', [{ torp: 1 }], ['ship', 'armor']),
     L('800ap', '1 bombe perforante de 800 kg', [{ ord: 'jn80ap', n: 1 }], ['alt']),

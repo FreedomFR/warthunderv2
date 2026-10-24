@@ -14,6 +14,8 @@ export const AMMO = {
   ball303: { name: '7,7 mm ball', cal: 7.7, dmg: 0.2, fire: 0.02, blast: 0 },
   ap303: { name: '7,7 mm AP', cal: 7.7, dmg: 0.22, fire: 0.03, blast: 0 },
   inc303: { name: '.303 B Mk VI incendiary', cal: 7.7, dmg: 0.25, fire: 0.14, blast: 0 },
+  ball30: { name: '.30-06 M2 ball (9,7 g, 835 m/s)', cal: 7.62, dmg: 0.21, fire: 0.02, blast: 0 },
+  ap30: { name: '.30-06 M2 AP (10,9 g, 825 m/s)', cal: 7.62, dmg: 0.23, fire: 0.03, blast: 0 },
   ball792: { name: '7,92 mm ball', cal: 7.92, dmg: 0.22, fire: 0.02, blast: 0 },
   ball75: { name: '7,5 mm ball', cal: 7.5, dmg: 0.2, fire: 0.02, blast: 0 },
   breda127: { name: '12,7 mm Breda AP', cal: 12.7, dmg: 0.85, fire: 0.15, blast: 0 },
@@ -91,6 +93,7 @@ export const BELTS = {
 /** The guns: calibre (mm), cyclic rate (rounds a minute, as fired through the propeller or from the wing), a long burst's worth of the rounds a gun carries. */
 export const GUNS = {
   m2: { name: 'Browning M2', cal: 12.7, rpm: 800, v0: 890 },
+  m1919: { name: 'Browning M1919 (.30)', cal: 7.62, rpm: 700, v0: 835 },      // the Navy's aircraft M1919 firing through the propeller (the cyclic rate of the gun, about 600-800, est)
   b303: { name: 'Browning .303', cal: 7.7, rpm: 1150, v0: 740 },
   t97: { name: 'Type 97 (7,7 mm)', cal: 7.7, rpm: 700, v0: 745 },
   t99: { name: 'Type 99 Mk 1 (20 mm)', cal: 20, rpm: 520, v0: 600 },
@@ -119,6 +122,7 @@ export const FIXED_GUNS = {
   f6f: [{ gun: 'm2', n: 6, rpg: 400, belt: 'us50', mount: 'wing', z: [2.33, 2.52, 2.71], conv: 275 }],                       // three .50 in each wing, outboard of the undercarriage (the stations of the muzzle ports on the model's leading edge)
   f4f: [{ gun: 'm2', n: 4, rpg: 430, belt: 'us50e', mount: 'wing', z: [1.62, 1.93], conv: 275 }],                       // the F4F-3: two .50 in each wing, 430 rounds each (the six of the F4F-4 came later); the stations are those of the barrels on the model (1.62 and 1.93 m from the centre line)
   fm2: [{ gun: 'm2', n: 4, rpg: 430, belt: 'us50', mount: 'wing', z: [2.16, 2.4], conv: 275 }],                         // two .50 in each wing, 430 rounds each; the stations are those of the muzzle ports taped over on the model (2.1-2.23 and 2.33-2.46 m from the centre line)
+  f8f: [{ gun: 'm2', n: 4, rpg: 300, belt: 'us50', mount: 'wing', z: [2.43, 2.65], conv: 275 }],                         // the F8F-1: two .50 in each wing, 300 rounds each (the F8F-1B's four 20 mm came with the next series); the stations are those of the barrels of the model (2.43 and 2.65 m from the centre line)
   p40: [{ gun: 'm2', n: 6, rpg: 235, belt: 'us50a', mount: 'wing', z: [1.74, 1.94, 2.12], conv: 250 }],                       // the P-40E: three .50 in each wing, 235 rounds each (the stations of the muzzle ports on the model's leading edge)
   spitfire: [{ gun: 'hsmk2', n: 2, rpg: 120, belt: 'uk20', mount: 'wing', z: [2.31], conv: 230 }, { gun: 'b303', n: 4, rpg: 350, belt: 'uk303', mount: 'wing', z: [3.0, 3.35], conv: 230 }],      // the Mk XII: a Hispano Mk II and two .303 in each wing (the cannon at the barrel of the model, the rifle-calibre ports outboard of it: `est`)
   a6m: [{ gun: 't97', n: 2, rpg: 600, belt: 'jp77', mount: 'cowl', z: [-0.22, 0.22], conv: 200 }, { gun: 't99', n: 2, rpg: 60, belt: 'jp20', mount: 'wing', z: [2.3], conv: 200 }],
@@ -128,6 +132,7 @@ export const FIXED_GUNS = {
   mc202: [{ gun: 'breda127', n: 2, rpg: 370, belt: 'it127', mount: 'cowl', z: [-0.3, 0.3], conv: 250 }, { gun: 'safat77', n: 2, rpg: 500, belt: 'it77', mount: 'wing', z: [2.4], conv: 250 }],      // (the two 7,7 mm of the wings: rounds est)
   il2: [{ gun: 'vya23', n: 2, rpg: 150, belt: 'ru23', mount: 'wing', z: [1.5], conv: 350 }, { gun: 'shkas', n: 2, rpg: 750, belt: 'ru762', mount: 'wing', z: [2.7], conv: 350 }],      // the guns of the wings (the ground attack: not simulated yet)
   // the strike aircraft: the guns that fire ahead, used on a fighter that crosses their nose and on the ship at the start of the dive
+  tdb1: [{ gun: 'm1919', n: 1, rpg: 500, belt: 'us30', mount: 'at', at: [[1.93, 0.86, -0.12]], conv: 250 }],                           // the TBD-1: one .30 in the top of the cowl on the port side, in the trough ahead of the windscreen (the muzzle where the model has its barrel; the .50 that some aircraft carried is not simulated; rounds est) (the .50 of some aircraft is not simulated; rounds est)
   sbd: [{ gun: 'm2', n: 2, rpg: 360, belt: 'us50', mount: 'cowl', z: [-0.28, 0.28], conv: 250 }],
   tbf: [{ gun: 'm2', n: 2, rpg: 400, belt: 'us50', mount: 'wing', z: [3.4], conv: 250 }],                                // the two .50 of the wings of the TBF-1C (rounds est)
   d3a: [{ gun: 't97', n: 2, rpg: 600, belt: 'jp77', mount: 'cowl', z: [-0.22, 0.22], conv: 200 }],
@@ -186,4 +191,4 @@ export function beltForGun(cal, nation) {
   return 'jp77';
 }
 BELTS.us20 = { hei20hs: 0.7, ap20: 0.3 };         // the 20 mm M2 of the B-29's tail (the Hispano: HE-I and AP)
-BELTS.us30 = { ball303: 0.6, ap303: 0.4 };         // the .30 of the American gunners: ball and AP, like any rifle calibre
+BELTS.us30 = { ball30: 0.6, ap30: 0.4 };         // the .30-06 of the American gunners and of the Navy's cowl guns of the 1930s: M2 ball and AP

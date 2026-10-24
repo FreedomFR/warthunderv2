@@ -86,10 +86,10 @@ const run = (w, secs, f) => { const n = Math.round(secs / 0.1); for (let i = 0; 
 {
   const { chooseApproach, aaSources, exposure } = await import('../js/game/sim/routing.js');
   const w = new World(5); w.addTeam(0); w.addTeam(1);
-  // the enemy: a battleship with two cruisers 3 km to the west of it, on the side the strike comes from
+  // the enemy: a battleship with two cruisers 3 km to the west of it, on the side the strike comes from (American ones, with 40 mm Bofors: the British pom-pom fires slower and its round is lighter, a screen of it is worth less)
   const bb = w.addShip('yamato', 1, 0, 0, 0, { speed: 0, throttle: 0 });
-  w.addShip('norfolk', 1, -3000, -600, 0, { speed: 0, throttle: 0 });
-  w.addShip('norfolk', 1, -3200, 700, 0, { speed: 0, throttle: 0 });
+  w.addShip('baltimore', 1, -3000, -600, 0, { speed: 0, throttle: 0 });
+  w.addShip('baltimore', 1, -3200, 700, 0, { speed: 0, throttle: 0 });
   w.addShip('fletcher', 0, -40000, 0, 0, { speed: 0, throttle: 0 });
   w.airOpts = { aspect: 0 };      // (the way round the screen alone: how the strike lies to the ship's bow is judged below)
   const from = { x: -22000, z: 0 };

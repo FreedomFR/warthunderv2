@@ -1,0 +1,20 @@
+{
+ "key": "f8f",
+ "name": "Grumman F8F-1 Bearcat",
+ "axis_deg": 90,
+ "pitch_deg": 12,
+ "nose": "PropHub",
+ "scale": {"span": 10.92},
+ "hub_depth": 0.2,
+ "rules": [
+  {"part": "glass", "material": "^Canopy", "box": [-1.4, 1.0, 0.0, 1.6, -0.75, 0.75]},
+  {"part": "drop", "material": "^(Canopy|WingTip)"},
+  {"part": "prop", "box": [3.3, 4.0, -2.2, 2.2, -2.2, 2.2]},
+  {"part": "gear", "box": [0.9, 2.0, -2.3, -0.62, 1.4, 1.95]},
+  {"part": "gear", "box": [0.9, 2.0, -2.3, -0.62, -1.95, -1.4]}
+ ],
+ "wing_z": 1.0,
+ "tail_x": -3.2,
+ "budget": {"body": 16000, "tail": 5000, "wingL": 5000, "wingR": 5000, "prop": 2500, "glass": 800, "gear": 4000},
+ "nocolor": ["body", "tail", "wingL", "wingR"]
+}
