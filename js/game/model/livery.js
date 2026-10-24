@@ -5,7 +5,7 @@
 // paint notes of the spec sheets (Measure 22 graded, Admiralty disruptive, Regia Marina dazzle...).
 
 /** Camouflage pattern ids understood by the shader. */
-export const CAMO = { NONE: 0, DAZZLE: 1, ADMIRALTY: 2, SUNBURST: 3, SPLOTCH: 4 };
+export const CAMO = { NONE: 0, DAZZLE: 1, ADMIRALTY: 2, SUNBURST: 3, SPLOTCH: 4, GRADED: 5 };
 
 /** Nation ids (ensign / hull-number style). 0 = none. */
 export const NATION_ID = { USA: 1, Japan: 2, UK: 3, Germany: 4, France: 5, Italy: 6 };
@@ -16,6 +16,7 @@ export const PALETTES = [
   /* 1 */ ['#3a4a57', '#6d7b86', '#a3aeb5'],      // Admiralty disruptive (dark / medium / light blue-greys)
   /* 2 */ ['#5d6468', '#838b8f', '#adb4b7'],      // Regia Marina greys
   /* 3 */ ['#4d5550', '#6b7173', '#8d9396'],      // IJN / KM disruptive greys
+  /* 4 */ ['#2b3b4e', '#4c5b6b', '#76838f'],      // US Measure 12 graded of 1942 (Sea Blue 5-S / Ocean Gray 5-O / Haze Gray 5-H)
 ];
 
 /**
@@ -27,6 +28,7 @@ export const LIVERY = {
   cleveland: { scheme: CAMO.DAZZLE, pal: 0, seed: 0.21 },
   missouri_1991: null,                                         // overall haze gray (Measure 22), the colours of its sheet
   iowa: { scheme: CAMO.DAZZLE, pal: 0, seed: 0.52 },          // Measure 32 design 1B, 1944 (photograph in dry dock)
+  enterprise: { scheme: CAMO.GRADED, pal: 4, seed: 0.37 },    // Measure 12 graded system of 1942 (Sea Blue hull, Ocean Gray topsides, Haze Gray structures, the flight deck stained dark blue)
   essex: { scheme: CAMO.DAZZLE, pal: 0, seed: 0.83 },         // Measure 32/33 dazzle of 1944 (photograph leaving San Francisco)
   tribal: { scheme: CAMO.ADMIRALTY, pal: 1, seed: 0.62 },
   belfast: { scheme: CAMO.ADMIRALTY, pal: 1, seed: 0.13 },

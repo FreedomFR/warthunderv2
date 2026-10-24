@@ -51,6 +51,20 @@ for (const id of SHIPS) {
   }
 }
 
+// ---- the Enterprise (drawn from a reference model): the 8 single 5 in on sponsons, two at each corner of the flight deck, each fires over its own side and is shut in by nothing ----
+{
+  const m = model('enterprise');
+  const mains = m.mounts.filter((r) => r.group === 'main');
+  ok(mains.length === 8 && mains.every((r) => !r.noArc && dg(r.arcMax - r.arcMin) >= 200), `enterprise: ${mains.length} single 5 in, each trains over 200 degrees or more`);
+  for (const r of mains) {
+    const name = `enterprise ${r.label} at (${r.x.toFixed(1)}, ${r.z.toFixed(1)})`, beam = r.z > 0 ? Math.PI / 2 : -Math.PI / 2;
+    ok(beam >= r.arcC + r.arcMin - 0.02 && beam <= r.arcC + r.arcMax + 0.02 && Math.sign(Math.sin(r.arcC)) === Math.sign(r.z), `${name}: bears abeam on its own side`);
+    let blockedLow = 0;
+    for (let a = r.arcMin; a <= r.arcMax; a += 15 * D2R) if (clearElev(r, r.arcC + a) > 24 * D2R) blockedLow++;
+    ok(blockedLow <= 2, `${name}: ${blockedLow} sampled bearings need more than 24 degrees to clear the ship`);
+  }
+}
+
 // ---- the launchers: the sectors of each, from what stands round it ----
 for (const id of [...SHIPS, 'hawaii']) {
   const m = model(id);
