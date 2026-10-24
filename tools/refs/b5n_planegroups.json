@@ -14,5 +14,6 @@
  "wing_z": 0.6,
  "tail_x": -3.2,
  "budget": {"body": 12000, "tail": 6000, "wingL": 7000, "wingR": 7000, "prop": 2500, "glass": 2500},
+ "recolor": {"prop": [44, 38, 34]},
  "nocolor": ["body", "tail", "wingL", "wingR"]
 }

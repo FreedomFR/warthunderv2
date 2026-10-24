@@ -25,6 +25,7 @@ import * as BF109_V4 from './aircraft/bf109_v4.js';
 import * as B29_V4 from './aircraft/b29_v4.js';
 import * as B17_V4 from './aircraft/b17_v4.js';
 import * as B5N_V4 from './aircraft/b5n_v4.js';
+import * as F6F_V4 from './aircraft/f6f_v4.js';
 
 const PI = Math.PI;
 const D2R = PI / 180;
@@ -74,7 +75,7 @@ export const PLANES = {
     fus: { r: 0.6, ar: 1.35, x: -0.4 }, engine: { type: 'radial', r: 0.66, len: 1.3 }, prop: { r: 1.75, n: 3, x: 0 },
     wing: { cr: 3.7, ct: 0.95, x: 0.42, y: -0.4, dih: 0.65, sweep: 0.65, t: 0.3 },
     tail: { x: -4.83, chord: 1.75, span: 4.94, fin: 1.7, finChord: 2.0, y: 0.0 }, canopy: [{ x0: -1.4, x1: 2.2, tx1: 1.9, h: 0.55 }],
-    gear: 'retract', ordnance: 'torp', groundY: 2.2, v4: B5N_V4, paint: 'b5n',
+    gear: 'retract', ordnance: 'torp', groundY: 2.2, tailWheel: 'game', v4: B5N_V4, paint: 'b5n',
   },
   swordfish: {
     name: 'Fairey Swordfish', nation: 'UK', role: 'torp', kind: 'bi', L: 11.0, span: 13.9, mass: 3.4, hp: 3.4,
@@ -133,12 +134,12 @@ export const PLANES = {
     gear: 'retract', ordnance: 'torp',
   },
   // ---- fighters (the dimensions are the real ones, the rest estimated like the other aircraft) ----
-  f6f: {
-    name: 'Grumman F6F-3 Hellcat', nation: 'USA', role: 'fighter', kind: 'mono', L: 10.2, span: 13.1, mass: 5.6, S: 31.0, hp: 4.2,
-    fus: { r: 0.7, ar: 1.1, x: -0.6 }, engine: { type: 'radial', r: 0.88, len: 1.4 }, prop: { r: 1.75, n: 3, x: 0 },
-    wing: { cr: 3.0, ct: 1.4, x: 0.3, y: -0.38, dih: 0.3, sweep: 0.4, t: 0.38 },
-    tail: { x: -4.6, chord: 1.5, span: 4.3, fin: 1.6, finChord: 1.9, y: 0.2 }, canopy: [{ x0: 0.1, x1: 1.9, tx1: 1.4, h: 0.55 }],
-    gear: 'retract', ordnance: null,
+  f6f: {      // measured on the model (tools/refs/planegroups.py --measures): the wing 3.1 m of chord at the root and 1.5 m at the tip, the tailplane 5.6 m, the glass of the canopy, three blades of 2.0 m; the model has the gear up (the wheels lie flat in the wings): the game's wheels
+    name: 'Grumman F6F-3 Hellcat', nation: 'USA', role: 'fighter', kind: 'mono', L: 10.33, span: 13.06, mass: 5.6, S: 31.0, hp: 4.2,
+    fus: { r: 0.78, ar: 1.28, x: -0.6 }, engine: { type: 'radial', r: 0.9, len: 1.4 }, prop: { r: 2.0, n: 3, x: 0 },
+    wing: { cr: 3.1, ct: 1.55, x: 0.6, y: -0.26, dih: 0.45, sweep: 0.3, t: 0.38 },
+    tail: { x: -4.93, chord: 1.63, span: 5.62, fin: 1.9, finChord: 2.4, y: 0.37 }, canopy: [{ x0: -0.4, x1: 1.1, tx1: 0.8, h: 0.7 }],
+    gear: 'retract', ordnance: null, groundY: 2.35, tailWheel: 'game', v4: F6F_V4, paint: 'f6f',
   },
   a6m: {      // measured on the model (tools/refs/planegroups.py --measures); the retractable undercarriage is drawn by the game (the model has it up)
     name: 'Mitsubishi A6M2 Zero', nation: 'Japan', role: 'fighter', kind: 'mono', L: 8.97, span: 12.0, mass: 2.45, S: 22.44, hp: 2.4,

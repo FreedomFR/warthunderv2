@@ -47,6 +47,16 @@ export const AIRPAINT = {
       { face: 'bottom', wing: 'both', x: 0.97, z: 5.63, prims: [{ disc: 0.5, col: '#c0212a' }] },
     ],
   },
+  // Grumman F6F-3 Hellcat (1944): the Navy's tricolour of non-specular sea blue over intermediate blue over insignia white, the star and bars on the rear fuselage and on the upper port and lower
+  // starboard wings
+  f6f: {
+    hw: 1.0, upper: '#202e46', side: '#4b6286', lower: '#e2e4de', line: -0.3, finish: [0.82, 0.0],
+    decals: [
+      { face: 'side', x: -2.9, y: 0.15, prims: usInsignia(0.45, false) },
+      { face: 'top', wing: 'port', x: 0.7, z: 4.2, prims: usInsignia(0.6, true) },
+      { face: 'bottom', wing: 'starboard', x: 0.7, z: 4.2, prims: usInsignia(0.6, true) },
+    ],
+  },
   // Aichi D3A1: dark green over grey-green, a black-blue cowling, hinomaru as on the Zero
   d3a: {
     upper: '#46563a', lower: '#a9ad9a', line: -0.02,
