@@ -1,0 +1,31 @@
+{
+  "ship": "Enterprise",
+  "use_claimed": true,
+  "skip_material": [
+    "^217b567b",
+    "^01321d48",
+    "^94b35a4c"
+  ],
+  "cuts": [
+    { "group": ".*", "gre": true, "id": "prop_in_s", "drop": true, "box": [-94.3, -91.3, -7.4, -2.4, 1.5, 5.4], "max_ext": 5 },
+    { "group": ".*", "gre": true, "id": "prop_in_p", "drop": true, "box": [-94.3, -91.3, -7.4, -2.4, -5.4, -1.5], "max_ext": 5 },
+    { "group": ".*", "gre": true, "id": "prop_out_s", "drop": true, "box": [-77.2, -74.9, -7.8, -2.9, 5.0, 8.9], "max_ext": 5 },
+    { "group": ".*", "gre": true, "id": "prop_out_p", "drop": true, "box": [-77.2, -74.9, -7.8, -2.9, -8.9, -5.0], "max_ext": 5 },
+    { "group": ".*", "gre": true, "id": "rudder", "drop": true, "box": [-104.6, -94.9, -8.2, -2.4, -0.8, 0.8], "max_ext": 12 },
+    { "group": ".*", "gre": true, "id": "radar0", "kind": "radar", "label": "Radar de veille CXAM", "box": [19.6, 21.8, 36.0, 43.8, 8.0, 14.2], "max_ext": 8, "spin": true },
+    { "group": ".*", "gre": true, "id": "director0", "kind": "director", "label": "Directeur de tir Mk 33 avant", "box": [25.0, 28.4, 26.4, 29.9, 8.6, 12.8], "max_ext": 8, "track": true },
+    { "group": ".*", "gre": true, "id": "director1", "kind": "director", "label": "Directeur de tir Mk 33 arrière", "box": [-11.8, -8.4, 26.0, 29.3, 8.6, 12.8], "max_ext": 8, "track": true },
+    { "group": ".*", "gre": true, "id": "mast0", "kind": "mast", "label": "Mât de l'îlot", "box": [12.4, 19.3, 33.0, 51.0, 2.5, 19.5], "max_ext": 14 },
+    { "group": ".*", "gre": true, "id": "mast0", "kind": "mast", "label": "Mât de l'îlot", "box": [19.3, 22.0, 43.8, 51.0, 8.0, 14.0], "max_ext": 14 },
+    { "group": ".*", "gre": true, "id": "mast1", "kind": "mast", "label": "Mât de pavillons", "box": [-10.4, -2.6, 33.5, 51.0, 4.8, 16.8], "max_ext": 14 },
+    { "group": ".*", "gre": true, "id": "funnel0", "kind": "funnel", "label": "Cheminée", "box": [-6.8, 12.6, 26.8, 33.6, 6.0, 16.4], "max_ext": 20 },
+    { "group": ".*", "gre": true, "id": "tower", "kind": "bridge", "label": "Îlot", "box": [-9.4, 34.0, 16.0, 40.0, 5.0, 17.8], "max_ext": 30 }
+  ],
+  "rules": [
+    { "match": "^(39b92d5a|8d251957|e6aa7e54|e9f79a02)", "to": "part", "id": "canots", "cluster": 1.0, "kind": "structure", "label": "Canot" },
+    { "match": "^c74c4f91", "to": "fine" },
+    { "group": "^(c8545e06|671f91ef)-.*#0$", "to": "static", "cls": "flightdeck" },
+    { "match": "^(6a0027a6|7af28e34|92838cbe|734e501c)", "min_len": 60, "to": "static", "cls": "hull" },
+    { "match": ".*", "to": "static", "cls": "equip" }
+  ]
+}

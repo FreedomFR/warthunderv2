@@ -376,13 +376,13 @@ for el in cfg['elements']:
         al = cfg.get('align', {})
         src_box = [round(float(v), 3) for v in np.concatenate(bbox(t))]          # where the group stands in the model (checked by test/elements.mjs against the placed copy)
         rec = {**rec, 'x': round(rec['x'] + al.get('dx', 0), 3), 'y': round(rec['y'] + al.get('dy', 0), 3), 'z': round(rec['z'] + al.get('dz', 0), 3), 'src_box': src_box, 'align': [al.get('dx', 0), al.get('dy', 0), al.get('dz', 0)]}
-        placements.append({'kind': el['id'], 'type': el.get('type', 'main'), 'cal': el.get('cal', 0), 'mgroup': el.get('group', ''), **rec})
+        placements.append({'kind': el.get('same_as') or el['id'], 'type': el.get('type', 'main'), 'cal': el.get('cal', 0), 'mgroup': el.get('group', ''), **rec})
         report.append({'element': el['id'], **rec})
     kd = {'house': first['house'], 'guns': first.get('guns'), 'type': el.get('type', 'main'), 'from': first['name']}
     if first['trun']:
         kd['trunnion'] = [round(first['trun'][0], 3), round(first['trun'][1], 3)]
         kd['muzzle'] = round(first['trun'][2] - first['trun'][0], 3)
-    kinds[el['id']] = kd
+    if not el.get('same_as'): kinds[el['id']] = kd      # same_as: the copies are drawn with the mesh of another element (the same mount found by a second template: one mesh in the file)
     print(f"element {el['id']}: {len(sel)} copies of {first['name']}: house {first['n_house_tris']} triangles, guns {first.get('n_guns_tris', 0)}", file=sys.stderr)
 if claimed:      # the pieces taken by the mounts: shipgroups.py leaves them out of the ship (cfg `use_claimed`)
     json.dump(sorted(parts[k]['name'] for k in claimed), open(os.path.join(src, 'claimed.json'), 'w'))

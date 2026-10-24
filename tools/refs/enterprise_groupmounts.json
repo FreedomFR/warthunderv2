@@ -1,0 +1,43 @@
+{
+  "ship": "Enterprise",
+  "elements": [
+    {
+      "id": "s127", "type": "main", "cal": 127, "group": "main",
+      "template": { "x": 77.15, "z": 14.65, "y": 13.0, "x_range": [-2.2, 2.4], "z_range": [-3.5, 3.9], "below": 1.5, "above": 3.5, "min_part_tris": 1, "materials": ["d3911424", "d92a2547", "12f8d20a"] },
+      "split": true, "barrel_len": 3.0, "barrel_ratio": 6, "min_part_tris": 1
+    },
+    {
+      "id": "s127b", "same_as": "s127", "type": "main", "cal": 127, "group": "main",
+      "template": { "x": -101.2, "z": 14.8, "y": 13.0, "x_range": [-2.2, 2.4], "z_range": [-3.5, 3.9], "below": 1.5, "above": 3.5, "min_part_tris": 1, "materials": ["d3911424", "d92a2547", "12f8d20a"] },
+      "split": true, "barrel_len": 3.0, "barrel_ratio": 6, "min_part_tris": 1
+    },
+    {
+      "id": "s127e", "same_as": "s127", "type": "main", "cal": 127, "group": "main",
+      "template": { "x": -93.1, "z": 14.8, "y": 13.0, "x_range": [-2.2, 2.4], "z_range": [-3.5, 3.9], "below": 1.5, "above": 3.5, "min_part_tris": 1, "materials": ["d3911424", "d92a2547", "12f8d20a"] },
+      "split": true, "barrel_len": 3.0, "barrel_ratio": 6, "min_part_tris": 1
+    },
+    {
+      "id": "s127f", "same_as": "s127", "type": "main", "cal": 127, "group": "main",
+      "template": { "x": -93.1, "z": -14.8, "y": 13.0, "x_range": [-2.2, 2.4], "z_range": [-3.9, 3.5], "below": 1.5, "above": 3.5, "min_part_tris": 1, "materials": ["d3911424", "d92a2547", "12f8d20a"] },
+      "split": true, "barrel_len": 3.0, "barrel_ratio": 6, "min_part_tris": 1
+    },
+    {
+      "id": "q11", "type": "q11", "cal": 28, "group": "aa",
+      "template": { "x": -17.9, "z": 14.6, "y": 17.0, "x_range": [-2.3, 2.3], "z_range": [-2.4, 2.4], "below": 1.2, "above": 3.0, "min_part_tris": 1, "materials": ["58025e7b"] },
+      "grow": { "radius": 3.0, "materials": ["58025e7b"] },
+      "facing": "thin", "thin_len": 0.9
+    },
+    {
+      "id": "q11b", "same_as": "q11", "type": "q11", "cal": 28, "group": "aa",
+      "template": { "x": 40.8, "z": 14.5, "y": 16.0, "x_range": [-2.3, 2.3], "z_range": [-2.4, 2.4], "below": 1.2, "above": 3.0, "min_part_tris": 1, "materials": ["58025e7b"] },
+      "grow": { "radius": 3.0, "materials": ["58025e7b"] },
+      "facing": "thin", "thin_len": 0.9
+    },
+    {
+      "id": "o20", "type": "o20", "cal": 20, "group": "aa",
+      "materials": ["5c7ec0b4", "37170596"],
+      "cluster": { "gap": 0.05, "min_tris": 1000 },
+      "facing": "thin", "thin_len": 0.6
+    }
+  ]
+}
