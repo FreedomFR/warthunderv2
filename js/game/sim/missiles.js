@@ -10,6 +10,7 @@ import { tntEquivalent } from '../data/explosives.js';
 import { BOMBS } from '../data/ordnance.js';
 import { segmentNearShip, segmentHit, resolveBombHit } from './damage.js';
 import { bombHitsBase } from './baseops.js';
+import { engageRange } from './sensors.js';
 
 const _w = [0, 0, 0];
 const SCAN = 0.5;                       // s between two looks for a target
@@ -102,7 +103,7 @@ function fireAsroc(ship, world, sys, ox, oy, oz) {
   for (const e of world.enemiesOf(ship)) {
     if (!e.alive || e.state !== 'afloat') continue;
     const d = Math.hypot(e.x - ox, e.z - oz);
-    if (d < def.minRange || d > def.maxRange || d > (ship.stats.visualRange || 1e9) || !bears(ship, sys, e.x, e.z)) continue;
+    if (d < def.minRange || d > def.maxRange || d > engageRange(ship, e) || !bears(ship, sys, e.x, e.z)) continue;
     const T = world.terrain;
     if (T && T.blocks && T.blocks(ship.x, 0.4, ship.z, e.x, 0.4, e.z)) continue;            // an island between: the torpedo would run aground
     const s = (e.stats.type === 'DD' ? 1.0 : 1.4) * (1 + (1 - e.condition) * 0.6) / (0.4 + d / def.maxRange);
@@ -223,7 +224,7 @@ function fireSsm(ship, world, sys, ox, oy, oz) {
   let best = null, bs = 0;
   for (const e of ssmTargets(ship, world, def)) {
     const d = Math.hypot(e.x - ox, e.z - oz);
-    if (d < def.minRange || d > def.maxRange || d > (ship.stats.visualRange || 1e9) || !bears(ship, sys, e.x, e.z)) continue;
+    if (d < def.minRange || d > def.maxRange || d > engageRange(ship, e) || !bears(ship, sys, e.x, e.z)) continue;
     if ((inFlight.get(e) || 0) >= SSM_PER_TARGET) continue;
     if (T && T.blocks && T.blocks(ship.x, 25, ship.z, e.x, 25, e.z)) continue;             // an island between: it flies at 15 m
     if (!e.isBase && e.condition < 0.15) continue;                                         // a wreck is not worth a missile

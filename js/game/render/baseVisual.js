@@ -1,5 +1,5 @@
-// What is drawn for the military bases of the islands (sim/bases.js): the flat work of the airfield, the buildings (intact or ruined, scorched when damaged), the
-// radars that turn, the guns on their emplacements (they follow the train / elevation / recoil of the simulation), the aircraft parked on the apron and the small
+// What is drawn for the military bases of the islands (sim/bases.js): the flat work of the airfield or the port (its pier too), the buildings (intact or ruined, scorched when damaged), the
+// radars that turn, the jibs of the quay cranes that swing, the guns on their emplacements (they follow the train / elevation / recoil of the simulation), the aircraft parked on the apron and the small
 // detail that is only drawn up close. Everything goes through the ship renderer like the islands and the ships do.
 //
 //   const bv = new BaseVisuals(shipRenderer, engine);
@@ -64,7 +64,7 @@ export class BaseVisuals {
     if (!terrain || !terrain.bases || !terrain.bases.length) return;
     for (const layout of terrain.bases) {
       const is = terrain.islands && terrain.islands.find((q) => q.id === layout.island);
-      const model = buildBaseModel(layout, layout.nation, { biome: is ? is.biome : 'green' });
+      const model = buildBaseModel(layout, layout.nation, { biome: is ? is.biome : 'green', heightAt: (x, z) => terrain.heightAt(x, z) });
       const gpu = {
         ground: this._mesh(model.ground, 'base ' + layout.id + ' ground'), groundFine: this._mesh(model.groundFine, 'base ' + layout.id + ' ground fine'),
         deco: this._mesh(model.deco, 'base ' + layout.id + ' deco'), decoFine: this._mesh(model.decoFine, 'base ' + layout.id + ' deco fine'),
@@ -138,7 +138,9 @@ export class BaseVisuals {
         if (pg.body) r.add(pg.body, S32, tint, dmg, fire, rn);
         if (pg.fine && pd < NEAR_PART + p.r) r.add(pg.fine, S32, tint, dmg, fire, rn);
         if (pg.spin && p.spin) {
-          spinAbout(SQ, S64, 'y', time * p.spin.rate + i * 1.7, 0, 0, 0);
+          // (an antenna goes round; a crane swings its jib to and fro about the way it points at rest)
+          const sp = p.spin, turn = sp.swing ? sp.swing * Math.sin(time * sp.rate + i * 1.7) : time * sp.rate + i * 1.7;
+          spinAbout(SQ, S64, 'y', turn, 0, 0, 0);
           for (let q = 0; q < 16; q++) H32[q] = SQ[q];
           r.add(pg.spin, H32, tint, dmg, fire, rn);
         }

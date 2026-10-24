@@ -54,8 +54,13 @@ export function stationPlan(items, side = 1, spread = 1) {
 }
 
 export class FleetCommand {
-  constructor(team) {
+  constructor(team, key = team) {
     this.team = team;
+    this.key = key;            // the team (one fleet for the side) or the name of a task force of a theatre of war
+    this.goal = null;          // a theatre of war: where the fleet is going when it has no enemy to fight: { x, z } (sim/theatre.js)
+    this.cruiseSpeed = 11.5;   // m/s (22 knots): the speed of a fleet on passage
+    this.cruise = false;       // no enemy within reach: the fleet sails in its order to the goal
+    this.engageRange = Infinity;       // the enemies that count for the order of battle: within this range of the fleet (a theatre: 45 km)
     this.t = 0;
     this.flag = null;
     // the way round the enemy: +1 turns the line clockwise round it, so the enemy is on the port beam and the carriers sail on the starboard one (-1: the other way
@@ -73,19 +78,23 @@ export class FleetCommand {
     if (this.t > 0) return;
     this.t = 1.0;
     // a ship that is crippled (hurt badly or short of power) is left behind: it fights on her own and no longer sets the pace of the fleet
-    const ships = world.ships.filter((s) => s.team === this.team && s.state === 'afloat' && s.condition >= 0.35 && s.engine * s.propulsion >= 0.5);
+    const mine = (s) => s.team === this.team && (s.fleetKey ?? s.team) === this.key;
+    // (a ship that is on her way to a port, or in one, has left the fleet)
+    const ships = world.ships.filter((s) => mine(s) && s.state === 'afloat' && s.condition >= 0.35 && s.engine * s.propulsion >= 0.5 && !s.mission && !s.dock);
     this.members = ships;
-    for (const s of world.ships) if (s.team === this.team && !ships.includes(s)) s.station = null;
-    const enemies = world.ships.filter((s) => s.team !== this.team && s.alive);
-    if (ships.length < 2 || !enemies.length) { for (const s of ships) s.station = null; this.flag = null; return; }
-
-    // where the enemy is, from the middle of ours
+    for (const s of world.ships) if (mine(s) && !ships.includes(s)) s.station = null;
     let cx = 0, cz = 0;
     for (const s of ships) { cx += s.x; cz += s.z; }
-    cx /= ships.length; cz /= ships.length;
+    if (ships.length) { cx /= ships.length; cz /= ships.length; }
+    const near = this.engageRange < Infinity;
+    const enemies = world.ships.filter((s) => s.team !== this.team && s.alive && world.isKnown(this.team, s) && (!near || Math.hypot(s.x - cx, s.z - cz) < this.engageRange));
+    this.cruise = near && !enemies.length && !!this.goal && ships.length > 0;
+    if (ships.length < (this.cruise ? 1 : 2) || (!enemies.length && !this.cruise)) { for (const s of ships) s.station = null; this.flag = null; return; }
+
+    // where the enemy is, from the middle of ours (or, cruising, where the fleet is going)
     let ex = 0, ez = 0, ew = 0;
     for (const e of enemies) { const w = VALUE[e.stats.type] * (0.4 + e.condition); ex += e.x * w; ez += e.z * w; ew += w; }
-    ex /= ew; ez /= ew;
+    if (ew) { ex /= ew; ez /= ew; } else { ex = this.goal.x; ez = this.goal.z; }
 
     // the order of battle (the flagship is the first of the line, so the plan is stable as long as the ships live)
     const plan = stationPlan(ships.map((s) => ({ type: s.stats.type, L: s.stats.L })), this.circle);
@@ -104,6 +113,7 @@ export class FleetCommand {
       if (s.aiRd) rd = Math.min(rd, s.aiRd);
     }
     if (vmax < 1e8) this.speedCap = vmax * 0.93;
+    if (this.cruise) { let vall = 1e9; for (const s of ships) vall = Math.min(vall, s.stats.maxSpeed * (0.2 + 0.8 * clamp(s.engine * s.propulsion, 0, 1))); this.speedCap = Math.min(vall * 0.93, this.cruiseSpeed); }
     if (rd < 1e8) this.Rd = rd;
 
     // one target for the line: the enemy that most of its guns can reach, worth the most and already hurt

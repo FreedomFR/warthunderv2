@@ -5,6 +5,8 @@ import { gunBallistics, solve } from './ballistics.js';
 import { V_EXP, effectiveThickness, spacedPlates, fuzeThickness } from './penetration.js';
 import { mountDims } from '../model/mounts.js';
 import { clearElev, clearMax, pathClear, inArcRel, tubeBears } from '../model/clearance.js';
+import { engageRange } from './sensors.js';
+import { trackFor, ready, firingError } from './accuracy.js';
 
 /** how far a turret can depress below the horizontal (rad): a battleship has to shoot down at a destroyer that is close */
 const DEPRESS = 4 * D2R;
@@ -90,7 +92,7 @@ const TYPE_VALUE = { DD: 1.0, CL: 1.3, CA: 1.8, BB: 2.5, CV: 2.3, BASE: 1.4 };
 function feasible(ship, m, target, out) {
   if (!target || !target.alive) return false;
   if (!mountSolution(ship, m, target, out)) return false;
-  if (out.range > m.gun.maxRange * 0.97 || out.range > ship.stats.visualRange) return false;
+  if (out.range > m.gun.maxRange * 0.97 || out.range > engageRange(ship, target)) return false;
   const rel = inArcRel(m.rec, wrapPi(out.bearing - ship.heading - m.rec.arcC));
   if (m.rec.noArc || rel < m.rec.arcMin - 2 * D2R || rel > m.rec.arcMax + 2 * D2R) return false;
   // the barrel must clear the towers and the other mounts at the elevation the shot needs
@@ -144,27 +146,26 @@ export function updateGunnery(ship, world, dt) {
     const aligned = slew(m, sol.bearing, sol.elev, ship.heading, dt);
     m.aimOk = aligned;
     m.target = target;
+    trackFor(world, ship, m.group, target, sol.range);          // the fire control works on the target from the first sight of it, the guns wait for it
     if (m.group === 'main') anyMainTarget = true;
     if (aligned && m.reload <= 0) fireMount(world, ship, m, target, sol);
   }
-  // fire-control accuracy improves while the same target is engaged (ranging in), decays when idle
-  const t = cmd.main.target;
-  if (t && t.id !== ship.accTarget) { ship.accTarget = t.id; ship.gunAcc = Math.max(ship.gunAcc, 2.4); }
 }
 
-const _pseudo = { id: -1, alive: true, x: 0, z: 0, vx: 0, vz: 0, model: { topY: 0 }, stats: { type: 'DD' } };
+const _pseudo = { id: -1, pseudo: true, alive: true, x: 0, z: 0, vx: 0, vz: 0, model: { topY: 0 }, stats: { type: 'DD' } };
 function pseudoTarget(aim) { _pseudo.x = aim.x; _pseudo.z = aim.z; return _pseudo; }
 
 function randn(world) { return world.rng.normal(); }
+const _err = {};
 
 function fireMount(world, ship, m, target, s) {
   const gun = m.gun;
   const b = ball(m);
   const yaw = ship.heading + m.rec.arcC + m.trainRel;
-  const acc = ship.gunAcc * ship.fcMult;
-  const maneuver = 1 + Math.abs(ship.yawRate) * 12 + (ship.stats.type === 'DD' ? 0.35 : 0);
-  const sigR = 0.0085 * s.range * acc * maneuver * (gun.cal < 150 ? 1.25 : 1);
-  const sigA = 0.0030 * acc * maneuver;
+  // the fire control must have found the range and the rate; then the errors of this firing (accuracy.js): what the whole salvo shares, what the mount shares, what each shell has of its own
+  const tr = trackFor(world, ship, m.group, target, s.range);
+  if (!ready(world, tr)) return;
+  const er = firingError(world, ship, m, tr, s.range, s.tof, (b.lookup(s.range) || { fall: 0.3 }).fall, Math.sin(s.bearing), -Math.cos(s.bearing), _err);
   // the shell: the better of AP and HE for this target at this range and aspect, from what is left in the magazine; changing the type means
   // unloading the breech (a long delay), so a mount keeps the shell it has loaded unless the other one is clearly better
   if (m.ammo.AP + m.ammo.HE <= 0) { m.noAmmo = true; return; }
@@ -194,13 +195,14 @@ function fireMount(world, ship, m, target, s) {
     if (i >= nFire) { barrels.push(mx0 + rightx * off, my0, mz0 + rightz * off); continue; }
     const bx = mx0 + rightx * off, by = my0, bz = mz0 + rightz * off;
     barrels.push(bx, by, bz);
-    // dispersion: perturb the range solution and the bearing
-    const r2 = clamp(s.range + randn(world) * sigR, 300, b.maxRange * 0.995);
+    // the range the shell is really laid for and the bearing it leaves on (the two halves of a divided salvo are laid a little apart on purpose)
+    const half = er.split && m.n >= 2 ? (i < m.n / 2 ? -0.5 : 0.5) : 0;
+    const r2 = clamp(s.range + er.cr + randn(world) * er.ir + half * er.split, 300, b.maxRange * 0.995);
     const so = solve(b, r2, 0), nominal = solve(b, s.range, 0);
     const e = m.elev + (so && nominal ? so.elev - nominal.elev : 0);
-    const hy = yaw + randn(world) * sigA;
+    const hy = yaw + (er.cd + randn(world) * er.id) / s.range;
     const ce2 = Math.cos(e), se2 = Math.sin(e);
-    const v0 = gun.v0 * (1 + randn(world) * 0.002);
+    const v0 = gun.v0 * (1 + randn(world) * er.sv);
     world.spawnShell({
       owner: ship, gun, type, c: b.c,
       x: bx, y: by, z: bz,

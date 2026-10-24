@@ -48,7 +48,9 @@ export class BaseSim extends BaseState {
     this.world = world;
     this.nation = layout.nation;
     this.inert = layout.team == null;
-    this.name = layout.kind === 'airfield' ? 'Aérodrome' : 'Batterie côtière';
+    this.name = layout.kind === 'airfield' ? 'Aérodrome' : layout.kind === 'port' ? 'Port' : 'Batterie côtière';
+    this.moored = [];                      // (ports) the ships alongside, going in or going out: { ship, slot } (sim/ports.js)
+    this.serviceFrac = 1;                  // (ports) how much of the yard still works
     this.owner = makeOwner(this);
     this.gun = layout.guns.some((g) => g.kind === 'coastal') ? coastalGunOf(this.nation) : null;
     this.ball = this.gun ? gunBallistics({ cal: this.gun.cal, v0: this.gun.v0, shellKg: this.gun.shellKg, maxRange: this.gun.maxRange, maxElevDeg: Math.min(this.gun.maxElevDeg, 50) }) : null;

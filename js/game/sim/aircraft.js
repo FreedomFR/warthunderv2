@@ -155,7 +155,7 @@ function bestTarget(world, team, fromX, fromZ, withBases = false) {
   let best = null, bs = -1e9;
   const srcs = aaSources(world, team);
   for (const s of world.ships) {
-    if (s.team === team || !s.alive) continue;
+    if (s.team === team || !s.alive || !world.hasContact(team, s)) continue;
     const d = Math.hypot(s.x - fromX, s.z - fromZ);
     if (d > 90000) continue;
     // prefer valuable ships, then near ones
@@ -184,7 +184,7 @@ function baseTargets(world, team, fromX, fromZ, srcs) {
 function bestTargets(world, team, fromX, fromZ, n) {
   const out = [], srcs = aaSources(world, team);
   for (const sh of world.ships) {
-    if (sh.team === team || !sh.alive) continue;
+    if (sh.team === team || !sh.alive || !world.hasContact(team, sh)) continue;
     const d = Math.hypot(sh.x - fromX, sh.z - fromZ);
     if (d > 90000) continue;
     out.push({ sh, sc: sh.stats.score * 6000 - d + (sh.condition < 0.6 ? 3000 : 0) + world.rng() * 2500 - density(srcs, sh) * 2200 });

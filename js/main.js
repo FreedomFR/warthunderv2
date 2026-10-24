@@ -61,7 +61,14 @@ if (qs.has('preview')) {
   }
   // quick start from the URL: ?scenario=duel&start=1&cam=orbit
   const preset = PRESETS.find((p) => p.id === qs.get('scenario'));
-  if (preset) {
+  if (qs.get('scenario') === 'war') {
+    // the great war: ?scenario=war&start=1&mode=tactical
+    game.config.theatre = true;
+    game.spawn();
+    if (qs.get('start') === '1') game.start();
+    if (qs.has('mode')) game.camera.setMode(qs.get('mode'));
+    if (qs.has('speed')) game.setTimeScale(Number(qs.get('speed')));
+  } else if (preset) {
     game.config.teams = preset.teams.map((t, i) => ({ name: t.name, rgb: TEAM_COLORS[i].rgb, entries: t.entries.map((x) => ({ ...x })) }));
     game.config.sep = Number(qs.get('sep')) || 12000;
     game.spawn();

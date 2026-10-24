@@ -114,7 +114,7 @@ const ready = (p, kind) => p && !p.gone && !p.dying && p.phase === 'parked' && p
 function bestTargets(world, base, n) {
   const out = [];
   for (const sh of world.ships) {
-    if (sh.team === base.team || !sh.alive) continue;
+    if (sh.team === base.team || !sh.alive || !world.hasContact(base.team, sh)) continue;
     const d = Math.hypot(sh.x - base.layout.x, sh.z - base.layout.z);
     if (d > 80000) continue;
     out.push({ sh, sc: sh.stats.score * 6000 - d + (sh.condition < 0.6 ? 3000 : 0) + world.rng() * 2500 });

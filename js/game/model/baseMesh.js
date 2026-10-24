@@ -1,4 +1,4 @@
-// The look of a military base: buildBaseModel(layout, nation) turns the layout of sim/bases.js into the meshes that render/baseVisual.js draws.
+// The look of a military base: buildBaseModel(layout, nation) turns the layout of sim/bases.js (an airfield, a battery or a port) into the meshes that render/baseVisual.js draws.
 //
 //   ground       the flat work (runway, taxiways, aprons, roads, yards) a few centimetres above the levelled ground. Built in the frame of the base: origin at the
 //                centre (layout.x, layout.z) at the height of the pad, +x along the axis, +z across it (to the right of +x), so it is placed with the heading of the base.
@@ -13,6 +13,7 @@ import { MeshBuilder, MAT } from './meshbuilder.js';
 import { makeRng } from '../math.js';
 import { glyphIndex } from './glyphs.js';
 import { buildPartMesh } from './baseParts.js';
+import { buildPortPart, portSite, PORT_KINDS } from './basePort.js';
 import { buildEmplacement, gunMountSpec } from './baseGuns.js';
 import { C, shade, palOf, earthOf, dirtOf, slab, disc, vehicle, drums, flagStaff, mast, camoNet, hash2 } from './baseKit.js';
 
@@ -247,10 +248,11 @@ export function orientPart(part, L) {
   const dTurn = part.heading - L.heading;
   const ca = Math.cos(L.ang), sa = Math.sin(L.ang);
   const t = -(part.x - L.x) * sa + (part.z - L.z) * ca;
-  const tgt = Math.abs(t) > 8 ? [0, -Math.sign(t)] : [1, 0];                // towards the axis of the base, else towards the front
+  // (a warehouse is turned with its doors to the sea, towards the quay)
+  const tgt = part.kind === 'warehouse' ? [1, 0] : Math.abs(t) > 8 ? [0, -Math.sign(t)] : [1, 0];                // towards the axis of the base, else towards the front
   const ex = [Math.cos(dTurn), Math.sin(dTurn)], ez = [-Math.sin(dTurn), Math.cos(dTurn)];
   const tp = [tgt[0] * ex[0] + tgt[1] * ex[1], tgt[0] * ez[0] + tgt[1] * ez[1]];
-  const longX = part.l >= part.w, sideDoor = part.kind === 'barracks';
+  const longX = part.l >= part.w, sideDoor = part.kind === 'barracks' || part.kind === 'warehouse';
   let best = null;
   for (const a of longX ? [0, PI] : [PI / 2, -PI / 2]) {
     const tcx = tp[0] * Math.cos(a) - tp[1] * Math.sin(a), tcz = tp[0] * Math.sin(a) + tp[1] * Math.cos(a);
@@ -260,12 +262,23 @@ export function orientPart(part, L) {
   return { a: best.a, D: longX ? part.l : part.w, Wd: longX ? part.w : part.l };
 }
 
+/** Where the land ends off the yard of a port: metres from its middle along the axis (the terrain is asked across the width of the quay; without one, the usual 172 m). */
+function shoreOf(L, heightAt) {
+  if (!heightAt) return 172;
+  const ca = Math.cos(L.ang), sa = Math.sin(L.ang), hw = L.aprons.length ? L.aprons[0].hw : 120;
+  let best = 240;
+  for (const t of [-hw, -hw / 2, 0, hw / 2, hw]) {
+    for (let s = 128; s <= 240; s += 2) if (heightAt(L.x + s * ca - t * sa, L.z + s * sa + t * ca) < 0.3) { best = Math.min(best, s + 2); break; }
+  }
+  return Math.max(136, best);
+}
+
 const partCache = new Map();
 function partMesh(kind, nation, pal, biome, D, Wd, h, variant, seed) {
   const key = [kind, nation, biome, D.toFixed(1), Wd.toFixed(1), h.toFixed(1), variant].join('|');
   let m = partCache.get(key);
   if (!m) {
-    m = buildPartMesh(kind, { D, Wd, h, pal, nation, variant, seed });
+    m = (PORT_KINDS.includes(kind) ? buildPortPart : buildPartMesh)(kind, { D, Wd, h, pal, nation, variant, seed });
     m.key = key;
     partCache.set(key, m);
   }
@@ -281,7 +294,7 @@ function gunBody(g, pal, nation, biome, seed) {
 
 /**
  * The model of a base. layout: an element of terrain.bases (sim/bases.js); nation: whose it is (the camouflage of the buildings), default layout.nation.
- * opts.biome: the biome of the island (the colour of the earth banks). Returns { id, kind, nation, ref, x, z, heading, radius, ground, groundFine, deco, decoFine, parts, guns }; see the top of the file.
+ * opts.biome: the biome of the island (the colour of the earth banks); opts.heightAt(x, z): the height of the terrain (a port puts its quay wall where the land ends). Returns { id, kind, nation, ref, x, z, heading, radius, ground, groundFine, deco, decoFine, parts, guns }; see the top of the file.
  */
 export function buildBaseModel(layout, nation = layout.nation, opts = {}) {
   const biome = opts.biome || 'green';
@@ -292,11 +305,14 @@ export function buildBaseModel(layout, nation = layout.nation, opts = {}) {
   const loc = (x, z) => [(x - L.x) * ca + (z - L.z) * sa, -(x - L.x) * sa + (z - L.z) * ca];
   const g = new MeshBuilder(), gf = new MeshBuilder(), d = new MeshBuilder(), df = new MeshBuilder();
   if (L.kind === 'airfield') airfieldSite({ ...L, nation }, loc, pal, rng, g, gf, d, df);
+  else if (L.kind === 'port') portSite({ ...L, nation }, loc, pal, rng, g, gf, d, df, { rect, strip, glyph, aprons, fence, floodlight }, { ref, wl: -ref, shoreS: shoreOf(L, opts.heightAt) });
   else batterySite({ ...L, nation }, loc, pal, rng, g, gf, d, df);
   const pack = (b) => (b.triangleCount ? b.build({ ao: false }) : null);
   const parts = L.parts.map((p, i) => {
     const o = orientPart(p, L);
-    const m = partMesh(p.kind, nation, pal, biome, o.D, o.Wd, p.h, i % 3, (L.id + 1) * 131 + i * 17 + p.kind.length);
+    // (a quay crane serves the side of the pier it stands on: variant 0 the port side, 1 the starboard one)
+    const variant = p.kind === 'crane' ? (loc(p.x, p.z)[1] < 0 ? 0 : 1) : i % 3;
+    const m = partMesh(p.kind, nation, pal, biome, o.D, o.Wd, p.h, variant, (L.id + 1) * 131 + i * 17 + p.kind.length);
     return { index: i, kind: p.kind, x: p.x, y: p.y, z: p.z, heading: p.heading - o.a, mesh: m.mesh, key: m.key, spin: m.spin, r: Math.hypot(o.D, o.Wd) / 2 + p.h * 0.5 };
   });
   const guns = L.guns.map((q, i) => {
@@ -307,6 +323,10 @@ export function buildBaseModel(layout, nation = layout.nation, opts = {}) {
   for (const p of L.pads) radius = Math.max(radius, Math.hypot(p.x - L.x, p.z - L.z) + Math.hypot(p.hl, p.hw));
   for (const p of parts) radius = Math.max(radius, Math.hypot(p.x - L.x, p.z - L.z) + p.r);
   for (const q of guns) radius = Math.max(radius, Math.hypot(q.x - L.x, q.z - L.z) + q.r);
+  if (L.kind === 'port') {                      // the pier and the anchorage off its head
+    radius = Math.max(radius, Math.hypot(L.pier.x1 - L.x, L.pier.z1 - L.z) + 40);
+    for (const q of L.moorings) radius = Math.max(radius, Math.hypot(q.x - L.x, q.z - L.z) + 8);
+  }
   return { id: L.id, kind: L.kind, nation, ref, x: L.x, z: L.z, heading: L.heading, radius, ground: pack(g), groundFine: pack(gf), deco: pack(d), decoFine: pack(df), parts, guns };
 }
 

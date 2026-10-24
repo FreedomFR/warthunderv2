@@ -58,6 +58,15 @@ Pénétration (formule de De Marre calée sur les tables publiées), incidence, 
 - National WWII Museum (Guadalcanal), history.navy.mil (Samar), Air Force Times (*Johnston*) : comportement des destroyers et des croiseurs sous le feu.
 - Forums de modélistes et pages de contrôle des avaries : seulement des extraits ; les valeurs de contrôle des avaries (`dc`) sont des estimations.
 
+## Sources de la précision du tir et de la détection
+
+Dispersion des canons, systèmes de conduite de tir et radars de chaque navire (`js/game/data/gunnery.js`, `sim/accuracy.js`, `sim/sensors.js`). Les valeurs marquées `estimated` sont des lectures de descriptions, pas des chiffres publiés ; tout est à confirmer.
+
+- [NavWeaps](https://navweaps.com/Weapons/WNUS_16-50_mk7.php) : fiche du 16"/50 Mk 7 (écart des vitesses initiales de ±5 à 10 ft/s en 1944, essais de 1987 au large de la Crète : gerbe de 0,64 % et dispersion d'obus à obus de 0,36 % de la distance à 34 000 yd, radar de mesure de la vitesse initiale) et, pour les chances de toucher d'un cuirassé de la classe *Iowa* (rapport AMP 79.2R de juillet 1944 : 32,7 % à 10 000 yd, 10,5 % à 20 000 yd, 2,7 % à 30 000 yd, par le travers), précision du radar Mk 8 (±15 yd, éclaboussures de 16" repérées jusqu'à 35 000 yd).
+- Discussion sur la dispersion du 381 mm Oto/Ansaldo (forum de War Thunder, « Sollevando il velo sulla classe Littorio ») : gerbes de 200 à 300 m à 20-30 km, 290 m en moyenne aux exercices de 1939-40, contre 150 à 230 m pour le 15" britannique à 22 km, environ 180 m pour le 38 cm allemand en dessous de 20 km et 180 à 270 m pour les Japonais à Samar. Source secondaire, à recouper.
+- Articles de Wikipédia sur le *Richelieu*, la classe *Littorio*, le *Bismarck*, la classe *King George V*, les radars Type 284, Mk 3, Mk 8, FuMO 22 / 23 et Type 22, et sur les batailles du détroit du Danemark, de Calabre, du cap Matapan, de Guadalcanal (le *Washington* contre le *Kirishima*, 9 coups sur 75 obus de 16"), du détroit de Surigao (le *West Virginia*, 93 obus, télémétrie radar à 22 800 yd) et du cap Nord : taux de coups au but servant de repère aux tests.
+- Les fiches des navires (`js/game/data/specs/`) pour les radars et les années de montage.
+
 ## Sources des effets visuels et sonores (shaders des navires, son)
 
 - Anti-scintillement spéculaire : Kaplanyan *et al.*, [« Filtering Distributions of Normals for Shading Antialiasing »](https://research.nvidia.com/sites/default/files/pubs/2016-06_Filtering-Distributions-of/NDFFiltering.pdf) (NVIDIA, 2016) et [la présentation GDC 2016](https://developer.download.nvidia.com/gameworks/events/GDC2016/akaplanyan_specular_aa.pdf) ; Toksvig (2004).

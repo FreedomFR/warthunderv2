@@ -75,6 +75,7 @@ export function createUI(game) {
     h('div', { class: 'row' }, h('button', { class: 'btn small', title: 'Une bataille filmée sous plusieurs angles, puis un rapport de performance à copier ou partager', onclick: () => startBench() }, 'Test de performance')),
     h('div', { class: 'step' }, h('b', {}, '1'), 'Un scénario tout prêt… '),
     h('div', { class: 'row' }, presetSel, h('button', { class: 'btn', onclick: () => loadPreset(presetSel.value) }, 'Charger')),
+    h('div', { class: 'row' }, h('button', { class: 'btn primary', title: 'L\'Axe (Japon, Allemagne, Italie) contre les Alliés (États-Unis, Royaume-Uni, France) sur une très grande mer : chaque nation a ses îles, deux aérodromes, ses ports et ses escadres ; les navires vont au port se ravitailler et se faire réparer', onclick: () => startTheatre() }, 'Grande guerre : Axe contre Alliés')),
     h('div', { class: 'step' }, h('b', {}, '2'), '… ou vos propres flottes'),
     teamsBox,
     h('div', { class: 'row' }, h('button', { class: 'btn small', onclick: () => addTeam() }, '+ Équipe'), h('button', { class: 'btn small', onclick: () => randomize() }, 'Flottes aléatoires'), h('button', { class: 'btn small', onclick: () => { game.config.seed = (Math.random() * 1e6) | 0; seedInput.value = game.config.seed; changed(); } }, 'Nouvelle graine')),
@@ -153,9 +154,15 @@ export function createUI(game) {
     game.config.teams.push({ name: TEAM_COLORS[i].name, rgb: TEAM_COLORS[i].rgb, entries: [{ id: 'fletcher', count: 2 }] });
     changed(); renderTeams();
   }
+  function startTheatre() {
+    game.config.theatre = true;
+    game.spawn();
+    camSetup();
+  }
   function loadPreset(id) {
     const p = PRESETS.find((x) => x.id === id);
     if (!p) return;
+    game.config.theatre = false;
     game.config.teams = p.teams.map((t, i) => ({ name: t.name, rgb: TEAM_COLORS[i].rgb, entries: t.entries.map((x) => ({ ...x })) }));
     changed(); renderTeams();
     doSpawn();
@@ -183,6 +190,7 @@ export function createUI(game) {
   }
   function doSpawn() {
     ensureTeams();
+    game.config.theatre = false;
     game.spawn();
     camSetup();
   }
@@ -488,6 +496,13 @@ export function createUI(game) {
       if (e.type === 'baseDown') {
         const tc = world.teams[e.base.team];
         state.killFeed.push({ t: performance.now(), text: `${e.base.layout.kind === 'airfield' ? "L'aérodrome" : 'La batterie côtière'} de ${tc ? tc.name : e.base.nation} est hors de combat`, c1: '#ccc', c2: tc ? css(tc.rgb) : '#ccc', v: { name: '' }, killer: null, plane: true });
+        if (state.killFeed.length > 6) state.killFeed.shift();
+        continue;
+      }
+      if (e.type === 'resupply' || e.type === 'moored' || e.type === 'dockEnd') {
+        const tc = world.teams[e.ship.team];
+        const text = e.type === 'resupply' ? `${e.ship.name} fait route vers le port (${e.why === 'ammo' ? 'plus de munitions' : 'avaries'})` : e.type === 'moored' ? `${e.ship.name} est à quai` : `${e.ship.name} reprend la mer, réparé et ravitaillé`;
+        state.killFeed.push({ t: performance.now(), text, c1: '#ccc', c2: tc ? css(tc.rgb) : '#ccc', v: { name: '' }, killer: null, plane: true });
         if (state.killFeed.length > 6) state.killFeed.shift();
         continue;
       }

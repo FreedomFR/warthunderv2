@@ -211,7 +211,8 @@ const run = (w, secs, on) => { const t1 = w.time + secs; while (w.time < t1) { w
   const q = foe.parked.find(Boolean);
   w.addShip('iowa', 1, L.x + 30000, L.z, 0);
   let bursts = 0, light = 0, hits = 0;
-  for (let i = 0; i < 400; i++) {
+  // (the shells of a flak battery hit by chance: a long enough run keeps the check from hanging on one throw of the dice, which any change of what the random generator is used for moves)
+  for (let i = 0; i < 1500; i++) {
     // an enemy bomber held at 5 500 m, 1.8 km from the field: above the reach of the 20 and 37 mm guns, inside the ceiling of the 8.8 cm
     q.ground = false; q.phase = 'assemble'; q.wave = null; q.speed = 70; q.x = L.x + 1800; q.z = L.z + 100; q.y = L.y + 5500; q.vx = 0; q.vz = 0; q.vy = 0; q.invulnerable = true;
     w.update(0.1);

@@ -50,6 +50,8 @@ export class Ship {
     this.propAngle = 0;             // the screws, for the eye: turned by the speed (see render/shipVisual.js)
     this.cmd = makeCommand();
     this.controller = null;
+    this.dock = null;               // alongside a port, or going in or out (sim/ports.js): moved by the port, not by her engines
+    this.mission = null;            // what the captain is doing besides fighting: { type: 'resupply', port } (sim/logistics.js)
 
     this.state = 'afloat';          // afloat | sinking | sunk
     this.waterFill = 0; this.floodTrim = 0; this.floodList = 0;      // the water in the hull (see hull.js): there are no hit points
@@ -109,7 +111,7 @@ export class Ship {
     // carrier air group
     // the share of fighters in the air group (escort and patrol) depends on the navy (USN 1944: 36 of 91), the rest are bombers
     const nFight = stats.air ? Math.round(stats.air.capacity * ({ USA: 0.38, UK: 0.34, Germany: 0.4, Italy: 0.35 }[stats.nation] ?? 0.26)) : 0;
-    this.air = stats.air ? { ready: stats.air.capacity - nFight, fReady: nFight, cooldown: world.rng.range(5, 25), capCooldown: 30, wave: 0, servicing: [] } : null;
+    this.air = stats.air ? { ready: stats.air.capacity - nFight, fReady: nFight, cap0: stats.air.capacity, fCap0: nFight, cooldown: world.rng.range(5, 25), capCooldown: 30, wave: 0, servicing: [] } : null;      // (cap0 / fCap0: what she sailed with, for the port to restore)
     this.parkType = this.air ? planeTypeFor(stats.nation, 'dive') : null;
     this.parked = 0;
     // fire control
@@ -436,7 +438,9 @@ export class Ship {
     const afloat = this.state === 'afloat';
 
     // ---- motion -------------------------------------------------------------------------------
-    if (afloat) {
+    if (this.dock) {
+      // in a port, being warped in or out or lying alongside: sim/ports.js sets the position, the heading and the speed
+    } else if (afloat) {
       const c = this.cmd;
       // autopilot
       let rudderCmd = c.rudder;
@@ -464,8 +468,10 @@ export class Ship {
     // a screw turns about five times a second at full speed (a turn per frame stays under a quarter of the angle between two blades)
     this.propAngle = (this.propAngle + this.speed / Math.max(1, st.maxSpeed) * 30 * dt) % (Math.PI * 2);
     const fx = Math.sin(this.heading), fz = -Math.cos(this.heading);
-    this.vx = fx * this.speed; this.vz = fz * this.speed;
-    this.x += this.vx * dt; this.z += this.vz * dt;
+    if (!this.dock) {
+      this.vx = fx * this.speed; this.vz = fz * this.speed;
+      this.x += this.vx * dt; this.z += this.vz * dt;
+    }
 
     // ---- wave response -----------------------------------------------------------------------------------
     const pts = this.model.floatPts;

@@ -79,7 +79,6 @@ export function makeStats(spec) {
     sinkTime: { DD: 40, CL: 75, CA: 100, BB: 200, CV: 180 }[t],
     softness: { DD: 4.2, CL: 0.85, CA: 0.65, BB: 0.28, CV: 0.55 }[t],     // damage taken from HE / unarmoured hits
     score: { DD: 1, CL: 1.5, CA: 2.2, BB: 4, CV: 3.5 }[t],
-    visualRange: 32000,
   };
   return stats;
 }

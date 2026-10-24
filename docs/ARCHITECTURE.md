@@ -188,8 +188,7 @@ moteurs d'avions avec effet Doppler, sirène du Stuka en piqué, avion qui tombe
   pour un 406 mm).
 - **Conduite de tir** : anticipation du mouvement de la cible *et* du navire tireur, tourelles qui tournent à leur
   vitesse réelle dans leurs secteurs de tir (calculés sur la géométrie du navire : un canon ne tire pas à travers la
-  passerelle ni une cheminée, relève le tube pour passer au-dessus d'un obstacle bas, et la DCA sous un pont d'envol ne peut pas se lever), dispersion qui diminue salve après salve (réglage par observation des
-  gerbes), précision dégradée en virage.
+  passerelle ni une cheminée, relève le tube pour passer au-dessus d'un obstacle bas, et la DCA sous un pont d'envol ne peut pas se lever), dispersion et conduite de tir propres à chaque marine (voir « Détection et précision du tir » ci-dessous).
 - **Dégâts** : obliquité et pénétration face au blindage (ceinture, pont, tourelles), obus AP ou explosifs, incendies,
   voies d'eau et gîte, tourelles détruites, avaries de machines et de gouvernail, explosions de soute, naufrage
   (chavirement, par la poupe ou par l'étrave).
@@ -207,6 +206,32 @@ moteurs d'avions avec effet Doppler, sirène du Stuka en piqué, avion qui tombe
 - **Végétation** (`model/vegetation.js`, `model/treeMeshes.js`, `render/vegetationVisual.js`) : chênes, sapins, cocotiers, arbres de canopée tropicale, acacias, cyprès, buissons et rochers poussent selon le climat de l'île (tempéré avec des conifères en altitude, tropical avec des palmiers sur la plage, savane aride, îles rocheuses nues, broussailles volcaniques), moins serrés en altitude et sur les fortes pentes, avec des clairières ; environ un végétal pour 50 m² de forêt, tiré de la graine (la même bataille a les mêmes forêts). Chaque végétal est un modèle procédural (tronc effilé, branches récursives, houppier en touffes de feuillage et cartes de feuilles découpées : folioles, aiguilles, palmes) à quatre niveaux de détail ; le shader use le bord des houppiers en feuilles, les éclaire par transparence, creuse l'écorce, mouchette les rochers de mousse, et une rafale traverse l'île en faisant bouger le feuillage. De près (105 m) chaque arbre est une instance, au-delà il est assemblé par carrés de 80 m puis de 640 m. `?trees=0` supprime les végétaux.
 - **Mer** : les navires flottent sur la houle FFT (roulis, tangage, pilonnement) et laissent un sillage d'écume (vague d'étrave, ligne d'écume à la flottaison, remous des hélices puis longue traînée blanche, d'autant plus marquée que le navire va vite).
 
+## Détection et précision du tir
+
+Deux modules sans équilibrage entre nations : chaque canon et chaque système de conduite de tir vaut ce que disent les sources (`data/gunnery.js`, les valeurs
+marquées `estimated` sont des lectures de descriptions, pas des chiffres publiés ; à confirmer comme les autres jeux de données).
+
+- **Ce que l'on voit** (`sim/sensors.js`, remplace l'ancien `visualRange` constant de 32 km) : horizon radio `4,12 (√h1 + √h2)` km (3,86 pour l'œil), hauteur de l'œil =
+  haut du directeur principal du modèle, hauteur de la cible = tête de mât ; visibilité de la mer `world.visibility` (28 km par défaut, pour la silhouette d'un
+  cuirassé, un peu moins pour un destroyer) ; radars de chaque navire (SG, SK, Mk 3 / 8 / 13, Type 284, FuMO 22 / 23 / 27, Type 21 / 22 / 13, SF / SA-2…, avec leur
+  année et leur portée par classe de cible, coupée par l'horizon radar), perdus quand toutes leurs antennes sont détruites ; îles qui coupent la vue
+  (`terrain.blocks`). `canDetect(world, observateur, cible)` donne `{ visual, radar, range }` pour navires, avions et bases (un avion à 2 500 m voit un navire à
+  40-60 km, un navire voit un chasseur à 15 km). `engageRange` / `gunRange` / `maxReach` disent jusqu'où une pièce peut être pointée : œil jusqu'à l'horizon et à la
+  brume, radar jusqu'à sa portée, ou sans limite avec un hydravion de réglage (`ship.spotter` : aucun hydravion ne vole encore dans la simulation, le crochet est
+  seulement lu).
+- **Où va chaque obus** (`sim/accuracy.js`) : trois sortes d'erreurs. (1) Celle que **toute la salve partage** : la solution de tir (télémètre optique, erreur
+  `portée² × acuité / base`, ou radar à erreur fixe, les deux combinés ; corrections balistiques ; retard de l'estimation de cap et de vitesse de la cible, qui
+  oublie un changement de route en `tau` secondes : un but qui tourne ou zigzague est manqué), un biais qui **se corrige en observant les gerbes** (réglage par
+  fourchette : un obus tombé loin de la cible corrige le biais d'une part `gain / nombre de tubes`, seulement si la gerbe est visible à l'œil ou au radar qui
+  la voit), un bruit de lecture d'une salve à l'autre, l'erreur de pointage du directeur (stabilisé gyroscopiquement ou non : ×R/tan(angle de chute)
+  en portée). (2) Celle que partagent **les tubes d'une même tourelle**. (3) Celle de **chaque obus** : dispersion du canon en portée et en direction
+  (% de la distance), dispersion de vitesse initiale. Le système met un temps (`lock`, 6 à 30 s) pour trouver portée et vitesse avant la première salve.
+  Quelques chiffres : 16"/50 américain 0,38 % en portée et 0,13 % en direction (essais de 1987 : 0,36 % obus à obus) ; 38 cm allemand 0,35 % ; 381 mm
+  italien 0,55 % (gerbes de 200 à 300 m à 20-30 km, bien plus larges que celles des autres) ; 380 mm français 0,60 % avec une salve divisée en deux paires ; la
+  Mk 8 américaine mesure à 14 m près, le Type 22 japonais à 120 m près et ne voit pas les gerbes ; l'Italie n'a aucun radar de tir avant 1943.
+- **Étalonnage** : cible qui garde cap et vitesse, cuirassé américain contre cuirassé à 9 / 18 / 27 km : 60 / 20 / 6 % (les estimations de 1944 du rapport AMP 79.2R :
+  33 / 10,5 / 2,7 %) ; duels de l'IA qui virent et zigzaguent : 3 % entre 16 et 22 km, 6 % entre 10 et 16 km (Denmark Strait 3 à 5 %, Calabre et Matapan bien moins de
+  1 %) ; `test/dispersion.mjs`. Les batteries côtières des bases (`sim/baseops.js`) gardent leur propre dispersion constante.
 
 ## Contrôle manuel (préparé, pas encore branché)
 

@@ -101,6 +101,11 @@ export function createMinimap(game, o = {}) {
       g.fillStyle = b.alive && tc ? css(tc.rgb) : '#888';
       g.strokeStyle = '#000a'; g.lineWidth = 1;
       if (b.layout.kind === 'airfield') { g.fillRect(P[0] - 4, P[1] - 4, 8, 8); g.strokeRect(P[0] - 4, P[1] - 4, 8, 8); }
+      else if (b.layout.kind === 'port') {      // an anchor: the shank, the stock and the flukes
+        const [x, y] = P, path = () => { g.beginPath(); g.moveTo(x, y - 5); g.lineTo(x, y + 4); g.moveTo(x - 3, y - 2.5); g.lineTo(x + 3, y - 2.5); g.moveTo(x - 4, y); g.arc(x, y, 4, Math.PI, Math.PI * 0.1, true); g.stroke(); };
+        const col = g.fillStyle;
+        g.lineCap = 'round'; g.strokeStyle = '#000b'; g.lineWidth = 3.6; path(); g.strokeStyle = col; g.lineWidth = 1.8; path(); g.lineCap = 'butt';
+      }
       else { g.beginPath(); g.moveTo(P[0], P[1] - 5); g.lineTo(P[0] + 5, P[1] + 4); g.lineTo(P[0] - 5, P[1] + 4); g.closePath(); g.fill(); g.stroke(); }
     }
     // the selected ship's target

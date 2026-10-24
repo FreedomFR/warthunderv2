@@ -5,6 +5,7 @@ import { makeStats, pickName } from './shipdata.js';
 import { getModel } from '../model/cache.js';
 import { BY_ID } from '../data/ships.js';
 import { updateGunnery, updateTorpedoes } from './weapons.js';
+import { observeSplash } from './accuracy.js';
 import { updateMissileLaunchers, stepMissiles } from './missiles.js';
 import { stepShell } from './ballistics.js';
 import { segmentNearShip, segmentHit, resolveShellHit, resolveTorpedoHit } from './damage.js';
@@ -14,6 +15,8 @@ import { magazineExplosion, shipGone, secondaryBlast, breakInTwo } from './explo
 import { hullHit } from './hull.js';
 import { FleetCommand } from './fleet.js';
 import { buildBases, updateBases, shellHitsBase, shellGround } from './baseops.js';
+import { updatePorts } from './ports.js';
+import { shipDetects, baseDetects, planeDetects } from './detect.js';
 
 const statsCache = new Map();
 function statsFor(spec) {
@@ -61,6 +64,9 @@ export class World {
     this._basesFor = null; this._bases = [];
     this.timeLimit = 3600;
     this.lastCombatT = 0;        // last time a ship damaged another (used by the AI to break stalemates)
+    this.theatre = null;         // a theatre of war (sim/theatre.js): the strategic layer, with what each side knows
+    this.fog = false;            // nobody sees what no ship, aircraft or base of his side sees (a theatre of war); in a battle everybody sees everybody
+    this.visibility = 28000;     // m, the clearness of the day for the eye
   }
 
   addTeam(id, name, rgb) {
@@ -90,6 +96,7 @@ export class World {
   }
 
   clear() {
+    this.theatre = null; this.fog = false;
     this.ships.length = 0; this.shells.length = 0; this.torpedoes.length = 0; this.missiles.length = 0; this.planes.length = 0;
     this.bombs.length = 0; this.debris.length = 0; this.seaFires.length = 0; this.timers.length = 0;
     this.events.length = 0; this.time = 0; this.lastCombatT = 0; this.state = 'setup'; this.winner = null; this.kills.length = 0;
@@ -107,10 +114,26 @@ export class World {
   }
 
   // ---- queries ----------------------------------------------------------------------------------------
-  fleetOf(team) { let f = this.fleets.get(team); if (!f) { f = new FleetCommand(team); this.fleets.set(team, f); } return f; }
+  /** The captain of a fleet: a team's one fleet (key = the team) or one task force of a theatre of war (key = a name, `team` the side it belongs to). */
+  fleetOf(key, team = key) { let f = this.fleets.get(key); if (!f) { f = new FleetCommand(team, key); this.fleets.set(key, f); } return f; }
+  /** Is enemy ship `e` known to `team` now (in a battle everybody is; in a theatre of war it has to be tracked: seen within the last 20 seconds)? */
+  isKnown(team, e) {
+    if (!this.fog || !this.theatre) return true;
+    const c = this.theatre.contacts(team).get(e.id);
+    return !!c && this.time - c.t < 20;
+  }
+  /** A contact of `team` on enemy ship `e` that is not older than `maxAge` seconds (the aircraft of a strike go for what their side has seen lately). */
+  hasContact(team, e, maxAge = 240) {
+    if (!this.fog || !this.theatre) return true;
+    const c = this.theatre.contacts(team).get(e.id);
+    return !!c && this.time - c.t < maxAge;
+  }
+  detects(s, e) { return shipDetects(this, s, e); }
+  baseDetects(b, e) { return baseDetects(this, b, e); }
+  planeDetects(p, e) { return planeDetects(this, p, e); }
   enemiesOf(ship) {
     const out = [];
-    for (const s of this.ships) if (s.team !== ship.team && s.alive) out.push(s);
+    for (const s of this.ships) if (s.team !== ship.team && s.alive && this.isKnown(ship.team, s)) out.push(s);
     return out;
   }
   /** The bases of the other teams that still count, as targets for a ship's guns (a base is not an enemy to hunt down: no victory depends on it). */
@@ -165,7 +188,9 @@ export class World {
 
   step(dt) {
     this.time += dt;
-    if (this.state === 'running') for (const t of this.teams) if (t) this.fleetOf(t.id).update(this, dt);
+    if (this.state === 'running') for (const t of this.teams) if (t) this.fleetOf(t.id);
+    if (this.state === 'running' && this.theatre) this.theatre.update(dt);
+    if (this.state === 'running') for (const f of this.fleets.values()) f.update(this, dt);
     for (const s of this.ships) {
       if (s.alive && s.controller) s.controller.update(s, this, dt);
       s.update(dt);
@@ -175,7 +200,7 @@ export class World {
     if (this.state === 'running') for (const s of this.ships) if (s.canFire) { updateGunnery(s, this, dt); updateTorpedoes(s, this, dt); updateMissileLaunchers(s, this, dt); }
     // once the battle is won the guns fall silent but the air goes on: the aircraft in the air go home and land (or ditch), the decks go on working
     if (this.state === 'running' || this.state === 'finished') updateAir(this, dt);
-    if (this.state === 'running' || this.state === 'finished') updateBases(this, dt);
+    if (this.state === 'running' || this.state === 'finished') { updateBases(this, dt); updatePorts(this, dt); }
     this.stepShells(dt);
     this.stepTorpedoes(dt);
     stepMissiles(this, dt);
@@ -263,12 +288,7 @@ export class World {
         this.events.push({ type: 'splash', x: ix, z: iz, cal: s.gun.cal, shell: s.type, dx: s.vx, dz: s.vz, speed: Math.hypot(s.vx, s.vy, s.vz) });
         // spotting: the firing ship corrects its aim from where the splashes land
         const o = s.owner;
-        if (o && s.group === 'main' && s.target && s.target.alive) {
-          const d = Math.hypot(ix - s.target.x, iz - s.target.z);
-          if (d < 160) o.gunAcc = Math.max(0.85, o.gunAcc - 0.18);
-          else if (d < 420) o.gunAcc = Math.max(0.85, o.gunAcc - 0.07);
-          else if (d > 900) o.gunAcc = Math.min(3.2, o.gunAcc + 0.03);
-        }
+        if (o && s.target && s.target.alive) observeSplash(o, s, ix, iz);
         done = true;
       }
       if (done || s.age > 160 || s.y < -50) arr.splice(i, 1);

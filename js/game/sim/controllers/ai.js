@@ -2,7 +2,9 @@
 // range and heading, launches torpedoes and air strikes, avoids collisions, withdraws when crippled.
 import { clamp, D2R } from '../../math.js';
 import { torpedoSolution } from '../weapons.js';
+import { engageRange, maxReach } from '../sensors.js';
 import { chooseOffset } from './posture.js';
+import { review, missionNav } from '../logistics.js';
 
 const TYPE_VALUE = { DD: 1.0, CL: 1.3, CA: 1.8, BB: 2.5, CV: 2.3, BASE: 1.4 };
 const MAP_RADIUS = 26000;
@@ -46,16 +48,22 @@ export class AIController {
       this.zig = 1; this.zigT = 8 + rng() * 20;
       this.retreatT = 0;
     }
+    // the captain's supply decisions: when to leave for a port (sim/logistics.js), and the ship that lies alongside one stays there
+    this.revT = (this.revT || 0) - dt;
+    if (this.revT <= 0) { this.revT = 6 + rng() * 4; review(ship, world); }
     // a ship that sails with a fleet follows its captain (sim/fleet.js): same way round the enemy, same target for the line, a station to keep
-    const fleet = ship.station ? world.fleetOf(ship.team) : null;
+    const fleet = ship.station ? world.fleetOf(ship.fleetKey ?? ship.team, ship.team) : null;
     if (fleet && fleet.circle) this.circle = fleet.circle;
     const enemies = world.enemiesOf(ship);
     if (!enemies.length) {
       cmd.throttle = 0.35; cmd.torpedo.fire = false; cmd.air.launch = false;
+      if (ship.dock) { cmd.throttle = 0; cmd.desiredHeading = null; return; }
+      if (ship.mission && missionNav(ship, world, cmd)) return;
       // no enemy ship left: the guns still work on a base in reach
-      const cb = bestBase(ship, world, Math.min(st.main.maxRange * 0.93, st.visualRange), world.terrain, cmd.main.target);
+      const cb = bestBase(ship, world, Math.min(st.main.maxRange * 0.93, maxReach(ship)), world.terrain, cmd.main.target);
       cmd.main.target = cb ? cb.bt : null; cmd.main.fire = true;
       cmd.sec.target = cb && cb.bt._d < (st.secs[0] ? st.secs[0].maxRange * 0.9 : 0) ? cb.bt : null; cmd.sec.fire = true;
+      if (fleet && fleet.cruise && ship.station) cruiseNav(ship, world, fleet, cmd);
       return;
     }
     for (const e of enemies) e._d = Math.hypot(e.x - ship.x, e.z - ship.z);
@@ -64,11 +72,11 @@ export class AIController {
 
     // ---- main battery target ----
     const gunR = st.main.maxRange * 0.93;
-    const reach = Math.min(gunR, st.visualRange);
+    const reach = Math.min(gunR, maxReach(ship));
     let best = null, bs = 0;
     const T = world.terrain;
     for (const e of enemies) {
-      if (e._d > reach) continue;
+      if (e._d > reach || e._d > engageRange(ship, e)) continue;           // beyond the gun, or out of sight (horizon, haze) and out of radar range
       // an island between the two ships hides the enemy: nobody shoots at what he cannot see
       if (T && T.blocks(ship.x, ship.model.topY * 0.6, ship.z, e.x, e.model.topY * 0.45, e.z)) continue;
       let s = TYPE_VALUE[e.stats.type] * (1 + (1 - e.condition) * 0.9) / (0.35 + e._d / reach);
@@ -103,6 +111,13 @@ export class AIController {
 
     // ---- air strike ----
     cmd.air.launch = !!(ship.air && nearest._d < 75000 && ship.air.ready >= 4);
+
+    // ---- a fleet on passage (a theatre of war: nobody to fight within reach) ----
+    if (fleet && fleet.cruise && ship.station) { cruiseNav(ship, world, fleet, cmd); return; }
+
+    // ---- a ship in a port, or on her way to one ----
+    if (ship.dock) { cmd.throttle = 0; cmd.desiredHeading = null; return; }
+    if (ship.mission && missionNav(ship, world, cmd)) return;
 
     // ---- navigation ----
     const ref = best && !best.isBase ? best : nearest;
@@ -185,43 +200,86 @@ export class AIController {
     if (this.zigT <= 0) { this.zig = -this.zig; this.zigT = (st.type === 'DD' ? 9 : 16) + rng() * 20; }
     if (!following && !(torpRun && tp.bow)) want += this.zig * (st.type === 'DD' ? 14 : st.type === 'BB' ? 6 : 9) * D2R * (stn && stn.flag ? 0.5 : 1);
 
-    // steering vector with obstacle avoidance and map boundary
-    let vx = Math.sin(want), vz = -Math.cos(want);
-    for (const o of world.ships) {
-      if (o === ship || o.state === 'sunk') continue;
-      const rx = o.x - ship.x, rz = o.z - ship.z;
-      const dist = Math.hypot(rx, rz);
-      const mate = o.team === ship.team && ship.station && o.station;            // ships of one fleet keep close order: they only avoid each other when really near
-      const safe = (st.L + o.stats.L) * 0.5 + (mate ? 90 : 220) + (o.alive ? 0 : 120);
-      // predicted closest point of approach
-      const vx2 = o.vx - ship.vx, vz2 = o.vz - ship.vz;
-      const vv = vx2 * vx2 + vz2 * vz2;
-      let tcpa = vv > 0.01 ? -(rx * vx2 + rz * vz2) / vv : 0;
-      tcpa = clamp(tcpa, 0, 140);
-      const cx = rx + vx2 * tcpa, cz = rz + vz2 * tcpa;
-      const cpa = Math.hypot(cx, cz);
-      if (cpa < safe && dist < 3500) {
-        const k = (1 - cpa / safe) * (1 - tcpa / 160) * 3.2;
-        // steer away from where the other ship will be at the closest approach
-        const cl = Math.max(cpa, 1);
-        vx -= cx / cl * k; vz -= cz / cl * k;
-        // if it is almost on top of us, also push directly away
-        if (dist < safe * 0.7) { vx -= rx / Math.max(dist, 1) * 1.5; vz -= rz / Math.max(dist, 1) * 1.5; }
-        if (dist < safe * 0.9 && tcpa < 40) thr = Math.min(thr, 0.45);
-      }
+    const sv = steer(ship, world, want, thr);
+    cmd.desiredHeading = sv.heading;
+    cmd.throttle = sv.throttle;
+  }
+}
+
+/**
+ * The heading and the throttle a ship takes for what she wants to do (`want`, `thr`): her wish bent away from the ships that will be too close, from the shallows and the land, and
+ * from the edge of the map. Used by a fight and by a fleet on passage alike. Returns { heading, throttle }.
+ */
+export function steer(ship, world, want, thr) {
+  const st = ship.stats, T = world.terrain;
+  let vx = Math.sin(want), vz = -Math.cos(want);
+  for (const o of world.ships) {
+    if (o === ship || o.state === 'sunk') continue;
+    const rx = o.x - ship.x, rz = o.z - ship.z;
+    const dist = Math.hypot(rx, rz);
+    const mate = o.team === ship.team && ship.station && o.station;            // ships of one fleet keep close order: they only avoid each other when really near
+    const safe = (st.L + o.stats.L) * 0.5 + (mate ? 90 : 220) + (o.alive ? 0 : 120);
+    // predicted closest point of approach
+    const vx2 = o.vx - ship.vx, vz2 = o.vz - ship.vz;
+    const vv = vx2 * vx2 + vz2 * vz2;
+    let tcpa = vv > 0.01 ? -(rx * vx2 + rz * vz2) / vv : 0;
+    tcpa = clamp(tcpa, 0, 140);
+    const cx = rx + vx2 * tcpa, cz = rz + vz2 * tcpa;
+    const cpa = Math.hypot(cx, cz);
+    if (cpa < safe && dist < 3500) {
+      const k = (1 - cpa / safe) * (1 - tcpa / 160) * 3.2;
+      // steer away from where the other ship will be at the closest approach
+      const cl = Math.max(cpa, 1);
+      vx -= cx / cl * k; vz -= cz / cl * k;
+      // if it is almost on top of us, also push directly away
+      if (dist < safe * 0.7) { vx -= rx / Math.max(dist, 1) * 1.5; vz -= rz / Math.max(dist, 1) * 1.5; }
+      if (dist < safe * 0.9 && tcpa < 40) thr = Math.min(thr, 0.45);
     }
-    if (T) {
-      const av = T.avoid(ship.x, ship.z, ship.heading, ship.speed, st.L);
-      const m = Math.hypot(av.ax, av.az);
-      if (m > 0.01) { const k = Math.min(m, 3.2) / m * 1.3; vx += av.ax * k; vz += av.az * k; }
-      thr = Math.min(thr, Math.max(0.3, av.slow));
-    }
+  }
+  if (T) {
+    const av = T.avoid(ship.x, ship.z, ship.heading, ship.speed, st.L);
+    const m = Math.hypot(av.ax, av.az);
+    if (m > 0.01) { const k = Math.min(m, 3.2) / m * 1.3; vx += av.ax * k; vz += av.az * k; }
+    thr = Math.min(thr, Math.max(0.3, av.slow));
+  }
+  // the edge of the map: a disc in a battle, the rectangle of the sea in a theatre of war
+  const B = T && T.bounds;
+  if (B) {
+    const m = 5000;
+    vx += clamp((B.x0 + m - ship.x) / m, 0, 1.5) * 1.5 - clamp((ship.x - (B.x1 - m)) / m, 0, 1.5) * 1.5;
+    vz += clamp((B.z0 + m - ship.z) / m, 0, 1.5) * 1.5 - clamp((ship.z - (B.z1 - m)) / m, 0, 1.5) * 1.5;
+  } else {
     const r = Math.hypot(ship.x, ship.z);
     if (r > MAP_RADIUS - 4000) {
       const k = clamp((r - (MAP_RADIUS - 4000)) / 4000, 0, 1.5);
       vx -= ship.x / r * k * 1.5; vz -= ship.z / r * k * 1.5;
     }
-    cmd.desiredHeading = Math.atan2(vx, -vz);
-    cmd.throttle = thr;
   }
+  return { heading: Math.atan2(vx, -vz), throttle: thr };
+}
+
+/** A fleet on passage to its goal: the flagship heads for it, the others keep their stations (the same rule as in a fight, with no enemy to turn round). */
+function cruiseNav(ship, world, fleet, cmd) {
+  const st = ship.stats, stn = ship.station, F = fleet.flag, T = world.terrain, g = fleet.goal;
+  let want, thr;
+  const fp = !stn.flag && F && F !== ship ? fleet.stationPoint(ship) : null;
+  if (fp) {
+    const [sx, sz, fx, fz, rx, rz] = fp, ex = sx - ship.x, ez = sz - ship.z, dist = Math.hypot(ex, ez);
+    const ea = ex * fx + ez * fz, el = ex * rx + ez * rz, vF = Math.max(F.speed, 0);
+    if (dist > stn.tether) {
+      const lead = clamp(dist / Math.max(vF + 4, 6), 0, 25);
+      want = Math.atan2(ex + F.vx * lead, -(ez + F.vz * lead));
+      thr = dist > stn.tether * 2.2 ? 1 : clamp(vF / st.maxSpeed + 0.25 + ea / 1500, 0.4, 1);
+    } else {
+      want = F.heading + clamp(el / 450, -0.5, 0.5);
+      thr = clamp(vF / st.maxSpeed * (1 + clamp(ea / 700, -0.3, 0.3)), 0.15, 1);
+    }
+  } else {
+    want = Math.atan2(g.x - ship.x, -(g.z - ship.z));
+    thr = Math.min(1, fleet.speedCap / st.maxSpeed);
+    if (T) { const wp = T.detour(ship.x, ship.z, g.x, g.z); if (wp) want = Math.atan2(wp[0] - ship.x, -(wp[1] - ship.z)); }
+  }
+  const sv = steer(ship, world, want, thr);
+  cmd.desiredHeading = sv.heading;
+  cmd.throttle = sv.throttle;
 }
