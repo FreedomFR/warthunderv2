@@ -72,7 +72,7 @@ export const GUNS = {
  * each gun); conv: the distance (m) at which the guns are harmonised, where the lines of the guns cross. Fits: the published ones of each aircraft; `est` marks a guess.
  */
 export const FIXED_GUNS = {
-  f6f: [{ gun: 'm2', n: 6, rpg: 400, belt: 'us50', mount: 'wing', z: [2.4, 3.1, 3.8], conv: 275 }],                           // three .50 in each wing, outboard of the undercarriage
+  f6f: [{ gun: 'm2', n: 6, rpg: 400, belt: 'us50', mount: 'wing', z: [2.33, 2.52, 2.71], conv: 275 }],                       // three .50 in each wing, outboard of the undercarriage (the stations of the muzzle ports on the model's leading edge)
   a6m: [{ gun: 't97', n: 2, rpg: 600, belt: 'jp77', mount: 'cowl', z: [-0.22, 0.22], conv: 200 }, { gun: 't99', n: 2, rpg: 60, belt: 'jp20', mount: 'wing', z: [2.3], conv: 200 }],
   fulmar: [{ gun: 'b303', n: 8, rpg: 750, belt: 'uk303', mount: 'wing', z: [2.7, 3.1, 3.5, 3.9], conv: 230 }],            // four in each wing
   bf109t: [{ gun: 'mg17', n: 2, rpg: 500, belt: 'de792', mount: 'cowl', z: [-0.2, 0.2], conv: 250 }, { gun: 'mg151', n: 1, rpg: 200, belt: 'de20mg', mount: 'hub', conv: 250 }],      // the F-4: two MG 17 over the engine and the MG 151/20 through the hub
