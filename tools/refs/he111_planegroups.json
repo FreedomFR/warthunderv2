@@ -1,0 +1,187 @@
+{
+ "key": "he111",
+ "name": "Heinkel He 111",
+ "axis_deg": 90,
+ "scale": {
+  "span": 22.6
+ },
+ "drop": "^(Wheel_|Door-top_)",
+ "axis_y": 2.7,
+ "wing_z": 1.45,
+ "tail_x": -6.4,
+ "rules": [
+  {
+   "part": "glass",
+   "box": [
+    5.2,
+    7.0,
+    -1.4,
+    1.4,
+    -1.4,
+    1.4
+   ],
+   "material": "^Fuselage"
+  },
+  {
+   "part": "glass",
+   "box": [
+    0.8,
+    2.3,
+    0.95,
+    2.3,
+    -1.1,
+    1.1
+   ],
+   "material": "^Fuselage"
+  },
+  {
+   "part": "prop",
+   "box": [
+    5.85,
+    6.7,
+    -2.0,
+    2.0,
+    -4.7,
+    -1.4
+   ],
+   "material": "^Fuselage"
+  },
+  {
+   "part": "drop",
+   "box": [
+    5.85,
+    6.7,
+    -2.0,
+    2.0,
+    1.4,
+    4.7
+   ],
+   "material": "^Fuselage"
+  },
+  {
+   "part": "gear",
+   "box": [
+    1.8,
+    5.0,
+    -3.0,
+    -1.15,
+    -3.7,
+    -1.9
+   ],
+   "material": "^Fuselage"
+  },
+  {
+   "part": "gear",
+   "box": [
+    1.8,
+    5.0,
+    -3.0,
+    -1.15,
+    1.9,
+    3.7
+   ],
+   "material": "^Fuselage"
+  },
+  {
+   "part": "gear",
+   "box": [
+    -8.3,
+    -6.8,
+    -1.7,
+    -0.85,
+    -0.45,
+    0.45
+   ],
+   "material": "^Fuselage"
+  }
+ ],
+ "budget": {
+  "body": 20000,
+  "tail": 8000,
+  "wingL": 14000,
+  "wingR": 14000,
+  "prop": 3000,
+  "gear": 4000,
+  "glass": 2500
+ },
+ "recentre": {
+  "prop": [
+   6.15,
+   0.0,
+   -2.7
+  ]
+ },
+ "mirror_wings": "L",
+ "nocolor": [
+  "body",
+  "tail",
+  "wingL",
+  "wingR",
+  "hull"
+ ],
+ "copies": {
+  "hull": {
+   "from": "body",
+   "box": [
+    -20,
+    1.2,
+    -5,
+    8,
+    -3,
+    3
+   ]
+  },
+  "burn0": {
+   "from": "wingL",
+   "box": [
+    -1.0,
+    6.3,
+    -1.4,
+    1.4,
+    -4.3,
+    -1.1
+   ],
+   "budget": 1500,
+   "axis": [
+    0.0,
+    -2.7,
+    -1.0,
+    0.45,
+    4.0,
+    0.95
+   ]
+  },
+  "burn1": {
+   "from": "wingR",
+   "box": [
+    -1.0,
+    6.3,
+    -1.4,
+    1.4,
+    1.1,
+    4.3
+   ],
+   "budget": 1500,
+   "axis": [
+    0.0,
+    2.7,
+    -1.0,
+    0.45,
+    4.0,
+    0.95
+   ]
+  }
+ },
+ "recolor": {
+  "prop": [
+   34,
+   36,
+   38
+  ],
+  "gear": [
+   52,
+   54,
+   56
+  ]
+ }
+}

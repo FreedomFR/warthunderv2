@@ -81,6 +81,9 @@ Q[:, 0] -= xn - ON; Q[:, 1] -= ax; Q[:, 2] -= zc
 low = Q[keep_v][:, 1].min()
 print(f'turned {np.degrees(np.arctan2(uz, ux)):.1f} deg, scale {scale:.4f}, length {L:.2f} m, span {zw.max() - zw.min():.2f} m, axis {ax:.2f} m above the lowest point, ground {-low:.2f} m under the axis (origin x: nose at {0.42 * L:.2f})')
 
+if fl.get('qdump'):      # the model in the game's frame (for tools/refs/qview.py): --qdump=refs/<id>/q.npz
+    np.savez(fl['qdump'], Q=Q, I=I, VM=VM, C=C); print('frame written to', fl['qdump'])
+
 if fl.get('probe'):
     print('material                      tris     x0..x1        y0..y1        z0..z1')
     tm = VM[I[:, 0]]

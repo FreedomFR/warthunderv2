@@ -16,6 +16,8 @@ const usInsignia = (r, wing) => [
   ...(wing ? [{ rect: [-r * 0.27, r * 0.27, r * 0.95, r * 2.0], col: '#f0eee6' }, { rect: [-r * 0.27, r * 0.27, -r * 2.0, -r * 0.95], col: '#f0eee6' }]
     : [{ rect: [r * 0.95, r * 2.0, -r * 0.27, r * 0.27], col: '#f0eee6' }, { rect: [-r * 2.0, -r * 0.95, -r * 0.27, r * 0.27], col: '#f0eee6' }]),
 ];
+/** The RAF roundel (`ring`: the yellow ring of the fuselage roundel): blue, white and red (the outer red of the early type is not worn by 1943 aircraft). */
+const raf = (r, ring) => [...(ring ? [{ disc: r * 1.25, col: '#e0b92b' }] : []), { disc: r, col: '#1f3a78' }, { disc: r * 0.66, col: '#eeece4' }, { disc: r * 0.33, col: '#b3222a' }];
 /** The Luftwaffe cross: a black cross with a white edge (`a`: the half length of an arm). */
 const balkenkreuz = (a) => [
   { rect: [-a * 1.1, a * 1.1, -a * 0.32, a * 0.32], col: '#f0eee6' }, { rect: [-a * 0.32, a * 0.32, -a * 1.1, a * 1.1], col: '#f0eee6' },
@@ -83,6 +85,25 @@ export const AIRPAINT = {
       { face: 'side', x: -2.3, y: 0.2, prims: balkenkreuz(0.42) },
       { face: 'top', wing: 'both', x: 0.75, z: 3.5, prims: balkenkreuz(0.5) },
       { face: 'bottom', wing: 'both', x: 0.75, z: 3.5, prims: balkenkreuz(0.5) },
+    ],
+  },
+  // Avro Lancaster B.I (1943): dark earth and dark green over matt black, the fuselage roundel with its yellow ring, the roundels on the upper wings (the night bombers' undersides carry none)
+  lancaster: {
+    hw: 1.0, upper: '#4b4a35', lower: '#25272a', line: -0.05, finish: [0.9, 0.0],
+    camo: [{ col: '#34402d', scale: 0.8, thr: 0.5, seed: 4 }],
+    decals: [
+      { face: 'side', x: -6.8, y: 0.15, prims: raf(0.75, true) },
+      { face: 'top', wing: 'both', x: 0.85, z: 9.5, prims: raf(1.0, false) },
+    ],
+  },
+  // Heinkel He 111 H: RLM 70 black-green and 71 dark green in splinters over RLM 65 light blue, the Balkenkreuz on the fuselage and the wings, the yellow fuselage band of the Mediterranean
+  he111: {
+    hw: 1.3, upper: '#4a5a3e', lower: '#8da3b7', line: -0.2, finish: [0.85, 0.0],
+    camo: [{ col: '#38442f', scale: 0.9, thr: 0.48, seed: 11 }],
+    decals: [
+      { face: 'side', x: -3.9, y: 0.0, prims: balkenkreuz(0.6) },
+      { face: 'top', wing: 'both', x: 1.9, z: 7.0, prims: balkenkreuz(0.75) },
+      { face: 'bottom', wing: 'both', x: 1.9, z: 7.0, prims: balkenkreuz(0.75) },
     ],
   },
   // Boeing B-29 Superfortress: bare aluminium, the star and bars on the fuselage and the upper port and lower starboard wings

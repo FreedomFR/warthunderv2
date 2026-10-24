@@ -86,7 +86,7 @@ const run = (planes, secs, extra = {}) => {
 // ---- what the aircraft's own structure blocks ----
 {
   const he = planeGuns(PLANES.he111, 'he111').filter((g) => g.t === 'beam');
-  ok(he.every((g) => g.blocked && isBlocked(g, g.arc.c - Math.sign(g.arc.c) * 0.7, -0.6) && !isBlocked(g, g.arc.c, 0.1)), 'the waist guns of the He 111 cannot fire down through the wing, but can fire level and up');
+  ok(he.every((g) => g.blocked && isBlocked(g, g.arc.c - Math.sign(g.arc.c) * 0.9, -0.05) && !isBlocked(g, g.arc.c, 0.1)), 'the waist guns of the He 111 cannot fire level ahead of the beam through the wing, but can fire at the beam');
   const sbd = planeGuns(PLANES.sbd, 'sbd')[0];
   ok(inField(sbd, 160 * D, -0.25) && isBlocked(sbd, 160 * D, -0.25) && !isBlocked(sbd, 160 * D, 0.3), 'the Dauntless gunner cannot fire low astern through his own tailplane (but can above it)');
   const out = execFileSync('node', ['tools/audit/gunarcs.mjs', '--check'], { encoding: 'utf8' }).trim().split('\n').pop();
