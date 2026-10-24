@@ -24,6 +24,7 @@ Object.assign(AA, {
   flak38: mk('flak38', { turn: 70, elevMax: 87 }), breda20: mk('breda20', { turn: 70, elevMax: 87 }), scotti20: mk('scotti20', { turn: 70, elevMax: 87 }),
   t93_13: mk('t93_13', { turn: 75, elevMax: 87 }), hotchkiss13: mk('hotchkiss13', { turn: 70, elevMax: 87 }),
   fr37_1925: mk('fr37_1925', { turn: 45, elevMax: 85 }), fr37_1933: mk('fr37_1933', { turn: 50, elevMax: 88 }), flak37: mk('flak37', { turn: 55, elevMax: 88 }),
+  m1_28: mk('m1_28', { turn: 30, elevMax: 88 }),      // the 1.1 in quadruple of the US carriers of 1942: trains at 30 deg/s, elevates to 110 degrees
   pompom: mk('pompom', { turn: 45, elevMax: 85 }), vt40: mk('vt40', { turn: 55, elevMax: 88 }),
 });
 for (const [k, g] of [['oerlikon20', 'oerlikon'], ['t96_25', 'iijn25'], ['bofors40', 'bofors'], ['phalanx20', 'phalanx']]) AA[k] = AA[g];

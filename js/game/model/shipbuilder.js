@@ -120,6 +120,7 @@ const AA_TYPES = {
   f37: { g: 'fr37_1933', v: 'bofors', n: 2, cal: 37, bore: 50, tub: 1.7, label: '37 mm Mle 1933 double' },
   t37: { g: 'flak37', v: 'bofors', n: 2, cal: 37, bore: 83, tub: 1.7, label: 'Flak 37 mm double' },
   q20: { g: 'flak38', v: 'iijn25', n: 4, cal: 20, bore: 65, tub: 1.6, label: 'Flakvierling 20 mm' },
+  q11: { g: 'm1_28', v: 'bofors', n: 4, cal: 28, bore: 75, tub: 2.3, label: 'Mitrailleuse de 1,1 in quadruple' },
   p40: { g: 'pompom', v: 'bofors', n: 4, cal: 40, bore: 39, tub: 2.3, label: 'Pom-pom 40 mm octuple' },
   f20: { g: 'flak38', v: 'oerlikon', n: 1, cal: 20, bore: 65, label: 'Flak 20 mm' },
   i37: { g: 'breda37', v: 'breda37', n: 2, cal: 37, bore: 54, label: 'Breda 37/54 double' },
@@ -863,7 +864,7 @@ export function buildShipModel(spec, tw = {}) {
   for (const sp of model.spinners) sp.mesh = built.groups[sp.id];
   for (const p of model.parts) { p.mesh = built.groups[p.id]; p.ruin = p.hasRuin ? built.groups[p.id + '_ruin'] : null; p.fineMesh = p.hasFine ? built.groups[p.id + '_fine'] : null; }
   model.fine = built.groups.fine || null;
-  if (tw.v4) applyV4(model, tw.v4, pal, tw.v4Drop, tw.v4Clean);                      // tw.v4: the ship's hull, structure and parts from the groups of its reference model (v4ship.js)
+  if (tw.v4) applyV4(model, tw.v4, pal, tw.v4Drop, tw.v4Clean, { lifts: !!tw.v4Lifts });                      // tw.v4: the ship's hull, structure and parts from the groups of its reference model (v4ship.js)
   return model;
 }
 
@@ -899,8 +900,9 @@ function buildCarrier(b, model, spec, hull, pal, tw, X, Y, fdY, rnd, note, part)
     const x = X(f);
     if (i === els.length - 1 && tw.deckEdge) { const ed = tw.edgeLift || { z: -hw + 5, hl: 8, hw: 7.5 }; b.decal(x, fdY + 0.015, ed.z, ed.hl, ed.hw, rgb('#524f49'), MAT.HULL); model.elevators.push({ x, z: ed.z, hl: ed.hl, hw: ed.hw, edge: true }); continue; }      // tw.edgeLift: the measured deck-edge lift { z, hl, hw }
     const es = Array.isArray(tw.elevSize?.[0]) ? tw.elevSize[i] : tw.elevSize || [8.5, hw * 0.34];      // measured half-length and half-width of the lifts (one pair for all, or one pair each)
-    b.decal(x, fdY + 0.015, tw.elevZ ?? 0, es[0], es[1], rgb('#55524c'), MAT.HULL);
-    model.elevators.push({ x, z: tw.elevZ ?? 0, hl: es[0], hw: es[1], edge: false });
+    const ez = Array.isArray(tw.elevZ) ? tw.elevZ[i] : tw.elevZ ?? 0;      // (one offset from the centre line for all the lifts, or one each)
+    b.decal(x, fdY + 0.015, ez, es[0], es[1], rgb('#55524c'), MAT.HULL);
+    model.elevators.push({ x, z: ez, hl: es[0], hw: es[1], edge: false });
   }
   // island
   const ix = X(isl.fractionFromBow);

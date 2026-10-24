@@ -38,6 +38,7 @@ export const AMMO = {
   hei37fl: { name: '37 mm Flak HE-T (37 x 263 B, 640 g)', cal: 37, dmg: 4.8, fire: 0.55, blast: 30 },
   hei37fr: { name: '37 mm Mle 1925 / 1933 HE-T (est)', cal: 37, dmg: 4.6, fire: 0.5, blast: 25 },
   hei37bd: { name: '37 mm Breda 37/54 HE-T (est)', cal: 37, dmg: 5.0, fire: 0.5, blast: 28 },
+  hei28m1: { name: '1.1 in (28 mm) Mk 1 HE-T (417 g, 17 g Explosive D)', cal: 28, dmg: 2.9, fire: 0.5, blast: 15 },
   hei40bf: { name: '40 mm Bofors HE-T (900 g)', cal: 40, dmg: 5.3, fire: 0.6, blast: 55 },
   hei40pp: { name: '40 mm 2-pdr pom-pom HE-T (900 g, slow)', cal: 40, dmg: 4.4, fire: 0.5, blast: 35 },
   hei40vt: { name: '40 mm Vickers-Terni 40/39 HE-T (est)', cal: 40, dmg: 4.4, fire: 0.5, blast: 35 },
@@ -62,6 +63,7 @@ export const AA_GUNS = {
   fr37_1933: { name: '37 mm Mle 1933', cal: 37, rpm: 140, v0: 800, round: 'hei37fr', range: 3500, sig: 28 },
   flak37: { name: '3,7 cm Flak 36 / 37 / 43', cal: 37, rpm: 160, v0: 820, round: 'hei37fl', range: 4000, sig: 24 },
   breda37: { name: 'Breda 37/54', cal: 37, rpm: 120, v0: 800, round: 'hei37bd', range: 4000, sig: 24 },
+  m1_28: { name: '1.1 in/75 Mk 1 (Chicago piano)', cal: 28, rpm: 150, v0: 823, round: 'hei28m1', range: 1800, sig: 32, feed: 0.67 },      // 150 rounds a minute a barrel cyclic, about 100 in service (8-round clips, jams); NavWeaps puts its effective range at 1 000 yd, the ceiling of its rounds is far higher: the engagement range is `est`
   bofors40: { name: 'Bofors 40 mm L/60', cal: 40, rpm: 120, v0: 880, round: 'hei40bf', range: 4200, sig: 24, feed: 0.95 },
   pompom: { name: 'QF 2-pdr pom-pom Mk VIII', cal: 40, rpm: 115, v0: 585, round: 'hei40pp', range: 3300, sig: 30 },
   vt40: { name: 'Vickers-Terni 40/39', cal: 40, rpm: 200, v0: 580, round: 'hei40vt', range: 3300, sig: 30 },

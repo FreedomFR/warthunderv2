@@ -310,11 +310,15 @@ function pickOf(name) {
   return ((h >>> 0) % 10007) / 10007;
 }
 
+// The aircraft of the carriers of 1942 (the Yorktown class: the F6F came only in 1943): by the name of the ship, whatever the hash would pick
+const SHIP_TYPES = { 'USS Enterprise': { fighter: 'f4f' }, 'USS Yorktown': { fighter: 'f4f' }, 'USS Hornet': { fighter: 'f4f' } };
+
 /**
  * Which aircraft a nation flies for a role ('dive' | 'torp' | 'fighter' from its carriers, 'level': the land-based bomber of its airfields). `who` names the carrier or the airfield
  * (a ship's name, a base's id): when the nation has several types for the role, the name picks one, always the same; without it the usual type. `site`: 'base' for an airfield.
  */
 export function planeTypeFor(nation, role, who, site) {
+  if (site !== 'base' && nation === 'USA' && SHIP_TYPES[who] && SHIP_TYPES[who][role]) return SHIP_TYPES[who][role];
   const n = ROSTER[nation] ? nation : null, list = n && ((site === 'base' && ROSTER_BASE[n] && ROSTER_BASE[n][role]) || ROSTER[n][role]);
   if (!n) return { dive: 'sbd', torp: 'tbf', fighter: 'f6f', level: 'b17' }[role];
   if (!list || !list.length) return undefined;

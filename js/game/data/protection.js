@@ -36,6 +36,7 @@ export const PROTECTION = {
   baltimore: { torp: { kg: 110 } },                             // estimated
   iowa: { beltIncl: 19, weather: 38, lower: 80, torp: { kg: 320, flaw: 0.85 } },    // 5.5 m system; the liquid loading had to be modified to work
   essex: { beltIncl: 0, torp: { kg: 150 }, avgas: 'closed' },   // estimated
+  enterprise: { beltIncl: 0, torp: { kg: 90 }, avgas: 'closed' },   // estimated: no bulges, a weaker side system than the Essex (the Yorktown sank of two torpedo hits); the fuel lines were inerted with CO2 after the Coral Sea
   hawaii: { beltIncl: 10, torp: { kg: 200 } },                  // Alaska class: belt sloped 10 degrees; the resistance of the side system is estimated
   // ---- Japan
   kagero: { torp: { kg: 0 } },

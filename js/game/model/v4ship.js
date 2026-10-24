@@ -84,7 +84,7 @@ export function paintInto(nb, piece, scale, pal, cls, ref, maxY = Infinity) {
   for (const [mat, o] of paint(piece, scale, pal, cls, ref, maxY)) nb.raw(o.pos, o.nrm, o.col, Uint32Array.from({ length: o.pos.length / 3 }, (_, i) => i), mat);
 }
 
-export function applyV4(model, data, pal, drop = [], clean = []) {
+export function applyV4(model, data, pal, drop = [], clean = [], opts = {}) {
   // clean: [{ x, z, r, y0, maxArea }]: the small triangles (details of what stood there: a turret's roller path, its fittings) of the static pieces above y0 within r of (x, z) are left out: what a fit has landed leaves no trace
   if (clean.length) {
     const gone = (x, y, z, a) => clean.some((c) => y >= c.y0 && Math.hypot(x - c.x, z - c.z) <= c.r && a <= c.maxArea);
@@ -97,6 +97,15 @@ export function applyV4(model, data, pal, drop = [], clean = []) {
   const draw = (piece, cls) => paintInto(nb, piece, sc, pal, cls, ref);
   for (const [cls, piece] of Object.entries(S.static)) draw(piece, cls);
   if (S.fine) nb.group('fine', () => draw(S.fine, 'fine'));
+  // opts.lifts: the pits of the lifts of a carrier, black outlines on the flight deck at the places and sizes the sim moves its platforms (the model's deck is repainted flat in the deck colour)
+  if (opts.lifts && model.elevators && model.fdY != null) {
+    const col = rgb('#17191c'), y = model.fdY + 0.03, w = 0.22;
+    for (const e of model.elevators) {
+      if (e.edge) continue;
+      nb.decal(e.x, y, e.z - e.hw, e.hl + w, w, col, MAT.HULL); nb.decal(e.x, y, e.z + e.hw, e.hl + w, w, col, MAT.HULL);
+      nb.decal(e.x - e.hl, y, e.z, w, e.hw + w, col, MAT.HULL); nb.decal(e.x + e.hl, y, e.z, w, e.hw + w, col, MAT.HULL);
+    }
+  }
   const parts = [];
   for (const [id, p] of Object.entries(S.parts)) {
     if (drop.includes(id)) continue;

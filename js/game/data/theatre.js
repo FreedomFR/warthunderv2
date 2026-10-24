@@ -45,7 +45,7 @@ export const THEATRE = THEATRES.war;
  */
 export const TASK_FORCES = {
   USA: [
-    { name: 'Task Force 58', role: 'carrier', ships: [{ id: 'essex', count: 2 }, { id: 'baltimore', count: 1 }, { id: 'cleveland', count: 1 }, { id: 'fletcher', count: 4 }] },
+    { name: 'Task Force 58', role: 'carrier', ships: [{ id: 'essex', count: 1 }, { id: 'enterprise', count: 1 }, { id: 'baltimore', count: 1 }, { id: 'cleveland', count: 1 }, { id: 'fletcher', count: 4 }] },
     { name: 'Task Force 34', role: 'battle', ships: [{ id: 'iowa', count: 2 }, { id: 'baltimore', count: 1 }, { id: 'fletcher', count: 3 }] },
     { name: 'Task Group 77', role: 'cruiser', ships: [{ id: 'cleveland', count: 2 }, { id: 'fletcher', count: 2 }] },
   ],

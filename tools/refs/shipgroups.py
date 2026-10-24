@@ -36,7 +36,31 @@ tp = VP[I[:, 0]]
 b64 = lambda a: base64.b64encode(a.tobytes()).decode()
 
 
-def pack(tris):
+def pack_split(tris, maxlen):
+    """The triangles cut until none has an edge longer than `maxlen` (m): the baked occlusion and the colours live on the vertices, and a plate of the island 25 m long would show them as a wedge."""
+    Pp = P[I[tris]].astype(np.float64); Cc = C[I[tris]].astype(np.float64)
+    for _ in range(16):
+        e = np.stack([np.linalg.norm(Pp[:, 1] - Pp[:, 0], axis=1), np.linalg.norm(Pp[:, 2] - Pp[:, 1], axis=1), np.linalg.norm(Pp[:, 0] - Pp[:, 2], axis=1)], axis=1)
+        big = e.max(axis=1) > maxlen
+        if not big.any():
+            break
+        k = e[big].argmax(axis=1); r = np.arange(len(k)); Pb, Cb = Pp[big], Cc[big]
+        ia, ib, ic = k, (k + 1) % 3, (k + 2) % 3
+        pa, pb, pc, ca, cb, cc = Pb[r, ia], Pb[r, ib], Pb[r, ic], Cb[r, ia], Cb[r, ib], Cb[r, ic]
+        pm, cm = (pa + pb) / 2, (ca + cb) / 2
+        Pp = np.concatenate([Pp[~big], np.stack([pa, pm, pc], 1), np.stack([pm, pb, pc], 1)])
+        Cc = np.concatenate([Cc[~big], np.stack([ca, cm, cc], 1), np.stack([cm, cb, cc], 1)])
+    q = np.round(Pp.reshape(-1, 3) * SC).astype(np.int16); col = np.round(Cc.reshape(-1, 3)).astype(np.uint8)
+    key = np.concatenate([q.astype(np.int32), col.astype(np.int32)], axis=1)
+    u, first, inv = np.unique(key, axis=0, return_index=True, return_inverse=True)
+    idx = inv.reshape(-1).astype(np.uint32)
+    wide = len(u) >= 65536
+    return {'nv': int(len(u)), 'ni': int(idx.size), 'pos': b64(q[first]), 'col': b64(col[first]), 'idx': b64(idx if wide else idx.astype(np.uint16)), 'wide': bool(wide)}
+
+
+def pack(tris, split=0):
+    if split:
+        return pack_split(tris, float(split))
     t = I[tris]
     used = np.unique(t)
     remap = -np.ones(nv, dtype=np.int64); remap[used] = np.arange(len(used))
@@ -44,6 +68,14 @@ def pack(tris):
     idx = remap[t].astype(np.uint32)
     wide = len(used) >= 65536
     return {'nv': int(len(used)), 'ni': int(idx.size), 'pos': b64(q), 'col': b64(C[used]), 'idx': b64(idx if wide else idx.astype(np.uint16)), 'wide': bool(wide)}
+
+
+def flatten(col, k):
+    """`flat` of a rule (0..1): the colours of the piece move that far towards their median (a hull whose texture carries weathering streaks that a huge triangle would smear over the plating)."""
+    if k <= 0:
+        return col
+    med = np.median(col.astype(np.float64), axis=0)
+    return np.clip(med + (col.astype(np.float64) - med) * (1 - k), 0, 255).astype(np.uint8)
 
 
 skip_g = set(cfg.get('skip_groups', []))
@@ -113,6 +145,10 @@ for k, p in enumerate(parts):
     dest = 'static'; rule = None
     Vp = P[I[t]].reshape(-1, 3); plen = float(Vp[:, 0].max() - Vp[:, 0].min())
     for ri, (rm, rg, r) in enumerate(rules):
+        if 'inside' in r:      # a rule for the pieces whose whole box lies in [x0, x1, y0, y1, z0, z1] (the small plates of a deck that belong to the flight deck)
+            bx = r['inside']
+            if not (Vp[:, 0].min() >= bx[0] and Vp[:, 0].max() <= bx[1] and Vp[:, 1].min() >= bx[2] and Vp[:, 1].max() <= bx[3] and Vp[:, 2].min() >= bx[4] and Vp[:, 2].max() <= bx[5]):
+                continue
         if 'min_len' in r and plen < r['min_len']:      # a rule for the long pieces only (the hull plating of a model whose materials are merged)
             continue
         if (rm is not None and rm.search(mname)) or (rg is not None and rg.search(p['name'])) or (rm is None and rg is None and 'min_len' in r):
@@ -130,6 +166,8 @@ for k, p in enumerate(parts):
         continue
     else:
         static_tris.setdefault(rule['cls'] if rule and 'cls' in rule else mname, []).append(t)
+        if rule and rule.get('flat'):      # (the vertices of this piece only: the other pieces of the class keep their colours)
+            vi = np.unique(I[t]); C[vi] = flatten(C[vi], float(rule['flat']))
     stats[(dest, mname)] = stats.get((dest, mname), 0) + len(t)
 
 res = {'static': {}, 'fine': None, 'parts': {}}
@@ -143,7 +181,7 @@ for pid, d in part_tris.items():
         continue
     V = P[I[tr]].reshape(-1, 3)
     r = d['rule']
-    res['parts'][pid] = {'kind': r.get('kind', 'structure'), 'label': r.get('label', pid), 'spin': r.get('spin'), 'track': r.get('track'), 'plain': r.get('plain'), 'bb': [round(float(v), 3) for v in np.concatenate([V.min(0), V.max(0)])], 'mesh': pack(tr)}
+    res['parts'][pid] = {'kind': r.get('kind', 'structure'), 'label': r.get('label', pid), 'spin': r.get('spin'), 'track': r.get('track'), 'plain': r.get('plain'), 'bb': [round(float(v), 3) for v in np.concatenate([V.min(0), V.max(0)])], 'mesh': pack(tr, r.get('split', 0))}
 total = sum(len(np.concatenate(l)) for l in static_tris.values()) + (len(np.concatenate(fine_tris['fine'])) if fine_tris else 0) + sum(len(np.concatenate(d['tris'])) for d in part_tris.values())
 print(f"{total} triangles: static {sum(len(np.concatenate(l)) for l in static_tris.values())} in {len(static_tris)} classes, fine {len(np.concatenate(fine_tris['fine'])) if fine_tris else 0}, {len(res['parts'])} parts", file=sys.stderr)
 for k, v in sorted(stats.items(), key=lambda kv: -kv[1])[:14]:

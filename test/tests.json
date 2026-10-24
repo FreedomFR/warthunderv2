@@ -279,6 +279,11 @@
   {
    "file": "terrainavoid.mjs",
    "args": []
+  },
+  {
+   "file": "enterprise.mjs",
+   "args": [],
+   "slow": true
   }
  ],
  "tools": [
