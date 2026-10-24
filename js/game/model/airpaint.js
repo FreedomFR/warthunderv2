@@ -51,17 +51,17 @@ export const AIRPAINT = {
     hw: 1.0, upper: '#4b5a6b', lower: '#adb1b3', line: -0.2, finish: [0.82, 0.0],
     decals: [
       { face: 'side', x: -2.0, y: 0.1, prims: usInsignia(0.4, false) },
-      { face: 'top', wing: 'port', x: 0.5, z: 4.4, prims: usInsignia(0.55, true) },
-      { face: 'bottom', wing: 'starboard', x: 0.5, z: 4.4, prims: usInsignia(0.55, true) },
+      { face: 'top', wing: 'port', x: 0.64, z: 4.4, prims: usInsignia(0.55, true) },
+      { face: 'bottom', wing: 'starboard', x: 0.64, z: 4.4, prims: usInsignia(0.55, true) },
     ],
   },
   // Grumman TBF-1C Avenger (1943): the tricolour, sea blue over intermediate blue over insignia white
   tbf: {
     hw: 1.3, upper: '#202e46', side: '#4b6286', lower: '#e2e4de', line: -0.35, finish: [0.82, 0.0],
     decals: [
-      { face: 'side', x: -3.2, y: 0.3, prims: usInsignia(0.5, false) },
-      { face: 'top', wing: 'port', x: 0.55, z: 5.6, prims: usInsignia(0.75, true) },
-      { face: 'bottom', wing: 'starboard', x: 0.55, z: 5.6, prims: usInsignia(0.75, true) },
+      { face: 'side', x: -3.2, y: 0.0, prims: usInsignia(0.5, false) },
+      { face: 'top', wing: 'port', x: 0.67, z: 5.6, prims: usInsignia(0.75, true) },
+      { face: 'bottom', wing: 'starboard', x: 0.67, z: 5.6, prims: usInsignia(0.75, true) },
     ],
   },
   // Ilyushin Il-2 (1942): 4BO green with black-green and brown blotches over light blue, red stars with a white edge
@@ -70,8 +70,8 @@ export const AIRPAINT = {
     camo: [{ col: '#2b3224', scale: 1.25, thr: 0.55, seed: 3, sides: true }, { col: '#5d4b30', scale: 0.9, thr: 0.64, seed: 11, sides: true }],
     decals: [
       { face: 'side', x: -3.0, y: 0.1, prims: redStar(0.45) },
-      { face: 'top', wing: 'both', x: 1.4, z: 4.6, prims: redStar(0.65) },
-      { face: 'bottom', wing: 'both', x: 1.4, z: 4.6, prims: redStar(0.65) },
+      { face: 'top', wing: 'both', x: 0.7, z: 4.6, prims: redStar(0.65) },
+      { face: 'bottom', wing: 'both', x: 0.7, z: 4.6, prims: redStar(0.65) },
     ],
   },
   // Messerschmitt Bf 109 F-4: RLM 74 / 75 splinter above, RLM 76 below and on the flanks with a mottle of 74, Balkenkreuz
@@ -80,18 +80,18 @@ export const AIRPAINT = {
     camo: [{ col: '#6f7385', scale: 1.1, thr: 0.5, seed: 5 }],
     mottle: { col: '#5f6753', scale: 5.0, thr: 0.74 },
     decals: [
-      { face: 'side', x: -2.3, y: 0.3, prims: balkenkreuz(0.42) },
-      { face: 'top', wing: 'both', x: 0.6, z: 3.5, prims: balkenkreuz(0.5) },
-      { face: 'bottom', wing: 'both', x: 0.6, z: 3.5, prims: balkenkreuz(0.5) },
+      { face: 'side', x: -2.3, y: 0.2, prims: balkenkreuz(0.42) },
+      { face: 'top', wing: 'both', x: 0.75, z: 3.5, prims: balkenkreuz(0.5) },
+      { face: 'bottom', wing: 'both', x: 0.75, z: 3.5, prims: balkenkreuz(0.5) },
     ],
   },
   // Boeing B-29 Superfortress: bare aluminium, the star and bars on the fuselage and the upper port and lower starboard wings
   b29: {
     hw: 1.55, upper: '#b7bbbd', lower: '#b7bbbd', line: null, finish: [0.36, 0.8],
     decals: [
-      { face: 'side', x: -6.2, y: 0.3, prims: usInsignia(0.8, false) },
-      { face: 'top', wing: 'port', x: 2.0, z: 13.0, prims: usInsignia(1.15, true) },
-      { face: 'bottom', wing: 'starboard', x: 2.0, z: 13.0, prims: usInsignia(1.15, true) },
+      { face: 'side', x: -6.2, y: 0.1, prims: usInsignia(0.8, false) },
+      { face: 'top', wing: 'port', x: 0.7, z: 13.0, prims: usInsignia(1.15, true) },
+      { face: 'bottom', wing: 'starboard', x: 0.7, z: 13.0, prims: usInsignia(1.15, true) },
     ],
   },
 };
@@ -133,7 +133,7 @@ export function airPaintWgsl() {
     L.push(`      let byN = smoothstep(-0.30, -0.05, n.y);`);
     if (s.line != null) {
       L.push(`      let byY = smoothstep(${f(s.line - 0.04)}, ${f(s.line + 0.04)}, p.y + 0.035 * sin(p.x * 2.6));`);
-      L.push(`      let upperK = mix(byN, byY, sideMask);`);      // (on the fuselage the line alone decides: the normals of a decimated mesh are noisy)
+      L.push(`      let upperK = mix(byN, byY, sideMask * (1.0 - smoothstep(0.6, 0.85, abs(n.y))));`);      // (on the flanks of the fuselage the line decides: the normals of a decimated mesh are noisy there; what faces up or down goes by its normal, the root of a low wing included)
     } else L.push(`      let upperK = byN;`);
     L.push(`      var top = ${col(s.upper)};`);
     if (s.side) L.push(`      top = mix(top, ${col(s.side)}, (1.0 - smoothstep(0.3, 0.65, abs(n.y))) * sideMask);`);
