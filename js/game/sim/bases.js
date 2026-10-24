@@ -107,7 +107,7 @@ function batterySites(island) {
 // ---- layouts ---------------------------------------------------------------------------------------------------------------------------------------------
 
 function layoutAirfield(site, id, island, nation, level, rng, size = null) {
-  const b = { id, kind: 'airfield', size, island: island.id, x: site.x, z: site.z, y: site.y, ang: site.ang, heading: hdg(site.ang), team: null, nation, pads: [], parts: [], guns: [], slots: [], taxi: [], aprons: [] };
+  const b = { id, kind: 'airfield', size, level, island: island.id, x: site.x, z: site.z, y: site.y, ang: site.ang, heading: hdg(site.ang), team: null, nation, pads: [], parts: [], guns: [], slots: [], taxi: [], aprons: [] };
   const at = frame(b), len = site.len, hw = 24, T0 = hw + 40;
   const put = (s, t) => at(s, t);
   // the levelled ground: the runway and the strip with the buildings
@@ -147,7 +147,8 @@ function layoutAirfield(site, id, island, nation, level, rng, size = null) {
   for (let i = 0; i < aaN; i++) {
     const [s, t] = spots[i], p = put(s, t);
     const g = aaGun(nation, i, 4);
-    b.guns.push({ id: i, kind: 'aa', x: p[0], y: site.y, z: p[1], heading: b.heading, cal: g.cal, n: g.n });
+    b.guns.push({ id: b.guns.length, kind: 'aa', x: p[0], y: site.y, z: p[1], heading: b.heading, cal: g.cal, n: g.n });
+    if (g.n === 1 && g.cal < 80) { const q = put(s, t + (t > 0 ? 12 : -12)); b.guns.push({ id: b.guns.length, kind: 'aa', x: q[0], y: site.y, z: q[1], heading: b.heading, cal: g.cal, n: 1 }); }      // a single gun comes in a pair
   }
   return b;
 }
@@ -171,7 +172,8 @@ function layoutBattery(site, id, island, nation, level, rng) {
   for (let i = 0; i < (level >= 2 ? 4 : 3); i++) {
     const p = put(-5, (i - 1.5) * 38);
     const g = aaGun(nation, i, 2);
-    b.guns.push({ id: nGuns + i, kind: 'aa', x: p[0], y: site.y, z: p[1], heading: b.heading, cal: g.cal, n: g.n });
+    b.guns.push({ id: b.guns.length, kind: 'aa', x: p[0], y: site.y, z: p[1], heading: b.heading, cal: g.cal, n: g.n });
+    if (g.n === 1 && g.cal < 80) { const q = put(-5, (i - 1.5) * 38 + 12); b.guns.push({ id: b.guns.length, kind: 'aa', x: q[0], y: site.y, z: q[1], heading: b.heading, cal: g.cal, n: 1 }); }      // a single gun comes in a pair
   }
   return b;
 }
@@ -261,7 +263,8 @@ function layoutPort(site, id, island, nation, size, level, rng, terrain) {
   for (let i = 0; i < aaN; i++) {
     const [s, t] = spots[i], p = put(s, t);
     const g = aaGun(nation, i, 4);
-    b.guns.push({ id: i, kind: 'aa', x: p[0], y: site.y, z: p[1], heading: b.heading, cal: g.cal, n: g.n });
+    b.guns.push({ id: b.guns.length, kind: 'aa', x: p[0], y: site.y, z: p[1], heading: b.heading, cal: g.cal, n: g.n });
+    if (g.n === 1 && g.cal < 80) { const q = put(s, t + (t > 0 ? 12 : -12)); b.guns.push({ id: b.guns.length, kind: 'aa', x: q[0], y: site.y, z: q[1], heading: b.heading, cal: g.cal, n: 1 }); }      // a single gun comes in a pair
   }
   return b;
 }

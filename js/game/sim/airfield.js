@@ -57,7 +57,7 @@ function fieldOf(base) {
 
 /** A new aircraft parked in a slot of the base. role: 'level' (the heavy bomber) or 'fighter'. */
 function makePlane(world, base, slot, role) {
-  const typeKey = (role !== 'fighter' && base.nation === 'USA' && base.layout.guns.length > 8 ? 'b29' : planeTypeFor(base.nation, role === 'fighter' ? 'fighter' : 'level', base.id, 'base')) || planeTypeFor(base.nation, 'torp', base.id);      // (an American airfield of the second level flies the B-29, the others the B-17)
+  const typeKey = (role !== 'fighter' && base.nation === 'USA' && base.layout.level >= 2 ? 'b29' : planeTypeFor(base.nation, role === 'fighter' ? 'fighter' : 'level', base.id, 'base')) || planeTypeFor(base.nation, 'torp', base.id);      // (an American airfield of the second level flies the B-29, the others the B-17)
   const spec = PLANES[typeKey];
   if (!spec) return null;
   const q = base.layout.slots[slot], heavy = role !== 'fighter';
@@ -90,7 +90,7 @@ function reinforce(world, base) {
 
 /** The air group of an airfield at the start of the battle: bombers in the row nearest the taxiway, fighters in the second row. */
 export function initAirfield(world, base) {
-  const L = base.layout, n = L.slots.length, rich = L.guns.length > 8;
+  const L = base.layout, n = L.slots.length, rich = L.level >= 2;
   const cap = L.size === 'large' ? 14 : L.size === 'medium' ? 8 : rich ? 10 : 7, nb = Math.min(n >> 1, cap), nf = Math.min(n >> 1, cap);       // (a large field of a theatre of war has the bigger air group)      // (the apron holds 36: the rest of the places are for the aircraft that come in)
   base.air = { cd: 50 + world.rng() * 60, capCd: 20, chk: 1, queue: [], relT: 0, rwy: null, waveN: 0, nextClimb: 0, lastRoll: -99, launches: 0, bombers: nb, fighters: nf };
   if (base.inert) return;

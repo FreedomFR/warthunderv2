@@ -16,7 +16,15 @@ import { initAirfield, stepAirfield, killGroundPlane } from './airfield.js';
 
 /** The heavy cruiser whose main gun the coastal batteries of a nation use (the same guns, taken off the ships and put in a concrete emplacement). */
 const COASTAL_GUN = { USA: 'baltimore', Japan: 'takao', UK: 'norfolk', Germany: 'bismarck', Italy: 'zara', France: 'algerie' };
-const AA_VARIANT = { 88: 'flak88', 40: 'bofors', 37: 'bofors', 25: 'iijn25', 20: 'oerlikon' };
+const AA_VARIANT = { 88: 'flak88', 40: 'bofors', 37: 'bofors', 25: 'iijn25', 20: 'oerlikon' };      // how the mount is drawn and sounds (the class of the gun)
+/** The real gun of a light AA emplacement of a base (data/airguns.js AA_GUNS) from its calibre and its nation. */
+const BASE_GUN = {
+  88: () => 'flak88',
+  40: (n) => (n === 'Italy' ? 'vt40' : 'bofors40'),
+  37: (n) => (n === 'Germany' ? 'flak37' : n === 'France' ? 'fr37_1933' : 'breda37'),
+  25: () => 't96_25',
+  20: (n) => (n === 'Germany' ? 'flak38' : n === 'Italy' ? 'breda20' : 'oerlikon20'),
+};
 const gunCache = new Map();
 
 /** The gun of the coastal batteries of a nation (the stats of the main gun of one of its heavy cruisers). */
@@ -63,7 +71,7 @@ export class BaseSim extends BaseState {
         id: i, kind: g.kind, x: g.x, y: g.y + (g.kind === 'coastal' ? 4.2 : 1.6), z: g.z, heading: g.heading, cal: g.cal, n: g.n,
         reload: g.kind === 'coastal' ? this.gun.reload * (0.4 + 0.6 * ((i * 0.37) % 1)) : 0, fireT: 99, target: null, retarget: (i * 0.173) % 0.6, aimOk: false, burstLeft: 0,
         ammo: g.kind === 'coastal' ? { AP: Math.round(this.gun.rpg * 0.5 * g.n), HE: Math.round(this.gun.rpg * 0.5 * g.n) } : null,
-        variant: g.kind === 'aa' ? AA_VARIANT[g.cal] || 'bofors' : null, rec: { yaw0: g.heading, n: g.n },
+        variant: g.kind === 'aa' ? AA_VARIANT[g.cal] || 'bofors' : null, gun: g.kind === 'aa' ? (BASE_GUN[g.cal] || BASE_GUN[40])(layout.nation) : null, rec: { yaw0: g.heading, n: g.n },
         train: 0, elev: g.kind === 'aa' ? 0.5 : 0.1,      // train: relative to the heading of the emplacement, as drawn (render/baseVisual.js)
       });
     });
@@ -192,7 +200,7 @@ const crewOf = (base) => (base.partsTotal('barracks') ? 0.55 + 0.45 * base.parts
 function stepAA(world, base, g, dt, planes, active) {
   g.flash = Math.max(0, g.flash - dt * 6); g.recoil = Math.max(0, g.recoil - dt * 4);
   if (!active || !g.alive) return;
-  const cfg = AA[g.variant], rng = world.rng;
+  const cfg = AA[g.gun || g.variant], rng = world.rng;
   g.retarget -= dt;
   if (g.retarget <= 0 || !g.target || g.target.dying || g.target.gone) {
     g.retarget = 0.35 + rng() * 0.5; g.target = null;
@@ -219,7 +227,7 @@ function stepAA(world, base, g, dt, planes, active) {
   const fall = Math.pow(1 - dist / cfg.range, 1.5);
   // a mount that does not move, on ground that does not roll; the crew counts (the barracks)
   const hitRate = lightAAHitRate(STILL, g, p, cfg, w, dist) * crewOf(base);
-  if (rng() < hitRate * dt) hitPlane(world, base.owner, p, cfg.hit * (0.7 + 0.6 * rng()), g.cal);
+  if (rng() < hitRate * dt) hitPlane(world, base.owner, p, cfg.hit * (0.7 + 0.6 * rng()), g.cal, 'aa', cfg.ammo);
   g.burstLeft -= dt;
   if (g.burstLeft <= 0) {
     g.burstLeft = 0.26 + rng() * 0.16; g.flash = 1; g.recoil = 1;

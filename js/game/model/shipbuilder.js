@@ -93,12 +93,12 @@ export function pagodaTiers(len0, w0, n, h, shrink = 0.86, rake = 1.2) {
 
 /** Light AA mount families by nation: model variant, number of barrels, calibre (mm), selection weight. */
 const AA_KINDS = {
-  USA: [{ v: 'bofors', n: 4, cal: 40, bore: 56, w: 0.32, label: 'Bofors 40 mm quadruple' }, { v: 'bofors', n: 2, cal: 40, bore: 56, w: 0.2, label: 'Bofors 40 mm double' }, { v: 'oerlikon', n: 1, cal: 20, bore: 70, w: 0.48, label: 'Oerlikon 20 mm' }],
-  UK: [{ v: 'bofors', n: 4, cal: 40, bore: 39, w: 0.3, label: 'Pom-pom 40 mm' }, { v: 'bofors', n: 2, cal: 40, bore: 56, w: 0.2, label: 'Bofors 40 mm' }, { v: 'oerlikon', n: 1, cal: 20, bore: 70, w: 0.5, label: 'Oerlikon 20 mm' }],
-  Japan: [{ v: 'iijn25', n: 3, cal: 25, bore: 60, w: 0.52, label: 'Type 96 de 25 mm triple' }, { v: 'iijn25', n: 2, cal: 25, bore: 60, w: 0.2, label: 'Type 96 de 25 mm double' }, { v: 'oerlikon', n: 1, cal: 13, bore: 76, w: 0.28, label: 'Type 93 de 13,2 mm' }],
-  Germany: [{ v: 'bofors', n: 2, cal: 37, bore: 83, w: 0.36, label: 'Flak 37 mm double' }, { v: 'iijn25', n: 4, cal: 20, bore: 65, w: 0.22, label: 'Flakvierling 20 mm' }, { v: 'oerlikon', n: 1, cal: 20, bore: 65, w: 0.42, label: 'Flak 20 mm' }],
-  France: [{ v: 'bofors', n: 2, cal: 37, bore: 50, w: 0.4, label: 'Mitrailleuse de 37 mm' }, { v: 'iijn25', n: 2, cal: 13, bore: 76, w: 0.3, label: 'Hotchkiss 13,2 mm double' }, { v: 'oerlikon', n: 1, cal: 20, bore: 70, w: 0.3, label: 'Oerlikon 20 mm' }],
-  Italy: [{ v: 'bofors', n: 2, cal: 37, bore: 54, w: 0.4, label: 'Breda 37 mm double' }, { v: 'iijn25', n: 2, cal: 20, bore: 65, w: 0.3, label: 'Breda 20 mm double' }, { v: 'oerlikon', n: 1, cal: 20, bore: 65, w: 0.3, label: 'Breda 20 mm' }],
+  USA: [{ g: 'bofors40', v: 'bofors', n: 4, cal: 40, bore: 56, w: 0.32, label: 'Bofors 40 mm quadruple' }, { g: 'bofors40', v: 'bofors', n: 2, cal: 40, bore: 56, w: 0.2, label: 'Bofors 40 mm double' }, { g: 'oerlikon20', v: 'oerlikon', n: 1, cal: 20, bore: 70, w: 0.48, label: 'Oerlikon 20 mm' }],
+  UK: [{ g: 'pompom', v: 'bofors', n: 4, cal: 40, bore: 39, w: 0.3, label: 'Pom-pom 40 mm' }, { g: 'bofors40', v: 'bofors', n: 2, cal: 40, bore: 56, w: 0.2, label: 'Bofors 40 mm' }, { g: 'oerlikon20', v: 'oerlikon', n: 1, cal: 20, bore: 70, w: 0.5, label: 'Oerlikon 20 mm' }],
+  Japan: [{ g: 't96_25', v: 'iijn25', n: 3, cal: 25, bore: 60, w: 0.52, label: 'Type 96 de 25 mm triple' }, { g: 't96_25', v: 'iijn25', n: 2, cal: 25, bore: 60, w: 0.2, label: 'Type 96 de 25 mm double' }, { g: 't93_13', v: 'oerlikon', n: 1, cal: 13, bore: 76, w: 0.28, label: 'Type 93 de 13,2 mm' }],
+  Germany: [{ g: 'flak37', v: 'bofors', n: 2, cal: 37, bore: 83, w: 0.36, label: 'Flak 37 mm double' }, { g: 'flak38', v: 'iijn25', n: 4, cal: 20, bore: 65, w: 0.22, label: 'Flakvierling 20 mm' }, { g: 'flak38', v: 'oerlikon', n: 1, cal: 20, bore: 65, w: 0.42, label: 'Flak 20 mm' }],
+  France: [{ g: 'fr37_1933', v: 'bofors', n: 2, cal: 37, bore: 50, w: 0.4, label: 'Mitrailleuse de 37 mm' }, { g: 'hotchkiss13', v: 'iijn25', n: 2, cal: 13, bore: 76, w: 0.3, label: 'Hotchkiss 13,2 mm double' }, { g: 'oerlikon20', v: 'oerlikon', n: 1, cal: 20, bore: 70, w: 0.3, label: 'Oerlikon 20 mm' }],
+  Italy: [{ g: 'breda37', v: 'bofors', n: 2, cal: 37, bore: 54, w: 0.4, label: 'Breda 37 mm double' }, { g: 'breda20', v: 'iijn25', n: 2, cal: 20, bore: 65, w: 0.3, label: 'Breda 20 mm double' }, { g: 'breda20', v: 'oerlikon', n: 1, cal: 20, bore: 65, w: 0.3, label: 'Breda 20 mm' }],
 };
 
 /** Plan outline [[fraction from bow, half-width], ...] (forward to aft, starboard side) -> closed [x, z] polygon, mirrored to port. */
@@ -108,24 +108,24 @@ function planPoly(plan, X, zc = 0) {
 
 /** Light AA mount types by key, for the measured layouts (tweaks.aa). */
 const AA_TYPES = {
-  q40: { v: 'bofors', n: 4, cal: 40, bore: 56, tub: 2.3, label: 'Bofors 40 mm quadruple' },
-  t40: { v: 'bofors', n: 2, cal: 40, bore: 56, tub: 1.8, label: 'Bofors 40 mm double' },
-  o20: { v: 'oerlikon', n: 1, cal: 20, bore: 70, label: 'Oerlikon 20 mm' },
-  t25: { v: 'iijn25', n: 3, cal: 25, bore: 60, tub: 1.6, label: 'Type 96 de 25 mm triple' },
-  d25: { v: 'iijn25', n: 2, cal: 25, bore: 60, label: 'Type 96 de 25 mm double' },
-  s25: { v: 'oerlikon', n: 1, cal: 25, bore: 60, label: 'Type 96 de 25 mm simple' },
-  m13: { v: 'iijn25', n: 2, cal: 13, bore: 76, label: 'Type 93 de 13,2 mm double' },
-  q13: { v: 'iijn25', n: 4, cal: 13, bore: 76, label: 'Hotchkiss 13,2 mm quadruple' },
-  s37: { v: 'bofors', n: 1, cal: 37, bore: 50, label: '37 mm Mle 1925 simple' },
-  f37: { v: 'bofors', n: 2, cal: 37, bore: 50, tub: 1.7, label: '37 mm Mle 1933 double' },
-  t37: { v: 'bofors', n: 2, cal: 37, bore: 83, tub: 1.7, label: 'Flak 37 mm double' },
-  q20: { v: 'iijn25', n: 4, cal: 20, bore: 65, tub: 1.6, label: 'Flakvierling 20 mm' },
-  p40: { v: 'bofors', n: 4, cal: 40, bore: 39, tub: 2.3, label: 'Pom-pom 40 mm octuple' },
-  f20: { v: 'oerlikon', n: 1, cal: 20, bore: 65, label: 'Flak 20 mm' },
-  i37: { v: 'breda37', n: 2, cal: 37, bore: 54, label: 'Breda 37/54 double' },
-  b20: { v: 'oerlikon', n: 1, cal: 20, bore: 65, label: 'Breda 20/65 single' },
-  b20d: { v: 'iijn25', n: 2, cal: 20, bore: 70, label: 'Scotti 20/70 double' },
-  p20: { v: 'phalanx', n: 1, cal: 20, bore: 76, label: 'Phalanx Mk 15 20 mm' },
+  q40: { g: 'bofors40', v: 'bofors', n: 4, cal: 40, bore: 56, tub: 2.3, label: 'Bofors 40 mm quadruple' },
+  t40: { g: 'bofors40', v: 'bofors', n: 2, cal: 40, bore: 56, tub: 1.8, label: 'Bofors 40 mm double' },
+  o20: { g: 'oerlikon20', v: 'oerlikon', n: 1, cal: 20, bore: 70, label: 'Oerlikon 20 mm' },
+  t25: { g: 't96_25', v: 'iijn25', n: 3, cal: 25, bore: 60, tub: 1.6, label: 'Type 96 de 25 mm triple' },
+  d25: { g: 't96_25', v: 'iijn25', n: 2, cal: 25, bore: 60, label: 'Type 96 de 25 mm double' },
+  s25: { g: 't96_25', v: 'oerlikon', n: 1, cal: 25, bore: 60, label: 'Type 96 de 25 mm simple' },
+  m13: { g: 't93_13', v: 'iijn25', n: 2, cal: 13, bore: 76, label: 'Type 93 de 13,2 mm double' },
+  q13: { g: 'hotchkiss13', v: 'iijn25', n: 4, cal: 13, bore: 76, label: 'Hotchkiss 13,2 mm quadruple' },
+  s37: { g: 'fr37_1925', v: 'bofors', n: 1, cal: 37, bore: 50, label: '37 mm Mle 1925 simple' },
+  f37: { g: 'fr37_1933', v: 'bofors', n: 2, cal: 37, bore: 50, tub: 1.7, label: '37 mm Mle 1933 double' },
+  t37: { g: 'flak37', v: 'bofors', n: 2, cal: 37, bore: 83, tub: 1.7, label: 'Flak 37 mm double' },
+  q20: { g: 'flak38', v: 'iijn25', n: 4, cal: 20, bore: 65, tub: 1.6, label: 'Flakvierling 20 mm' },
+  p40: { g: 'pompom', v: 'bofors', n: 4, cal: 40, bore: 39, tub: 2.3, label: 'Pom-pom 40 mm octuple' },
+  f20: { g: 'flak38', v: 'oerlikon', n: 1, cal: 20, bore: 65, label: 'Flak 20 mm' },
+  i37: { g: 'breda37', v: 'breda37', n: 2, cal: 37, bore: 54, label: 'Breda 37/54 double' },
+  b20: { g: 'breda20', v: 'oerlikon', n: 1, cal: 20, bore: 65, label: 'Breda 20/65 single' },
+  b20d: { g: 'scotti20', v: 'iijn25', n: 2, cal: 20, bore: 70, label: 'Scotti 20/70 double' },
+  p20: { g: 'phalanx20', v: 'phalanx', n: 1, cal: 20, bore: 76, label: 'Phalanx Mk 15 20 mm' },
 };
 
 /** What turns on a ship (the screws and the rudders are in `model.spinners`): a search radar sweeps round (rad/s, by kind) and a fire-control director follows the guns. */
@@ -667,7 +667,7 @@ export function buildShipModel(spec, tw = {}) {
   const elPl = ELEMENTS[baseId] && tw.elements !== false ? ELEMENTS[baseId].PLACEMENTS.filter((q) => !(tw.dropPlacements || []).includes(q.group) && !(tw.dropAA && AA_TYPES[q.type])) : [];      // tw.dropPlacements: the mounts of the model this fit does not have
   for (const pl of elPl.filter((q) => AA_TYPES[q.type])) {
     const ty = AA_TYPES[pl.type];
-    model.aaMounts.push({ variant: ty.v, cal: ty.cal, n: ty.n, bore: ty.bore, x: pl.x, y: pl.y, z: pl.z, rad: 1.8, yaw0: pl.yaw * Math.PI / 180, label: ty.label, look: `${baseId}/${pl.kind}` });
+    model.aaMounts.push({ gun: ty.g, variant: ty.v, cal: ty.cal, n: ty.n, bore: ty.bore, x: pl.x, y: pl.y, z: pl.z, rad: 1.8, yaw0: pl.yaw * Math.PI / 180, label: ty.label, look: `${baseId}/${pl.kind}` });
     model.aa.push([pl.x, pl.y + 1.2, pl.z]);
     note(pl.y + 3);
   }
@@ -688,7 +688,7 @@ export function buildShipModel(spec, tw = {}) {
       const { x, y, z } = placed;
       if (ty.tub && !a.noTub) PT.tub(b, x, y - 0.05, z, ty.tub, 0.95, pal);
       pedestal(x, z, y, 0.7);
-      model.aaMounts.push({ variant: ty.v, cal: ty.cal, n: ty.n, bore: ty.bore, x, y, z, rad, yaw0: z ? Math.sign(z) * Math.PI / 2 : (a.f < 0.5 ? 0 : Math.PI), label: ty.label });
+      model.aaMounts.push({ gun: ty.g, variant: ty.v, cal: ty.cal, n: ty.n, bore: ty.bore, x, y, z, rad, yaw0: z ? Math.sign(z) * Math.PI / 2 : (a.f < 0.5 ? 0 : Math.PI), label: ty.label });
       model.aa.push([x, y + 1.2, z]);
       note(y + 3);
     }
@@ -696,7 +696,7 @@ export function buildShipModel(spec, tw = {}) {
   // tw.aaAt: light mounts at given places [{ k (AA_TYPES key), x, y, z, yaw? }] (found on the free deck of the drawn model by tools/refs/freespots.mjs): the ones a model lacks to make up the real count
   for (const a of tw.aaAt || []) {
     const ty = AA_TYPES[a.k];
-    model.aaMounts.push({ variant: ty.v, cal: ty.cal, n: ty.n, bore: ty.bore, x: a.x, y: a.y, z: a.z, rad: a.look ? 1.8 : ty.n >= 3 ? 1.1 : 0.7, yaw0: a.yaw ?? (a.z >= 0 ? Math.PI / 2 : -Math.PI / 2), label: ty.label, placed: true, look: a.look });      // a.look: 'ship/kind', the mount of a model drawn there
+    model.aaMounts.push({ gun: ty.g, variant: ty.v, cal: ty.cal, n: ty.n, bore: ty.bore, x: a.x, y: a.y, z: a.z, rad: a.look ? 1.8 : ty.n >= 3 ? 1.1 : 0.7, yaw0: a.yaw ?? (a.z >= 0 ? Math.PI / 2 : -Math.PI / 2), label: ty.label, placed: true, look: a.look });      // a.look: 'ship/kind', the mount of a model drawn there
     model.aa.push([a.x, a.y + 1.2, a.z]);
     note(a.y + 3);
   }
@@ -831,7 +831,7 @@ export function buildShipModel(spec, tw = {}) {
     const pick = AA_KINDS[spec.nation] || AA_KINDS.USA;
     let rr = rnd() * (L > 150 ? 1 : 0.8), kd = pick[pick.length - 1];
     for (const k of pick) { rr -= k.w; if (rr <= 0) { kd = k; break; } }
-    model.aaMounts.push({ variant: kd.v, cal: kd.cal, n: kd.n, bore: kd.bore, x, y, z, rad: kd.n >= 3 ? 1.1 : 0.7, yaw0: sg * Math.PI / 2 + (rnd() - 0.5) * 0.4, label: kd.label });
+    model.aaMounts.push({ gun: kd.g, variant: kd.v, cal: kd.cal, n: kd.n, bore: kd.bore, x, y, z, rad: kd.n >= 3 ? 1.1 : 0.7, yaw0: sg * Math.PI / 2 + (rnd() - 0.5) * 0.4, label: kd.label });
     model.aa.push([x, y + 1.2, z]);
   }
 

@@ -26,6 +26,45 @@ export const AMMO = {
   ap20: { name: '20 mm AP-T', cal: 20, dmg: 2.5, fire: 0.25, blast: 0 },
   hei23: { name: '23 mm VYa HE-I', cal: 23, dmg: 3.2, fire: 0.75, blast: 10 },
   api23: { name: '23 mm VYa API', cal: 23, dmg: 2.9, fire: 0.45, blast: 2 },
+  // the rounds of the anti-aircraft guns (the guns of AA_GUNS below). dmg: x one .50 API as above (the mass, the velocity and the filler of the round: a 40 mm HE-T of 0.9 kg with its filler is worth five .50 API,
+  // a 20 mm one two to three); fire: the chance that a hit in the fuel starts a fire (an HE-T with its tracer composition, the fragments of the shell); blast: g of TNT of the filler. `est` = a guess.
+  ball132: { name: '13,2 mm Hotchkiss ball / AP', cal: 13.2, dmg: 0.85, fire: 0.1, blast: 0 },
+  hei20ok: { name: '20 mm Oerlikon HE-T (123 g)', cal: 20, dmg: 2.0, fire: 0.45, blast: 6 },
+  hei20f38: { name: '20 mm Flak 38 Sprenggranate (20 x 138 B, 115 g)', cal: 20, dmg: 2.4, fire: 0.5, blast: 9 },
+  hei20b: { name: '20 mm Breda 20/65 HE-T (est)', cal: 20, dmg: 2.2, fire: 0.45, blast: 8 },
+  hei25t96: { name: '25 mm Type 96 HE-T (250 g)', cal: 25, dmg: 2.35, fire: 0.5, blast: 11 },
+  hei37fl: { name: '37 mm Flak HE-T (37 x 263 B, 640 g)', cal: 37, dmg: 4.8, fire: 0.55, blast: 30 },
+  hei37fr: { name: '37 mm Mle 1925 / 1933 HE-T (est)', cal: 37, dmg: 4.6, fire: 0.5, blast: 25 },
+  hei37bd: { name: '37 mm Breda 37/54 HE-T (est)', cal: 37, dmg: 5.0, fire: 0.5, blast: 28 },
+  hei40bf: { name: '40 mm Bofors HE-T (900 g)', cal: 40, dmg: 5.3, fire: 0.6, blast: 55 },
+  hei40pp: { name: '40 mm 2-pdr pom-pom HE-T (900 g, slow)', cal: 40, dmg: 4.4, fire: 0.5, blast: 35 },
+  hei40vt: { name: '40 mm Vickers-Terni 40/39 HE-T (est)', cal: 40, dmg: 4.4, fire: 0.5, blast: 35 },
+  ap20phal: { name: '20 mm Phalanx APDS (tungsten)', cal: 20, dmg: 2.0, fire: 0.1, blast: 0 },
+  hei88: { name: '88 mm Flak 36 HE (9.4 kg shell)', cal: 88, dmg: 5.9, fire: 0.6, blast: 700 },
+};
+
+/**
+ * The anti-aircraft guns: calibre (mm), cyclic rate of one barrel (rounds a minute), muzzle velocity (m/s), the round it fires (AMMO), the effective range (m) and the dispersion (mrad).
+ * What a gun does in the simulation (sim/aadata.js): the rate of fire of one barrel times the number of barrels of its mount, the damage of the round at every hit, its fire and its blast.
+ * `feed`: the share of the cyclic rate a mount keeps up (the default .87). Sources: NavWeaps, Wikipedia, the manuals of each gun; `est` marks a guess.
+ */
+export const AA_GUNS = {
+  oerlikon20: { name: 'Oerlikon 20 mm', cal: 20, rpm: 450, v0: 840, round: 'hei20ok', range: 1900, sig: 34 },
+  flak38: { name: '2 cm Flak 38', cal: 20, rpm: 480, v0: 900, round: 'hei20f38', range: 2200, sig: 32 },
+  breda20: { name: 'Breda 20/65 Mod. 35', cal: 20, rpm: 240, v0: 830, round: 'hei20b', range: 1800, sig: 34 },
+  scotti20: { name: 'Scotti 20/70', cal: 20, rpm: 450, v0: 850, round: 'hei20b', range: 1800, sig: 34 },
+  t96_25: { name: 'Type 96 (25 mm)', cal: 25, rpm: 260, v0: 900, round: 'hei25t96', range: 2600, sig: 38, feed: 0.82 },
+  t93_13: { name: 'Type 93 (13,2 mm)', cal: 13.2, rpm: 450, v0: 800, round: 'ball132', range: 1500, sig: 40 },
+  hotchkiss13: { name: 'Hotchkiss 13,2 mm', cal: 13.2, rpm: 450, v0: 800, round: 'ball132', range: 1500, sig: 40 },
+  fr37_1925: { name: '37 mm Mle 1925 (semi-automatic)', cal: 37, rpm: 21, v0: 800, round: 'hei37fr', range: 3500, sig: 28, feed: 1 },
+  fr37_1933: { name: '37 mm Mle 1933', cal: 37, rpm: 140, v0: 800, round: 'hei37fr', range: 3500, sig: 28 },
+  flak37: { name: '3,7 cm Flak 36 / 37 / 43', cal: 37, rpm: 160, v0: 820, round: 'hei37fl', range: 4000, sig: 24 },
+  breda37: { name: 'Breda 37/54', cal: 37, rpm: 120, v0: 800, round: 'hei37bd', range: 4000, sig: 24 },
+  bofors40: { name: 'Bofors 40 mm L/60', cal: 40, rpm: 120, v0: 880, round: 'hei40bf', range: 4200, sig: 24, feed: 0.95 },
+  pompom: { name: 'QF 2-pdr pom-pom Mk VIII', cal: 40, rpm: 115, v0: 585, round: 'hei40pp', range: 3300, sig: 30 },
+  vt40: { name: 'Vickers-Terni 40/39', cal: 40, rpm: 200, v0: 580, round: 'hei40vt', range: 3300, sig: 30 },
+  phalanx20: { name: 'M61 Vulcan (Phalanx Mk 15)', cal: 20, rpm: 4500, v0: 1100, round: 'ap20phal', range: 2200, sig: 5, feed: 1 },
+  flak88: { name: '8,8 cm Flak 36', cal: 88, rpm: 18, v0: 820, round: 'hei88', range: 8000, sig: 30, feed: 1 },
 };
 
 /** The belts: the share of each round in the belt. */

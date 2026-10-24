@@ -15,7 +15,7 @@ export function aaSources(world, team, ahead = 20, own = false) {
     if ((s.team === team) !== own || !s.alive) continue;
     let light = 0, heavy = 0;
     const lm = [], hm = [], sx = s.vx * ahead, sz = s.vz * ahead, w0 = [0, 0, 0];
-    for (const a of s.aaMounts) if (a.alive && a.ammo > 0) { const c = AA[a.rec.variant]; if (c) { const w = c.dps / c.hit * a.rec.n * 0.5; light += w; s.toWorld(a.rec.x, 0, a.rec.z, w0); lm.push({ x: w0[0] + sx, z: w0[2] + sz, w, rec: a.rec }); } }
+    for (const a of s.aaMounts) if (a.alive && a.ammo > 0) { const c = AA[a.rec.gun || a.rec.variant]; if (c) { const w = c.dps / c.hit * a.rec.n * 0.5; light += w; s.toWorld(a.rec.x, 0, a.rec.z, w0); lm.push({ x: w0[0] + sx, z: w0[2] + sz, w, rec: a.rec }); } }
     for (const m of s.mounts) if (m.group === 'sec' && m.alive && m.gun.cal <= 140 && m.gun.maxElevDeg >= 55 && !m.noAmmo) { const w = m.n * 0.12; heavy += w; s.toWorld(m.rec.x, 0, m.rec.z, w0); hm.push({ x: w0[0] + sx, z: w0[2] + sz, w, rec: m.rec }); }
     out.push({ ship: s, x: s.x + s.vx * ahead, z: s.z + s.vz * ahead, light, heavy, lm, hm, heading: s.heading });
   }
@@ -24,7 +24,7 @@ export function aaSources(world, team, ahead = 20, own = false) {
     for (const b of world.bases) {
       if (b.inert || b.team === team) continue;
       let light = 0, x = 0, z = 0, n = 0;
-      for (const g of b.guns) if (g.kind === 'aa' && g.alive) { const c = AA[g.variant]; if (c) { light += c.dps / c.hit * g.n * 0.5; x += g.x; z += g.z; n++; } }
+      for (const g of b.guns) if (g.kind === 'aa' && g.alive) { const c = AA[g.gun || g.variant]; if (c) { light += c.dps / c.hit * g.n * 0.5; x += g.x; z += g.z; n++; } }
       if (n) out.push({ ship: b.target, x: x / n, z: z / n, light, heavy: 0 });
     }
   }
