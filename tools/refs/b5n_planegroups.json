@@ -1,0 +1,18 @@
+{
+ "key": "b5n",
+ "name": "Nakajima B5N2 Type 97",
+ "axis_deg": 90,
+ "nose_sign": -1,
+ "scale": {"span": 15.52},
+ "hub_depth": 0.15,
+ "drop": "^NurbsPath",
+ "rules": [
+  {"part": "prop", "box": [3.84, 4.5, -2.4, 2.4, -2.4, 2.4]},
+  {"part": "glass", "colour": [50, 112, 50, 118, 88, 160], "box": [-1.6, 2.2, 0.0, 1.0, -0.75, 0.75]},
+  {"part": "body", "box": [2.6, 3.84, -9, 9, -9, 9]}
+ ],
+ "wing_z": 0.6,
+ "tail_x": -3.2,
+ "budget": {"body": 12000, "tail": 6000, "wingL": 7000, "wingR": 7000, "prop": 2500, "glass": 2500},
+ "nocolor": ["body", "tail", "wingL", "wingR"]
+}

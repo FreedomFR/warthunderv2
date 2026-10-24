@@ -36,6 +36,17 @@ export const AIRPAINT = {
       { face: 'bottom', wing: 'both', x: 1.39, z: 4.6, prims: [{ disc: 0.47, col: '#c0212a' }] },
     ],
   },
+  // Nakajima B5N2 (Pearl Harbor, 1941): overall light grey-green (J3), a black cowling, hinomaru on the flanks behind the canopy and on both faces of both wings (the tail stripes of the carriers
+  // are not painted; places and sizes measured on the model)
+  b5n: {
+    upper: '#adaf9b', lower: '#bcbdab', line: null,
+    cowl: { x0: 2.55, col: '#1b1d22', hw: 0.72 },
+    decals: [
+      { face: 'side', x: -2.45, y: 0.05, prims: [{ disc: 0.36, col: '#c0212a' }] },
+      { face: 'top', wing: 'both', x: 0.97, z: 5.63, prims: [{ disc: 0.5, col: '#c0212a' }] },
+      { face: 'bottom', wing: 'both', x: 0.97, z: 5.63, prims: [{ disc: 0.5, col: '#c0212a' }] },
+    ],
+  },
   // Aichi D3A1: dark green over grey-green, a black-blue cowling, hinomaru as on the Zero
   d3a: {
     upper: '#46563a', lower: '#a9ad9a', line: -0.02,

@@ -24,6 +24,7 @@ import * as IL2_V4 from './aircraft/il2_v4.js';
 import * as BF109_V4 from './aircraft/bf109_v4.js';
 import * as B29_V4 from './aircraft/b29_v4.js';
 import * as B17_V4 from './aircraft/b17_v4.js';
+import * as B5N_V4 from './aircraft/b5n_v4.js';
 
 const PI = Math.PI;
 const D2R = PI / 180;
@@ -68,12 +69,12 @@ export const PLANES = {
     gear: 'spats', ordnance: 'bomb', groundY: 2.16, v4: D3A_V4, paint: 'd3a',
     canopyLoft: { yb: 0.55, exp: 0.8, prof: [[-0.85, 0.70, 0.12], [-0.6, 0.88, 0.16], [-0.3, 0.93, 0.24], [-0.1, 0.96, 0.32], [0.0, 0.98, 0.35], [0.4, 1.0, 0.35], [1.0, 1.01, 0.36], [1.5, 1.03, 0.36], [1.65, 0.9, 0.3], [1.8, 0.8, 0.22], [1.9, 0.76, 0.12]], frames: [-0.2, 0.2, 0.62, 1.05, 1.5, 1.75] },      // (the envelope of the canopy of the model: its panes are opaque and mixed with the interior there)
   },
-  b5n: {
-    name: 'Nakajima B5N2 Type 97', nation: 'Japan', role: 'torp', kind: 'mono', L: 10.3, span: 15.5, mass: 3.8, hp: 2.9,
-    fus: { r: 0.6, ar: 1.2, x: -0.6 }, engine: { type: 'radial', r: 0.64, len: 1.1 }, prop: { r: 1.6, n: 3, x: 0 },
-    wing: { cr: 3.3, ct: 1.2, x: 1.00, y: -0.2, dih: 0.4, sweep: 0.35, t: 0.3 },
-    tail: { x: -4.2, chord: 1.3, span: 4.9, fin: 1.4, finChord: 1.7, y: 0.25 }, canopy: [{ x0: 0.2, x1: 3.3, tx1: 2.9, h: 0.72 }],
-    gear: 'retract', ordnance: 'torp',
+  b5n: {      // measured on the model (tools/refs/planegroups.py --measures): the wing 3.7 m of chord at the root and 0.9 m at the tip, the tailplane 4.9 m, the long glasshouse of the three crew, three blades of 1.75 m; the model has the gear up: the game's wheels
+    name: 'Nakajima B5N2 Type 97', nation: 'Japan', role: 'torp', kind: 'mono', L: 10.33, span: 15.52, mass: 3.8, S: 37.7, hp: 2.9,
+    fus: { r: 0.6, ar: 1.35, x: -0.4 }, engine: { type: 'radial', r: 0.66, len: 1.3 }, prop: { r: 1.75, n: 3, x: 0 },
+    wing: { cr: 3.7, ct: 0.95, x: 0.42, y: -0.4, dih: 0.65, sweep: 0.65, t: 0.3 },
+    tail: { x: -4.83, chord: 1.75, span: 4.94, fin: 1.7, finChord: 2.0, y: 0.0 }, canopy: [{ x0: -1.4, x1: 2.2, tx1: 1.9, h: 0.55 }],
+    gear: 'retract', ordnance: 'torp', groundY: 2.2, v4: B5N_V4, paint: 'b5n',
   },
   swordfish: {
     name: 'Fairey Swordfish', nation: 'UK', role: 'torp', kind: 'bi', L: 11.0, span: 13.9, mass: 3.4, hp: 3.4,
