@@ -75,10 +75,21 @@ function makePlane(world, base, slot, role) {
   return p;
 }
 
+/** One replacement aircraft for the role of which the field has lost the most (bombers in the first half of the places, fighters in the second). */
+function reinforce(world, base) {
+  const air = base.air, half = base.layout.slots.length >> 1;
+  const mine = world.planes.filter((p) => p.base === base && !p.gone && !p.dying);
+  const nBomb = mine.filter((p) => p.kind === 'level').length, nFight = mine.filter((p) => p.kind === 'fighter').length;
+  const wantB = air.bombers - nBomb, wantF = air.fighters - nFight;
+  if (wantB <= 0 && wantF <= 0) return;
+  const role = wantB >= wantF ? 'level' : 'fighter', from = role === 'level' ? 0 : half, to = role === 'level' ? half : base.layout.slots.length;
+  for (let i = from; i < to; i++) if (!base.parked[i]) { makePlane(world, base, i, role); return; }
+}
+
 /** The air group of an airfield at the start of the battle: bombers in the row nearest the taxiway, fighters in the second row. */
 export function initAirfield(world, base) {
   const L = base.layout, n = L.slots.length, rich = L.guns.length > 8;
-  const nb = Math.min(n >> 1, rich ? 10 : 7), nf = Math.min(n >> 1, rich ? 10 : 7);      // (the apron holds 36: the rest of the places are for the aircraft that come in)
+  const cap = L.size === 'large' ? 14 : L.size === 'medium' ? 8 : rich ? 10 : 7, nb = Math.min(n >> 1, cap), nf = Math.min(n >> 1, cap);       // (a large field of a theatre of war has the bigger air group)      // (the apron holds 36: the rest of the places are for the aircraft that come in)
   base.air = { cd: 50 + world.rng() * 60, capCd: 20, chk: 1, queue: [], relT: 0, rwy: null, waveN: 0, nextClimb: 0, lastRoll: -99, launches: 0, bombers: nb, fighters: nf };
   if (base.inert) return;
   const half = n >> 1;
@@ -810,6 +821,9 @@ export function stepAirfield(world, base, dt) {
   const air = base.air;
   if (!air || base.inert) return;
   if (world.state !== 'running') { air.queue.length = 0; return; }       // the battle is over: nobody else takes off
+  // replacements: a field that stands gets an aircraft in place of a lost one every seven minutes (the war is long: a theatre of war), in a free place of its apron
+  air.reinfT = (air.reinfT ?? 0) + dt;
+  if (air.reinfT > 420 && base.alive) { air.reinfT = 0; reinforce(world, base); }
   releaseNext(world, base, dt);
   air.cd -= dt; air.capCd -= dt; air.chk -= dt;
   if (air.chk <= 0) { air.chk = 1.5; if (base.alive) decide(world, base); }

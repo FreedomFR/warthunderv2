@@ -19,7 +19,10 @@ export function shipStatus(s) {
   if (crew < 0.4) say('équipage décimé', 2);
   else if (crew < 0.75) say('équipage réduit', 1);
   if (s.engine * s.propulsion < 0.2) say('immobilisé', 2);
-  if (!s.canStrike()) say('désarmé', 2);
+  if (!s.canStrike() && !s.mission && !s.dock) say('désarmé', 2);
+  // the port: she is on her way, or alongside, or being taken in or out
+  if (s.dock) say(s.dock.phase === 'moored' ? 'à quai : ravitaillement et réparations' : s.dock.phase === 'in' ? 'entre au port' : 'quitte le port', level >= 2 ? level : 1);
+  else if (s.mission) say(s.mission.why === 'ammo' ? 'fait route vers le port : plus de munitions' : 'fait route vers le port : avaries', level >= 2 ? level : 1);
   return { reserve, crew, text, level };
 }
 

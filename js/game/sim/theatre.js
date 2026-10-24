@@ -58,6 +58,19 @@ export function buildTheatre(world, seed, o = {}) {
   return th;
 }
 
+/** Move a goal off the land and the shallows: away from the nearest island until the water is deep (a fleet ordered to a place on an island would run aground trying). */
+function seaPoint(T, g) {
+  for (let k = 0; k < 14 && -T.heightAt(g.x, g.z) < 45; k++) {
+    let best = null, bd = Infinity;
+    for (const is of T.islands) { const d = Math.hypot(g.x - is.x, g.z - is.z) - is.R; if (d < bd) { bd = d; best = is; } }
+    if (!best) break;
+    const dx = g.x - best.x, dz = g.z - best.z, l = Math.hypot(dx, dz) || 1;
+    g.x += dx / l * 2500; g.z += dz / l * 2500;
+  }
+  const B = T.bounds;
+  if (B) { g.x = clamp(g.x, B.x0 + 6000, B.x1 - 6000); g.z = clamp(g.z, B.z0 + 6000, B.z1 - 6000); }
+}
+
 const strengthOf = (ships) => ships.reduce((a, s) => a + (s.alive ? VALUE[s.stats.type] * (0.3 + 0.7 * s.condition) : 0), 0);
 
 export class Theatre {
@@ -137,12 +150,17 @@ export class Theatre {
         // too many lost: home to the port (the ships there are given back when they are whole)
         const p = f.home && !f.home.inert && f.home.alive ? f.home : nearestPort(w, f.team, cx, cz);
         if (p) goal = { x: p.layout.approach.x, z: p.layout.approach.z, why: 'home' };
-      } else if (target && f.role !== 'carrier') {
+      } else if (target && f.role === 'carrier') {
+        // a carrier fights with her aircraft: she keeps about 60 km from the contact (out of the guns, within the reach of her strikes) and goes away if it comes closer than 40
+        const ux = (cx - target.x) / Math.max(td, 1), uz = (cz - target.z) / Math.max(td, 1), want = td < 40000 ? 70000 : td > 75000 ? 60000 : 0;
+        if (want) goal = { x: target.x + ux * want, z: target.z + uz * want, why: td < 40000 ? 'away' : 'contact' };
+      } else if (target) {
         goal = { x: target.x, z: target.z, why: 'contact' };
       } else if (f.role === 'battle' || f.role === 'cruiser') {
         goal = this.raidGoal(f, cx, cz);
       }
       if (!goal) goal = this.patrolGoal(f, cx, cz);
+      if (goal.why !== 'home') seaPoint(w.terrain, goal);
       f.fleet.goal = goal;
     }
   }

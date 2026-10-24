@@ -206,6 +206,7 @@ export class Game {
   start() {
     if (this.state !== 'ready') return;
     for (const s of this.world.ships) s.cmd.throttle = this.config.theatre ? 0.5 : 0.7;
+    if (this.config.theatre && this.timeScale < 2) this.setTimeScale(4);      // (a war on a very large sea: the first hours are crossing it)
     this.world.start();
     this.state = 'running';
     // unless the player picked a camera, let the automatic director follow the action
