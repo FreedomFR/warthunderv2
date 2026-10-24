@@ -215,6 +215,27 @@ export const AIRPAINT = {
       { face: 'bottom', wing: 'starboard', x: 1.8, z: 11.85, prims: usInsignia(0.85, true) },
     ],
   },
+  // Lockheed P-38G Lightning (1943): olive drab over neutral gray, the star and bars on the outer face of each boom and on the upper port and lower starboard wings (places and sizes: the
+  // published drawings and the model's wing and booms; `est`: the model's own paint and markings are not used)
+  p38: {
+    hw: 3.0, upper: '#55563d', lower: '#8d9193', line: -0.2, finish: [0.82, 0.0],
+    decals: [
+      { face: 'side', x: -3.0, y: 0.12, z: 2.44, hz: 0.55, prims: usInsignia(0.27, false) },
+      { face: 'top', wing: 'port', x: 0.55, z: 5.5, prims: usInsignia(0.5, true) },
+      { face: 'bottom', wing: 'starboard', x: 0.55, z: 5.5, prims: usInsignia(0.5, true) },
+    ],
+  },
+  // De Havilland Mosquito FB Mk VI (1943-44, the day fighter scheme): dark green and ocean gray disruptive pattern over medium sea gray, the fuselage roundel with its yellow ring on the rear fuselage and
+  // the roundels on both faces of both wings (places and sizes: the published drawings; `est`: the model's own paint is not used)
+  mosquito: {
+    hw: 3.0, upper: '#3d4a33', lower: '#8a979b', line: -0.3, finish: [0.82, 0.0],
+    camo: [{ col: '#68717a', scale: 0.6, thr: 0.54, seed: 9, sides: true }],
+    decals: [
+      { face: 'side', x: -3.1, y: -0.02, prims: raf(0.34, true) },
+      { face: 'top', wing: 'both', x: 1.5, z: 5.3, prims: raf(0.6, false) },
+      { face: 'bottom', wing: 'both', x: 1.5, z: 5.3, prims: raf(0.6, false) },
+    ],
+  },
 };
 
 export const AIRPAINT_KEYS = Object.keys(AIRPAINT);
@@ -228,7 +249,10 @@ function decalCode(d, hw) {
   const L = [];
   const sgn = d.wing === 'port' ? -1 : 1;
   let q, mask;
-  if (d.face === 'side') { q = `vec2f(p.x - ${f(d.x)}, p.y - ${f(d.y)})`; mask = `smoothstep(0.1, 0.3, abs(ng.z)) * (1.0 - smoothstep(${f(hw + 0.25)}, ${f(hw + 0.45)}, az))`; }
+  if (d.face === 'side') {      // (`z`: the marking is on the sides of a boom or a nacelle that stands this far from the centre line, not on the fuselage)
+    q = `vec2f(p.x - ${f(d.x)}, p.y - ${f(d.y)})`;
+    mask = d.z != null ? `smoothstep(0.1, 0.3, abs(ng.z)) * (1.0 - smoothstep(${f(d.hz ?? 0.5)}, ${f((d.hz ?? 0.5) + 0.2)}, abs(az - ${f(d.z)})))` : `smoothstep(0.1, 0.3, abs(ng.z)) * (1.0 - smoothstep(${f(hw + 0.25)}, ${f(hw + 0.45)}, az))`;
+  }
   else {
     const top = d.face === 'top', both = d.wing === 'both';
     const v = both ? `(az - ${f(d.z)})` : `(p.z * ${f(sgn)} - ${f(d.z)})`;      // (outboard on the wing the marking is on)

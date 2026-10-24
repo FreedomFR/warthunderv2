@@ -259,7 +259,7 @@ export function aircraftSections(a) {
     level && pf ? ['Altitude de bombardement', unit(pf.bombAlt, 'm', 0)] : null,
     level && pf ? ['Plafond pratique', unit(pf.ceil, 'm', 0)] : null,
     level && pf ? ['Roulement au décollage', unit(pf.runLen, 'm', 0)] : null,
-    level ? ['Mise en œuvre', 'bases aériennes des îles (piste de 800 à 1 200 m)'] : null,
+    level || s.role === 'interceptor' ? ['Mise en œuvre', 'bases aériennes des îles (piste de 800 à 1 200 m)'] : null,
     s.siren ? ['Particularité', 'sirène « trompettes de Jéricho » en piqué'] : null,
     a.users.length ? [s.role === 'float' ? 'Embarqué sur' : 'Porte-avions', a.users.map((r) => r.name).join(', ')] : null,
   ].filter(Boolean);
@@ -269,9 +269,9 @@ export function aircraftSections(a) {
     // the guns of a fighter and the rounds of its belts: what one hit does (against the .50 API round) and how often it starts a fire in a tank
     const beltText = (b) => Object.entries(BELTS[b]).map(([id, w]) => `${AMMO[id].name} ${fr(w * 100, 0)}${NB}%`).join(', ');
     const where = { wing: 'dans les ailes', cowl: 'sur le capot, tirant à travers l\'hélice', hub: 'dans le moyeu de l\'hélice', fus: 'dans le nez', at: 'dans la bosse dorsale' };
-    out.push({ id: 'guns', title: s.role === 'fighter' || s.role === 'attack' ? 'Armement' : 'Armement fixe (tirant vers l\'avant)', rows: FIGHTER_GUNS[key].map((g) => {
+    out.push({ id: 'guns', title: s.role === 'fighter' || s.role === 'attack' || s.role === 'interceptor' ? 'Armement' : 'Armement fixe (tirant vers l\'avant)', rows: FIGHTER_GUNS[key].map((g) => {
       const gun = GUNS[g.gun], m = beltMean(g.belt), secs = g.rpg / (gun.rpm / 60);
-      return { k: `${g.n}${NB}×${NB}${gun.name}`, v: `${where[g.mount] || ''} · ${g.rpg}${NB}coups par arme (${fr(secs, 0)}${NB}s de tir) · ${fr(gun.rpm, 0)}${NB}coups/min · bande : ${beltText(g.belt)} · un coup fait en moyenne ${fr(m.dmg, 1)}${NB}fois un coup de 12,7${NB}mm API, met le feu à un réservoir dans ${fr(m.fire * 100, 0)}${NB}% des cas`, est: false };
+      return { k: `${g.n}${NB}×${NB}${gun.name}`, v: `${g.where || where[g.mount] || ''} · ${g.rpg}${NB}coups par arme (${fr(secs, 0)}${NB}s de tir) · ${fr(gun.rpm, 0)}${NB}coups/min · bande : ${beltText(g.belt)} · un coup fait en moyenne ${fr(m.dmg, 1)}${NB}fois un coup de 12,7${NB}mm API, met le feu à un réservoir dans ${fr(m.fire * 100, 0)}${NB}% des cas`, est: false };
     }) });
   }
   if (key) {

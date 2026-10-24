@@ -17,7 +17,7 @@ for (const key of Object.keys(PLANES)) {
   }
 }
 ok(true, 'every gun position at rest points inside its own field of fire (stowed astern over the fin), its muzzle out beyond the pivot');
-ok(planeGuns(PLANES.f6f, 'f6f').length === 0 && planeGuns(PLANES.f4f, 'f4f').length === 0 && planeGuns(PLANES.fm2, 'fm2').length === 0 && planeGuns(PLANES.a6m, 'a6m').length === 0, 'a fighter has no gunner');
+ok(planeGuns(PLANES.f6f, 'f6f').length === 0 && planeGuns(PLANES.p38, 'p38').length === 0 && planeGuns(PLANES.mosquito, 'mosquito').length === 0 && planeGuns(PLANES.f4f, 'f4f').length === 0 && planeGuns(PLANES.fm2, 'fm2').length === 0 && planeGuns(PLANES.a6m, 'a6m').length === 0, 'a fighter has no gunner');
 
 // the B-17: astern the tail guns (and the top turret above), ahead the chin, below the ball, to a side the waist gun of that side only
 ok(covers('b17', 180, 0).includes('tail') && !covers('b17', 180, 0).includes('dome'), `B-17 right astern level: the tail guns, not the top turret through the fin (${covers('b17', 180, 0)})`);

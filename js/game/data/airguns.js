@@ -106,6 +106,7 @@ export const GUNS = {
   vickers: { name: 'Vickers .303', cal: 7.7, rpm: 950, v0: 745 },
   darne: { name: 'Darne (7,5 mm)', cal: 7.5, rpm: 1300, v0: 700 },
   safat77: { name: 'Breda-SAFAT (7,7 mm)', cal: 7.7, rpm: 1100, v0: 740 },
+  hsm1: { name: 'Hispano M1 (20 mm)', cal: 20, rpm: 600, v0: 850 },                // the American-built Hispano of the P-38: 600 rounds a minute, 2 800 ft/s with the M97 high-explosive round (Wikipedia, the Hispano-Suiza HS.404 article)
 };
 
 /**
@@ -138,6 +139,13 @@ export const FIXED_GUNS = {
   pl10: [{ gun: 'darne', n: 1, rpg: 500, belt: 'fr75', mount: 'fus', z: [0.4], conv: 200 }],                           // (rounds est)
   re2001: [{ gun: 'breda127', n: 2, rpg: 350, belt: 'it127', mount: 'cowl', z: [-0.25, 0.25], conv: 250 }, { gun: 'safat77', n: 2, rpg: 500, belt: 'it77', mount: 'wing', z: [2.2], conv: 250 }],
   re2001t: [{ gun: 'breda127', n: 2, rpg: 350, belt: 'it127', mount: 'cowl', z: [-0.25, 0.25], conv: 250 }, { gun: 'safat77', n: 2, rpg: 500, belt: 'it77', mount: 'wing', z: [2.2], conv: 250 }],
+  // the P-38G: a 20 mm Hispano M1 (150 rounds, a drum) and four .50 M2 (500 rounds each) in the nose on the centre line, one above the other and side by side, all firing parallel (the stations and the muzzles are those of the barrels on the model's nose: the four .50 are staggered, the cannon stands out the most)
+  p38: [{ gun: 'hsm1', n: 1, rpg: 150, belt: 'us20', mount: 'at', at: [[0.1, 0.084, 0]], where: 'dans le nez, sur l\'axe', drawn: true, conv: 400 },
+    { gun: 'm2', n: 4, rpg: 500, belt: 'us50a', mount: 'at', at: [[0.13, 0.233, -0.118], [0.32, 0.233, 0.118], [0.57, 0.112, -0.273], [0.57, 0.112, 0.273]], where: 'dans le nez, sur l\'axe', drawn: true, conv: 400 }],
+  // the Mosquito FB Mk VI: four 20 mm Hispano Mk II under the nose (300 rounds each) and four .303 Browning in it (500 rounds each), the barrels at the places of those of the model (the cannons in two
+  // pairs at 0.1 and 0.24 m from the centre line, the rifle-calibre guns above them); the guns fire ahead for the pilot (no gunner)
+  mosquito: [{ gun: 'hsmk2', n: 4, rpg: 300, belt: 'uk20', mount: 'at', at: [[0.64, -0.645, -0.105], [0.64, -0.645, 0.105], [0.88, -0.665, -0.243], [0.88, -0.665, 0.243]], where: 'sous le nez', drawn: true, conv: 230 },
+    { gun: 'b303', n: 4, rpg: 500, belt: 'uk303', mount: 'at', at: [[-0.31, -0.216, -0.108], [-0.31, -0.216, 0.108], [-0.17, -0.25, -0.245], [-0.17, -0.25, 0.245]], where: 'dans le nez', drawn: true, conv: 230 }],
   sm79: [{ gun: 'breda127', n: 1, rpg: 350, belt: 'it127', mount: 'at', at: [[6.6, 1.85, 0]], conv: 300 }],           // the fixed 12,7 mm of the hump, firing ahead
 };
 export const FIGHTER_GUNS = FIXED_GUNS;

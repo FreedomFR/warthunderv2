@@ -110,6 +110,13 @@ export const LOADOUTS = {
     L('7x225', '7 bombes de 225 kg', [{ ord: 'fr225', n: 7 }], ['ship', 'base']),
     L('10x15', '30 bombes de 15 kg', [{ ord: 'fr15', n: 30 }], ['base']),
   ],
+  // ---- the land-based interceptors (a fighter does not bomb in the simulation: the load the wing racks could take is listed for the wiki) ----
+  p38: [
+    L('2x1000', '2 bombes de 1 000 lb sous les ailes', [{ ord: 'anm65', n: 2 }], ['alt']),
+  ],
+  mosquito: [
+    L('4x500', '4 bombes de 500 lb (2 en soute, 2 sous les ailes)', [{ ord: 'uk500', n: 4 }], ['alt']),
+  ],
 };
 
 /** The loads of an aircraft type (an empty list for a type with none). */

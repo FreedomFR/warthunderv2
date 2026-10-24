@@ -729,7 +729,7 @@ export function createUI(game) {
     climb: 'Montée', assemble: 'Rassemblement', hold: 'Attente', escort: 'Escorte', cap: 'Patrouille', intercept: 'Interception', engage: 'Combat aérien', refuge: 'Repli',
     goaround: 'Remise de gaz', lfinal: 'Approche finale', lroll: 'Atterrissage', taxiIn: 'Roulage vers le parking', taxiBack: 'Roulage vers le parking',
   };
-  const ROLES = { dive: 'Bombardier en piqué', torp: 'Torpilleur', level: 'Bombardier', fighter: 'Chasseur' };
+  const ROLES = { dive: 'Bombardier en piqué', torp: 'Torpilleur', level: 'Bombardier', fighter: 'Chasseur', interceptor: 'Intercepteur' };
   const DEATH = { spin: 'en vrille', dive: 'pilote touché, pique', wing: 'aile arrachée', glide: 'moteur coupé', explode: 'désintégré en vol', tumble: 'en chute libre' };
   function updatePlaneInfo() {
     const p = game.camera.plane;
