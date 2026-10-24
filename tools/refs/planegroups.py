@@ -269,6 +269,16 @@ for name in sorted(set(part) - {'drop'}):
         ov = cfg.get('refine_by_piece', {}).get(name, {})      # (a piece whose texture is busy, the wings with their rivets, can be given its own thresholds)
         V, T = refine(V, T, tree, C0, cfg['refine'], ov.get('minedge', cfg.get('minedge', 0.1)), ov.get('colthr', cfg.get('colthr', 28)), ov.get('fine', cfg.get('fine')))
         d, k = tree.query(V); Cc = C0[k]
+    nd = cfg.get('needles', {}).get(name)
+    if nd:      # the decimation of a model made of loose shells leaves spikes: long thin triangles standing out of the surface; the ones in the box ("box", game frame) with a longest edge above "edge" and an area under "ar" of that edge squared are dropped
+        V = np.asarray(V); T = np.asarray(T, dtype=np.int64); tri = V[T]
+        e = np.stack([np.linalg.norm(tri[:, 1] - tri[:, 0], axis=1), np.linalg.norm(tri[:, 2] - tri[:, 1], axis=1), np.linalg.norm(tri[:, 0] - tri[:, 2], axis=1)], 1).max(1)
+        ar = np.linalg.norm(np.cross(tri[:, 1] - tri[:, 0], tri[:, 2] - tri[:, 0]), axis=1) / 2
+        ctr = tri.mean(1); b = nd['box']
+        inb = (ctr[:, 0] >= b[0]) & (ctr[:, 0] <= b[1]) & (ctr[:, 1] >= b[2]) & (ctr[:, 1] <= b[3]) & (ctr[:, 2] >= b[4]) & (ctr[:, 2] <= b[5])
+        bad = inb & (e > nd['edge']) & (ar < nd.get('ar', 0.15) * e * e)
+        print(f'{name}: {int(bad.sum())} needle triangles dropped')
+        T = T[~bad]; used = np.unique(T); remap = -np.ones(len(V), dtype=np.int64); remap[used] = np.arange(len(used)); V, Cc, T = V[used], np.asarray(Cc)[used], remap[T]
     kept[name] = (V, Cc, T)
     make_piece(name, V, Cc, T)
 if cfg.get('mirror_wings'):      # an aircraft is symmetrical: the model's other wing may carry what the first does not (a stay, a hatch left open)
