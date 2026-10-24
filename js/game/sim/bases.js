@@ -29,8 +29,20 @@ const frame = (b) => {
 
 /** How much a nation's heavy coastal guns weigh: [calibre mm, barrels per mount]. */
 const COASTAL = { USA: [305, 2], Japan: [203, 2], UK: [234, 2], Germany: [380, 2], France: [240, 2], Italy: [203, 2] };
-const aaBarrels = (cal) => cal >= 80 ? 1 : cal >= 37 ? 2 : 4;      // a heavy flak gun is a single mount; the 37 / 40 mm are twin, the 20 / 25 mm quadruple or triple
-const AA_CAL = { USA: 40, Japan: 25, UK: 40, Germany: 37, France: 25, Italy: 20 };
+const aaBarrels = (cal) => cal >= 37 ? 1 : 4;      // on land a heavy flak gun, a 37 mm or a 40 mm is a single mount (the models of the guns of the bases); the 20 / 25 mm are quadruple or triple
+const AA_CAL = { USA: 40, Japan: 25, UK: 40, Germany: 37, France: 25, Italy: 40 };
+/**
+ * The gun of the i-th light AA emplacement of a base: { cal, n }. The German fields mix their 37 mm guns with quadruple 20 mm Flakvierlinge, a twin 20 mm Flak 38 now and then and
+ * 8.8 cm Flak (every other position of a battery: m = 2, one in four of a field or a port: m = 4); the Italian ones their 40 mm guns with 20 mm quads; the others one calibre.
+ */
+function aaGun(nation, i, m) {
+  let cal = AA_CAL[nation] || 40, n;
+  if (nation === 'Germany') {
+    if (m === 4) { if (i % 4 === 1) cal = 20; else if (i % 4 === 3) cal = 88; else if (i % 8 === 4) { cal = 20; n = 2; } }
+    else if (i % 2 === 1) cal = 20; else if (i === 2) cal = 88;
+  } else if (nation === 'Italy' && i % 2 === 1) cal = 20;
+  return { cal, n: n || aaBarrels(cal) };
+}
 
 // ---- sites -------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -130,12 +142,12 @@ function layoutAirfield(site, id, island, nation, level, rng, size = null) {
     b.slots.push({ x: p[0], y: site.y, z: p[1], heading: b.heading - Math.PI / 2 });
   }
   // light AA: round the apron, at the ends of the runway and by the fuel
-  const aaN = level >= 2 ? 12 : 8, cal = AA_CAL[nation] || 40;
+  const aaN = level >= 2 ? 12 : 8;
   const spots = [[-len / 2 - 25, 70], [len / 2 + 25, 70], [-len / 2 - 25, -50], [len / 2 + 25, -50], [-150, hw + 130], [150, hw + 130], [0, hw + 120], [-len / 2 + 140, hw + 195], [-300, hw + 80], [300, hw + 80], [-200, -45], [200, -45]];
   for (let i = 0; i < aaN; i++) {
     const [s, t] = spots[i], p = put(s, t);
-    const gc = nation === 'Germany' ? (i % 4 === 1 ? 20 : i % 4 === 3 ? 88 : cal) : cal;       // (the German fields mix their 37 mm guns with quadruple 20 mm Flakvierlinge and 8.8 cm Flak)
-    b.guns.push({ id: i, kind: 'aa', x: p[0], y: site.y, z: p[1], heading: b.heading, cal: gc, n: aaBarrels(gc) });
+    const g = aaGun(nation, i, 4);
+    b.guns.push({ id: i, kind: 'aa', x: p[0], y: site.y, z: p[1], heading: b.heading, cal: g.cal, n: g.n });
   }
   return b;
 }
@@ -156,11 +168,10 @@ function layoutBattery(site, id, island, nation, level, rng) {
   b.parts.push({ id: n++, kind: 'post', label: 'Poste de tir', x: post[0], y: site.y, z: post[1], heading: b.heading, w: 14, l: 10, h: 12, hp: 80 });
   for (let i = 0; i < 2; i++) { const p = put(-30, (i ? 1 : -1) * 38); b.parts.push({ id: n++, kind: 'bunker', label: 'Soute', x: p[0], y: site.y, z: p[1], heading: b.heading, w: 18, l: 12, h: 4, hp: 80 }); }
   const rd = put(-45, 0); b.parts.push({ id: n++, kind: 'radar', label: 'Radar', x: rd[0], y: site.y, z: rd[1], heading: b.heading, w: 6, l: 6, h: 10, hp: 40 });
-  const acal = AA_CAL[nation] || 40;
   for (let i = 0; i < (level >= 2 ? 4 : 3); i++) {
     const p = put(-5, (i - 1.5) * 38);
-    const gc = nation === 'Germany' ? (i % 2 === 1 ? 20 : i === 2 ? 88 : acal) : acal;
-    b.guns.push({ id: nGuns + i, kind: 'aa', x: p[0], y: site.y, z: p[1], heading: b.heading, cal: gc, n: aaBarrels(gc) });
+    const g = aaGun(nation, i, 2);
+    b.guns.push({ id: nGuns + i, kind: 'aa', x: p[0], y: site.y, z: p[1], heading: b.heading, cal: g.cal, n: g.n });
   }
   return b;
 }
@@ -245,12 +256,12 @@ function layoutPort(site, id, island, nation, size, level, rng, terrain) {
   const nc = large ? 4 : 2;
   for (let i = 0; i < nc; i++) part('crane', 'Grue', 130 + 120 + i * 80, (i % 2 ? 1 : -1) * 10, 12, 12, 30, { hp: 90, turn: 0 });
   // the guns: light AA round the yard and at the root of the pier
-  const acal = AA_CAL[nation] || 40, aaN = large ? 10 : 6;
+  const aaN = large ? 10 : 6;
   const spots = [[-8, 112], [-8, -112], [60, 100], [60, -100], [110, 25], [110, -25], [-112, 60], [-112, -60], [30, 140], [30, -140]];
   for (let i = 0; i < aaN; i++) {
     const [s, t] = spots[i], p = put(s, t);
-    const gc = nation === 'Germany' ? (i % 4 === 1 ? 20 : i % 4 === 3 ? 88 : acal) : acal;
-    b.guns.push({ id: i, kind: 'aa', x: p[0], y: site.y, z: p[1], heading: b.heading, cal: gc, n: aaBarrels(gc) });
+    const g = aaGun(nation, i, 4);
+    b.guns.push({ id: i, kind: 'aa', x: p[0], y: site.y, z: p[1], heading: b.heading, cal: g.cal, n: g.n });
   }
   return b;
 }

@@ -92,7 +92,7 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 - `airpaint.js` (255) The paint schemes of the aircraft drawn from their models: the colours of the upper and the lower surfaces, the flanks, the camouflage patches, the cowling, the… [AIRPAINT, AIRPAINT_KEYS, airPaintId, airPaintWgsl] ← 2
 - `ao.js` (110) Baked ambient occlusion for the procedural ship meshes. [bakeAO] ← 1
 - `bakedmesh.js` (72) Reading the baked reference meshes (ships/<id>_baked.js, ships/<id>_mounts_baked.js, made by tools/refs/bake*.py): base64 pieces -> positions in metres, smooth… [decodeBaked, decodeBakedGeometry, cutBaked] ← 6
-- `baseGuns.js` (101) The guns of the bases: the mount of each gun (the same meshes as on the ships, see mounts.js) and what it stands on - a concrete emplacement with a ring wall, an… [gunMountSpec, buildEmplacement] ← 2
+- `baseGuns.js` (104) The guns of the bases: the mount of each gun (the same meshes as on the ships, see mounts.js) and what it stands on - a concrete emplacement with a ring wall, an… [gunMountSpec, buildEmplacement] ← 2
 - `baseKit.js` (210) Shared bits of the base models: the palette of each nation, and small drawing helpers (smooth lofts, rings, ragged ground patches, vehicles, drums...). [BASE_PAL, palOf, EARTH, earthOf, DIRT, dirtOf, C, DARK, CHAR, … +19] ← 5
 - `baseMesh.js` (334) The look of a military base: buildBaseModel(layout, nation) turns the layout of sim/bases.js (an airfield, a battery or a port) into the meshes that… [orientPart, buildBaseModel, clearBaseCaches] ← 2
 - `baseParts.js` (458) The buildings of the bases, each as a MeshBuilder with the groups body the intact building (always drawn) body_ruin what is left of it when it is destroyed (the walls… [scorch, brokenWall, fallen, twisted, rubble, roofPick, windowsX, buildPartMesh] ← 2
@@ -145,7 +145,7 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 - `essex_v4.js` (4) The Essex built from its reference model (see docs/CREDITS.md; [SCALE, SHIP] ← 1
 - `fantasque_elements.js` (5) Mounts of the Le Malin copied from its reference model, one element at a time (see docs/CREDITS.md; [MOUNT_SCALE, KINDS, PLACEMENTS] ← 1
 - `fantasque_v4.js` (4) The Le Malin built from its reference model (see docs/CREDITS.md; [SCALE, SHIP] ← 1
-- `flak_elements.js` (5) The quadruple 20 mm anti-aircraft gun of the bases, copied from its reference model (see docs/CREDITS.md; [MOUNT_SCALE, KINDS, PLACEMENTS] ← 1
+- `flak_elements.js` (5) The anti-aircraft guns of the bases (Flakvierling, Flak 38, Flak 42, Flak 36, 40 mm Bofors and Vickers-Terni, the 38 cm turret), copied from their reference models… [MOUNT_SCALE, KINDS, PLACEMENTS] ← 1
 - `fletcher_elements.js` (5) Mounts of the Fletcher copied from its reference model, one element at a time (see docs/CREDITS.md; [MOUNT_SCALE, KINDS, PLACEMENTS] ← 1
 - `fletcher_v4.js` (4) The Fletcher built from its reference model (see docs/CREDITS.md; [SCALE, SHIP] ← 1
 - `gioberti.js` (509) gioberti: the tweaks of the gioberti model (see ../shipbuilder.js for the options and ../tweaks.js for the others); [GIOBERTI] ← 1
@@ -212,7 +212,7 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 - `airperf.js` (123) How fast each aircraft flies. Speeds in m/s (airspeed), from the published performance of each type (CHANGELOG 0.1.2 has the table and the sources): vmax top speed… [PERF, perfOf, aeroOf, dragAcc, thrustAcc, turnPerf] ← 12
 - `ballistics.js` (104) Exterior ballistics: point-mass shells with altitude-dependent air drag. [gunBallistics, solve, stepShell] ← 6
 - `baseops.js` (435) What the bases do during a battle: the coastal batteries shell the enemy ships in range, the anti-aircraft guns fire at the aircraft, the shells and the bombs that… [coastalGunOf, BaseSim, damageBase, shellHitsBase, shellGround, bombHitsBase, buildBases, updateBases] ← 5
-- `bases.js` (406) Military bases on the islands: an airfield (a runway, the apron, hangars, a control tower, fuel tanks, barracks, a radar, anti-aircraft guns and the places where the… [placeTheatreBases, placeBases, BaseState] ← 4
+- `bases.js` (417) Military bases on the islands: an airfield (a runway, the apron, hangars, a control tower, fuel tanks, barracks, a radar, anti-aircraft guns and the places where the… [placeTheatreBases, placeBases, BaseState] ← 4
 - `damage.js` (624) Impact resolution against ships: shells, bombs, torpedoes and crashing aircraft. [insideHull, segmentNearShip, segmentHit, resolveShellHit, resolveBombHit, resolveNearMiss, resolveCrashHit, torpedoReach, resolveTorpedoHit] ← 10
 - `debris.js` (95) Flying wreckage: funnels, masts, turrets and scrap torn off ships, pieces of broken aircraft. [spawnPartDebris, spawnMountDebris, spawnScrap, spawnPlaneDebris, stepDebris] ← 4
 - `deck.js` (547) Flight-deck operations of an aircraft carrier. [TAKEOFF_RUN, DECK_PHASES, deckOf, launching, settleService, planLaunch, stepDeckShip, beginRecovery, clearToLand, … +5] ← 7

@@ -15,9 +15,12 @@ const COASTAL_FAMILY = { Japan: 'type3_203', Germany: 'drh203', Italy: 'zara203'
 export function gunMountSpec(g, pal) {
   if (g.kind === 'aa') {
     const big = g.cal >= 37;
-    // the quadruple 20 mm is the Flakvierling and the 8.8 cm the Flak 36 of the reference models (model/elements.js, `flak`)
-    const quad = g.cal === 20 && g.n >= 4, heavy = g.cal >= 80;
-    return { kind: 'aa', cal: g.cal, n: g.n, bore: heavy ? 56 : g.cal >= 40 ? 56 : g.cal >= 37 ? 63 : 60, col: pal.roof2, variant: big ? 'bofors' : 'iijn25', ...(quad ? { look: 'flak/flak4' } : heavy ? { look: 'flak/flak88' } : {}) };
+    // the guns of the reference models (model/elements.js, `flak`): the quadruple 20 mm Flakvierling, the twin 20 mm Flak 38, the 3.7 cm Flak, the 8.8 cm Flak 36, the 40 mm Bofors
+    // of the American and British bases and the Vickers-Terni of the Italian ones; the other nations' guns are drawn by the game (a mount that is a single gun on land)
+    const heavy = g.cal >= 80, quad = g.cal === 20 && g.n >= 4, twin = g.cal === 20 && g.n === 2;
+    const look = quad ? 'flak/flak4' : twin ? 'flak/flak38' : heavy ? 'flak/flak88' : g.cal === 37 && g.nation === 'Germany' ? 'flak/flak42'
+      : g.cal === 40 ? (g.nation === 'Italy' ? 'flak/vt40' : 'flak/bofors40') : null;
+    return { kind: 'aa', cal: g.cal, n: g.n, bore: heavy ? 56 : g.cal >= 40 ? 56 : g.cal >= 37 ? 63 : 60, col: pal.roof2, variant: big ? 'bofors' : 'iijn25', ...(look ? { look } : {}) };
   }
   // the 38 cm twin turrets of the German batteries (Batterie Todt) are the turret of the reference model (model/elements.js, `flak`)
   if (g.cal >= 350) return { kind: 'turret', cal: g.cal, n: g.n, bore: 52, col: pal.roof2, look: 'flak/t380' };

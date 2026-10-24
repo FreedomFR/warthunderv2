@@ -43,7 +43,8 @@ const make = (seed, dens, level, nat) => {
 let nBases = 0, nParts = 0, nGuns = 0;
 const bad = [], missing = [], big = [], kinds = new Set();
 let worstBase = 0, worstPart = 0, worstGround = 0, groundHigh = 0, radars = 0, spinning = 0, badAngle = 0, flat = 0;
-let flakGuns = 0, flakBad = 0, heavyGuns = 0, heavyBad = 0;
+let flakGuns = 0, flakBad = 0, heavyGuns = 0, heavyBad = 0, lightGuns = 0, lightBad = [];
+const LIGHT_LOOK = (g) => (g.cal === 37 && g.nation === 'Germany' ? 'flak/flak42' : g.cal === 20 && g.n === 2 ? 'flak/flak38' : g.cal === 40 ? (g.nation === 'Italy' ? 'flak/vt40' : 'flak/bofors40') : null);
 const t0 = Date.now();
 for (let seed = 1; seed <= 8; seed++) {
   const level = 1 + (seed % 2), nat = [NATIONS[seed % 6], NATIONS[(seed + 3) % 6]];
@@ -61,6 +62,10 @@ for (let seed = 1; seed <= 8; seed++) {
     }
     if (M.parts.length !== L.parts.length || M.guns.length !== L.guns.length) missing.push('entries of base ' + L.id);
     for (const g of L.guns) if (g.kind === 'aa' && g.cal === 20 && g.n >= 4) { flakGuns++; if (!gunMountSpec(g, BASE_PAL[L.nation]).look) flakBad++; }
+    for (const g of L.guns) {
+      const want = g.kind === 'aa' && LIGHT_LOOK({ ...g, nation: L.nation });
+      if (want) { lightGuns++; if (gunMountSpec({ ...g, nation: L.nation }, BASE_PAL[L.nation]).look !== want) lightBad.push(`${L.nation} ${g.cal}/${g.n}`); }
+    }
     for (const g of L.guns) if (g.kind === 'aa' && g.cal >= 80) { heavyGuns++; if (gunMountSpec(g, BASE_PAL[L.nation]).look !== 'flak/flak88') heavyBad++; }
     L.parts.forEach((p, i) => {
       const e = M.parts[i];
@@ -94,6 +99,7 @@ for (let seed = 1; seed <= 8; seed++) {
 }
 ok(nBases >= 20 && nParts > 100 && nGuns > 60, `built ${nBases} bases, ${nParts} buildings and ${nGuns} guns of ${NATIONS.length} nations in ${Date.now() - t0} ms`);
 ok(heavyGuns > 0 && heavyBad === 0, `the 8.8 cm guns of the German bases (${heavyGuns}) are the Flak 36 of the reference model`);
+ok(lightGuns > 0 && lightBad.length === 0, `the 3.7 cm Flak, the twin 20 mm Flak 38 and the 40 mm Bofors / Vickers-Terni of the bases (${lightGuns}) are the models of the reference guns${lightBad.length ? ': ' + lightBad.slice(0, 3) : ''}`);
 ok(flakGuns > 0 && flakBad === 0, `the quadruple 20 mm guns of the bases (${flakGuns}: the German fields and the Italian ones) are the Flakvierling of the reference model`);
 ok(bad.length === 0, 'every vertex is finite, in range, with a unit normal, and every index is valid' + (bad.length ? ': ' + bad.slice(0, 4).join('; ') : ''));
 ok(missing.length === 0, 'every building has an intact and a ruined mesh, every gun a mount and an emplacement' + (missing.length ? ': ' + missing.slice(0, 4).join('; ') : ''));
