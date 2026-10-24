@@ -77,6 +77,7 @@ export const BELTS = {
   us50e: { ap50: 0.35, ball50: 0.3, apit50: 0.25, api50: 0.1 },               // the Navy's .50 of 1941-42 (the F4F-3): ball, AP and tracer, the API only coming in (est)
   us50a: { ap50: 0.4, api50: 0.2, apit50: 0.2, ball50: 0.2 },                  // the Army Air Forces' .50 of 1942: armour-piercing first, the incendiary arriving, a tracer in five (`est`)
   jp77: { ball303: 0.6, ap303: 0.4 },                                           // the 7,7 mm Type 97: ball and AP, a tracer now and then
+  jp20m2: { hei20t99b: 0.65, ap20: 0.35 },                                      // the belt-fed Type 99 Mk 2 of the Shiden: the heavier HE-I round (the tracer is one too) and AP-T
   jp20: { hei20t99a: 0.65, ap20: 0.35 },                                        // the Type 99 cannon: HE-I (the tracer is one too) and AP-T
   uk303: { ap303: 0.4, inc303: 0.4, ball303: 0.2 },                             // late 1941: half AP, half incendiary
   de792: { ball792: 1 },
@@ -99,6 +100,7 @@ export const GUNS = {
   b303: { name: 'Browning .303', cal: 7.7, rpm: 1150, v0: 740 },
   t97: { name: 'Type 97 (7,7 mm)', cal: 7.7, rpm: 700, v0: 745 },
   t99: { name: 'Type 99 Mk 1 (20 mm)', cal: 20, rpm: 520, v0: 600 },
+  t99m2: { name: 'Type 99 Mk 2 (20 mm)', cal: 20, rpm: 490, v0: 750 },                // the long-barrelled, belt-fed Type 99 (Model 4): about 750 m/s and 490 rounds a minute (Wikipedia, the Type 99 cannon article; the rate is `est`)
   mg17: { name: 'MG 17 (7,92 mm)', cal: 7.92, rpm: 1000, v0: 785 },
   mgff: { name: 'MG FF/M (20 mm)', cal: 20, rpm: 540, v0: 585 },
   mg151: { name: 'MG 151/20 (20 mm)', cal: 20, rpm: 700, v0: 705 },
@@ -153,6 +155,13 @@ export const FIXED_GUNS = {
   // pairs at 0.1 and 0.24 m from the centre line, the rifle-calibre guns above them); the guns fire ahead for the pilot (no gunner)
   mosquito: [{ gun: 'hsmk2', n: 4, rpg: 300, belt: 'uk20', mount: 'at', at: [[0.64, -0.645, -0.105], [0.64, -0.645, 0.105], [0.88, -0.665, -0.243], [0.88, -0.665, 0.243]], where: 'sous le nez', drawn: true, conv: 230 },
     { gun: 'b303', n: 4, rpg: 500, belt: 'uk303', mount: 'at', at: [[-0.31, -0.216, -0.108], [-0.31, -0.216, 0.108], [-0.17, -0.25, -0.245], [-0.17, -0.25, 0.245]], where: 'dans le nez', drawn: true, conv: 230 }],
+  // the B-26B Invader (A-26B-50): eight .50 M2 in the solid nose in two columns of four (the muzzles at the places of the barrels on the model: 0.19 m each side of the centre line, the four rows between 0.25 m below and
+  // 0.3 m above the axis) and the four .50 of two two-gun pods under the wings (the pylons of the model, at 5.0 and 5.2 m from the centre line); the rounds (400 in the nose, 300 in a pod) are `est`
+  b26: [{ gun: 'm2', n: 8, rpg: 400, belt: 'us50a', mount: 'at', at: [[-0.03, 0.304, -0.19], [-0.03, 0.304, 0.19], [-0.12, 0.142, -0.19], [-0.12, 0.142, 0.19], [-0.17, -0.044, -0.19], [-0.17, -0.044, 0.19], [-0.18, -0.245, -0.19], [-0.18, -0.245, 0.19]], where: 'dans le nez', drawn: true, conv: 450 },
+    { gun: 'm2', n: 4, rpg: 300, belt: 'us50a', mount: 'at', at: [[4.44, 0.33, -5.2], [4.56, 0.33, -5.0], [4.44, 0.33, 5.0], [4.56, 0.33, 5.2]], where: 'dans les nacelles sous les ailes', drawn: true, conv: 300 }],
+  // the N1K1-J Shiden: four 20 mm Type 99 Mk 2, two in each wing (the barrels of the model: the upper one 0.45 m out of the leading edge at 2.95 m from the centre line, the lower one at 2.65 m, under it), 200 rounds
+  // each (belts); the 7.7 mm of the nose of the first aircraft were taken out of the later ones and the model has no port for them
+  n1k1: [{ gun: 't99m2', n: 4, rpg: 200, belt: 'jp20m2', mount: 'at', at: [[1.5, 0.1, -2.95], [1.5, 0.1, 2.95], [1.74, -0.13, -2.65], [1.74, -0.13, 2.65]], where: 'dans les ailes', drawn: true, conv: 250 }],
   sm79: [{ gun: 'breda127', n: 1, rpg: 350, belt: 'it127', mount: 'at', at: [[6.6, 1.85, 0]], conv: 300 }],           // the fixed 12,7 mm of the hump, firing ahead
 };
 export const FIGHTER_GUNS = FIXED_GUNS;

@@ -64,6 +64,7 @@ function singleGuns(spec, key) {
 /** The calibre of the guns of each position of the land-based bombers, in the order of their sheet's `guns` (bomberdata.js). */
 const HEAVY_CAL = {
   b29: [12.7, 12.7, 12.7, 12.7, 12.7, 20],                  // four remote turrets and the tail: .50 Browning, the tail also a 20 mm
+  b26: [12.7, 12.7],                                       // the remote dorsal and ventral turrets: two .50 Browning each
   b17: [12.7, 12.7, 12.7, 12.7, 12.7, 12.7, 12.7, 12.7, 12.7],          // chin, port cheek, top, ball, two waist, tail, starboard cheek, radio room: all .50 Browning
   lancaster: [7.7, 7.7, 7.7],                              // FN5, FN50, FN20: .303 Browning
   g4m: [7.7, 7.7, 7.7, 7.7, 20],                           // nose, dorsal, the two side blisters: Type 92; the tail cone: a Type 99 20 mm cannon

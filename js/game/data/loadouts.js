@@ -91,6 +91,11 @@ export const LOADOUTS = {
     L('12x1000', '12 bombes de 1 000 lb', [{ ord: 'anm65', n: 12 }], ['armor', 'ship']),
     L('40x250', '40 bombes de 250 lb', [{ ord: 'anm57', n: 40 }], ['base']),
   ],
+  b26: [
+    L('8x500', '8 bombes de 500 lb en soute', [{ ord: 'anm64', n: 8 }], ['ship', 'base']),
+    L('4x1000', '4 bombes de 1 000 lb en soute', [{ ord: 'anm65', n: 4 }], ['armor', 'ship']),
+    L('16x250', '16 bombes de 250 lb en soute', [{ ord: 'anm57', n: 16 }], ['base']),
+  ],
   g4m: [
     L('torp', '1 torpille Type 91', [{ torp: 1 }], ['armor', 'ship'], { low: true }),
     L('800ap', '1 bombe perforante de 800 kg', [{ ord: 'jn80ap', n: 1 }], ['alt']),

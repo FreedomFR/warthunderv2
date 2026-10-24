@@ -33,6 +33,8 @@ import * as F6F_V4 from './aircraft/f6f_v4.js';
 import * as F4F_V4 from './aircraft/f4f_v4.js';
 import * as P38_V4 from './aircraft/p38_v4.js';
 import * as MOSQUITO_V4 from './aircraft/mosquito_v4.js';
+import * as B26_V4 from './aircraft/b26_v4.js';
+import * as N1K1_V4 from './aircraft/n1k1_v4.js';
 import * as FM2_V4 from './aircraft/fm2_v4.js';
 import * as F8F_V4 from './aircraft/f8f_v4.js';
 import * as TDB1_V4 from './aircraft/tdb1_v4.js';
@@ -221,6 +223,13 @@ export const PLANES = {
     tail: { x: -4.63, chord: 1.2, span: 3.22, fin: 1.18, finChord: 1.9, y: 0.22 }, canopy: [{ x0: -1.04, x1: 0.22, tx1: -0.1, h: 0.26 }],
     gear: 'retract', ordnance: null, groundY: 1.4, v4: SPITFIRE_V4, paint: 'spitfire',
   },
+  n1k1: {      // measured on the model of an N1K1-J (tools/refs/planegroups.py --measures): the wing 3.0 m of chord at the root and 1.0 m at 5.9 m from the centre line, mid-set; the tailplane 4.45 m, four blades of 1.69 m; the model stands on its long main legs, the game draws the tail wheel
+    name: 'Kawanishi N1K1-J Shiden', nation: 'Japan', role: 'interceptor', kind: 'mono', L: 8.74, span: 12.0, mass: 3.9, S: 23.5, hp: 3.0,
+    fus: { r: 0.8, ar: 1.05, x: -0.5 }, engine: { type: 'radial', r: 0.85, len: 1.2 }, prop: { r: 1.69, n: 4, x: 0 },
+    wing: { cr: 3.0, ct: 1.0, x: 0.41, y: -0.12, dih: 0.43, sweep: 0.55, t: 0.5 },
+    tail: { x: -4.25, chord: 1.22, span: 4.45, fin: 1.1, finChord: 1.9, y: 0.36 }, canopy: [{ x0: -1.0, x1: 1.0, tx1: 0.6, h: 0.35 }],
+    eye: { x: 0.25, y: 0.85, z: 0 }, gear: 'retract', ordnance: null, groundY: 1.98, tailWheel: 'game', v4: N1K1_V4, paint: 'n1k1',
+  },
   bf109t: {      // drawn from the model of a Bf 109 F-4 (tools/refs/planegroups.py --measures): the T-2's longer wing tips are not modelled; the hook stays procedural, the undercarriage is the game's (the model has it up)
     name: 'Messerschmitt Bf 109 F-4', nation: 'Germany', role: 'fighter', kind: 'mono', L: 8.85, span: 10.24, mass: 2.9, S: 16.05, hp: 2.6,
     fus: { r: 0.55, ar: 1.0, x: -0.3 }, engine: { type: 'inline', r: 0.42, len: 1.8 }, prop: { r: 1.46, n: 3, x: 0 },
@@ -249,6 +258,7 @@ export const PLANES = {
   he111: { ...HEAVY.he111, paintRGB: HEAVY.he111.paint, v4: HE111_V4, paint: 'he111' },
   p38: { ...HEAVY.p38, paintRGB: HEAVY.p38.paint, groundY: 2.1, v4: P38_V4, paint: 'p38' },          // the P-38 (an interceptor of the airfields) is drawn from the pieces of its model, its undercarriage by the sheet
   mosquito: { ...HEAVY.mosquito, paintRGB: HEAVY.mosquito.paint, groundY: 2.25, v4: MOSQUITO_V4, paint: 'mosquito' },          // the Mosquito (an interceptor of the airfields), on its tail wheel
+  b26: { ...HEAVY.b26, paintRGB: HEAVY.b26.paint, groundY: 2.35, v4: B26_V4, paint: 'b26' },          // the B-26B Invader (a light bomber of the American airfields), on its nose wheel
   b29: { ...HEAVY.b29, groundY: 3.0, v4: B29_V4, paint: 'b29' },          // the B-29 is drawn from the pieces of its model (model/v4plane.js drawV4Heavy)
 };
 
@@ -299,8 +309,9 @@ const ROSTER = {
   Italy: { dive: ['re2001'], torp: ['re2001t'], fighter: ['mc202'], level: ['sm79'] },
 };
 export const ROSTER_BASE = {      // the same shape: the roles that an airfield fills differently from a carrier ('interceptor': the twin-engine fighters that scramble from the airfields)
-  USA: { fighter: ['p40', 'f6f'], interceptor: ['p38'] },
+  USA: { fighter: ['p40', 'f6f'], interceptor: ['p38'], level: ['b17', 'b26'] },
   UK: { fighter: ['spitfire', 'fulmar'], interceptor: ['mosquito'] },
+  Japan: { interceptor: ['n1k1'] },
 };
 
 /** A stable number in [0, 1) from a name: the same carrier or airfield always flies the same type of a role. */

@@ -10,7 +10,7 @@ let fail = 0;
 const ok = (c, m) => { console.log(c ? 'PASS' : 'FAIL', m); if (!c) { fail++; process.exitCode = 1; } };
 const saved = ROSTER_BASE.USA;
 ROSTER_BASE.USA = { ...(saved || {}), interceptor: ['p40'] };
-ok(planeTypeFor('USA', 'interceptor', 'x', 'base') === 'p40' && planeTypeFor('Japan', 'interceptor', 'x', 'base') === undefined, 'the roster knows the interceptors of a nation, and a nation without one has none');
+ok(planeTypeFor('USA', 'interceptor', 'x', 'base') === 'p40' && planeTypeFor('Germany', 'interceptor', 'x', 'base') === undefined && planeTypeFor('Japan', 'interceptor', 'x', 'base') === 'n1k1', 'the roster knows the interceptors of a nation, and a nation without one has none');
 
 const results = [];
 for (const seed of [3, 4, 5]) {

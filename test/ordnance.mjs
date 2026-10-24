@@ -27,7 +27,7 @@ const ok = (c, m) => { console.log(c ? 'PASS' : 'FAIL', m); if (!c) { fail++; pr
   }
   ok(!missing.length, `every load of the ${Object.keys(LOADOUTS).length} aircraft types hangs bombs that exist${missing.length ? ' (missing ' + missing.join(', ') + ')' : ''}`);
   // loads against what the aircraft can lift: not more than the published maximum (the SBD 1 800 lb, the B-17 8 000 kg ...)
-  const MAX = { sbd: 1000, tbf: 1100, d3a: 400, b5n: 900, skua: 300, swordfish: 750, ju87: 800, fi167: 1100, ln401: 300, pl10: 700, re2001: 650, re2001t: 700, b17: 7000, g4m: 1500, lancaster: 7000, he111: 3000, sm79: 2600, leo451: 1700, p38: 1500, mosquito: 2000 };
+  const MAX = { sbd: 1000, tbf: 1100, d3a: 400, b5n: 900, skua: 300, swordfish: 750, ju87: 800, fi167: 1100, ln401: 300, pl10: 700, re2001: 650, re2001t: 700, b17: 7000, g4m: 1500, lancaster: 7000, he111: 3000, sm79: 2600, leo451: 1700, p38: 1500, mosquito: 2000, b26: 2000 };
   const over = [];
   for (const [t, list] of Object.entries(LOADOUTS)) for (const l of list) if (loadKg(l, PLANES[t] ? PLANES[t].nation : 'USA') > MAX[t]) over.push(`${t}/${l.id} ${loadKg(l).toFixed(0)} kg`);
   ok(!over.length, `no load heavier than the aircraft can lift${over.length ? ' (' + over.join(', ') + ')' : ''}`);

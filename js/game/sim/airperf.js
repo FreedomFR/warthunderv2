@@ -68,6 +68,10 @@ export const PERF = {
   sm79: { vmax: 121, vc: 94, vt: 0, vd: 0, vcl: 58, vp: 52, va: 41, vto: 38, vcomb: 0, bank: 40, pr: 0.14, asm: 600, bombAlt: 3500, bombSpeed: 82, vs: 32, climb: 4.3, ceil: 6500, runLen: 500, landRun: 450, roc: 4.3, roll: 0.4, nmax: 2.5, brakes: false },
   // LeO 451: 495 km/h at 4 000 m, cruise about 400 km/h, ceiling 9 000 m, climb about 7 m/s (4 000 m in 9 min), stall 130 km/h
   leo451: { vmax: 137, vc: 111, vt: 0, vd: 0, vcl: 70, vp: 62, va: 47, vto: 44, vcomb: 0, bank: 45, pr: 0.16, asm: 700, bombAlt: 4000, bombSpeed: 100, vs: 36, climb: 7.0, ceil: 9000, runLen: 700, landRun: 600, roc: 7.0, roll: 0.5, nmax: 2.5, brakes: false },
+  // B-26B Invader (A-26B-50): 359 mph (578 km/h) at 16 700 ft, about 335 mph (150 m/s) at the 3-4 km of the game, cruise 284 mph (457 km/h), 10 000 ft in 8 min 6 s (an average of 6.3 m/s; about 8 m/s at the 12.5 t of a sortie), ceiling 28 500 ft (8 690 m); the
+  // stall speed with the flaps down is about 85 mph (38 m/s), the approach 120 mph; a ground run of about 800 m at 12.5 t (Wikipedia, the Douglas A-26 article; the pilot's handbook for the figures of the stall and the run); a light
+  // wing loading (250 kg/m2) and light ailerons: it banks and turns better than a heavy bomber and does not roll like a fighter
+  b26: { vmax: 150, vc: 122, vt: 0, vd: 0, vcl: 80, vp: 66, va: 52, vto: 50, vcomb: 0, bank: 50, pr: 0.2, asm: 600, bombAlt: 3500, bombSpeed: 105, vs: 40, climb: 8, ceil: 8690, runLen: 800, landRun: 650, roc: 8, roll: 0.8, nmax: 3.5, brakes: false },
   // ---- land-based interceptors (twin-engine fighters that scramble from the airfields: the fields of a fighter, the take-off run and landing run of the airfields) ----
   // P-38G: 400 mph (645 km/h) at 25 000 ft (7 600 m) with the turbochargers, about 345 mph (555 km/h) at sea level and 365 mph (587 km/h, 163 m/s) at the 3 km of the game; about 2 600 ft/min (13 m/s) at sea level at the
   // weight of a sortie (7.1 t), ceiling 11 900 m; stall about 170 km/h with the Fowler flaps down, take-off run about 750 m. The ailerons are not boosted (the boost came with the J-25 and the L): a good roll at the speeds of the fight,
@@ -76,6 +80,9 @@ export const PERF = {
   // Mosquito FB Mk VI: 380 mph (610 km/h) at 13 000 ft, about 335 mph (540 km/h) at sea level and 360 mph (580 km/h, 161 m/s) at the 3 km of the game, 2 850 ft/min (14.5 m/s) at sea level at the 8-9 t of a sortie
   // (about 13.5 m/s here), ceiling 9 000 m, stall about 160 km/h with the flaps down; the ailerons are light at low speed and heavy at the speeds of the fight; take-off run about 650 m
   mosquito: { vmax: 161, vc: 118, vt: 0, vd: 0, vcl: 76, vp: 66, va: 55, vto: 48, vcomb: 130, bank: 82, pr: 0.5, asm: 350, runLen: 650, landRun: 550, roc: 13.5, roll: 1.0, nmax: 5.5, brakes: false },
+  // N1K1-J Shiden: 583 km/h (162 m/s) at 5 600 m, about 560 km/h (156 m/s) at the 3 km of the game, 6 000 m in 7 min 50 s (an average of 12.8 m/s; about 15.5 m/s at sea level at the 3.9 t of a sortie), ceiling 10 760 m,
+  // stall about 130 km/h with the automatic combat flaps, a hard aircraft to take off and land (a long run, the torque of the Homare); a wing loading of 166 kg/m2 and a good aileron wing
+  n1k1: { vmax: 156, vc: 108, vt: 0, vd: 0, vcl: 66, vp: 56, va: 41, vto: 38, vcomb: 125, bank: 82, pr: 0.7, asm: 350, runLen: 600, landRun: 600, roc: 15.5, roll: 1.4, nmax: 6.5, brakes: false },
 };
 export const perfOf = (p) => PERF[p.typeKey] || PERF.sbd;
 
