@@ -16,6 +16,7 @@ import { planeId, bombId, FIGHT_CTX, arm, dropTorpedo } from './aircraft.js';
 import { guide, setVel, stallSpeed } from './flight.js';
 import { repairPlane } from './planedamage.js';
 import { chooseSite, divert } from './landing.js';
+import { chooseApproach } from './routing.js';
 import { genericBomb } from '../data/ordnance.js';
 
 const GROUND_STATES = new Set(['parked', 'taxiOut', 'holdshort', 'lineup', 'groundRun', 'lroll', 'taxiBack', 'park']);
@@ -565,8 +566,18 @@ function stepAir(world, p, dt, base, F, pf, T) {
       hdg = atan2h(dx, dz);
       gam = clamp((p.cruiseAlt - p.y) / 1100, -0.05, 0.07);
       spd = pf.vc;
-      if (range < 12000 && (p.y > p.cruiseAlt - 350 || range < 7500) && (!wave || wave.assessed)) { p.phase = 'run'; p.t = 0; p.stick = 0; }
-      else if (range < 12000 && p.t > 300) { p.phase = 'run'; p.t = 0; }
+      // the way in on a ship: on the beam for a torpedo (the most of her to hit), from ahead for a bomb (along her length), by a point 8.5 km out on that bearing (a wave chooses one)
+      let wpOk = true;
+      if (tgt.heading != null && !tgt.isBase && range < 40000) {
+        const src = wave || p;
+        if (src.apAng === undefined) src.apAng = chooseApproach(world, p.team, p, tgt, p.loadout && p.loadout.stores.some((st) => st.torp) ? 'torp' : 'dive');
+        if (!p._wpDone) {
+          const wx = tgt.x + tgt.vx * 40 + Math.sin(src.apAng) * 8500 - p.x, wz = tgt.z + tgt.vz * 40 - Math.cos(src.apAng) * 8500 - p.z;
+          if (Math.hypot(wx, wz) < 1800 || range < 6500) p._wpDone = true; else { hdg = atan2h(wx, wz); wpOk = false; }
+        }
+      }
+      if (wpOk && range < 12000 && (p.y > p.cruiseAlt - 350 || range < 7500) && (!wave || wave.assessed)) { p.phase = 'run'; p.t = 0; p.stick = 0; }
+      else if (wpOk && range < 12000 && p.t > 300) { p.phase = 'run'; p.t = 0; }
       break;
     }
     case 'run': {
@@ -581,7 +592,7 @@ function stepAir(world, p, dt, base, F, pf, T) {
         gam = clamp((60 - p.y) / 260, -0.07, 0.05);
         spd = Math.min(pf.vc, 80);
         o = { bankMax: 20 * D2R };
-        if (rng0 < 1100 && p.y < 120 && (Math.abs(wrapPi(hdg - p.heading)) < 0.07 || rng0 < 700)) { dropTorpedo(world, p, tgt, rng0, nTorp); p.phase = 'egress'; p.t = 0; }
+        if (rng0 < 1100 && p.y < 120 && (Math.abs(wrapPi(hdg - p.heading)) < 0.07 || rng0 < 700)) { dropTorpedo(world, p, tgt, rng0, nTorp); p.phase = 'egress'; p.t = 0; p.torpOut = true; }
         if (rng0 > 25000 || p.t > 180) { p.phase = 'egress'; p.t = 0; }
         break;
       }
@@ -609,9 +620,10 @@ function stepAir(world, p, dt, base, F, pf, T) {
     case 'egress': {
       const tg = p.target;
       const away = tg ? Math.atan2(p.x - tg.x, -(p.z - tg.z)) : p.heading;
-      hdg = p.t < 14 ? p.heading : away + p.jitter * 0.6;
+      // (a bomber that has let go of its bombs flies straight on for a while; one that has let go of its torpedoes, a kilometre from the ship, turns away at once, not over her)
+      hdg = p.torpOut ? away + (p.jitter >= 0 ? 0.35 : -0.35) : p.t < 14 ? p.heading : away + p.jitter * 0.6;
       if (p.t > 14) { const T = F.toW(F.sThr, 0); hdg = safeHeading(world, p, T[0], T[1], world.time).hdg; }       // home, out of the reach of the guns
-      gam = 0.0; spd = pf.vc; o = { bankMax: 22 * D2R };
+      gam = 0.0; spd = pf.vc; o = { bankMax: (p.torpOut && p.t < 14 ? 45 : 22) * D2R };
       if (p.t > 40) p.phase = 'return';
       break;
     }

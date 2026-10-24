@@ -85,8 +85,12 @@ export function chooseApproach(world, team, from, target, kind, taken = []) {
   const tx = target.x + (target.vx || 0) * eta, tz = target.z + (target.vz || 0) * eta;
   const a0 = Math.atan2(from.x - tx, -(from.z - tz));
   const W = 9800, step = 400;
+  // how the ship is sailing: a torpedo has the most to hit on the beam of a ship (the aspect 90 degrees), a bomb falls best on one that is coming at the aircraft, along its length (the aspect 0:
+  // from ahead); a base has no bow, and no penalty
+  const spd = Math.hypot(target.vx || 0, target.vz || 0), th = spd > 1 ? Math.atan2(target.vx, -target.vz) : target.heading;
+  const aspW = world.airOpts && world.airOpts.aspect === 0 ? 0 : kind === 'torp' ? 7 : 4;
   let best = null;
-  for (let k = -6; k <= 6; k++) {
+  for (let k = -9; k <= 9; k++) {
     const a = a0 + k * 0.3;
     const wx = tx + Math.sin(a) * W, wz = tz - Math.cos(a) * W;
     let cost = 0;
@@ -101,6 +105,10 @@ export function chooseApproach(world, team, from, target, kind, taken = []) {
     seg(from.x, from.z, wx, wz, false);
     seg(wx, wz, tx, tz, false);
     cost += 0.35 * Math.abs(k);
+    if (aspW && th != null) {
+      const asp = Math.abs(wrapPi(a - th));      // 0: from the bow, PI: from the stern
+      cost += kind === 'torp' ? aspW * Math.pow(Math.abs(asp - Math.PI / 2) / (Math.PI / 2), 2) : aspW * Math.pow(asp / Math.PI, 1.5);
+    }
     for (const t of taken) cost += 1.4 * Math.max(0, 1 - Math.abs(wrapPi(a - t)) / 0.55);
     if (!best || cost < best.cost) best = { a, cost, k };
   }

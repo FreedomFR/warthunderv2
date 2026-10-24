@@ -628,8 +628,8 @@ function stepPlane(world, p, dt) {
     }
     case 'break': {
       // torpedo bomber: hard turn away low over the water
-      const ang = p.ipAngle ?? p.heading;
-      hdg = p.heading + (p.jitter >= 0 ? 1 : -1) * 0.9;
+      // (away from the ship at once, not on past her: the side is the one the aircraft is on)
+      hdg = tgt ? Math.atan2(p.x - tgt.x, -(p.z - tgt.z)) + (p.jitter >= 0 ? 1 : -1) * 0.5 : p.heading + (p.jitter >= 0 ? 1 : -1) * 0.9;
       gam = clamp((70 - p.y) / 200, -0.05, 0.08);
       o = { bankMax: 62 * D2R };
       spd = Math.min(pf.vmax * 0.92, pf.vt * 1.3);
