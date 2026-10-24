@@ -16,6 +16,8 @@ import { HEAVY } from './bomberdata.js';
 import { planeGuns, drawGunHead } from './planeGuns.js';
 import { drawFixedGuns } from './fixedGuns.js';
 import { drawV4Plane, drawV4Heavy } from './v4plane.js';
+import { SCALE as ORD_SCALE, ORDNANCE } from './ordnance_v4.js';
+import { decodeBaked } from './bakedmesh.js';
 import * as D3A_V4 from './aircraft/d3a_v4.js';
 import * as A6M_V4 from './aircraft/a6m_v4.js';
 import * as SBD_V4 from './aircraft/sbd_v4.js';
@@ -702,47 +704,21 @@ function biplaneWing(b, s, sg, top, bot, acc) {
   b.beam([xU, yU - w.t / 2, sg * hs * 0.38], [xL, yL + w.t / 2, sg * 0.4], 0.018, 0.018, shade(strut, 0.6), MAT.DARK, { caps: false });
 }
 
-/** Aerial torpedo: cylinder with rounded nose, contra-rotating props and fins (origin = centre). */
-export function drawTorpedo(b, x, y, z, scale = 1) {
-  const len = 5.3 * scale, r = 0.225 * scale;
-  const body = rgb('#5d6468'), warm = rgb('#9a7a3a'), dark = rgb('#2a2c2e');
-  const st = [];
-  const n = 9;
-  for (let i = 0; i <= n; i++) {
-    const u = i / n, xx = x + len / 2 - u * len;
-    let rr = r;
-    if (u < 0.1) rr = r * Math.sqrt(1 - Math.pow(1 - u / 0.1, 2));
-    else if (u > 0.82) rr = r * (1 - 0.6 * (u - 0.82) / 0.18);
-    st.push({ x: xx, ry: Math.max(rr, 0.02), rz: Math.max(rr, 0.02), yc: y, zc: z });
-  }
-  loft(b, st, (sn) => (sn > 0.8 ? warm : body), MAT.HULL, { seg: 10 });
-  b.cylinder(x - len / 2 - 0.05, y - 0.02, z, 0.05, 0.02, y + 0.02, dark, MAT.DARK, { seg: 4 });
-  const xt = x - len / 2 + 0.3;
-  b.box(xt, y, z, 0.5, 0.04, r * 4.2, dark, MAT.DARK);
-  b.box(xt, y, z, 0.5, r * 4.2, 0.04, dark, MAT.DARK);
-  b.box(x + len * 0.18, y + r * 0.9, z, 0.18, 0.07, 0.1, dark, MAT.DARK);       // exploder pistol
+const ordCache = new Map();
+/** A bomb or a torpedo of the reference models (model/ordnance_v4.js: along x, nose on +x, centred) at (x, y, z), its size multiplied by k. */
+function drawOrdnance(b, name, x, y, z, k) {
+  let d = ordCache.get(name);
+  if (!d) { d = decodeBaked(ORDNANCE[name], ORD_SCALE, 40); ordCache.set(name, d); }
+  const pos = new Float32Array(d.pos.length), o = [x, y, z];
+  for (let i = 0; i < pos.length; i++) pos[i] = d.pos[i] * k + o[i % 3];
+  b.raw(pos, d.nrm, d.col, d.idx, MAT.HULL);
 }
 
-/** General purpose bomb (centre = origin), mass decides the size. */
-export function drawBomb(b, x, y, z, kg = 250) {
-  const sc = Math.cbrt(kg / 250);
-  const len = 1.45 * sc, r = 0.2 * sc;
-  const body = rgb('#4c5648'), band = rgb('#d6b43a'), dark = rgb('#24272a');
-  const st = [];
-  const n = 8;
-  for (let i = 0; i <= n; i++) {
-    const u = i / n, xx = x + len * 0.5 - u * len;
-    let rr = r;
-    if (u < 0.2) rr = r * Math.sqrt(1 - Math.pow(1 - u / 0.2, 2));
-    else if (u > 0.62) rr = r * (1 - 0.72 * (u - 0.62) / 0.38);
-    st.push({ x: xx, ry: Math.max(rr, 0.02), rz: Math.max(rr, 0.02), yc: y, zc: z });
-  }
-  loft(b, st, (sn) => body, MAT.HULL, { seg: 9 });
-  b.cylinder(x + len * 0.18, y - 0.0, z, r * 1.01, r * 1.01, y + 0.0, band, MAT.HULL, { seg: 3 });
-  const xt = x - len * 0.4;
-  b.box(xt, y, z, len * 0.28, 0.03, r * 3.4, dark, MAT.DARK);
-  b.box(xt, y, z, len * 0.28, r * 3.4, 0.03, dark, MAT.DARK);
-}
+/** Aerial torpedo (an 18 in torpedo of 5.2 m, origin = centre), its size multiplied by `scale`. */
+export function drawTorpedo(b, x, y, z, scale = 1) { drawOrdnance(b, 'torpedo', x, y, z, scale); }
+
+/** General purpose bomb (centre = origin), mass decides the size (a 250 kg bomb is 1.45 m long). */
+export function drawBomb(b, x, y, z, kg = 250) { drawOrdnance(b, 'bomb', x, y, z, Math.cbrt(kg / 250)); }
 
 // ---- complete, GPU-ready aircraft models --------------------------------------------------------------------
 const cache = new Map();
