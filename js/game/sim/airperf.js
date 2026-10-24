@@ -80,6 +80,9 @@ export const PERF = {
   // Mosquito FB Mk VI: 380 mph (610 km/h) at 13 000 ft, about 335 mph (540 km/h) at sea level and 360 mph (580 km/h, 161 m/s) at the 3 km of the game, 2 850 ft/min (14.5 m/s) at sea level at the 8-9 t of a sortie
   // (about 13.5 m/s here), ceiling 9 000 m, stall about 160 km/h with the flaps down; the ailerons are light at low speed and heavy at the speeds of the fight; take-off run about 650 m
   mosquito: { vmax: 161, vc: 118, vt: 0, vd: 0, vcl: 76, vp: 66, va: 55, vto: 48, vcomb: 130, bank: 82, pr: 0.5, asm: 350, runLen: 650, landRun: 550, roc: 13.5, roll: 1.0, nmax: 5.5, brakes: false },
+  // N1K1-J Shiden: 583 km/h (162 m/s) at 5 600 m, about 560 km/h (156 m/s) at the 3 km of the game, 6 000 m in 7 min 50 s (an average of 12.8 m/s; about 15.5 m/s at sea level at the 3.9 t of a sortie), ceiling 10 760 m,
+  // stall about 130 km/h with the automatic combat flaps, a hard aircraft to take off and land (a long run, the torque of the Homare); a wing loading of 166 kg/m2 and a good aileron wing
+  n1k1: { vmax: 156, vc: 108, vt: 0, vd: 0, vcl: 66, vp: 56, va: 41, vto: 38, vcomb: 125, bank: 82, pr: 0.7, asm: 350, runLen: 600, landRun: 600, roc: 15.5, roll: 1.4, nmax: 6.5, brakes: false },
 };
 export const perfOf = (p) => PERF[p.typeKey] || PERF.sbd;
 
