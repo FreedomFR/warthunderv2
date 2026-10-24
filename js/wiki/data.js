@@ -1,7 +1,7 @@
 // Data adapter of the wiki: reads the same spec sheets as the game (js/game/data, js/game/model/planes.js) and turns them into
 // display records (French labels, number formatting, tiers, statistic sections). Nothing is copied: the wiki never goes out of date.
 import { ALL_SHIPS, NATIONS, ALL_NATIONS, TYPES, typeName } from '../game/data/ships.js';
-import { PLANES, floatplaneSpec, planeTypeFor } from '../game/model/planes.js';
+import { PLANES, floatplaneSpec, planeTypesFor } from '../game/model/planes.js';
 import { PERF } from '../game/sim/airperf.js';
 import { shipName, ROLE_NAMES } from '../viewer/subjects.js';
 import { tierOf } from './tiers.js';
@@ -232,7 +232,7 @@ function makeAircraft(key, spec) {
   let users = [];
   if (key.startsWith('plane:')) {
     const k = key.slice(6);
-    users = SHIPS.filter((r) => r.nation === spec.nation && r.type === 'CV').filter((r) => ['dive', 'torp', 'fighter'].some((role) => planeTypeFor(spec.nation, role) === k));
+    users = SHIPS.filter((r) => r.nation === spec.nation && r.type === 'CV').filter((r) => ['dive', 'torp', 'fighter'].some((role) => planeTypesFor(spec.nation, role).includes(k)));
   } else {
     users = SHIPS.filter((r) => r.nation === spec.nation && r.type !== 'CV' && r.spec.aircraft && r.spec.aircraft.capacity > 0 && r.type !== 'DD');
   }

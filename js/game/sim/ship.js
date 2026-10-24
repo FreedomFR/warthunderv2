@@ -112,7 +112,7 @@ export class Ship {
     // the share of fighters in the air group (escort and patrol) depends on the navy (USN 1944: 36 of 91), the rest are bombers
     const nFight = stats.air ? Math.round(stats.air.capacity * ({ USA: 0.38, UK: 0.34, Germany: 0.4, Italy: 0.35 }[stats.nation] ?? 0.26)) : 0;
     this.air = stats.air ? { ready: stats.air.capacity - nFight, fReady: nFight, cap0: stats.air.capacity, fCap0: nFight, cooldown: world.rng.range(5, 25), capCooldown: 30, wave: 0, servicing: [] } : null;      // (cap0 / fCap0: what she sailed with, for the port to restore)
-    this.parkType = this.air ? planeTypeFor(stats.nation, 'dive') : null;
+    this.parkType = this.air ? planeTypeFor(stats.nation, 'dive', name) : null;
     this.parked = 0;
     // fire control
     this.gunAcc = 2.2; this.accTarget = -1; this.accT = 0;

@@ -57,7 +57,7 @@ function fieldOf(base) {
 
 /** A new aircraft parked in a slot of the base. role: 'level' (the heavy bomber) or 'fighter'. */
 function makePlane(world, base, slot, role) {
-  const typeKey = (role !== 'fighter' && base.nation === 'USA' && base.layout.guns.length > 8 ? 'b29' : planeTypeFor(base.nation, role === 'fighter' ? 'fighter' : 'level')) || planeTypeFor(base.nation, 'torp');      // (an American airfield of the second level flies the B-29, the others the B-17)
+  const typeKey = (role !== 'fighter' && base.nation === 'USA' && base.layout.guns.length > 8 ? 'b29' : planeTypeFor(base.nation, role === 'fighter' ? 'fighter' : 'level', base.id, 'base')) || planeTypeFor(base.nation, 'torp', base.id);      // (an American airfield of the second level flies the B-29, the others the B-17)
   const spec = PLANES[typeKey];
   if (!spec) return null;
   const q = base.layout.slots[slot], heavy = role !== 'fighter';

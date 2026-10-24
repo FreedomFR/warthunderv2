@@ -222,7 +222,7 @@ function ceaseFire(world) {
 // ---- fighters ----------------------------------------------------------------------------------------------------
 /** The fighters of a launch: n aircraft, in the order of the deck queue after the ones already in wave.planes. */
 function spawnFighters(world, ship, wave, n, role) {
-  const typeKey = planeTypeFor(ship.stats.nation, 'fighter'), spec = PLANES[typeKey];
+  const typeKey = planeTypeFor(ship.stats.nation, 'fighter', ship.name), spec = PLANES[typeKey];
   for (let j = 0; j < n; j++) {
     const p = {
       id: nextPlane++, owner: ship, team: ship.team, kind: 'fighter', typeKey, spec, wave, sec: null,
@@ -290,7 +290,7 @@ function launches(world, dt) {
     const dp = ship.model.deckPoints;
     const wave = { ship, n, id: air.wave, launched: 0, assessed: false, aborted: false, t0: world.time, planes: [] };
     const order = wave.planes;
-    const dive = planeTypeFor(ship.stats.nation, 'dive'), torp = planeTypeFor(ship.stats.nation, 'torp');
+    const dive = planeTypeFor(ship.stats.nation, 'dive', ship.name), torp = planeTypeFor(ship.stats.nation, 'torp', ship.name);
     // the composition: a little over half torpedo bombers; sections of three (a leftover pair, or a fourth aircraft in a section); dive bombers off the deck first
     const nT = shipTarget ? Math.round(n * 0.55) : 0, nD = n - nT;
     const split = (c) => { const out = []; let r = c; while (r > 0) { const k = r === 4 ? 4 : Math.min(3, r); out.push(k); r -= k; } if (out.length > 1 && out[out.length - 1] === 1) { out.pop(); out[out.length - 1]++; } return out; };

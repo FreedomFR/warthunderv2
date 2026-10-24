@@ -233,13 +233,40 @@ export function damageSites(spec) {
   return d;
 }
 
-/** Which aircraft a nation flies for a role ('dive' | 'torp' | 'fighter' from its carriers, 'level': the land-based bomber of its airfields). */
-export function planeTypeFor(nation, role) {
-  const t = {
-    USA: { dive: 'sbd', torp: 'tbf', fighter: 'f6f', level: 'b17' }, Japan: { dive: 'd3a', torp: 'b5n', fighter: 'a6m', level: 'g4m' }, UK: { dive: 'skua', torp: 'swordfish', fighter: 'fulmar', level: 'lancaster' },
-    USSR: { dive: 'il2' }, Germany: { dive: 'ju87', torp: 'fi167', fighter: 'bf109t', level: 'he111' }, France: { dive: 'ln401', torp: 'pl10', fighter: 'd520', level: 'leo451' }, Italy: { dive: 're2001', torp: 're2001t', fighter: 'mc202', level: 'sm79' },
-  }[nation] || { dive: 'sbd', torp: 'tbf', fighter: 'f6f', level: 'b17' };
-  return t[role];
+/**
+ * What each nation flies, role by role (the first of a list is the usual one; a type can be listed twice to be met twice as often): from its carriers ('dive' | 'torp' | 'fighter')
+ * and from its airfields ('fighter' | 'level': land-based types come in as models are added, so list them under `base`).
+ */
+const ROSTER = {
+  USA: { dive: ['sbd'], torp: ['tbf'], fighter: ['f6f'], level: ['b17'] }, Japan: { dive: ['d3a'], torp: ['b5n'], fighter: ['a6m'], level: ['g4m'] },
+  UK: { dive: ['skua'], torp: ['swordfish'], fighter: ['fulmar'], level: ['lancaster'] }, USSR: { dive: ['il2'] },
+  Germany: { dive: ['ju87'], torp: ['fi167'], fighter: ['bf109t'], level: ['he111'] }, France: { dive: ['ln401'], torp: ['pl10'], fighter: ['d520'], level: ['leo451'] },
+  Italy: { dive: ['re2001'], torp: ['re2001t'], fighter: ['mc202'], level: ['sm79'] },
+};
+const ROSTER_BASE = {};      // the same shape: the roles that an airfield fills differently from a carrier
+
+/** A stable number in [0, 1) from a name: the same carrier or airfield always flies the same type of a role. */
+function pickOf(name) {
+  let h = 2166136261;
+  for (let i = 0; i < name.length; i++) h = Math.imul(h ^ name.charCodeAt(i), 16777619);
+  return ((h >>> 0) % 10007) / 10007;
+}
+
+/**
+ * Which aircraft a nation flies for a role ('dive' | 'torp' | 'fighter' from its carriers, 'level': the land-based bomber of its airfields). `who` names the carrier or the airfield
+ * (a ship's name, a base's id): when the nation has several types for the role, the name picks one, always the same; without it the usual type. `site`: 'base' for an airfield.
+ */
+export function planeTypeFor(nation, role, who, site) {
+  const n = ROSTER[nation] ? nation : null, list = n && ((site === 'base' && ROSTER_BASE[n] && ROSTER_BASE[n][role]) || ROSTER[n][role]);
+  if (!n) return { dive: 'sbd', torp: 'tbf', fighter: 'f6f', level: 'b17' }[role];
+  if (!list || !list.length) return undefined;
+  return list.length === 1 || who == null ? list[0] : list[Math.floor(pickOf(role + ':' + who) * list.length)];
+}
+
+/** Every type a nation can field for a role (carrier and airfield): to prepare the pictures, to list who flies what. */
+export function planeTypesFor(nation, role) {
+  const out = new Set([...(ROSTER[nation] && ROSTER[nation][role] || []), ...(ROSTER_BASE[nation] && ROSTER_BASE[nation][role] || [])]);
+  return [...out];
 }
 
 /**
