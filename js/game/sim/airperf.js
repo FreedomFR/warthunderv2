@@ -28,6 +28,8 @@ export const PERF = {
   f4f: { vmax: 147, vc: 78, vt: 0, vd: 0, vcl: 52, vp: 46, va: 35, vto: 31, vcomb: 108, bank: 82, pr: 0.75, asm: 350, roc: 11.7, roll: 1.3, nmax: 6.5, brakes: false },
   // FM-2: 534 km/h (332 mph) with the Wright R-1820-56 and its water injection, 3 650 ft/min at sea level (about 14 m/s at the weight of a sortie), stall about 110 km/h with the flaps down at 3.75 t; the Wildcat made for the short decks of the escort carriers
   fm2: { vmax: 148, vc: 80, vt: 0, vd: 0, vcl: 54, vp: 47, va: 36, vto: 31, vcomb: 109, bank: 82, pr: 0.75, asm: 350, roc: 14, roll: 1.4, nmax: 6.5, brakes: false },
+  // F8F-1: 421 mph (678 km/h) at 6 000 m (about 630 km/h at the 2-3 km of the game), 4 800 ft/min (24 m/s) at sea level at the weight of a sortie (4.1 t), the best climber of the carrier fighters; a short take-off and a tight turn (wing loading 181 kg/m2, the roll of a light aileron wing)
+  f8f: { vmax: 176, vc: 98, vt: 0, vd: 0, vcl: 68, vp: 52, va: 38.5, vto: 34, vcomb: 132, bank: 82, pr: 0.8, asm: 350, roc: 24, roll: 1.7, nmax: 6.5, brakes: false },
   // P-40E: 354 mph (570 km/h) at 4 600 m, 2 100 ft/min (11 m/s) at sea level with the load of a sortie, the roll of a heavy-aileron fighter, about 6.5 g at the most
   p40: { vmax: 155, vc: 100, vt: 0, vd: 0, vcl: 64, vp: 54, va: 40, vto: 37, vcomb: 125, bank: 82, pr: 0.65, asm: 350, roc: 11, roll: 1.2, nmax: 6.5, brakes: false },
   // Spitfire Mk XII: 393 mph (632 km/h) at 5 500 m, about 4 000 ft/min (20 m/s) with the load of a sortie, 7 400 lb loaded; a light, tight-turning fighter
