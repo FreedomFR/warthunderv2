@@ -61,6 +61,9 @@ else:
 ux, uz = f
 # new x along the nose, new z to starboard (forward x up = right: right = (-uz, 0, ux) in the frame of the bake), y up
 Q = np.stack([P[:, 0] * ux + P[:, 2] * uz, P[:, 1], -P[:, 0] * uz + P[:, 2] * ux], axis=1)
+if cfg.get('pitch_deg'):
+    # a model standing on its wheels has its nose up (the disc of its propeller is tilted): turned about the lateral axis, nose down by this angle, so that the axis of the engine is the x axis
+    th = np.radians(cfg['pitch_deg']); Q = np.stack([Q[:, 0] * np.cos(th) + Q[:, 1] * np.sin(th), -Q[:, 0] * np.sin(th) + Q[:, 1] * np.cos(th), Q[:, 2]], axis=1)
 keep_v = ~dropm[VM]
 wingm = sel_mats(cfg['wing']) if cfg.get('wing') else np.ones(len(names), bool)
 sc_cfg = cfg['scale']
@@ -75,7 +78,7 @@ L = xn - xt
 zw = Q[wingm[VM] & keep_v][:, 2]
 zc = (zw.max() + zw.min()) / 2
 hub = Q[vn & keep_v & (Q[:, 0] > xn - cfg.get('hub_depth', 0.5 if cfg.get('nose') else 0.35))]      # (hub_depth: how far behind the tip of the nose the centre of the spinner is read: not so far that the blades count, they are not about the axis)
-ax = float(cfg['axis_y']) if 'axis_y' in cfg else float((hub[:, 1].max() + hub[:, 1].min()) / 2)
+ax = float(cfg['axis_y']) if 'axis_y' in cfg else float((hub[:, 1].max() + hub[:, 1].min()) / 2) + float(cfg.get('axis_offset', 0))      # (axis_offset: m, when the points found at the tip of the nose are not the hub: a mooring ring at the bow of a float)
 ON = cfg['origin_nose'] if 'origin_nose' in cfg else 0.42 * L      # (origin_nose: where the nose is in the game's frame, when the model has things beyond its ends that are dropped: the barrels of its tail guns)
 Q[:, 0] -= xn - ON; Q[:, 1] -= ax; Q[:, 2] -= zc
 low = Q[keep_v][:, 1].min()
@@ -187,6 +190,13 @@ def measures():
         if len(q): print(f'{nm}: x {q[:,0].min():.2f}..{q[:,0].max():.2f} y {q[:,1].min():.2f}..{q[:,1].max():.2f} z {q[:,2].min():.2f}..{q[:,2].max():.2f}' + (f' radius {np.hypot(q[:,1], q[:,2]).max():.2f}' if nm == 'prop' else ''))
 
 if fl.get('measures') or fl.get('probe2'): measures()
+
+if fl.get('inbox'):      # --inbox=x0,x1,y0,y1,z0,z1 (game frame): what is in a box, by material: the triangles, their extents and their mean colour (to write a box rule: a wheel, a tail wheel, a gun)
+    c = [float(v) for v in fl['inbox'].split(',')]
+    sel = (cen[:, 0] >= c[0]) & (cen[:, 0] <= c[1]) & (cen[:, 1] >= c[2]) & (cen[:, 1] <= c[3]) & (cen[:, 2] >= c[4]) & (cen[:, 2] <= c[5])
+    for mi in np.unique(tmat[sel]):
+        t = np.where(sel & (tmat == mi))[0]; q = Q[np.unique(I[t])]; mc = C[I[t]].mean((0, 1))
+        print(f'{mname(mi)[:34]:34} {len(t):6} part {",".join(sorted(set(part[t])))[:20]:20} x {q[:,0].min():.2f}..{q[:,0].max():.2f} y {q[:,1].min():.2f}..{q[:,1].max():.2f} z {q[:,2].min():.2f}..{q[:,2].max():.2f} rgb {mc.astype(int).tolist()}')
 
 def pack(a):
     return base64.b64encode(a.tobytes()).decode()

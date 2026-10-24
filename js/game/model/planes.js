@@ -24,6 +24,8 @@ import * as IL2_V4 from './aircraft/il2_v4.js';
 import * as BF109_V4 from './aircraft/bf109_v4.js';
 import * as B29_V4 from './aircraft/b29_v4.js';
 import * as B17_V4 from './aircraft/b17_v4.js';
+import * as JU87_V4 from './aircraft/ju87_v4.js';
+import * as RO43_V4 from './aircraft/ro43_v4.js';
 
 const PI = Math.PI;
 const D2R = PI / 180;
@@ -41,8 +43,8 @@ export const PAINT = {
 
 // ---- aircraft specification sheets --------------------------------------------------------------------------
 // The tailplane span is the TOTAL span (the three aircraft with a drawing -- SBD 5.4 m, B5N 4.9 m, Skua 4.9 m -- were measured on it; the others
-// are 0.33 of the wing span, estimated: they had been drawn at about half the real size). Exception: the Ju 87's tailplane, measured on a 1:72
-// sheet, is only 3.0 m (0.22 of the span).
+// are 0.33 of the wing span, estimated: they had been drawn at about half the real size). The Ju 87's tailplane is the model's 5.1 m (0.37 of the span;
+// a 1:72 sheet had given 3.0 m).
 // L length, span, fus: {r maximum radius, ar ratio height/width}, engine: {r cowl radius, len, type},
 // wing: {cr root chord, ct tip chord, x mid-chord position, y height, dih dihedral, gull inverted gull, sweep, t thickness}
 export const PLANES = {
@@ -89,12 +91,12 @@ export const PLANES = {
     tail: { x: -4.4, chord: 1.4, span: 4.9, fin: 1.4, finChord: 1.7, y: 0.15 }, canopy: [{ x0: 0.0, x1: 1.5, tx1: 1.15, h: 0.6 }, { x0: -2.0, x1: -0.7, tx1: -1.0, h: 0.5 }],
     gear: 'retract', ordnance: 'bomb',
   },
-  ju87: {
-    name: 'Junkers Ju 87 C Stuka', nation: 'Germany', role: 'dive', kind: 'mono', L: 11.1, span: 13.8, mass: 4.6, hp: 3.6, bombKg: 500, siren: true,
+  ju87: {      // the shape is a Ju 87 B-2 (tools/refs/planegroups.py --measures; no spats, the leg fairings and the open wheels as modelled): the inverted gull wing, the braced tailplane 5.1 m across, the fixed undercarriage and the tail wheel are in the model, which stands nose up at 11 degrees on them
+    name: 'Junkers Ju 87 C Stuka', nation: 'Germany', role: 'dive', kind: 'mono', L: 11.2, span: 13.8, mass: 4.6, S: 31.9, hp: 3.6, bombKg: 500, siren: true,
     fus: { r: 0.62, ar: 1.2, x: -0.3 }, engine: { type: 'inline', r: 0.46, len: 1.9 }, prop: { r: 1.7, n: 3, x: 0 },
-    wing: { cr: 2.9, ct: 1.1, x: -0.1, y: -0.45, dih: 0.0, gull: 0.95, sweep: 0.15, t: 0.4 },
-    tail: { x: -4.8, chord: 1.0, span: 3.0, fin: 1.7, finChord: 1.9, y: 0.2 }, canopy: [{ x0: 0.0, x1: 2.9, tx1: 2.2, h: 0.78 }],
-    gear: 'spats', ordnance: 'bomb',
+    wing: { cr: 3.3, ct: 1.1, x: 0.5, y: -0.45, dih: 0.0, gull: 0.95, sweep: 0.15, t: 0.4 },
+    tail: { x: -5.4, chord: 1.0, span: 5.1, fin: 1.9, finChord: 1.9, y: 0.95 }, canopy: [{ x0: 0.2, x1: 1.77, tx1: 1.2, h: 0.78 }, { x0: -1.68, x1: -0.6, tx1: -0.9, h: 1.14 }],
+    gear: 'spats', ordnance: 'bomb', groundY: 1.93, groundPitch: 0.19, bombPos: { x: 1.1, y: -0.55, wx: 1.1, wy: -0.45, wz: 3.6, wdz: 0.5 }, v4: JU87_V4, paint: 'ju87',
   },
   fi167: {
     name: 'Fieseler Fi 167', nation: 'Germany', role: 'torp', kind: 'bi', L: 11.4, span: 13.5, mass: 4.2, hp: 3.5,
@@ -196,7 +198,7 @@ const FLOATPLANES = {
   UK: { name: 'Supermarine Walrus', nation: 'UK', role: 'float', kind: 'bi', L: 11.4, span: 13.9, fus: { r: 0.8, ar: 1.1, x: -0.2 }, engine: { type: 'radial', r: 0.7, len: 1.0, pusher: true }, prop: { r: 1.6, n: 4, x: -0.2 }, wing: { cr: 2.0, ct: 2.0, x: 0.0, y: 0.1, gap: 1.8, dih: 0, sweep: 0.2, t: 0.14, stagger: 0.2 }, tail: { x: -4.3, chord: 1.6, span: 3.2, fin: 1.6, finChord: 1.6, y: 0.3 }, canopy: [{ x0: 0.7, x1: 2.1, tx1: 1.7, h: 0.5 }], gear: 'float' },
   Germany: { name: 'Arado Ar 196', nation: 'Germany', role: 'float', kind: 'mono', L: 11.0, span: 12.4, fus: { r: 0.58, ar: 1.1, x: -0.4 }, engine: { type: 'radial', r: 0.64, len: 1.2 }, prop: { r: 1.5, n: 3, x: 0 }, wing: { cr: 2.2, ct: 1.5, x: -0.1, y: -0.05, dih: 0.2, sweep: 0.2, t: 0.26 }, tail: { x: -4.5, chord: 1.4, span: 2.8, fin: 1.4, finChord: 1.5, y: 0.2 }, canopy: [{ x0: 0.0, x1: 2.6, tx1: 2.1, h: 0.6 }], gear: 'float' },
   France: { name: 'Loire 130', nation: 'France', role: 'float', kind: 'mono', L: 11.3, span: 16.0, fus: { r: 0.7, ar: 1.1, x: -0.4 }, engine: { type: 'inline', r: 0.5, len: 1.1, pusher: true }, prop: { r: 1.6, n: 3, x: -0.4 }, wing: { cr: 2.2, ct: 1.4, x: -0.1, y: 0.6, dih: 0.2, sweep: 0.2, t: 0.26 }, tail: { x: -4.6, chord: 1.4, span: 2.8, fin: 1.4, finChord: 1.5, y: 0.9 }, canopy: [{ x0: 0.6, x1: 2.4, tx1: 2.0, h: 0.5 }], gear: 'float' },
-  Italy: { name: 'IMAM Ro.43', nation: 'Italy', role: 'float', kind: 'bi', L: 9.7, span: 11.5, fus: { r: 0.5, ar: 1.1, x: -0.4 }, engine: { type: 'radial', r: 0.6, len: 1.0 }, prop: { r: 1.5, n: 3, x: 0 }, wing: { cr: 1.5, ct: 1.3, x: 0.0, y: 0.0, gap: 1.5, dih: 0, sweep: 0.2, t: 0.12, stagger: 0.3 }, tail: { x: -3.9, chord: 1.2, span: 2.4, fin: 1.2, finChord: 1.4, y: 0.2 }, canopy: [{ x0: -0.1, x1: 1.6, tx1: 1.2, h: 0.55 }], gear: 'float' },
+  Italy: { name: 'IMAM Ro.43', nation: 'Italy', role: 'float', kind: 'bi', L: 9.67, span: 11.58, fus: { r: 0.5, ar: 1.1, x: -0.4 }, engine: { type: 'radial', r: 0.7, len: 1.0 }, prop: { r: 1.25, n: 2, x: 0 }, wing: { cr: 1.8, ct: 1.5, x: 0.35, y: 0.0, gap: 1.5, dih: 0, sweep: 0.2, t: 0.12, stagger: 0.3 }, tail: { x: -4.7, chord: 1.4, span: 3.57, fin: 2.2, finChord: 1.4, y: 1.3 }, canopy: [{ x0: -0.9, x1: 0.6, tx1: 0.2, h: 0.55 }], gear: 'float', groundY: 1.26, v4: RO43_V4, paint: 'ro43', crease: 75 },      // the model's own central float and its two small ones under the lower wing; measured on it (tools/refs/planegroups.py); drawn at rest on its catapult, so its propeller is part of the whole
 };
 /** Height of the centre of gravity above the ground when the aircraft sits on its wheels. */
 export function groundY(spec) { if (spec.groundY) return spec.groundY; return spec.fus.r * spec.fus.ar + (spec.gear === 'fixedbig' ? 1.15 : spec.gear === 'float' ? 1.06 : 0.95); }
@@ -373,8 +375,8 @@ export function insignia(b, nation, cx, cy, cz, r, axis, sign) {
  */
 export function drawPlane(b, s, { part = 'whole', key = null } = {}) {
   if (s.engines) { if (s.v4) drawV4Heavy(b, s, part); else drawHeavy(b, s, part); if (key) drawFixedGuns(b, s, key, part); return; }          // several engines: heavy.js
-  if (s.v4 && part === 'gear' && !s.v4.PLANE.gear && s.gear !== 'float') { drawGear(b, s, rgb((PAINT[s.nation] || PAINT.USA).top), rgb('#25272a'), false); if (s.tailWheel === 'game') drawTailWheel(b, s, rgb('#25272a')); return; }          // the model has its undercarriage up: the game's own, down (the model's tail wheel stays)
-  if (s.v4 && part !== 'hook' && part !== 'ordnance') { drawV4Plane(b, s, part); if (key) drawFixedGuns(b, s, key, part); return; }          // drawn from the pieces of its reference model (v4plane.js); the hook and the load stay procedural
+  if (s.v4 && part === 'gear' && !s.v4.PLANE.gear && s.gear !== 'float' && s.gear !== 'spats') { drawGear(b, s, rgb((PAINT[s.nation] || PAINT.USA).top), rgb('#25272a'), false); if (s.tailWheel === 'game') drawTailWheel(b, s, rgb('#25272a')); return; }          // the model has its undercarriage up: the game's own, down (the model's tail wheel stays)
+  if (s.v4 && part !== 'hook' && part !== 'ordnance') { drawV4Plane(b, s, part); if (s.tailWheel === 'game' && s.gear === 'spats' && (part === 'body' || part === 'whole')) drawTailWheel(b, s, rgb('#25272a')); if (key) drawFixedGuns(b, s, key, part); return; }          // drawn from the pieces of its reference model (v4plane.js); the hook and the load stay procedural
   const P = PAINT[s.nation] || PAINT.USA;
   const top = rgb(P.top), bot = rgb(P.bot), acc = rgb(P.acc);
   const dark = rgb('#25272a'), glass = rgb('#33485a');
@@ -578,10 +580,12 @@ export function drawPlane(b, s, { part = 'whole', key = null } = {}) {
     else if (s.ordnance === 'bomb') {
       // the usual load of the type (data/loadouts.js): the big bomb under the fuselage, the small ones under the wings, in pairs
       const key = Object.keys(PLANES).find((k) => PLANES[k] === s), ords = key ? bombsIn(loadoutsOf(key)[0]) : [];
-      if (!ords.length) drawBomb(b, 0.2, -(ry0 + 0.32), 0, s.bombKg || 250);
+      const bp = s.bombPos || {};      // (a sheet measured on its model says where the racks are: the crutch under the fuselage and the racks under the wings)
+      const cx = bp.x ?? 0.2, cy = bp.y ?? -(ry0 + 0.32);
+      if (!ords.length) drawBomb(b, cx, cy, 0, s.bombKg || 250);
       else ords.slice(0, 5).forEach((o, i) => {
-        if (i === 0) drawBomb(b, 0.2, -(ry0 + 0.32), 0, o.kg);
-        else drawBomb(b, s.wing.x + 0.2, s.wing.y - 0.42, (i % 2 ? -1 : 1) * (s.span * 0.2 + 0.55 * Math.floor((i - 1) / 2)), o.kg);
+        if (i === 0) drawBomb(b, cx, cy, 0, o.kg);
+        else drawBomb(b, bp.wx ?? s.wing.x + 0.2, bp.wy ?? s.wing.y - 0.42, (i % 2 ? -1 : 1) * ((bp.wz ?? s.span * 0.2) + (bp.wdz ?? 0.55) * Math.floor((i - 1) / 2)), o.kg);
       });
     }
   }

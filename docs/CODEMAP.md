@@ -78,12 +78,14 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 - `bf109_v4.js` (5) The Messerschmitt Bf 109 F-4 built from its reference model (see docs/CREDITS.md; [SCALE, MEASURES, PLANE] ← 1
 - `d3a_v4.js` (5) The Aichi D3A1 Type 99 built from its reference model (see docs/CREDITS.md; [SCALE, MEASURES, PLANE] ← 1
 - `il2_v4.js` (5) The Ilyushin Il-2 Type 3 built from its reference model (see docs/CREDITS.md; [SCALE, MEASURES, PLANE] ← 1
+- `ju87_v4.js` (5) The Junkers Ju 87 Stuka built from its reference model (see docs/CREDITS.md; [SCALE, MEASURES, PLANE] ← 1
+- `ro43_v4.js` (5) The IMAM Ro.43 built from its reference model (see docs/CREDITS.md; [SCALE, MEASURES, PLANE] ← 1
 - `sbd_v4.js` (5) The Douglas SBD-3 Dauntless built from its reference model (see docs/CREDITS.md; [SCALE, MEASURES, PLANE] ← 1
 - `tbf_v4.js` (5) The Grumman TBF-1 Avenger built from its reference model (see docs/CREDITS.md; [SCALE, MEASURES, PLANE] ← 1
 
 ## js/game/model/
 
-- `airpaint.js` (190) The paint schemes of the aircraft drawn from their models: the colours of the upper and the lower surfaces, the flanks, the camouflage patches, the cowling, the… [AIRPAINT, AIRPAINT_KEYS, airPaintId, airPaintWgsl] ← 2
+- `airpaint.js` (213) The paint schemes of the aircraft drawn from their models: the colours of the upper and the lower surfaces, the flanks, the camouflage patches, the cowling, the… [AIRPAINT, AIRPAINT_KEYS, airPaintId, airPaintWgsl] ← 2
 - `ao.js` (110) Baked ambient occlusion for the procedural ship meshes. [bakeAO] ← 1
 - `bakedmesh.js` (72) Reading the baked reference meshes (ships/<id>_baked.js, ships/<id>_mounts_baked.js, made by tools/refs/bake*.py): base64 pieces -> positions in metres, smooth… [decodeBaked, decodeBakedGeometry, cutBaked] ← 6
 - `baseGuns.js` (101) The guns of the bases: the mount of each gun (the same meshes as on the ships, see mounts.js) and what it stands on - a concrete emplacement with a ring wall, an… [gunMountSpec, buildEmplacement] ← 2
@@ -109,7 +111,7 @@ ce qu'il exporte, et le nombre de fichiers (js, tools, test) qui l'importent (�
 - `mounts.js` (680) Articulated gun mounts. Every mount produces two meshes that are drawn as separate instances so they can move independently: house : the rotating gun house / shield /… [mountDims, getMountModel] ← 11
 - `parts.js` (543) Reusable ship parts. All functions draw into a MeshBuilder in model space (+x bow, +y up from the waterline, +z starboard). [OPT, barbette, funnel, funnelRuin, windowBand, tower, poleMast, tripod, cageMast, … +22] ← 2
 - `planeGuns.js` (205) The defensive guns of an aircraft, one entry per gun position: where it pivots, what it can bear on, its calibre and its barrels. [GUN_DIMS, gunDims, GUN_RATE, planeGuns, inField, isBlocked, inArc, muzzleOf, drawGunHead] ← 8
-- `planes.js` (813) Procedural WWII carrier aircraft. One generator for monoplanes and biplanes driven by a spec sheet (dimensions of the real aircraft). [PAINT, PLANES, groundY, propsOf, floatplaneSpec, damageSites, planeTypeFor, upperWingY, cockpitHole, … +15] ← 36
+- `planes.js` (817) Procedural WWII carrier aircraft. One generator for monoplanes and biplanes driven by a spec sheet (dimensions of the real aircraft). [PAINT, PLANES, groundY, propsOf, floatplaneSpec, damageSites, planeTypeFor, upperWingY, cockpitHole, … +15] ← 36
 - `screws.js` (25) The screws and the rudder of the ships whose underwater body was not measured on a plan (tweaks.props / tweaks.rudders): drawn from the number of shafts the class… [defaultScrews] ← 1
 - `shipbuilder.js` (1002) Spec-driven ship builder. Reads a real-ship spec sheet (dimensions, turret / funnel / mast positions as fractions of the overall length, class, paint) and builds the… [pagodaTiers, buildShipModel] ← 14
 - `treeMeshes.js` (506) The plants as meshes: eight species (oak, fir, palm, tropical canopy tree, acacia, cypress, shrub, boulder), three variants each, at four levels of detail. [FAM, SHAPE, getTemplate, ROCK_TINT, stampPlants] ← 2

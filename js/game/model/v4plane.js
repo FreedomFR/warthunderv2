@@ -66,12 +66,12 @@ export function drawV4Plane(b, s, part) {
   // (an aircraft with a paint scheme is painted by the shader from the scheme table: the skin pieces carry its number, the model's own colours are not used)
   const id = s.paint ? airPaintId(s.paint) : -1;
   const skin = (key) => (id >= 0 ? add(b, v4, key, MAT.AIRPAINT, [id, 0, 0]) : add(b, v4, key));
-  if (all || part === 'body') { skin('body'); if (s.canopyLoft) drawCanopyLoft(b, s.canopyLoft, id); else { skin('canopy'); add(b, v4, 'glass', MAT.PANE, GLASS); } }
-  if (part === 'cabin') skin('body');          // (from the pilot's seat: the panes of his canopy are not drawn)
+  if (all || part === 'body') { skin('body'); add(b, v4, 'tyres', MAT.AIRCRAFT); if (s.canopyLoft) drawCanopyLoft(b, s.canopyLoft, id); else { skin('canopy'); add(b, v4, 'glass', MAT.PANE, GLASS); } }
+  if (part === 'cabin') { skin('body'); add(b, v4, 'tyres', MAT.AIRCRAFT); }          // (from the pilot's seat: the panes of his canopy are not drawn)
   if (all || part === 'tail' || part === 'cabin' && false) { skin('tail'); finBand(b, s); }
   if (all || part === 'wingR') skin('wingR');
   if (all || part === 'wingL') skin('wingL');
-  if (part === 'prop') add(b, v4, 'prop', MAT.AIRCRAFT);
+  if (part === 'prop' || all && s.role === 'float') add(b, v4, 'prop', MAT.AIRCRAFT);      // (a catapult aircraft is drawn at rest, whole, with the propeller of its model in place)
   if (part === 'gear') add(b, v4, 'gear');
 }
 

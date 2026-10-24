@@ -1,0 +1,101 @@
+{
+ "key": "ju87",
+ "name": "Junkers Ju 87 Stuka",
+ "axis_deg": 90,
+ "pitch_deg": 10.95,
+ "nose": "^A_thePropeller",
+ "fuselage": "^A_",
+ "wing": "^A_MainWing|^A_AllFixedStructures_Stuka_P1|^A_AllOtherScrews|^A_FloorWindow",
+ "scale": {
+  "span": 13.8
+ },
+ "drop": "^D_|^E_|^L_|^B_|^C_WindowD|^C_WindowC_and_Frames_Fixed_Stuka_GlassParts|^C_WindowB|^C_PilotSide|^A_LeftWing|^C_WindowA_Fixed_Stuka_GlassParts",
+ "rules": [
+  {
+   "part": "drop",
+   "box": [
+    1.95,
+    3.2,
+    -0.6,
+    0.6,
+    -5.7,
+    -4.6
+   ]
+  },
+  {
+   "part": "drop",
+   "box": [
+    1.95,
+    3.2,
+    -0.6,
+    0.6,
+    4.6,
+    5.7
+   ]
+  },
+  {
+   "part": "prop",
+   "material": "^A_thePropeller"
+  },
+  {
+   "part": "canopy",
+   "material": "^C_WindowA_Fixed_Stuka_P4|^C_WindowC_and_Frames_Fixed_Stuka_P6"
+  },
+  {
+   "part": "drop",
+   "material": "^A_RearWheelLocker",
+   "box": [
+    -7,
+    -6.3,
+    -2,
+    3,
+    -0.4,
+    0.4
+   ]
+  },
+  {
+   "part": "tyres",
+   "material": "^A_RearWheelLocker",
+   "box": [
+    1.4,
+    2.7,
+    -2.1,
+    -1.0,
+    -2.2,
+    2.2
+   ]
+  }
+ ],
+ "wing_z": 0.9,
+ "tail_x": -3.5,
+ "budget": {
+  "body": 16000,
+  "tail": 8000,
+  "wingL": 7000,
+  "wingR": 7000,
+  "prop": 2500,
+  "glass": 800,
+  "canopy": 3000,
+  "tyres": 1500
+ },
+ "recolor": {
+  "prop": [
+   48,
+   40,
+   34
+  ],
+  "tyres": [
+   28,
+   28,
+   30
+  ]
+ },
+ "nocolor": [
+  "body",
+  "tail",
+  "wingL",
+  "wingR",
+  "canopy"
+ ],
+ "mirror_wings": "L"
+}
