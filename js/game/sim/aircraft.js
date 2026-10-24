@@ -11,7 +11,7 @@ import { safeHeading, homeCourse } from './homeward.js';
 import { chooseSite, divert } from './landing.js';
 import { pickLoadout, bombsIn } from '../data/loadouts.js';
 import { genericBomb } from '../data/ordnance.js';
-import { fighterSteer, fighterFields, bomberDefense, markHunted } from './fighters.js';
+import { fighterSteer, fighterFields, bomberDefense, strikeGuns, markHunted } from './fighters.js';
 import { deckOf, planLaunch, settleService, beginRecovery, launching, stepDeck, stepDeckShip, touchdown, clearToLand, deckClearFor, DECK_PHASES } from './deck.js';
 import { segmentNearShip, segmentHit, resolveBombHit, resolveNearMiss } from './damage.js';
 import { stepBasePlane } from './airfield.js';
@@ -202,6 +202,7 @@ export function updateAir(world, dt) {
   else {
     markHunted(world);
     bomberDefense(world, dt, FIGHT_CTX);
+    strikeGuns(world, dt, FIGHT_CTX);
     updateAA(world, dt);
   }
   stepBombs(world, dt);

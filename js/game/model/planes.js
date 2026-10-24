@@ -14,6 +14,7 @@ import { MeshBuilder, MAT, rgb, shade } from './meshbuilder.js';
 import { drawHeavy, propMounts, bayPivot } from './heavy.js';
 import { HEAVY } from './bomberdata.js';
 import { planeGuns, drawGunHead } from './planeGuns.js';
+import { drawFixedGuns } from './fixedGuns.js';
 import { drawV4Plane, drawV4Heavy } from './v4plane.js';
 import * as D3A_V4 from './aircraft/d3a_v4.js';
 import * as A6M_V4 from './aircraft/a6m_v4.js';
@@ -368,10 +369,10 @@ export function insignia(b, nation, cx, cy, cz, r, axis, sign) {
 /**
  * Draw (part of) an aircraft into builder b. part: 'whole' | 'body' | 'wingL' | 'wingR' | 'tail' | 'prop' | 'gear' | 'hook' | 'ordnance'.
  */
-export function drawPlane(b, s, { part = 'whole' } = {}) {
-  if (s.engines) return s.v4 ? drawV4Heavy(b, s, part) : drawHeavy(b, s, part);          // several engines: heavy.js
+export function drawPlane(b, s, { part = 'whole', key = null } = {}) {
+  if (s.engines) { if (s.v4) drawV4Heavy(b, s, part); else drawHeavy(b, s, part); if (key) drawFixedGuns(b, s, key, part); return; }          // several engines: heavy.js
   if (s.v4 && part === 'gear' && !s.v4.PLANE.gear && s.gear !== 'float') { drawGear(b, s, rgb((PAINT[s.nation] || PAINT.USA).top), rgb('#25272a'), false); if (s.tailWheel === 'game') drawTailWheel(b, s, rgb('#25272a')); return; }          // the model has its undercarriage up: the game's own, down (the model's tail wheel stays)
-  if (s.v4 && part !== 'hook' && part !== 'ordnance') return drawV4Plane(b, s, part);          // drawn from the pieces of its reference model (v4plane.js); the hook and the load stay procedural
+  if (s.v4 && part !== 'hook' && part !== 'ordnance') { drawV4Plane(b, s, part); if (key) drawFixedGuns(b, s, key, part); return; }          // drawn from the pieces of its reference model (v4plane.js); the hook and the load stay procedural
   const P = PAINT[s.nation] || PAINT.USA;
   const top = rgb(P.top), bot = rgb(P.bot), acc = rgb(P.acc);
   const dark = rgb('#25272a'), glass = rgb('#33485a');
@@ -540,6 +541,7 @@ export function drawPlane(b, s, { part = 'whole' } = {}) {
   };
   if (all || part === 'wingR') wingSide(1);
   if (all || part === 'wingL') wingSide(-1);
+  if (key) drawFixedGuns(b, s, key, part);          // the barrels of the guns in the wings and the cowling
 
   // ----- propeller -----
   if (part === 'prop') {
@@ -720,7 +722,7 @@ export function getPlaneModel(typeKey) {
   if (spec.engines) parts.push('bay', 'hull', ...spec.engines.map((e, i) => 'eng' + i), ...spec.engines.map((e, i) => 'burn' + i));      // the open bomb doors, the hull seen from the pilot's seat, the engines as pieces of their own
   for (const part of parts) {
     const b = new MeshBuilder();
-    drawPlane(b, spec, { part });
+    drawPlane(b, spec, { part, key: typeKey });
     out[part] = b.vertexCount ? b.build(spec.v4 ? { ao: false } : {}) : null;      // (no baked occlusion on a model drawn from reference pieces: its many small triangles make it blotchy)
   }
   // the guns of each gun position, each in its own frame (they turn: render/aircraftVisual.js)

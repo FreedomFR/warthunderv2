@@ -160,6 +160,17 @@ export class GunFx {
     const rx = Math.cos(h) * Math.cos(b), ry = -Math.sin(b), rz = Math.sin(h) * Math.cos(b);
     const conv = clamp(e.range, 180, 320);
     const cal = e.cal || 12.7;
+    if (e.guns) {
+      // the guns themselves (sim/fighters.js): a tracer and a flash from the muzzle of each, along its own line, which crosses the others where the guns are harmonised
+      const ng = e.guns.length / 6, pt = Math.min(0.7, 1.3 / ng), pf = Math.min(0.5, 1.2 / ng), fs = cal >= 20 ? 1.4 : cal >= 12 ? 1 : 0.7;
+      for (let i = 0; i < ng; i++) {
+        const k = i * 6, gx = e.guns[k], gy = e.guns[k + 1], gz = e.guns[k + 2], ux = e.guns[k + 3], uy = e.guns[k + 4], uz = e.guns[k + 5];
+        if (rnd() < pt) this.round(gx, gy, gz, ux, uy, uz, cal >= 20 ? 760 : 870, cal, this.tint(pl), pl, { life: rr(1.1, 1.5), spread: 0.004 });
+        if (d < 1500 && rnd() < pf) this.p.add({ kind: K.FLASH, x: gx + ux * 0.15, y: gy + uy * 0.15, z: gz + uz * 0.15, s0: 0.5 * fs, s1: 1.1 * fs, life: 0.04, r: 1, g: 0.75, b: 0.4, a0: 2.5, a1: 0 });
+      }
+      this.strayRounds(e, Math.hypot(e.x - cx, e.z - cz), cal);
+      return;
+    }
     for (let side = -1; side <= 1; side += 2) {
       if (!wing && side > 0) break;
       const gx = e.x + rx * wing * side, gy = e.y + ry * wing * side, gz = e.z + rz * wing * side;

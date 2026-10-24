@@ -259,6 +259,10 @@
    "file": "theatre.mjs",
    "args": [],
    "slow": true
+  },
+  {
+   "file": "fixedguns.mjs",
+   "args": []
   }
  ],
  "tools": [

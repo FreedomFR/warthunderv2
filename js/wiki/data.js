@@ -268,11 +268,13 @@ export function aircraftSections(a) {
   if (key && FIGHTER_GUNS[key]) {
     // the guns of a fighter and the rounds of its belts: what one hit does (against the .50 API round) and how often it starts a fire in a tank
     const beltText = (b) => Object.entries(BELTS[b]).map(([id, w]) => `${AMMO[id].name} ${fr(w * 100, 0)}${NB}%`).join(', ');
-    out.push({ id: 'guns', title: 'Armement', rows: FIGHTER_GUNS[key].map((g) => {
+    const where = { wing: 'dans les ailes', cowl: 'sur le capot, tirant à travers l\'hélice', hub: 'dans le moyeu de l\'hélice', fus: 'dans le nez', at: 'dans la bosse dorsale' };
+    out.push({ id: 'guns', title: s.role === 'fighter' || s.role === 'attack' ? 'Armement' : 'Armement fixe (tirant vers l\'avant)', rows: FIGHTER_GUNS[key].map((g) => {
       const gun = GUNS[g.gun], m = beltMean(g.belt), secs = g.rpg / (gun.rpm / 60);
-      return { k: `${g.n}${NB}×${NB}${gun.name}`, v: `${g.rpg}${NB}coups par arme (${fr(secs, 0)}${NB}s de tir) · ${fr(gun.rpm, 0)}${NB}coups/min · bande : ${beltText(g.belt)} · un coup fait en moyenne ${fr(m.dmg, 1)}${NB}fois un coup de 12,7${NB}mm API, met le feu à un réservoir dans ${fr(m.fire * 100, 0)}${NB}% des cas`, est: false };
+      return { k: `${g.n}${NB}×${NB}${gun.name}`, v: `${where[g.mount] || ''} · ${g.rpg}${NB}coups par arme (${fr(secs, 0)}${NB}s de tir) · ${fr(gun.rpm, 0)}${NB}coups/min · bande : ${beltText(g.belt)} · un coup fait en moyenne ${fr(m.dmg, 1)}${NB}fois un coup de 12,7${NB}mm API, met le feu à un réservoir dans ${fr(m.fire * 100, 0)}${NB}% des cas`, est: false };
     }) });
-  } else if (key) {
+  }
+  if (key) {
     const guns = planeGuns(s, key);
     if (guns.length) {
       const by = {};

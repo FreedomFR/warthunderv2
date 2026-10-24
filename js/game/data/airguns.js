@@ -40,6 +40,7 @@ export const BELTS = {
   fr20: { hei20hs: 0.75, ap20: 0.25 },
   fr75: { ball75: 1 },
   it127: { breda127: 1 },
+  it77: { ball303: 0.6, ap303: 0.4 },                                           // the 7,7 mm Breda-SAFAT: ball and AP
   mg131: { mg131: 1 },
   ru23: { hei23: 0.55, api23: 0.45 },                                             // the VYa-23 of the Il-2: HE-I and armour-piercing incendiary
   ru762: { ball303: 0.45, ap303: 0.4, inc303: 0.15 },                            // the ShKAS: ball, AP and incendiary (rifle calibre)
@@ -59,23 +60,46 @@ export const GUNS = {
   breda127: { name: 'Breda-SAFAT (12,7 mm)', cal: 12.7, rpm: 600, v0: 760 },
   vya23: { name: 'VYa-23 (23 mm)', cal: 23, rpm: 550, v0: 905 },
   shkas: { name: 'ShKAS (7,62 mm)', cal: 7.62, rpm: 1800, v0: 825 },
+  vickers: { name: 'Vickers .303', cal: 7.7, rpm: 950, v0: 745 },
+  darne: { name: 'Darne (7,5 mm)', cal: 7.5, rpm: 1300, v0: 700 },
+  safat77: { name: 'Breda-SAFAT (7,7 mm)', cal: 7.7, rpm: 1100, v0: 740 },
 };
 
-/** The fit of each fighter: the guns, how many, the rounds each carries (a drum of 60 for a 20 mm cannon is 7 s of fire), the belt. */
-export const FIGHTER_GUNS = {
-  f6f: [{ gun: 'm2', n: 6, rpg: 400, belt: 'us50' }],
-  a6m: [{ gun: 't97', n: 2, rpg: 600, belt: 'jp77' }, { gun: 't99', n: 2, rpg: 60, belt: 'jp20' }],
-  fulmar: [{ gun: 'b303', n: 8, rpg: 750, belt: 'uk303' }],
-  bf109t: [{ gun: 'mg17', n: 2, rpg: 500, belt: 'de792' }, { gun: 'mg151', n: 1, rpg: 200, belt: 'de20mg' }],      // the F-4: two MG 17 over the engine and the MG 151/20 through the hub
-  d520: [{ gun: 'hs404', n: 1, rpg: 60, belt: 'fr20' }, { gun: 'mac', n: 4, rpg: 675, belt: 'fr75' }],
-  mc202: [{ gun: 'breda127', n: 2, rpg: 370, belt: 'it127' }],
-  il2: [{ gun: 'vya23', n: 2, rpg: 150, belt: 'ru23' }, { gun: 'shkas', n: 2, rpg: 750, belt: 'ru762' }],      // the guns of the wings (the ground attack: not simulated yet)
+/**
+ * The fixed guns of each type (the ones the pilot lays by pointing the aircraft): the guns, how many, the rounds each carries (a drum of 60 for a 20 mm cannon is 7 s of fire), the
+ * belt, and where they sit. mount: 'wing' (z: the stations of the guns from the centre line, one list for each wing: n is twice its length), 'cowl' (z: the signed places of the guns
+ * over the engine, firing through the propeller), 'hub' (through the propeller hub), 'fus' (z: signed, in the side of the nose), 'at' (a bomber: [d from the nose, height, z] of
+ * each gun); conv: the distance (m) at which the guns are harmonised, where the lines of the guns cross. Fits: the published ones of each aircraft; `est` marks a guess.
+ */
+export const FIXED_GUNS = {
+  f6f: [{ gun: 'm2', n: 6, rpg: 400, belt: 'us50', mount: 'wing', z: [2.4, 3.1, 3.8], conv: 275 }],                           // three .50 in each wing, outboard of the undercarriage
+  a6m: [{ gun: 't97', n: 2, rpg: 600, belt: 'jp77', mount: 'cowl', z: [-0.22, 0.22], conv: 200 }, { gun: 't99', n: 2, rpg: 60, belt: 'jp20', mount: 'wing', z: [2.3], conv: 200 }],
+  fulmar: [{ gun: 'b303', n: 8, rpg: 750, belt: 'uk303', mount: 'wing', z: [2.7, 3.1, 3.5, 3.9], conv: 230 }],            // four in each wing
+  bf109t: [{ gun: 'mg17', n: 2, rpg: 500, belt: 'de792', mount: 'cowl', z: [-0.2, 0.2], conv: 250 }, { gun: 'mg151', n: 1, rpg: 200, belt: 'de20mg', mount: 'hub', conv: 250 }],      // the F-4: two MG 17 over the engine and the MG 151/20 through the hub
+  d520: [{ gun: 'hs404', n: 1, rpg: 60, belt: 'fr20', mount: 'hub', conv: 200 }, { gun: 'mac', n: 4, rpg: 675, belt: 'fr75', mount: 'wing', z: [2.1, 2.7], conv: 200 }],
+  mc202: [{ gun: 'breda127', n: 2, rpg: 370, belt: 'it127', mount: 'cowl', z: [-0.3, 0.3], conv: 250 }, { gun: 'safat77', n: 2, rpg: 500, belt: 'it77', mount: 'wing', z: [2.4], conv: 250 }],      // (the two 7,7 mm of the wings: rounds est)
+  il2: [{ gun: 'vya23', n: 2, rpg: 150, belt: 'ru23', mount: 'wing', z: [1.5], conv: 350 }, { gun: 'shkas', n: 2, rpg: 750, belt: 'ru762', mount: 'wing', z: [2.7], conv: 350 }],      // the guns of the wings (the ground attack: not simulated yet)
+  // the strike aircraft: the guns that fire ahead, used on a fighter that crosses their nose and on the ship at the start of the dive
+  sbd: [{ gun: 'm2', n: 2, rpg: 360, belt: 'us50', mount: 'cowl', z: [-0.28, 0.28], conv: 250 }],
+  tbf: [{ gun: 'm2', n: 2, rpg: 400, belt: 'us50', mount: 'wing', z: [3.4], conv: 250 }],                                // the two .50 of the wings of the TBF-1C (rounds est)
+  d3a: [{ gun: 't97', n: 2, rpg: 600, belt: 'jp77', mount: 'cowl', z: [-0.22, 0.22], conv: 200 }],
+  swordfish: [{ gun: 'vickers', n: 1, rpg: 600, belt: 'uk303', mount: 'fus', z: [0.45], conv: 200 }],                 // one synchronised Vickers in the side of the nose
+  skua: [{ gun: 'b303', n: 4, rpg: 600, belt: 'uk303', mount: 'wing', z: [1.8, 2.3], conv: 230 }],
+  ju87: [{ gun: 'mg17', n: 2, rpg: 500, belt: 'de792', mount: 'wing', z: [3.3], conv: 250 }],
+  fi167: [{ gun: 'mg17', n: 1, rpg: 500, belt: 'de792', mount: 'fus', z: [0.5], conv: 250 }],                           // one MG 17 in the starboard side of the nose
+  ln401: [{ gun: 'mac', n: 2, rpg: 500, belt: 'fr75', mount: 'wing', z: [2.0], conv: 200 }],                           // (rounds est)
+  pl10: [{ gun: 'darne', n: 1, rpg: 500, belt: 'fr75', mount: 'fus', z: [0.4], conv: 200 }],                           // (rounds est)
+  re2001: [{ gun: 'breda127', n: 2, rpg: 350, belt: 'it127', mount: 'cowl', z: [-0.25, 0.25], conv: 250 }, { gun: 'safat77', n: 2, rpg: 500, belt: 'it77', mount: 'wing', z: [2.2], conv: 250 }],
+  re2001t: [{ gun: 'breda127', n: 2, rpg: 350, belt: 'it127', mount: 'cowl', z: [-0.25, 0.25], conv: 250 }, { gun: 'safat77', n: 2, rpg: 500, belt: 'it77', mount: 'wing', z: [2.2], conv: 250 }],
+  sm79: [{ gun: 'breda127', n: 1, rpg: 350, belt: 'it127', mount: 'at', at: [[6.6, 1.85, 0]], conv: 300 }],           // the fixed 12,7 mm of the hump, firing ahead
 };
+export const FIGHTER_GUNS = FIXED_GUNS;
 
-/** The guns of a fighter type as a list of groups with their state: { gun, n, cal, rps (rounds a second of the whole group), left (rounds left in each gun), belt }. */
+/** The fixed guns of a type as a list of groups with their state: { gun, n, cal, rps (rounds a second of the whole group), left (rounds left in each gun), belt }. Empty for an aircraft with none. */
 export function armamentOf(typeKey) {
-  const fit = FIGHTER_GUNS[typeKey] || FIGHTER_GUNS.f6f;
-  return fit.map((g) => ({ gun: g.gun, n: g.n, cal: GUNS[g.gun].cal, rps: GUNS[g.gun].rpm / 60 * g.n, rpg: g.rpg, left: g.rpg, belt: g.belt }));
+  const fit = FIXED_GUNS[typeKey];
+  if (!fit) return [];
+  return fit.map((g) => ({ gun: g.gun, n: g.n, cal: GUNS[g.gun].cal, rps: GUNS[g.gun].rpm / 60 * g.n, rpg: g.rpg, left: g.rpg, belt: g.belt, conv: g.conv }));
 }
 
 /** One round drawn from a belt. */

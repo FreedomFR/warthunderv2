@@ -56,8 +56,9 @@ export const HEAVY = {
     glass: [{ d0: 0.3, d1: 2.9, a0: -30, a1: 82, sym: true, nu: 3, nv: 3 }],
     cabin: [{ d0: 3.4, d1: 6.0, y0: 0.82, h: 0.5, hw: 0.78 }],
     windows: [{ d: 2.9, y: 0.1, w: 0.4, h: 0.3 }, { d: 3.4, y: 0.1, w: 0.4, h: 0.3 }],
-    guns: [{ t: 'chin', d: 1.9, r: 0.42 }, { t: 'nose', d: 0.8, y: 0.0, z: 0.0 }, { t: 'dome', d: 5.3, r: 0.5, n: 2, len: 1.2 }, { t: 'ball', d: 10.9, r: 0.62 },
-      { t: 'beam', d: 13.1, y: 0.15, side: 1, w: 0.8, h: 0.55 }, { t: 'beam', d: 14.4, y: 0.15, side: -1, w: 0.8, h: 0.55 }, { t: 'tail', d: 21.38, r: 0.4, n: 2, len: 0.8 }],
+    guns: [{ t: 'chin', d: 1.9, r: 0.42 }, { t: 'cheek', d: 1.5, y: 0.05, side: -1 }, { t: 'dome', d: 5.3, r: 0.5, n: 2, len: 1.2 }, { t: 'ball', d: 10.9, r: 0.62 },
+      { t: 'beam', d: 13.1, y: 0.15, side: 1, w: 0.8, h: 0.55 }, { t: 'beam', d: 14.4, y: 0.15, side: -1, w: 0.8, h: 0.55 }, { t: 'tail', d: 21.38, r: 0.4, n: 2, len: 0.8 },
+      { t: 'cheek', d: 1.5, y: 0.05, side: 1 }, { t: 'hatch', d: 9.7 }],      // the B-17G has thirteen .50: the two cheek guns of the nose and the gun of the radio room are the last three
     engines: [{ d: 3.0, z: -6.5, y: -0.1, r: 0.76, len: 1.15, aft: 6.9, type: 'radial', gear: false }, { d: 2.7, z: -2.9, y: -0.28, r: 0.76, len: 1.15, aft: 7.3, type: 'radial' },
       { d: 2.7, z: 2.9, y: -0.28, r: 0.76, len: 1.15, aft: 7.3, type: 'radial' }, { d: 3.0, z: 6.5, y: -0.1, r: 0.76, len: 1.15, aft: 6.9, type: 'radial', gear: false }],
     prop: { r: 1.76, n: 3 },

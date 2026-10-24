@@ -456,7 +456,7 @@ export function stepBasePlane(world, p, dt) {
 
 function servicePlane(p) {
   const heavy = !!p.spec.engines;
-  p.fuel = heavy ? 5400 : 1700 + 300; p.ordnance = heavy; if (p.fighter) rearm(p);
+  p.fuel = heavy ? 5400 : 1700 + 300; p.ordnance = heavy; if (p.fighter) rearm(p); else p.guns = null;
   p.landedAt = true;      // (a visitor is one of the field's aircraft now)
   repairPlane(p); p.smoke = 0; p.fire = 0; p.wave = null; p.target = null; p.prey = null; p.hunted = 0; p.stick = 0;
   p.ground = true; p.gearDown = true;
