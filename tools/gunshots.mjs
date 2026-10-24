@@ -7,7 +7,7 @@ import { launchOptions } from './browser.mjs';
 import { HEAVY } from '../js/game/model/bomberdata.js';
 const [outDir = 'out/guns', only, aim = ''] = process.argv.slice(2);
 fs.mkdirSync(outDir, { recursive: true });
-const base = 'http://localhost:8080/index.html?offscreen=1&w=640&h=400&ocean=0&alt=40&heading=90&sunElev=40&sunAzim=200';
+const base = (process.env.BASE || 'http://localhost:8080') + '/index.html?offscreen=1&w=640&h=400&ocean=0&alt=40&heading=90&sunElev=40&sunAzim=200';
 const types = only ? only.split(',') : 'b17 b29 lancaster g4m he111 sm79 leo451 tbf sbd d3a b5n swordfish skua ju87 fi167 pl10'.split(' ');
 const L = { b17: 23, b29: 31, lancaster: 21, g4m: 20, he111: 16.4, sm79: 15.6, leo451: 17.2 };
 const b = await chromium.launch(launchOptions());
