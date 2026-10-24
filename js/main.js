@@ -7,6 +7,7 @@ import { TEAM_COLORS } from './game/sim/world.js';
 import { isMobile, maxPixelRatio } from './game/device.js';
 import { setBalanceFile, setBalance } from './game/data/balance.js';
 import { preloadModels } from './game/preload.js';
+import { keepAwake } from './game/ui/wakelock.js';
 
 const canvas = document.getElementById('c');
 const qs = new URLSearchParams(location.search);
@@ -82,4 +83,5 @@ if (qs.has('preview')) {
   }
 }
 S.hide();
+keepAwake();
 engine.start();

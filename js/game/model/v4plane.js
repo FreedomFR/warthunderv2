@@ -4,6 +4,7 @@
 import { MAT, rgb, shade } from './meshbuilder.js';
 import { decodeBaked } from './bakedmesh.js';
 import { airPaintId } from './airpaint.js';
+import { drawHeavy } from './heavy.js';
 
 const GLASS = rgb('#3d5560');
 
@@ -65,12 +66,12 @@ export function drawV4Plane(b, s, part) {
   // (an aircraft with a paint scheme is painted by the shader from the scheme table: the skin pieces carry its number, the model's own colours are not used)
   const id = s.paint ? airPaintId(s.paint) : -1;
   const skin = (key) => (id >= 0 ? add(b, v4, key, MAT.AIRPAINT, [id, 0, 0]) : add(b, v4, key));
-  if (all || part === 'body') { skin('body'); if (s.canopyLoft) drawCanopyLoft(b, s.canopyLoft, id); else { skin('canopy'); add(b, v4, 'glass', MAT.PANE, GLASS); } }
-  if (part === 'cabin') skin('body');          // (from the pilot's seat: the panes of his canopy are not drawn)
+  if (all || part === 'body') { skin('body'); add(b, v4, 'tyres', MAT.AIRCRAFT); if (s.canopyLoft) drawCanopyLoft(b, s.canopyLoft, id); else { skin('canopy'); add(b, v4, 'glass', MAT.PANE, GLASS); } }
+  if (part === 'cabin') { skin('body'); add(b, v4, 'tyres', MAT.AIRCRAFT); }          // (from the pilot's seat: the panes of his canopy are not drawn)
   if (all || part === 'tail' || part === 'cabin' && false) { skin('tail'); finBand(b, s); }
   if (all || part === 'wingR') skin('wingR');
   if (all || part === 'wingL') skin('wingL');
-  if (part === 'prop') add(b, v4, 'prop', MAT.AIRCRAFT);
+  if (part === 'prop' || all && s.role === 'float') add(b, v4, 'prop', MAT.AIRCRAFT);      // (a catapult aircraft is drawn at rest, whole, with the propeller of its model in place)
   if (part === 'gear') add(b, v4, 'gear');
 }
 
@@ -79,6 +80,9 @@ export function drawV4Plane(b, s, part) {
  * and engines), hull (the body behind the pilot's seat), prop (ONE propeller whose hub is at the origin), gear, bay (the doors, open), ordnance (the load of the bay), burnN (the
  * charred nacelle drawn over a burning engine). The closed doors of the bay and the team band on the fin stay procedural: the model has the bay open.
  */
+/** The sheet as the procedural drawing of heavy.js reads it (its paint is a table of colours, not the name of a scheme). */
+const proc = (s) => ({ ...s, paint: s.paintRGB || { top: '#b9bdbf', bot: '#a9aba0', acc: '#e8e6dc' } });
+
 export function drawV4Heavy(b, s, part) {
   crease = s.crease ?? null;
   const v4 = s.v4, all = part === 'whole', X = (d) => s.cg - d;
@@ -93,7 +97,7 @@ export function drawV4Heavy(b, s, part) {
       }
     }
   };
-  if (all || part === 'body') { skin('body'); add(b, v4, 'glass', MAT.PANE, GLASS); closedBay(); }
+  if (all || part === 'body') { skin('body'); add(b, v4, 'guns'); add(b, v4, 'glass', MAT.PANE, GLASS); if (s.bay && !s.bay.modelDoors) closedBay(); }
   if (part === 'hull') skin('hull');
   if (all || part === 'tail') {
     skin('tail');
@@ -103,11 +107,12 @@ export function drawV4Heavy(b, s, part) {
   if (all || part === 'wingR') skin('wingR');
   if (all || part === 'wingL') skin('wingL');
   if (part === 'prop') add(b, v4, 'prop', MAT.AIRCRAFT);
-  if (part === 'gear') add(b, v4, 'gear');
-  if (part === 'bay') add(b, v4, 'bay');
+  // (a model that has its undercarriage up, its bay shut or no load in it leaves these to the sheet: the game's own wheels, doors and bombs)
+  if (part === 'gear') { if (v4.PLANE.gear) add(b, v4, 'gear'); else drawHeavy(b, proc(s), 'gear'); }
+  if (part === 'bay') { if (v4.PLANE.bay) add(b, v4, 'bay'); else drawHeavy(b, proc(s), 'bay'); }
   const em = /^eng(\d)$/.exec(part);
   if (em) add(b, v4, 'burn' + em[1]);          // (the engine as a piece of its own: the nacelle of its burning twin)
-  if (part === 'ordnance') add(b, v4, 'ordnance');
+  if (part === 'ordnance') { if (v4.PLANE.ordnance) add(b, v4, 'ordnance'); else drawHeavy(b, proc(s), 'ordnance'); }
   const bm = /^burn(\d)$/.exec(part);
   if (bm && s.engines[+bm[1]]) {
     const e = s.engines[+bm[1]], piece = v4.PLANE[part];

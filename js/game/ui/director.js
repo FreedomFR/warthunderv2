@@ -150,7 +150,7 @@ export class Director {
 
 // ---- aircraft in groups ---------------------------------------------------------------------------------------------------------------------------------------------
 /** The phases of an aircraft flying in company with others (on its way, forming up, escorting, patrolling, going home). */
-const FLYING_TOGETHER = new Set(['cruise', 'egress', 'return', 'escort', 'cap', 'ip']);
+const FLYING_TOGETHER = new Set(['cruise', 'egress', 'return', 'escort', 'cap', 'intercept', 'ip']);
 /** The phases of an aircraft that is attacking a ship (torpedo run, dive, level bombing run). */
 const ATTACKING = new Set(['ip', 'run', 'rollin', 'dive', 'pullout']);
 const flying = (p) => !p.hidden && !p.dying && !p.gone && !p.ground && p.y > 60 && p.speed > 35;

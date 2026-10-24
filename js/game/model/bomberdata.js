@@ -41,31 +41,35 @@ function finalize(s) {
   s.eye = { x: X(s.eyeD[0]), y: s.eyeD[1], z: s.eyeD[2] };
   const gearEngines = s.engines.filter((e) => e.gear);
   s.groundY = s.gearGeom.leg + s.gearGeom.wr - gearEngines.reduce((a, e) => a + e.y, 0) / gearEngines.length;
-  s.gear = 'retract'; s.ordnance = 'bay'; s.heavy = true;
+  s.gear = 'retract'; s.ordnance = s.bay ? 'bay' : null; s.heavy = true;      // (an interceptor has no bay)
   return s;
 }
 
 export const HEAVY = {
-  // ---- USA: B-17G (22.66 m, 31.62 m, 5.82 m; wing 131.9 m2; four Wright R-1820, 3.5 m propellers) ----
+  // ---- USA: B-17G (22.66 m, 31.62 m, 5.82 m; wing 131.9 m2; four Wright R-1820, 3.5 m propellers), drawn from its model (model/v4plane.js; the model is 23.4 m long with the barrels of its tail guns and
+  // 7 m high on its wheels): the stations of the body are the drawing's, the places of the engines, the turrets, the windows, the tail and the fin the model's ----
   b17: finalize({
     name: 'Boeing B-17G Flying Fortress', nation: 'USA', role: 'level', kind: 'mono', L: 22.66, span: 31.62, mass: 24.5, hp: 14, bombKg: 2700,
-    cg: 8.6, paint: { top: '#5b5f3f', bot: '#a9aba0', acc: '#e8e6dc' },
+    cg: 9.84, paint: { top: '#b9bdbf', bot: '#a9aba0', acc: '#e8e6dc' },
     body: [[0, 0.1, 0.08, -0.2], [0.5, 0.62, 0.52, -0.2], [1.0, 0.9, 0.73, -0.2], [1.5, 1.1, 0.9, -0.12], [2.0, 1.12, 0.92, -0.1], [2.5, 1.1, 1.0, -0.12], [3.0, 1.15, 1.07, -0.07],
       [3.5, 1.3, 1.12, 0.02], [4.5, 1.34, 1.18, 0.01], [7.0, 1.35, 1.2, 0.0], [9.0, 1.27, 1.2, -0.1], [10.5, 1.18, 1.2, -0.2], [12.0, 1.1, 1.17, -0.22], [14.0, 1.0, 0.93, -0.23],
       [16.0, 0.85, 0.78, -0.2], [18.0, 0.72, 0.65, -0.16], [19.5, 0.62, 0.58, -0.12], [21.0, 0.45, 0.41, -0.15], [22.0, 0.3, 0.29, -0.15], [22.5, 0.1, 0.1, -0.15]],
     glass: [{ d0: 0.3, d1: 2.9, a0: -30, a1: 82, sym: true, nu: 3, nv: 3 }],
     cabin: [{ d0: 3.4, d1: 6.0, y0: 0.82, h: 0.5, hw: 0.78 }],
     windows: [{ d: 2.9, y: 0.1, w: 0.4, h: 0.3 }, { d: 3.4, y: 0.1, w: 0.4, h: 0.3 }],
-    guns: [{ t: 'chin', d: 1.9, r: 0.42 }, { t: 'cheek', d: 1.5, y: 0.05, side: -1 }, { t: 'dome', d: 5.3, r: 0.5, n: 2, len: 1.2 }, { t: 'ball', d: 10.9, r: 0.62 },
-      { t: 'beam', d: 13.1, y: 0.15, side: 1, w: 0.8, h: 0.55 }, { t: 'beam', d: 14.4, y: 0.15, side: -1, w: 0.8, h: 0.55 }, { t: 'tail', d: 21.38, r: 0.4, n: 2, len: 0.8 },
-      { t: 'cheek', d: 1.5, y: 0.05, side: 1 }, { t: 'hatch', d: 9.7 }],      // the B-17G has thirteen .50: the two cheek guns of the nose and the gun of the radio room are the last three
-    engines: [{ d: 3.0, z: -6.5, y: -0.1, r: 0.76, len: 1.15, aft: 6.9, type: 'radial', gear: false }, { d: 2.7, z: -2.9, y: -0.28, r: 0.76, len: 1.15, aft: 7.3, type: 'radial' },
-      { d: 2.7, z: 2.9, y: -0.28, r: 0.76, len: 1.15, aft: 7.3, type: 'radial' }, { d: 3.0, z: 6.5, y: -0.1, r: 0.76, len: 1.15, aft: 6.9, type: 'radial', gear: false }],
+    guns: [{ t: 'chin', d: 1.2, r: 0.42, pivot: [8.6, -0.9, 0] }, { t: 'cheek', d: 1.95, y: 0.05, side: -1, pivot: [7.9, 0.4, -0.95] }, { t: 'dome', d: 5.34, r: 0.5, n: 2, len: 1.2, pivot: [4.5, 1.6, 0] },
+      { t: 'ball', d: 11.9, r: 0.55, pivot: [-2.05, -0.95, 0], nowin: true },
+      { t: 'beam', d: 14.1, y: 0.15, side: 1, w: 0.8, h: 0.55, pivot: [-4.3, 0.5, 1.05] }, { t: 'beam', d: 12.55, y: 0.15, side: -1, w: 0.8, h: 0.55, pivot: [-2.72, 0.5, -1.0] },
+      { t: 'tail', d: 22.0, r: 0.4, n: 2, len: 0.8, pivot: [-12.0, 0.95, 0] },
+      { t: 'cheek', d: 1.2, y: 0.05, side: 1, pivot: [8.65, 0.4, 0.8] }, { t: 'hatch', d: 9.5, pivot: [0.3, 1.55, 0] }],      // the B-17G has thirteen .50: the two cheek guns of the nose and the gun of the radio room are the last three (the pivots are the places of the turrets and the windows on the model)
+    engines: [{ d: 3.59, z: -6.57, y: 0.0, r: 0.78, len: 1.15, aft: 10.5, type: 'radial', gear: false }, { d: 2.94, z: -3.05, y: -0.25, r: 0.78, len: 1.15, aft: 10.5, type: 'radial' },
+      { d: 2.94, z: 3.05, y: -0.25, r: 0.78, len: 1.15, aft: 10.5, type: 'radial' }, { d: 3.59, z: 6.57, y: 0.0, r: 0.78, len: 1.15, aft: 10.5, type: 'radial', gear: false }],
     prop: { r: 1.76, n: 3 },
-    wing: { plan: [[0, 4.7, 10.4], [0.3, 5.0, 9.8], [1.0, 6.75, 8.2]], y: -0.45, dih: 1.0, tc: 0.18, flaps: [0.1, 0.55], ail: [0.62, 0.97], boots: [0.05, 0.98] },
-    tail: { tp: { le0: 16.4, te0: 19.5, le1: 17.9, te1: 19.1 }, span: 12.6, y: 0.3, fins: [{ z: 0, th: 0.18, sec: [[0.4, 8.5, 21.0], [1.4, 11.0, 20.8], [2.9, 14.9, 20.5], [3.9, 17.4, 20.2], [4.45, 18.4, 19.9]] }] },
-    cutD: 15.6, insD: 15.0, mastD: 5.2, bay: { d0: 6.6, d1: 10.6, hw: 0.45, n: 12, kg: 227, cols: 3 },
-    gearD: 6.4, tailWheelD: 21.0, gearGeom: { wr: 0.56, leg: 2.09 }, eyeD: [4.1, 1.1, -0.42],
+    wing: { plan: [[0, 4.87, 10.77], [0.3, 5.34, 10.44], [1.0, 7.2, 9.05]], y: 0.15, dih: 0.7, tc: 0.18, flaps: [0.1, 0.55], ail: [0.62, 0.97], boots: [0.05, 0.98] },
+    tail: { tp: { le0: 17.44, te0: 20.34, le1: 18.74, te1: 19.64 }, span: 13.1, y: 0.7, fins: [{ z: 0, th: 0.2, sec: [[0.9, 14.5, 21.8], [1.5, 16.0, 21.75], [3.0, 18.17, 21.46], [4.0, 18.73, 21.29], [5.0, 19.53, 20.45], [5.07, 19.9, 20.3]] }],
+      band: [[-9.5, 3.3, 0.19, -11.3, -11.0, 4.6, 0.13, -9.9]] },
+    cutD: 17.34, insD: 15.0, mastD: 5.2, bay: { d0: 6.6, d1: 10.6, hw: 0.45, n: 12, kg: 227, cols: 3, modelDoors: true },
+    gearD: 6.4, tailWheelD: 21.0, gearGeom: { wr: 0.56, leg: 2.09 }, eyeD: [4.7, 1.1, -0.42],
   }),
 
   // ---- USA: B-29 Superfortress (30.18 m, 43.05 m, 8.46 m; wing 161.3 m2; four Wright R-3350, 5.0 m propellers), measured on its model (the stations and the planform are read there; the
@@ -109,45 +113,49 @@ export const HEAVY = {
     gearD: 6.2, tailWheelD: 18.2, gearGeom: { wr: 0.55, leg: 1.84 }, eyeD: [3.4, 1.0, -0.38],
   }),
 
-  // ---- UK: Lancaster B.I (21.13 m, 31.09 m, 6.25 m; wing 120.5 m2; four Merlin, 3.96 m propellers; twin fins) ----
+  // ---- UK: Lancaster B.I (21.13 m, 31.09 m, 6.25 m; wing 120.5 m2; four Merlin, 3.96 m propellers; twin fins), drawn from its model (the model is 22 m long with the barrels of its tail guns: they are left out) ----
   lancaster: finalize({
     name: 'Avro Lancaster B.I', nation: 'UK', role: 'level', kind: 'mono', L: 21.13, span: 31.09, mass: 25.4, hp: 14, bombKg: 6400,
-    cg: 8.4, paint: { top: '#4a5236', bot: '#2e3032', acc: '#c8c6bc' },
+    cg: 9.19, paint: { top: '#4a5236', bot: '#2e3032', acc: '#c8c6bc' },
     body: [[0.5, 0.25, 0.25, -0.35], [0.9, 0.7, 0.51, -0.25], [1.0, 0.98, 0.71, -0.12], [1.5, 1.1, 0.82, 0.0], [2.0, 1.16, 0.9, 0.05, 2.4], [3.0, 1.3, 0.91, 0.12, 2.6], [5.0, 1.38, 0.91, 0.12, 2.8],
       [7.0, 1.38, 0.91, 0.1, 3], [9.0, 1.34, 0.91, 0.05, 3], [12.0, 1.28, 0.91, -0.03, 3], [14.0, 1.12, 0.88, 0.0, 3], [16.0, 0.92, 0.75, 0.1, 2.6], [18.0, 0.72, 0.55, 0.22],
       [19.4, 0.5, 0.38, 0.32], [20.1, 0.3, 0.22, 0.35], [20.4, 0.1, 0.1, 0.35]],
     glass: [{ d0: 0.5, d1: 2.4, a0: -20, a1: 82, sym: true, nu: 2, nv: 3 }],
     cabin: [{ d0: 3.1, d1: 5.6, y0: 0.82, h: 0.6, hw: 0.72 }],
     windows: [{ d: 11.2, y: 0.4, w: 0.3, h: 0.3 }, { d: 12.0, y: 0.4, w: 0.3, h: 0.3 }, { d: 13.8, y: 0.4, w: 0.3, h: 0.3 }, { d: 14.6, y: 0.4, w: 0.3, h: 0.3 }],
-    guns: [{ t: 'fturret', d: 0.9, y: -0.05, r: 0.36 }, { t: 'dome', d: 10.6, r: 0.55, n: 2, len: 1.0 }, { t: 'tail', d: 19.53, r: 0.5, n: 4, len: 1.0 }],
-    engines: [{ d: 3.9, z: -7.8, y: 0.05, r: 0.52, len: 2.2, aft: 8.4, type: 'inline', chin: true, gear: false }, { d: 3.3, z: -3.5, y: 0.05, r: 0.52, len: 2.2, aft: 10.6, type: 'inline', chin: true },
-      { d: 3.3, z: 3.5, y: 0.05, r: 0.52, len: 2.2, aft: 10.6, type: 'inline', chin: true }, { d: 3.9, z: 7.8, y: 0.05, r: 0.52, len: 2.2, aft: 8.4, type: 'inline', chin: true, gear: false }],
-    prop: { r: 1.98, n: 3 },
-    wing: { plan: [[0, 5.1, 10.8], [0.5, 5.75, 10.0], [1.0, 7.05, 9.2]], y: 0.05, dih: 0.9, tc: 0.16, flaps: [0.1, 0.6], ail: [0.68, 0.98], boots: [0.05, 0.98] },
-    tail: { tp: { le0: 16.9, te0: 19.6, le1: 17.3, te1: 19.2 }, span: 10.2, y: 0.3,
-      fins: [{ z: -4.6, th: 0.14, sec: oval(-0.7, 3.9, 17.5, 20.5, 0.1) }, { z: 4.6, th: 0.14, sec: oval(-0.7, 3.9, 17.5, 20.5, 0.1) }] },
-    cutD: 16.5, insD: 14.2, bay: { d0: 6.0, d1: 15.0, hw: 0.55, n: 6, kg: 1000, cols: 2 },
+    guns: [{ t: 'fturret', d: 0.8, y: -0.05, r: 0.36, pivot: [8.4, 0.65, 0] }, { t: 'dome', d: 13.95, r: 0.55, n: 2, len: 1.0, pivot: [-4.76, 1.55, 0] }, { t: 'tail', d: 21.1, r: 0.5, n: 4, len: 1.0, pivot: [-11.9, 0.55, 0] }],
+    engines: [{ d: 3.99, z: -7.7, y: 0.25, r: 0.52, len: 2.2, aft: 8.9, type: 'inline', chin: true, gear: false }, { d: 3.44, z: -3.65, y: -0.05, r: 0.52, len: 2.2, aft: 10.7, type: 'inline', chin: true },
+      { d: 3.44, z: 3.65, y: -0.05, r: 0.52, len: 2.2, aft: 10.7, type: 'inline', chin: true }, { d: 3.99, z: 7.7, y: 0.25, r: 0.52, len: 2.2, aft: 8.9, type: 'inline', chin: true, gear: false }],
+    prop: { r: 1.9, n: 3 },
+    wing: { plan: [[0, 5.7, 10.7], [0.35, 6.1, 10.45], [0.6, 6.5, 10.2], [1.0, 7.7, 9.2]], y: 0.2, dih: 1.0, tc: 0.16, flaps: [0.1, 0.6], ail: [0.68, 0.98], boots: [0.05, 0.98] },
+    tail: { tp: { le0: 17.92, te0: 20.36, le1: 18.12, te1: 19.52 }, span: 10.75, y: 0.0,
+      fins: [{ z: -5.05, th: 0.2, sec: [[0.3, 18.09, 19.7], [1.0, 18.1, 19.7], [1.5, 18.15, 19.65], [2.0, 18.24, 19.57], [2.5, 18.4, 19.4], [2.86, 18.6, 19.2]] },
+        { z: 5.05, th: 0.2, sec: [[0.3, 18.09, 19.7], [1.0, 18.1, 19.7], [1.5, 18.15, 19.65], [2.0, 18.24, 19.57], [2.5, 18.4, 19.4], [2.86, 18.6, 19.2]] }],
+      band: [[-9.0, 0.9, 5.17, -10.4, -10.15, 2.3, 5.17, -9.25], [-9.0, 0.9, 4.93, -10.4, -10.15, 2.3, 4.93, -9.25]] },
+    cutD: 17.69, insD: 14.2, bay: { d0: 6.0, d1: 15.0, hw: 0.55, n: 6, kg: 1000, cols: 2, modelDoors: true },
     gearD: 6.4, tailWheelD: 19.7, gearGeom: { wr: 0.62, leg: 2.63 }, eyeD: [3.8, 1.2, -0.4],
   }),
 
   // ---- Germany: He 111 H (16.4 m, 22.6 m, 4.0 m; wing 87.6 m2; two Jumo 211) ----
   he111: finalize({
     name: 'Heinkel He 111 H-6', nation: 'Germany', role: 'level', kind: 'mono', L: 16.4, span: 22.6, mass: 12.0, hp: 8.5, bombKg: 2000,
-    cg: 6.6, paint: { top: '#4f5a44', bot: '#8da3b7', acc: '#1c1c1c' },
+    cg: 6.82, paint: { top: '#4f5a44', bot: '#8da3b7', acc: '#1c1c1c' },
     body: [[0, 0.08, 0.08, 0], [0.5, 0.5, 0.32, 0], [1.0, 0.8, 0.56, 0], [1.5, 0.95, 0.71, -0.2], [2.0, 1.0, 0.79, -0.22], [2.5, 1.1, 0.83, -0.25], [4.0, 1.15, 0.92, -0.25],
       [5.5, 1.15, 0.98, -0.25], [7.5, 1.1, 0.9, -0.22], [9.0, 0.98, 0.75, -0.15], [10.5, 0.9, 0.68, -0.08], [12.0, 0.8, 0.58, 0.0], [13.3, 0.66, 0.46, 0.08], [14.5, 0.52, 0.3, 0.22],
       [15.6, 0.38, 0.17, 0.27], [16.4, 0.1, 0.08, 0.3]],
     glass: [{ d0: 0.12, d1: 2.9, a0: -45, a1: 80, sym: true, nu: 4, nv: 3 }],
     cabin: [{ d0: 2.3, d1: 3.9, y0: 0.82, h: 0.4, hw: 0.62 }],
     windows: [{ d: 4.3, y: 0.3, w: 0.4, h: 0.4 }, { d: 5.3, y: 0.3, w: 0.4, h: 0.4 }],
-    guns: [{ t: 'nose', d: 0.8, y: 0.15, z: 0.3 }, { t: 'dome', d: 6.0, r: 0.42, n: 1, len: 1.0 }, { t: 'gondola', d0: 5.8, d1: 9.2, ry: 0.4, rz: 0.46 },
-      { t: 'beam', d: 7.8, y: 0.3, side: 1, w: 0.6, h: 0.45 }, { t: 'beam', d: 7.8, y: 0.3, side: -1, w: 0.6, h: 0.45 }],
-    engines: [{ d: 0.8, z: -2.8, y: -0.45, r: 0.55, len: 2.0, aft: 6.4, type: 'inline', chin: true }, { d: 0.8, z: 2.8, y: -0.45, r: 0.55, len: 2.0, aft: 6.4, type: 'inline', chin: true }],
-    prop: { r: 1.75, n: 3 },
-    wing: { plan: [[0, 1.9, 7.6], [0.5, 3.2, 7.25], [0.9, 4.35, 6.9], [1.0, 4.85, 6.3]], y: -0.55, dih: 0.5, tc: 0.17, flaps: [0.1, 0.62], ail: [0.66, 0.97] },
-    tail: { tp: { le0: 13.4, te0: 16.1, le1: 14.4, te1: 15.8 }, span: 7.7, y: 0.3, fins: [{ z: 0, th: 0.14, sec: [[0.4, 11.0, 16.1], [1.2, 12.6, 16.0], [2.1, 14.0, 15.9], [2.5, 15.0, 15.7]] }] },
-    cutD: 12.9, insD: 11.0, bay: { d0: 3.4, d1: 6.6, hw: 0.4, n: 4, kg: 500, cols: 2 },
-    gearD: 4.4, tailWheelD: 15.4, gearGeom: { wr: 0.5, leg: 1.74 }, eyeD: [2.0, 0.7, -0.35],
+    guns: [{ t: 'nose', d: 0.6, y: 0.1, z: 0.25, pivot: [6.2, 0.1, 0.25] }, { t: 'dome', d: 6.3, r: 0.42, n: 1, len: 1.0, pivot: [0.55, 1.35, 0] },
+      { t: 'gondola', d0: 6.6, d1: 8.2, ry: 0.4, rz: 0.46, pivot: [-0.7, -1.0, 0] },
+      { t: 'beam', d: 7.8, y: 0.3, side: 1, w: 0.6, h: 0.45, pivot: [-1.0, 0.25, 0.85] }, { t: 'beam', d: 7.8, y: 0.3, side: -1, w: 0.6, h: 0.45, pivot: [-1.0, 0.25, -0.85] }],
+    engines: [{ d: 0.67, z: -2.7, y: 0.0, r: 0.55, len: 2.0, aft: 7.0, type: 'inline', chin: true }, { d: 0.67, z: 2.7, y: 0.0, r: 0.55, len: 2.0, aft: 7.0, type: 'inline', chin: true }],
+    prop: { r: 1.5, n: 3 },
+    wing: { plan: [[0, 2.2, 6.8], [0.5, 2.8, 7.0], [0.9, 3.9, 6.6], [1.0, 4.4, 6.3]], y: -0.4, dih: 0.5, tc: 0.17, flaps: [0.1, 0.62], ail: [0.66, 0.97] },
+    tail: { tp: { le0: 13.3, te0: 16.0, le1: 14.6, te1: 15.6 }, span: 8.0, y: 0.07, fins: [{ z: 0, th: 0.3, sec: [[0.6, 13.1, 15.9], [1.0, 13.5, 15.9], [1.5, 13.6, 15.8], [2.0, 13.8, 15.7], [2.5, 14.1, 15.5], [2.9, 14.5, 15.3]] }],
+      band: [[-7.0, 1.2, 0.16, -8.9, -7.5, 2.6, 0.1, -8.6]] },
+    cutD: 13.2, insD: 11.0, bay: { d0: 3.4, d1: 6.6, hw: 0.4, n: 4, kg: 500, cols: 2, modelDoors: true },
+    gearD: 3.3, tailWheelD: 14.6, gearGeom: { wr: 0.5, leg: 2.2 }, eyeD: [2.0, 0.7, -0.35],
   }),
 
   // ---- Italy: SM.79 Sparviero (15.62 m, 21.2 m, 4.1 m; wing 61.7 m2; three Alfa Romeo 126, one in the nose) ----
@@ -186,5 +194,68 @@ export const HEAVY = {
       fins: [{ z: -3.6, th: 0.12, sec: oval(-0.8, 3.6, 13.6, 15.9, 0.1) }, { z: 3.6, th: 0.12, sec: oval(-0.8, 3.6, 13.6, 15.9, 0.1) }] },
     cutD: 13.3, insD: 11.6, bay: { d0: 5.4, d1: 8.4, hw: 0.4, n: 6, kg: 250, cols: 2 },
     gearD: 5.5, tailWheelD: 15.2, gearGeom: { wr: 0.5, leg: 2.3 }, eyeD: [3.1, 1.15, -0.32],
+  }),
+
+  // ---- USA: Lockheed P-38G Lightning, a land-based interceptor (11.53 m, 15.85 m, 3.9 m high; wing 30.4 m2; two Allison V-1710 with turbochargers, 3.5 m three-blade propellers turning outward, a tricycle
+  // undercarriage; one 20 mm and four .50 in the nose), drawn from its model (the model is 11.7 m long and 16.1 m across): the central pod, the two booms with their engines and the tail between the fins
+  // are the model's pieces (model/v4plane.js); this sheet gives the frame the game works in (the stations of the pod, the engines, the planform for the hit volume, the places of the guns and the eye) ----
+  p38: finalize({
+    name: 'Lockheed P-38G Lightning', nation: 'USA', role: 'interceptor', kind: 'mono', L: 11.53, span: 15.85, mass: 7.1, S: 30.43, hp: 5.5, bombKg: 0,
+    cg: 4.9, paint: { top: '#55563d', bot: '#8d9193', acc: '#e8e6dc' },
+    body: [[0, 0.06, 0.06, -0.23], [0.3, 0.31, 0.28, -0.17], [0.8, 0.5, 0.38, -0.17], [1.1, 0.57, 0.41, -0.17], [1.9, 0.67, 0.47, -0.17], [2.55, 0.72, 0.47, -0.15], [3.2, 0.91, 0.5, 0.015],
+      [3.5, 0.93, 0.5, 0.03], [4.2, 0.81, 0.45, -0.01], [4.8, 0.63, 0.4, -0.08], [5.3, 0.43, 0.3, -0.12], [5.7, 0.2, 0.2, -0.15], [6.05, 0.05, 0.05, -0.16]],
+    cabin: [{ d0: 2.7, d1: 4.8, y0: 0.5, h: 0.45, hw: 0.43 }],
+    guns: [],
+    engines: [{ d: 1.6, z: -2.4446, y: 0.0, r: 0.55, len: 1.4, aft: 6.0, type: 'inline', dir: -1 }, { d: 1.6, z: 2.4446, y: 0.0, r: 0.55, len: 1.4, aft: 6.0, type: 'inline', dir: 1 }],
+    prop: { r: 1.76, n: 3 },
+    wing: { plan: [[0, 3.1, 5.95], [0.3, 2.4, 5.8], [0.477, 3.4, 5.43], [0.728, 3.59, 5.09], [0.98, 3.83, 4.59]], y: 0.05, dih: 0.63, tc: 0.14, flaps: [0.1, 0.55], ail: [0.6, 0.97] },
+    tail: { tp: { le0: 10.16, te0: 11.33, le1: 10.16, te1: 11.33 }, span: 6.7, y: 0.41,
+      fins: [{ z: -2.44, th: 0.08, sec: [[-0.3, 10.56, 11.29], [0.0, 10.26, 11.54], [0.6, 10.14, 11.65], [1.2, 10.33, 11.55], [1.5, 10.49, 11.39], [1.8, 10.74, 11.15]] },
+        { z: 2.44, th: 0.08, sec: [[-0.3, 10.56, 11.29], [0.0, 10.26, 11.54], [0.6, 10.14, 11.65], [1.2, 10.33, 11.55], [1.5, 10.49, 11.39], [1.8, 10.74, 11.15]] }],
+      band: [[-5.5, 0.85, 2.49, -6.6, -6.45, 1.45, 2.49, -5.7], [-5.5, 0.85, 2.39, -6.6, -6.45, 1.45, 2.39, -5.7]] },
+    cutD: 6.1, insD: 3.8, mastD: 3.5,
+    gearD: 3.4, noseGear: { d: 1.1, wr: 0.26 }, tailWheelD: 6.0, gearGeom: { wr: 0.36, leg: 1.8 }, eyeD: [3.3, 0.55, 0], groundPitch: 0,
+  }),
+
+  // ---- UK: De Havilland Mosquito FB Mk VI, a land-based interceptor (12.34 m, 16.52 m, 3.81 m high; wing 42.2 m2; two Rolls-Royce Merlin 21/23, 3.8 m three-blade propellers; a wooden aircraft; four 20 mm
+  // Hispano under the nose and four .303 in it), drawn from its model (the model is 12.5 m long and 16.52 m across): the fuselage and the wings with their nacelles are the model's pieces (model/v4plane.js);
+  // this sheet gives the frame the game works in (the stations of the fuselage, the engines, the planform for the hit volume, the places of the guns and the eye) ----
+  mosquito: finalize({
+    name: 'De Havilland Mosquito FB Mk VI', nation: 'UK', role: 'interceptor', kind: 'mono', L: 12.34, span: 16.52, mass: 9.0, S: 42.18, hp: 4.5, bombKg: 0,
+    cg: 5.0, paint: { top: '#3d4a33', bot: '#8a979b', acc: '#e8e6dc' },
+    body: [[0, 0.1, 0.1, -0.13], [0.2, 0.3, 0.34, -0.11], [0.6, 0.485, 0.51, -0.115], [1.0, 0.615, 0.61, -0.115], [1.5, 0.72, 0.65, -0.12], [2.5, 0.915, 0.63, 0.035], [3.5, 0.945, 0.63, 0.055],
+      [4.5, 0.825, 0.63, -0.065], [5.0, 0.825, 0.64, -0.075], [6.0, 0.78, 0.63, -0.08], [7.0, 0.685, 0.59, -0.045], [8.0, 0.6, 0.53, -0.02], [9.0, 0.515, 0.47, 0.015], [10.0, 0.425, 0.4, 0.045],
+      [11.0, 0.325, 0.29, 0.105], [12.0, 0.195, 0.14, 0.155], [12.34, 0.1, 0.07, 0.16]],
+    cabin: [{ d0: 1.36, d1: 3.69, y0: 0.45, h: 0.5, hw: 0.5 }],
+    guns: [],
+    engines: [{ d: 0.4, z: -2.512, y: 0.0, r: 0.47, len: 1.8, aft: 6.2, type: 'inline', dir: -1 }, { d: 0.4, z: 2.512, y: 0.0, r: 0.47, len: 1.8, aft: 6.2, type: 'inline', dir: -1 }],      // (both Merlins turn the same way: the top of the disc to port)
+    prop: { r: 1.95, n: 3 },
+    wing: { plan: [[0, 2.0, 6.0], [0.25, 2.3, 5.65], [0.476, 2.37, 4.95], [0.607, 2.39, 4.63], [0.728, 2.42, 4.3], [0.854, 2.48, 3.95], [0.98, 2.63, 3.46]], y: 0.04, dih: 0.38, tc: 0.14, flaps: [0.1, 0.55], ail: [0.6, 0.97] },
+    tail: { tp: { le0: 10.66, te0: 12.26, le1: 11.4, te1: 11.97 }, span: 6.8, y: 0.17,
+      fins: [{ z: 0, th: 0.14, sec: [[0.4, 9.81, 11.92], [1.0, 9.97, 11.55], [1.6, 10.22, 11.5], [2.2, 10.54, 11.36], [2.55, 10.8, 11.15]] }],
+      band: [[-5.05, 1.1, 0.1, -6.5, -6.42, 2.0, 0.085, -5.45]] },
+    cutD: 9.75, insD: 8.0, mastD: 4.0,
+    gearD: 4.0, tailWheelD: 11.4, gearGeom: { wr: 0.5, leg: 1.5 }, eyeD: [2.4, 0.55, -0.25],
+  }),
+  // ---- USA: Douglas B-26B Invader (the A-26B-50 of 1945: 15.62 m, 21.34 m, 5.6 m high; wing 50.2 m2; two Pratt & Whitney R-2800-79, 3.96 m three-blade propellers; a solid nose with eight .50, a remote
+  // dorsal and a remote ventral turret of two .50, a bomb bay for 4 000 lb and four two-gun pods under the wings), drawn from its model (the model is 15.63 m long and 21.34 m across): the fuselage, the
+  // wings with their nacelles and engines, the tail, the propeller and the panes are the model's pieces (model/v4plane.js); this sheet gives the frame the game works in (the stations, the engines, the
+  // planform for the hit volume, the places of the turrets, the bay and the eye) ----
+  b26: finalize({
+    name: 'Douglas B-26B Invader', nation: 'USA', role: 'level', kind: 'mono', L: 15.62, span: 21.34, mass: 12.5, S: 50.17, hp: 8, bombKg: 1814,
+    cg: 6.56, paint: { top: '#b9bdbf', bot: '#b9bdbf', acc: '#e8e6dc' },
+    body: [[0, 0.1, 0.1, 0.0], [0.4, 0.45, 0.45, -0.03], [0.8, 0.63, 0.63, -0.05], [1.5, 0.72, 0.74, -0.01], [2.25, 0.84, 0.78, -0.1], [3.0, 0.92, 0.79, 0.19], [4.5, 0.91, 0.79, 0.2],
+      [6.0, 0.91, 0.79, 0.21], [7.5, 0.95, 0.77, 0.3], [9.0, 0.95, 0.76, 0.27], [9.75, 0.94, 0.75, 0.33], [10.5, 0.7, 0.75, 0.36], [11.25, 0.68, 0.72, 0.44], [12.0, 0.7, 0.66, 0.55],
+      [12.75, 0.65, 0.52, 0.7], [13.5, 0.55, 0.4, 0.78], [14.3, 0.42, 0.28, 0.82], [15.1, 0.25, 0.16, 0.86], [15.62, 0.08, 0.06, 0.88]],
+    cabin: [{ d0: 2.3, d1: 4.2, y0: 0.5, h: 0.4, hw: 0.55 }],
+    guns: [{ t: 'dome', d: 7.2, r: 0.45, n: 2, pivot: [-0.7, 1.15, 0], nowin: true }, { t: 'ball', d: 8.9, r: 0.4, n: 2, pivot: [-2.4, -0.72, 0], nowin: true }],
+    engines: [{ d: 2.23, z: -2.92, y: 0.0, r: 0.78, len: 1.6, aft: 9.3, type: 'radial' }, { d: 2.23, z: 2.92, y: 0.0, r: 0.78, len: 1.6, aft: 9.3, type: 'radial' }],
+    prop: { r: 1.98, n: 3 },
+    wing: { plan: [[0, 4.35, 7.7], [0.25, 4.4, 7.3], [0.5, 4.5, 6.95], [1.0, 4.69, 6.23]], y: 0.55, dih: 0.55, tc: 0.17, flaps: [0.1, 0.55], ail: [0.62, 0.97] },
+    tail: { tp: { le0: 13.1, te0: 15.1, le1: 13.55, te1: 14.57 }, span: 7.0, y: 1.0,
+      fins: [{ z: 0, th: 0.2, sec: [[1.0, 12.4, 15.5], [2.0, 13.08, 15.43], [3.0, 13.35, 15.28], [3.9, 13.7, 15.1], [4.01, 13.9, 15.0]] }],
+      band: [[-7.2, 2.0, 0.12, -8.6, -8.4, 3.4, 0.09, -7.6]] },
+    cutD: 11.56, insD: 11.0, mastD: 4.8, bay: { d0: 4.9, d1: 7.7, hw: 0.45, n: 8, kg: 227, cols: 2, doors: [[5.0, 7.6]] },
+    gearD: 4.8, noseGear: { d: 1.9, wr: 0.3 }, tailWheelD: 14.0, gearGeom: { wr: 0.55, leg: 1.8 }, eyeD: [3.0, 0.75, -0.25], groundPitch: 0,
   }),
 };

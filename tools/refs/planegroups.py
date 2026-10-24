@@ -61,6 +61,9 @@ else:
 ux, uz = f
 # new x along the nose, new z to starboard (forward x up = right: right = (-uz, 0, ux) in the frame of the bake), y up
 Q = np.stack([P[:, 0] * ux + P[:, 2] * uz, P[:, 1], -P[:, 0] * uz + P[:, 2] * ux], axis=1)
+if cfg.get('pitch_deg'):
+    # a model standing on its wheels has its nose up (the disc of its propeller is tilted): turned about the lateral axis, nose down by this angle, so that the axis of the engine is the x axis
+    th = np.radians(cfg['pitch_deg']); Q = np.stack([Q[:, 0] * np.cos(th) + Q[:, 1] * np.sin(th), -Q[:, 0] * np.sin(th) + Q[:, 1] * np.cos(th), Q[:, 2]], axis=1)
 keep_v = ~dropm[VM]
 wingm = sel_mats(cfg['wing']) if cfg.get('wing') else np.ones(len(names), bool)
 sc_cfg = cfg['scale']
@@ -75,10 +78,14 @@ L = xn - xt
 zw = Q[wingm[VM] & keep_v][:, 2]
 zc = (zw.max() + zw.min()) / 2
 hub = Q[vn & keep_v & (Q[:, 0] > xn - cfg.get('hub_depth', 0.5 if cfg.get('nose') else 0.35))]      # (hub_depth: how far behind the tip of the nose the centre of the spinner is read: not so far that the blades count, they are not about the axis)
-ax = float(cfg['axis_y']) if 'axis_y' in cfg else float((hub[:, 1].max() + hub[:, 1].min()) / 2)
-Q[:, 0] -= xn - 0.42 * L; Q[:, 1] -= ax; Q[:, 2] -= zc
+ax = float(cfg['axis_y']) if 'axis_y' in cfg else float((hub[:, 1].max() + hub[:, 1].min()) / 2) + float(cfg.get('axis_offset', 0))      # (axis_offset: m, when the points found at the tip of the nose are not the hub: a mooring ring at the bow of a float)
+ON = cfg['origin_nose'] if 'origin_nose' in cfg else 0.42 * L      # (origin_nose: where the nose is in the game's frame, when the model has things beyond its ends that are dropped: the barrels of its tail guns)
+Q[:, 0] -= xn - ON; Q[:, 1] -= ax; Q[:, 2] -= zc
 low = Q[keep_v][:, 1].min()
 print(f'turned {np.degrees(np.arctan2(uz, ux)):.1f} deg, scale {scale:.4f}, length {L:.2f} m, span {zw.max() - zw.min():.2f} m, axis {ax:.2f} m above the lowest point, ground {-low:.2f} m under the axis (origin x: nose at {0.42 * L:.2f})')
+
+if fl.get('qdump'):      # the model in the game's frame (for tools/refs/qview.py): --qdump=refs/<id>/q.npz
+    np.savez(fl['qdump'], Q=Q, I=I, VM=VM, C=C); print('frame written to', fl['qdump'])
 
 if fl.get('probe'):
     print('material                      tris     x0..x1        y0..y1        z0..z1')
@@ -187,6 +194,13 @@ def measures():
 
 if fl.get('measures') or fl.get('probe2'): measures()
 
+if fl.get('inbox'):      # --inbox=x0,x1,y0,y1,z0,z1 (game frame): what is in a box, by material: the triangles, their extents and their mean colour (to write a box rule: a wheel, a tail wheel, a gun)
+    c = [float(v) for v in fl['inbox'].split(',')]
+    sel = (cen[:, 0] >= c[0]) & (cen[:, 0] <= c[1]) & (cen[:, 1] >= c[2]) & (cen[:, 1] <= c[3]) & (cen[:, 2] >= c[4]) & (cen[:, 2] <= c[5])
+    for mi in np.unique(tmat[sel]):
+        t = np.where(sel & (tmat == mi))[0]; q = Q[np.unique(I[t])]; mc = C[I[t]].mean((0, 1))
+        print(f'{mname(mi)[:34]:34} {len(t):6} part {",".join(sorted(set(part[t])))[:20]:20} x {q[:,0].min():.2f}..{q[:,0].max():.2f} y {q[:,1].min():.2f}..{q[:,1].max():.2f} z {q[:,2].min():.2f}..{q[:,2].max():.2f} rgb {mc.astype(int).tolist()}')
+
 def pack(a):
     return base64.b64encode(a.tobytes()).decode()
 
@@ -271,6 +285,17 @@ for name in sorted(set(part) - {'drop'}):
         print(f'{name}: {int(inner.sum())} inner triangles dropped (shell)'); t = t[~inner]
     used = np.unique(I[t]); remap = -np.ones(nv, dtype=np.int64); remap[used] = np.arange(len(used))
     V, Cc, T = Q[used], C[used].astype(np.float64), remap[I[t]]
+    if name == 'prop' and cfg.get('reblade'):
+        # the model's propeller has another number of blades than the real aircraft: one blade is kept (the triangles whose centre lies within `width` degrees of the angle `centre`, measured round the
+        # x axis from straight up, to starboard) and copied at equal spacing: "reblade": {"n": 4, "centre": 0, "width": 30}
+        rb = cfg['reblade']; ct = V[T].mean(1); an = np.degrees(np.arctan2(ct[:, 2], ct[:, 1])); da = (an - rb.get('centre', 0) + 180) % 360 - 180
+        Tb = T[np.abs(da) < rb.get('width', 30)]; ub = np.unique(Tb); rm = -np.ones(len(V), dtype=np.int64); rm[ub] = np.arange(len(ub)); Vb, Cb, Tb = V[ub], Cc[ub], rm[Tb]
+        Vs, Cs, Ts = [], [], []; off = 0
+        for k in range(rb['n']):
+            ph = np.radians(360.0 * k / rb['n']); c_, s_ = np.cos(ph), np.sin(ph)
+            Vk = Vb.copy(); Vk[:, 1] = Vb[:, 1] * c_ - Vb[:, 2] * s_; Vk[:, 2] = Vb[:, 1] * s_ + Vb[:, 2] * c_
+            Vs.append(Vk); Cs.append(Cb); Ts.append(Tb + off); off += len(Vb)
+        V, Cc, T = np.concatenate(Vs), np.concatenate(Cs), np.concatenate(Ts); print(f"prop: {rb['n']} blades from one")
     V0, C0 = V, Cc
     V, Cc, T = decimate(V, Cc, T, budget.get(name, 0), cfg.get('boundary_by_piece', {}).get(name), cfg.get('weld_by_piece', {}).get(name, 0.002), name)
     if cfg.get('refine') and name not in cfg.get('norefine', []):      # (the colour is then read again, at every vertex, from the full-resolution mesh)

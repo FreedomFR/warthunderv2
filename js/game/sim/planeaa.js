@@ -67,7 +67,7 @@ export function updateAA(world, dt) {
       a.flash = Math.max(0, a.flash - dt * 6); a.recoil = Math.max(0, a.recoil - dt * 4);
       if (!a.alive || !ship.mountUsable(a)) { a.target = null; continue; }
       if (a.ammo <= 0) { a.target = null; continue; }
-      const cfg = AA[a.rec.variant];
+      const cfg = AA[a.rec.gun || a.rec.variant];
       a.retarget -= dt;
       if (a.retarget <= 0 || !a.target || a.target.dying || !world.planes.includes(a.target)) {
         a.retarget = 0.35 + rng() * 0.5;
@@ -109,7 +109,7 @@ export function updateAA(world, dt) {
       const fall = Math.pow(1 - dist / cfg.range, 1.5);
       a.ammo = Math.max(0, a.ammo - cfg.rps * a.rec.n * dt * 0.6);      // every barrel fires at its rate while it has the aircraft in sight
       const hitRate = lightAAHitRate(ship, a, p, cfg, w, dist);       // hits a second
-      if (rng() < hitRate * dt * (0.3 + 0.7 * crewOf(a))) hitPlane(world, ship, p, cfg.hit * (0.7 + 0.6 * rng()), a.rec.cal);
+      if (rng() < hitRate * dt * (0.3 + 0.7 * crewOf(a))) hitPlane(world, ship, p, cfg.hit * (0.7 + 0.6 * rng()), a.rec.cal, 'aa', cfg.ammo);
       // visible fire
       a.burstLeft -= dt;
       if (a.burstLeft <= 0) {

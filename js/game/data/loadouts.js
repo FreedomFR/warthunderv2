@@ -50,6 +50,12 @@ export const LOADOUTS = {
     L('1000ap', '1 bombe perforante de 1 000 lb', [{ ord: 'anmk33', n: 1 }], ['alt']),
     L('2000', '1 bombe de 2 000 lb', [{ ord: 'anm66', n: 1 }], ['base']),
   ],
+  tdb1: [
+    L('torp', '1 torpille Mk 13', [{ torp: 1 }], ['ship', 'armor']),
+    L('3x500', '3 bombes de 500 lb', [{ ord: 'anm64', n: 3 }], ['base']),
+    L('1000', '1 bombe de 1 000 lb', [{ ord: 'anm65', n: 1 }], ['alt', 'base']),
+    L('12x100', '12 bombes de 100 lb', [{ ord: 'anm30', n: 12 }], ['base']),
+  ],
   b5n: [
     L('torp', '1 torpille Type 91', [{ torp: 1 }], ['ship', 'armor']),
     L('800ap', '1 bombe perforante de 800 kg', [{ ord: 'jn80ap', n: 1 }], ['alt']),
@@ -85,6 +91,11 @@ export const LOADOUTS = {
     L('12x1000', '12 bombes de 1 000 lb', [{ ord: 'anm65', n: 12 }], ['armor', 'ship']),
     L('40x250', '40 bombes de 250 lb', [{ ord: 'anm57', n: 40 }], ['base']),
   ],
+  b26: [
+    L('8x500', '8 bombes de 500 lb en soute', [{ ord: 'anm64', n: 8 }], ['ship', 'base']),
+    L('4x1000', '4 bombes de 1 000 lb en soute', [{ ord: 'anm65', n: 4 }], ['armor', 'ship']),
+    L('16x250', '16 bombes de 250 lb en soute', [{ ord: 'anm57', n: 16 }], ['base']),
+  ],
   g4m: [
     L('torp', '1 torpille Type 91', [{ torp: 1 }], ['armor', 'ship'], { low: true }),
     L('800ap', '1 bombe perforante de 800 kg', [{ ord: 'jn80ap', n: 1 }], ['alt']),
@@ -109,6 +120,13 @@ export const LOADOUTS = {
   leo451: [
     L('7x225', '7 bombes de 225 kg', [{ ord: 'fr225', n: 7 }], ['ship', 'base']),
     L('10x15', '30 bombes de 15 kg', [{ ord: 'fr15', n: 30 }], ['base']),
+  ],
+  // ---- the land-based interceptors (a fighter does not bomb in the simulation: the load the wing racks could take is listed for the wiki) ----
+  p38: [
+    L('2x1000', '2 bombes de 1 000 lb sous les ailes', [{ ord: 'anm65', n: 2 }], ['alt']),
+  ],
+  mosquito: [
+    L('4x500', '4 bombes de 500 lb (2 en soute, 2 sous les ailes)', [{ ord: 'uk500', n: 4 }], ['alt']),
   ],
 };
 

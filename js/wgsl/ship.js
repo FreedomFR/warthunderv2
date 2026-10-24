@@ -119,6 +119,9 @@ fn camoTone(lp: vec3f, scheme: u32, seed: f32) -> u32 {
     let u = sx * 0.07 + lp.y * 0.30 * sd;
     let w = sx * 0.045 - lp.y * 0.52 * sd + 2.0;
     h = hash21(vec2f(floor(u) * 1.3, floor(w) + seed * 7.0));
+  } else if (scheme == 5u) {   // Measure 12, the graded system: the darkest paint at the waterline, lighter up the topsides, the lightest on the structures above the flight deck (the edge of each grade is sprayed, not ruled)
+    let g = lp.y + 1.3 * gnoise(vec2f(lp.x * 0.22 + seed * 17.0, lp.y * 0.3));
+    return select(select(0u, 1u, g > 6.5), 2u, g > 17.5);
   } else if (scheme == 3u) {   // sunburst: triangular panels fanning out from a point low on the bow
     let a = atan2(lp.y + 7.0, (sx - 40.0) * 0.16) * 3.4 * sd + seed * 5.0;
     h = hash21(vec2f(floor(a), floor(sx * 0.018)));

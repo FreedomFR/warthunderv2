@@ -1,6 +1,7 @@
 // The touch interface: a compact top bar and a menu in place of the desktop buttons, panels that open on demand, a virtual stick for the free camera and
 // the map, full screen in landscape, and the screen kept awake. The desktop interface is not changed: this module presses its buttons and sets classes on <body>.
 import { MOBILE_CSS } from './mobileStyle.js';
+import { keepAwake } from './wakelock.js';
 
 const SPEEDS = [0.5, 1, 2, 4, 8];
 const KEY_CODES = ['KeyW', 'KeyS', 'KeyA', 'KeyD'];
@@ -100,9 +101,6 @@ export function initMobile(game, ui) {
       await screen.orientation?.lock?.('landscape').catch(() => {});
     } catch (e) { /* refused: the page stays as it is */ }
   }
-  let wake = null;
-  async function keepAwake() { try { if (!wake && navigator.wakeLock) { wake = await navigator.wakeLock.request('screen'); wake.addEventListener('release', () => { wake = null; }); } } catch (e) { /* not allowed here */ } }
-  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && game.state === 'running') keepAwake(); });
   // the browser menu and the system gestures should not scroll or zoom the page
   document.addEventListener('gesturestart', (e) => e.preventDefault());
   document.addEventListener('contextmenu', (e) => e.preventDefault());

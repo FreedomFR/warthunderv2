@@ -27,6 +27,9 @@ I = np.fromfile(os.path.join(src, 'idx.u32'), dtype=np.uint32).reshape(nf, 3)
 if not fl.get('noturn'):
     P = P * np.array([-1.0, 1.0, -1.0])      # half a turn about the vertical: the barrels face +x (--noturn=1: the model already faces +x)
 b64 = lambda a: base64.b64encode(a.tobytes()).decode()
+if fl.get('paint'):                                      # --paint=r,g,b: a model drawn in flat dark materials takes this paint (the darkest stays a little darker than it, the lighter parts lighter)
+    pc = np.array([float(x) for x in fl['paint'].split(',')]); lum = C.astype(float).mean(axis=1, keepdims=True) / 255
+    C = np.clip(pc * (0.7 + 2.2 * lum), 0, 255).astype(np.uint8)
 
 # the connected pieces
 key = np.round(P / 0.004).astype(np.int64)
@@ -62,8 +65,32 @@ def rot(V, a):                                          # a turn about the z axi
     c_, s_ = np.cos(a), np.sin(a); d = V - t0
     return np.stack([d[:, 0] * c_ - d[:, 1] * s_, d[:, 0] * s_ + d[:, 1] * c_, d[:, 2]], axis=1)
 
-def pack(tri_ids, V):
+def pack(tri_ids, V, target=0):
+    """The triangles tri_ids at the positions V, welded at 1 mm and (target > 0) simplified with meshoptimizer to about `target` triangles: a detailed model of a gun has 50 000 triangles and a base has a dozen guns."""
     tris = I[tri_ids]; used = np.unique(tris)
+    if target:
+        import subprocess, tempfile, shutil
+        k = np.round(V[used] / 0.001).astype(np.int64)
+        _, first, inv2 = np.unique(k, axis=0, return_index=True, return_inverse=True)
+        remap = -np.ones(nv, dtype=np.int64); remap[used] = inv2
+        pos0 = V[used][first].astype(np.float32); col0 = C[used][first]
+        idx0 = remap[tris]
+        idx0 = idx0[(idx0[:, 0] != idx0[:, 1]) & (idx0[:, 1] != idx0[:, 2]) & (idx0[:, 0] != idx0[:, 2])].astype(np.uint32)
+        if len(idx0) > target:
+            tmp = tempfile.mkdtemp()
+            try:
+                pos0.tofile(os.path.join(tmp, 'pos.f32')); col0.tofile(os.path.join(tmp, 'col.u8')); idx0.tofile(os.path.join(tmp, 'idx.u32'))
+                here = os.path.dirname(os.path.abspath(__file__))
+                subprocess.run(['node', os.path.join(here, 'decimate.mjs'), tmp, tmp + '/out', f'--tris={target}'], check=True, capture_output=True)
+                pos0 = np.fromfile(os.path.join(tmp, 'out', 'pos.f32'), dtype=np.float32).reshape(-1, 3)
+                col0 = np.fromfile(os.path.join(tmp, 'out', 'col.u8'), dtype=np.uint8).reshape(-1, 3)
+                idx0 = np.fromfile(os.path.join(tmp, 'out', 'idx.u32'), dtype=np.uint32).reshape(-1, 3)
+            finally:
+                shutil.rmtree(tmp, ignore_errors=True)
+        else:
+            idx0 = idx0.reshape(-1, 3)
+        wide = len(pos0) >= 65536
+        return {'nv': int(len(pos0)), 'ni': int(idx0.size), 'pos': b64(np.round(pos0 * SC).astype(np.int16)), 'col': b64(col0), 'idx': b64(idx0.astype(np.uint32 if wide else np.uint16)), 'wide': bool(wide)}
     remap = -np.ones(nv, dtype=np.int64); remap[used] = np.arange(len(used))
     q = np.round(V[used] * SC).astype(np.int16)
     idx = remap[tris].astype(np.uint32)
@@ -81,8 +108,9 @@ muz = float(np.max((Vg[np.unique(I[gun_t])])[:, 0]))      # the muzzle, from the
 # the trunnion in the house frame: where the pivot stands over the training axis
 trun_h = (t0 - org)
 KIND = fl.get('kind', 'flak4')
-kd = {'house': pack(house_t, Vh), 'guns': pack(gun_t, Vg), 'type': 'aa', 'from': KIND, 'trunnion': [round(float(trun_h[0]), 3), round(float(trun_h[1]), 3)], 'muzzle': round(muz, 3)}
-head2 = ("// The quadruple 20 mm anti-aircraft gun of the bases, copied from its reference model (see docs/CREDITS.md; tools/refs/flakmount.py): the mesh of the carriage and shield (house: origin at the\n"
+T_H, T_G = int(fl.get('tris_house', 0)), int(fl.get('tris_guns', 0))      # --tris_house= / --tris_guns=: simplify to about that many triangles
+kd = {'house': pack(house_t, Vh, T_H), 'guns': pack(gun_t, Vg, T_G), 'type': 'aa', 'from': KIND, 'trunnion': [round(float(trun_h[0]), 3), round(float(trun_h[1]), 3)], 'muzzle': round(muz, 3)}
+head2 = ("// The anti-aircraft guns of the bases (Flakvierling, Flak 38, Flak 42, Flak 36, 40 mm Bofors and Vickers-Terni, the 38 cm turret), copied from their reference models (see docs/CREDITS.md; tools/refs/flakmount.py): the mesh of the carriage and shield (house: origin at the\n"
          "// training axis on the ground, the way the barrels point = +x) and of the cradle with its four barrels (guns: origin at the trunnion, level), as in the other *_elements.js.\n"
          f"export const MOUNT_SCALE = {SC};\nexport const KINDS = ")
 kinds = {}

@@ -86,11 +86,12 @@ const run = (w, secs, f) => { const n = Math.round(secs / 0.1); for (let i = 0; 
 {
   const { chooseApproach, aaSources, exposure } = await import('../js/game/sim/routing.js');
   const w = new World(5); w.addTeam(0); w.addTeam(1);
-  // the enemy: a battleship with two cruisers 3 km to the west of it, on the side the strike comes from
+  // the enemy: a battleship with two cruisers 3 km to the west of it, on the side the strike comes from (American ones, with 40 mm Bofors: the British pom-pom fires slower and its round is lighter, a screen of it is worth less)
   const bb = w.addShip('yamato', 1, 0, 0, 0, { speed: 0, throttle: 0 });
-  w.addShip('norfolk', 1, -3000, -600, 0, { speed: 0, throttle: 0 });
-  w.addShip('norfolk', 1, -3200, 700, 0, { speed: 0, throttle: 0 });
+  w.addShip('baltimore', 1, -3000, -600, 0, { speed: 0, throttle: 0 });
+  w.addShip('baltimore', 1, -3200, 700, 0, { speed: 0, throttle: 0 });
   w.addShip('fletcher', 0, -40000, 0, 0, { speed: 0, throttle: 0 });
+  w.airOpts = { aspect: 0 };      // (the way round the screen alone: how the strike lies to the ship's bow is judged below)
   const from = { x: -22000, z: 0 };
   const a = chooseApproach(w, 0, from, bb, 'torp', []);
   const a0 = Math.atan2(from.x - bb.x, -(from.z - bb.z));
@@ -98,6 +99,13 @@ const run = (w, secs, f) => { const n = Math.round(secs / 0.1); for (let i = 0; 
   const path = (ang) => { let e = 0; for (const [x0, z0, x1, z1] of [[from.x, from.z, Math.sin(ang) * 9800, -Math.cos(ang) * 9800], [Math.sin(ang) * 9800, -Math.cos(ang) * 9800, 0, 0]]) { for (let i = 0; i <= 40; i++) e += exposure(srcs, x0 + (x1 - x0) * i / 40, z0 + (z1 - z0) * i / 40, true, bb); } return e; };
   ok(Math.abs(Math.atan2(Math.sin(a - a0), Math.cos(a - a0))) > 0.5, `the torpedo bombers come in ${(Math.abs(a - a0) * 57.3).toFixed(0)} degrees away from the direct bearing, round the screen`);
   ok(path(a) < path(a0) * 0.6, `with ${(path(a) / path(a0) * 100).toFixed(0)} % of the fire along the direct way in`);
+  // the aspect: torpedo bombers on the beam of the ship, bombers from ahead (the ship's bow is north: bearing 0)
+  w.airOpts = null;
+  const fromBow = { x: 0, z: -22000 }, fromStern = { x: 0, z: 22000 };
+  const asp = (ang) => Math.abs(Math.atan2(Math.sin(ang), Math.cos(ang)));
+  const aT = chooseApproach(w, 0, fromBow, bb, 'torp', []), aT2 = chooseApproach(w, 0, fromStern, bb, 'torp', []), aD = chooseApproach(w, 0, fromBow, bb, 'dive', []), aD2 = chooseApproach(w, 0, fromStern, bb, 'dive', []);
+  ok(Math.abs(asp(aT) - Math.PI / 2) < 0.7 && Math.abs(asp(aT2) - Math.PI / 2) < 0.7, `torpedo bombers that come from ahead or astern swing round to the beam (${(asp(aT) * 57.3).toFixed(0)} and ${(asp(aT2) * 57.3).toFixed(0)} degrees from the bow)`);
+  ok(asp(aD) < 0.5 && asp(aD2) < 1.6, `bombers come at her from ahead (${(asp(aD) * 57.3).toFixed(0)} degrees from the bow; from astern they go round to ${(asp(aD2) * 57.3).toFixed(0)})`);
   const taken = chooseApproach(w, 0, from, bb, 'torp', [a]);
   ok(Math.abs(Math.atan2(Math.sin(taken - a), Math.cos(taken - a))) > 0.3, 'a second section takes a bearing of its own');
 }

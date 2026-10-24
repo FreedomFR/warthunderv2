@@ -11,7 +11,7 @@ import { Terrain } from './sim/terrain.js';
 import { buildTheatre } from './sim/theatre.js';
 import { BY_ID } from './data/ships.js';
 import { PlaneVisuals } from './render/aircraftVisual.js';
-import { planeTypeFor } from './model/planes.js';
+import { planeTypesFor } from './model/planes.js';
 import { isMobile } from './device.js';
 import { Particles, K, DEFAULT_MAX } from './render/particles.js';
 import { Effects } from './render/effects.js';
@@ -140,7 +140,7 @@ export class Game {
     const w = this.world, nations = new Set();
     for (const s of w.ships) { this.shipVisuals.forModel(s.model); if (s.air) nations.add(s.stats.nation); }
     for (const b of w.bases) nations.add(b.nation);
-    for (const n of nations) for (const role of ['dive', 'torp', 'fighter', 'level']) { const k = planeTypeFor(n, role); if (k) this.planeVisuals.get(k); }
+    for (const n of nations) for (const role of ['dive', 'torp', 'fighter', 'level', 'interceptor']) for (const k of planeTypesFor(n, role)) this.planeVisuals.get(k);
     if (nations.size) this.planeVisuals.ordnance();
     this.vegetation.warm();
   }

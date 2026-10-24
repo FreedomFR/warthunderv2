@@ -1,0 +1,29 @@
+{
+ "key": "tdb1",
+ "name": "Douglas TDB-1 Devastator",
+ "axis_deg": 90,
+ "nose": "^Propellor",
+ "wing": "^Wings$",
+ "scale": {"span": 15.24},
+ "hub_depth": 0.2,
+ "drop": "^(Pilot|Copilot|Gunner|MG|Torpedo|Run_Prop|Carriage_Fly)",
+ "rules": [
+  {"part": "drop", "material": "^(Pilot|Copilot|Gunner|MG|Torpedo|Run_Prop|Carriage_Fly)"},
+  {"part": "drop", "material": "^Innerparts", "box": [1.7, 2.6, 0.75, 0.97, -0.22, 0.0]},
+  {"part": "drop", "box": [2.8, 3.3, 0.75, 2.4, -0.4, 0.3]},
+  {"part": "drop", "box": [-5.35, -4.45, -0.8, -0.22, -0.2, 0.2]},
+  {"part": "glass", "material": "^Glass_2", "box": [-0.7, 2.5, 0.4, 1.4, -0.5, 0.5]},
+  {"part": "drop", "material": "^Gla"},
+  {"part": "prop", "box": [3.8, 4.8, -2.4, 2.4, -2.4, 2.4]},
+  {"part": "tyres", "material": "^Motor"},
+  {"part": "gear", "material": "^Landing_gear"},
+  {"part": "canopy", "material": "^(Canopy|Hood)"}
+ ],
+ "wing_z": 1.2,
+ "tail_x": -4.0,
+ "budget": {"body": 30000, "tail": 6000, "wingL": 8000, "wingR": 8000, "prop": 2500, "glass": 1000, "gear": 5000, "canopy": 3000, "tyres": 5000},
+ "cluster": ["tyres"],
+ "cluster_contraction": "Quadric",
+ "recolor": {"prop": [32, 32, 34], "tyres": [38, 38, 40]},
+ "nocolor": ["body", "tail", "wingL", "wingR", "canopy"]
+}

@@ -43,6 +43,18 @@
    "args": []
   },
   {
+   "file": "wakelock.mjs",
+   "args": []
+  },
+  {
+   "file": "dynamics.mjs",
+   "args": []
+  },
+  {
+   "file": "interceptor.mjs",
+   "args": []
+  },
+  {
    "file": "basemesh.mjs",
    "args": []
   },
@@ -263,6 +275,15 @@
   {
    "file": "fixedguns.mjs",
    "args": []
+  },
+  {
+   "file": "terrainavoid.mjs",
+   "args": []
+  },
+  {
+   "file": "enterprise.mjs",
+   "args": [],
+   "slow": true
   }
  ],
  "tools": [

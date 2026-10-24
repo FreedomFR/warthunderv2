@@ -16,6 +16,10 @@ const usInsignia = (r, wing) => [
   ...(wing ? [{ rect: [-r * 0.27, r * 0.27, r * 0.95, r * 2.0], col: '#f0eee6' }, { rect: [-r * 0.27, r * 0.27, -r * 2.0, -r * 0.95], col: '#f0eee6' }]
     : [{ rect: [r * 0.95, r * 2.0, -r * 0.27, r * 0.27], col: '#f0eee6' }, { rect: [-r * 2.0, -r * 0.95, -r * 0.27, r * 0.27], col: '#f0eee6' }]),
 ];
+/** The American national insignia of 1940-42 (a white star in a blue disc with a small red disc in its middle, no bars): the red was taken out in May 1942. */
+const usInsignia41 = (r) => [{ disc: r, col: '#1d3a78' }, { star: r * 0.8, col: '#f0eee6', rot: Math.PI / 2 }, { disc: r * 0.2, col: '#b3222a' }];
+/** The RAF roundel (`ring`: the yellow ring of the fuselage roundel): blue, white and red (the outer red of the early type is not worn by 1943 aircraft). */
+const raf = (r, ring) => [...(ring ? [{ disc: r * 1.25, col: '#e0b92b' }] : []), { disc: r, col: '#1f3a78' }, { disc: r * 0.66, col: '#eeece4' }, { disc: r * 0.33, col: '#b3222a' }];
 /** The Luftwaffe cross: a black cross with a white edge (`a`: the half length of an arm). */
 const balkenkreuz = (a) => [
   { rect: [-a * 1.1, a * 1.1, -a * 0.32, a * 0.32], col: '#f0eee6' }, { rect: [-a * 0.32, a * 0.32, -a * 1.1, a * 1.1], col: '#f0eee6' },
@@ -25,6 +29,29 @@ const balkenkreuz = (a) => [
 const redStar = (r) => [{ star: r * 1.12, col: '#e8e4d8', rot: Math.PI / 2 }, { star: r, col: '#c42a24', rot: Math.PI / 2 }];
 
 export const AIRPAINT = {
+  // IMAM Ro.43 of the Regia Marina (1940-41): the light blue-grey of the catapult aircraft over the whole airframe, the black fascio on the upper wings, the tricolour and the white Savoy cross
+  // on the rudder (places and sizes: the published drawings, `est`: the model carries no marking)
+  ro43: {
+    hw: 1.0, upper: '#737f85', lower: '#97a1a4', line: -0.3, finish: [0.82, 0.0],
+    decals: [
+      { face: 'top', wing: 'both', x: 0.6, z: 3.9, prims: [{ disc: 0.55, col: '#e8e6dc' }, { rect: [-0.07, 0.07, -0.4, 0.4], col: '#141414' }, { rect: [-0.07, 0.2, 0.18, 0.34], col: '#141414' }] },
+      { face: 'side', x: -5.4, y: 1.5, prims: [{ rect: [-0.22, -0.07, -0.5, 0.5], col: '#2f6b3a' }, { rect: [-0.07, 0.08, -0.5, 0.5], col: '#e8e6dc' }, { rect: [0.08, 0.23, -0.5, 0.5], col: '#b0292b' }] },
+    ],
+  },
+  // Junkers Ju 87 B-2 (the Western campaign of 1940): RLM 70 black-green and RLM 71 dark green splinter over RLM 65 light blue, yellow cowling and wing tips, the Balkenkreuz on the rear fuselage
+  // and under and over the outer wings (places and sizes: the published drawings of the type, `est`: the model has no marking of its own to measure)
+  ju87: {
+    hw: 0.95, upper: '#3d4536', lower: '#8fa5b8', line: -0.1, finish: [0.82, 0.0],
+    camo: [{ col: '#506039', scale: 1.7, thr: 0.56, seed: 7, sides: true }],
+    cowl: { x0: 3.3, col: '#d3b21c', hw: 0.9 },
+    decals: [
+      { face: 'side', x: -2.9, y: 0.4, prims: balkenkreuz(0.36) },
+      { face: 'top', wing: 'both', x: 0.9, z: 4.9, prims: balkenkreuz(0.62) },
+      { face: 'bottom', wing: 'both', x: 0.9, z: 4.9, prims: balkenkreuz(0.62) },
+      { face: 'top', wing: 'both', x: 1.0, z: 6.6, prims: [{ rect: [-1.6, 1.6, -0.3, 0.3], col: '#d3b21c' }] },
+      { face: 'bottom', wing: 'both', x: 1.0, z: 6.6, prims: [{ rect: [-1.6, 1.6, -0.3, 0.3], col: '#d3b21c' }] },
+    ],
+  },
   // Mitsubishi A6M2: overall grey-green, a black-blue cowling and anti-glare panel, red hinomaru on the flanks and on the wings
   a6m: {
     upper: '#a6a690', lower: '#b2b19e', line: null,
@@ -34,6 +61,91 @@ export const AIRPAINT = {
       { face: 'side', x: -1.14, y: 0.05, prims: [{ disc: 0.44, col: '#c0212a' }] },
       { face: 'top', wing: 'both', x: 1.39, z: 4.6, prims: [{ disc: 0.47, col: '#c0212a' }] },
       { face: 'bottom', wing: 'both', x: 1.39, z: 4.6, prims: [{ disc: 0.47, col: '#c0212a' }] },
+    ],
+  },
+  // Nakajima B5N2 (Pearl Harbor, 1941): overall light grey-green (J3), a black cowling, hinomaru on the flanks behind the canopy and on both faces of both wings (the tail stripes of the carriers
+  // are not painted; places and sizes measured on the model)
+  b5n: {
+    upper: '#a3a58e', lower: '#b0b19e', line: null,
+    cowl: { x0: 2.55, col: '#1b1d22', hw: 0.72 },
+    decals: [
+      { face: 'side', x: -2.45, y: 0.05, prims: [{ disc: 0.36, col: '#c0212a' }] },
+      { face: 'top', wing: 'both', x: 0.97, z: 5.63, prims: [{ disc: 0.5, col: '#c0212a' }] },
+      { face: 'bottom', wing: 'both', x: 0.97, z: 5.63, prims: [{ disc: 0.5, col: '#c0212a' }] },
+    ],
+  },
+  // Grumman F6F-3 Hellcat (1944): the Navy's tricolour of non-specular sea blue over intermediate blue over insignia white, the star and bars on the rear fuselage and on the upper port and lower
+  // starboard wings
+  f6f: {
+    hw: 1.0, upper: '#202e46', side: '#4b6286', lower: '#e2e4de', line: -0.3, finish: [0.82, 0.0],
+    decals: [
+      { face: 'side', x: -2.9, y: 0.15, prims: usInsignia(0.45, false) },
+      { face: 'top', wing: 'port', x: 0.7, z: 4.2, prims: usInsignia(0.6, true) },
+      { face: 'bottom', wing: 'starboard', x: 0.7, z: 4.2, prims: usInsignia(0.6, true) },
+    ],
+  },
+  // Grumman F4F-3 Wildcat (1941-42): non-specular blue-gray over light gray, the star in the blue disc with its red centre (and no bars) on the rear fuselage and on the upper port and lower
+  // starboard wings (places and sizes: the published drawings of the type, `est`: the models are painted by their textures, the game's colours replace them)
+  f4f: {
+    hw: 0.8, upper: '#4f5f73', lower: '#b4b8ba', line: -0.12, finish: [0.82, 0.0],
+    decals: [
+      { face: 'side', x: -2.35, y: 0.12, prims: usInsignia41(0.36) },
+      { face: 'top', wing: 'port', x: 0.55, z: 3.9, prims: usInsignia41(0.5) },
+      { face: 'bottom', wing: 'starboard', x: 0.55, z: 3.9, prims: usInsignia41(0.5) },
+    ],
+  },
+  // General Motors FM-2 Wildcat (1944-45, the escort carriers): overall glossy sea blue, the 1943 star and bars on the rear fuselage and on the upper port and lower starboard wings (places
+  // and sizes: the published drawings of the type, `est`: the model is painted by its texture, the game's colours replace it)
+  fm2: {
+    hw: 0.8, upper: '#1d2a40', lower: '#26354d', line: -0.15, finish: [0.45, 0.0],
+    decals: [
+      { face: 'side', x: -2.4, y: 0.12, prims: usInsignia(0.34, false) },
+      { face: 'top', wing: 'port', x: 0.55, z: 3.9, prims: usInsignia(0.5, true) },
+      { face: 'bottom', wing: 'starboard', x: 0.55, z: 3.9, prims: usInsignia(0.5, true) },
+    ],
+  },
+  // Douglas TBD-1 Devastator (1941-42): non-specular blue-gray over light gray (the yellow wings and the colours of the squadrons are those of the fleet before 1941), the national star in its
+  // blue disc with the red centre disc (no bars, as before May 1942) on the rear fuselage and on the upper port and lower starboard wings (places and sizes: the published drawings of the
+  // type, `est`: the model is painted by its texture, the game's colours replace it)
+  tdb1: {
+    hw: 0.9, upper: '#4f5f73', lower: '#b4b8ba', line: -0.2, finish: [0.82, 0.0],
+    decals: [
+      { face: 'side', x: -3.3, y: 0.2, prims: usInsignia41(0.4) },
+      { face: 'top', wing: 'port', x: 0.4, z: 5.4, prims: usInsignia41(0.7) },
+      { face: 'bottom', wing: 'starboard', x: 0.4, z: 5.4, prims: usInsignia41(0.7) },
+    ],
+  },
+  // Grumman F8F-1 Bearcat (1945): overall glossy sea blue (FS 15042), the 1943 star and bars (no red border: it came in January 1947) on the rear fuselage and on the upper port and lower
+  // starboard wings (places and sizes: the stars of the model; the model is painted by its texture, the game's colours replace it)
+  f8f: {
+    hw: 0.85, upper: '#1d2a40', lower: '#26354d', line: -0.15, finish: [0.45, 0.0],
+    decals: [
+      { face: 'side', x: -2.0, y: 0.1, prims: usInsignia(0.34, false) },
+      { face: 'top', wing: 'port', x: 0.8, z: 3.9, prims: usInsignia(0.45, true) },
+      { face: 'bottom', wing: 'starboard', x: 0.8, z: 3.9, prims: usInsignia(0.45, true) },
+    ],
+  },
+  // Curtiss P-40E Warhawk (1942): olive drab 41 over neutral gray 43, the star and bars on the rear fuselage and on the upper port and lower starboard wings (places and sizes: the published
+  // drawings of the type, `est`: the model is an AVG aircraft with Chinese markings)
+  p40: {
+    hw: 1.0, upper: '#55563d', lower: '#8d9193', line: -0.25, finish: [0.82, 0.0],
+    decals: [
+      { face: 'side', x: -2.7, y: 0.0, prims: usInsignia(0.4, false) },
+      { face: 'top', wing: 'port', x: 0.4, z: 4.3, prims: usInsignia(0.55, true) },
+      { face: 'bottom', wing: 'starboard', x: 0.4, z: 4.3, prims: usInsignia(0.55, true) },
+    ],
+  },
+  // Supermarine Spitfire Mk XII (1943, No. 41 Squadron): the day fighter scheme, dark green and ocean grey above, medium sea grey below, a sky spinner, the roundel with its yellow ring on the
+  // fuselage, the roundels on both faces of both wings and the flash on the fin (places and sizes measured on the model; `est`: the squadron code letters are not painted)
+  spitfire: {
+    hw: 0.9, upper: '#3d4a33', lower: '#8a979b', line: -0.2, finish: [0.78, 0.0],
+    camo: [{ col: '#6a7377', scale: 0.55, thr: 0.5, seed: 4, sides: true }],
+    cowl: { x0: 2.85, col: '#a9c3a8', hw: 0.4 },
+    decals: [
+      { face: 'side', x: -2.0, y: 0.08, prims: raf(0.36, true) },
+      { face: 'side', x: -4.55, y: 0.7, prims: [{ rect: [0.075, 0.225, -0.45, 0.45], col: '#1f3a78' }, { rect: [-0.075, 0.075, -0.45, 0.45], col: '#eeece4' }, { rect: [-0.225, -0.075, -0.45, 0.45], col: '#b3222a' }] },
+      { face: 'top', wing: 'both', x: 0.8, z: 3.95, prims: raf(0.5, false) },
+      { face: 'bottom', wing: 'both', x: 0.8, z: 3.95, prims: raf(0.5, false) },
     ],
   },
   // Aichi D3A1: dark green over grey-green, a black-blue cowling, hinomaru as on the Zero
@@ -85,6 +197,25 @@ export const AIRPAINT = {
       { face: 'bottom', wing: 'both', x: 0.75, z: 3.5, prims: balkenkreuz(0.5) },
     ],
   },
+  // Avro Lancaster B.I (1943): dark earth and dark green over matt black, the fuselage roundel with its yellow ring, the roundels on the upper wings (the night bombers' undersides carry none)
+  lancaster: {
+    hw: 1.0, upper: '#4b4a35', lower: '#25272a', line: -0.05, finish: [0.9, 0.0],
+    camo: [{ col: '#34402d', scale: 0.8, thr: 0.5, seed: 4 }],
+    decals: [
+      { face: 'side', x: -6.8, y: 0.15, prims: raf(0.75, true) },
+      { face: 'top', wing: 'both', x: 0.85, z: 9.5, prims: raf(1.0, false) },
+    ],
+  },
+  // Heinkel He 111 H: RLM 70 black-green and 71 dark green in splinters over RLM 65 light blue, the Balkenkreuz on the fuselage and the wings, the yellow fuselage band of the Mediterranean
+  he111: {
+    hw: 1.3, upper: '#4a5a3e', lower: '#8da3b7', line: -0.2, finish: [0.85, 0.0],
+    camo: [{ col: '#38442f', scale: 0.9, thr: 0.48, seed: 11 }],
+    decals: [
+      { face: 'side', x: -3.9, y: 0.0, prims: balkenkreuz(0.6) },
+      { face: 'top', wing: 'both', x: 1.9, z: 7.0, prims: balkenkreuz(0.75) },
+      { face: 'bottom', wing: 'both', x: 1.9, z: 7.0, prims: balkenkreuz(0.75) },
+    ],
+  },
   // Boeing B-29 Superfortress: bare aluminium, the star and bars on the fuselage and the upper port and lower starboard wings
   b29: {
     hw: 1.55, upper: '#b7bbbd', lower: '#b7bbbd', line: null, finish: [0.36, 0.8],
@@ -92,6 +223,61 @@ export const AIRPAINT = {
       { face: 'side', x: -6.2, y: 0.1, prims: usInsignia(0.8, false) },
       { face: 'top', wing: 'port', x: 0.7, z: 13.0, prims: usInsignia(1.15, true) },
       { face: 'bottom', wing: 'starboard', x: 0.7, z: 13.0, prims: usInsignia(1.15, true) },
+    ],
+  },
+  // Boeing B-17G Flying Fortress (the natural-metal finish of the late 1943 aircraft): bare aluminium with an olive-drab glare panel on the nose, the star and bars on the fuselage and on the
+  // upper port and lower starboard wings (measured on the model: the wing star at 11.9 m of the span and mid-chord; the fuselage star between the waist windows and the tailplane)
+  b17: {
+    hw: 1.5, upper: '#b9bdbf', lower: '#b9bdbf', line: null, finish: [0.38, 0.78],
+    glare: { x0: 6.9, x1: 9.3, hw: 0.5, col: '#4a4c36' },
+    decals: [
+      { face: 'side', x: -6.5, y: 0.15, prims: usInsignia(0.55, false) },
+      { face: 'top', wing: 'port', x: 1.8, z: 11.85, prims: usInsignia(0.85, true) },
+      { face: 'bottom', wing: 'starboard', x: 1.8, z: 11.85, prims: usInsignia(0.85, true) },
+    ],
+  },
+  // Lockheed P-38G Lightning (1943): olive drab over neutral gray, the star and bars on the outer face of each boom and on the upper port and lower starboard wings (places and sizes: the
+  // published drawings and the model's wing and booms; `est`: the model's own paint and markings are not used)
+  p38: {
+    hw: 3.0, upper: '#55563d', lower: '#8d9193', line: -0.2, finish: [0.82, 0.0],
+    decals: [
+      { face: 'side', x: -3.0, y: 0.12, z: 2.44, hz: 0.55, prims: usInsignia(0.27, false) },
+      { face: 'top', wing: 'port', x: 0.55, z: 5.5, prims: usInsignia(0.5, true) },
+      { face: 'bottom', wing: 'starboard', x: 0.55, z: 5.5, prims: usInsignia(0.5, true) },
+    ],
+  },
+  // De Havilland Mosquito FB Mk VI (1943-44, the day fighter scheme): dark green and ocean gray disruptive pattern over medium sea gray, the fuselage roundel with its yellow ring on the rear fuselage and
+  // the roundels on both faces of both wings (places and sizes: the published drawings; `est`: the model's own paint is not used)
+  mosquito: {
+    hw: 3.0, upper: '#3d4a33', lower: '#8a979b', line: -0.3, finish: [0.82, 0.0],
+    camo: [{ col: '#68717a', scale: 0.6, thr: 0.54, seed: 9, sides: true }],
+    decals: [
+      { face: 'side', x: -3.1, y: -0.02, prims: raf(0.34, true) },
+      { face: 'top', wing: 'both', x: 1.5, z: 5.3, prims: raf(0.6, false) },
+      { face: 'bottom', wing: 'both', x: 1.5, z: 5.3, prims: raf(0.6, false) },
+    ],
+  },
+  // Kawanishi N1K1-J Shiden (343rd Kokutai, 1945): dark green over a light grey-green, a black-blue anti-glare panel over the cowling, the hinomaru on the rear fuselage and on both faces of both wings,
+  // the yellow identification strip along the leading edge of the wings (places and sizes: the published drawings and the model's wing and fuselage; `est`: the model's own paint is not used)
+  n1k1: {
+    hw: 0.8, upper: '#3d4a35', lower: '#aeb2a4', line: -0.25, finish: [0.82, 0.0],
+    glare: { x0: 1.0, x1: 3.1, hw: 0.45, col: '#1a1d24' },
+    decals: [
+      { face: 'side', x: -2.45, y: 0.15, prims: [{ disc: 0.43, col: '#f0eee6' }, { disc: 0.37, col: '#c0212a' }] },
+      { face: 'top', wing: 'both', x: 0.78, z: 4.4, prims: [{ disc: 0.55, col: '#f0eee6' }, { disc: 0.48, col: '#c0212a' }] },
+      { face: 'bottom', wing: 'both', x: 0.78, z: 4.4, prims: [{ disc: 0.55, col: '#f0eee6' }, { disc: 0.48, col: '#c0212a' }] },
+      { face: 'top', wing: 'both', x: 1.62, z: 2.0, prims: [{ rect: [-0.1, 0.1, 0.0, 3.0], col: '#d3b21c' }] },
+    ],
+  },
+  // Douglas B-26B Invader (the A-26B of the 9th and 5th Air Forces, 1945): bare natural-metal aluminium all over with a black anti-glare panel over the nose, the star and bars on the rear fuselage and
+  // on the upper port and lower starboard wings (places and sizes: the published drawings and the model's wing and fuselage; `est`: the model's own paint and markings are not used)
+  b26: {
+    hw: 0.8, upper: '#bdc0c1', lower: '#bdc0c1', line: null, finish: [0.38, 0.78],
+    glare: { x0: 4.4, x1: 6.6, hw: 0.55, col: '#232420' },
+    decals: [
+      { face: 'side', x: -4.4, y: 0.38, prims: usInsignia(0.5, false) },
+      { face: 'top', wing: 'port', x: 0.9, z: 7.3, prims: usInsignia(0.8, true) },
+      { face: 'bottom', wing: 'starboard', x: 0.9, z: 7.3, prims: usInsignia(0.8, true) },
     ],
   },
 };
@@ -107,7 +293,10 @@ function decalCode(d, hw) {
   const L = [];
   const sgn = d.wing === 'port' ? -1 : 1;
   let q, mask;
-  if (d.face === 'side') { q = `vec2f(p.x - ${f(d.x)}, p.y - ${f(d.y)})`; mask = `smoothstep(0.1, 0.3, abs(ng.z)) * (1.0 - smoothstep(${f(hw + 0.25)}, ${f(hw + 0.45)}, az))`; }
+  if (d.face === 'side') {      // (`z`: the marking is on the sides of a boom or a nacelle that stands this far from the centre line, not on the fuselage)
+    q = `vec2f(p.x - ${f(d.x)}, p.y - ${f(d.y)})`;
+    mask = d.z != null ? `smoothstep(0.1, 0.3, abs(ng.z)) * (1.0 - smoothstep(${f(d.hz ?? 0.5)}, ${f((d.hz ?? 0.5) + 0.2)}, abs(az - ${f(d.z)})))` : `smoothstep(0.1, 0.3, abs(ng.z)) * (1.0 - smoothstep(${f(hw + 0.25)}, ${f(hw + 0.45)}, az))`;
+  }
   else {
     const top = d.face === 'top', both = d.wing === 'both';
     const v = both ? `(az - ${f(d.z)})` : `(p.z * ${f(sgn)} - ${f(d.z)})`;      // (outboard on the wing the marking is on)

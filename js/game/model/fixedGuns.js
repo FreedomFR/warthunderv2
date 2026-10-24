@@ -24,7 +24,7 @@ export function wingLE(s, zAbs) {
 }
 
 /** The calibre of each group of a type (mm): the table gives the gun, GUNS the calibre. Kept here so that the model needs nothing of the sim. */
-const CAL = { m2: 12.7, b303: 7.7, t97: 7.7, t99: 20, mg17: 7.92, mgff: 20, mg151: 20, hs404: 20, mac: 7.5, breda127: 12.7, vya23: 23, shkas: 7.62, vickers: 7.7, darne: 7.5, safat77: 7.7 };
+const CAL = { m2: 12.7, b303: 7.7, t97: 7.7, t99: 20, t99m2: 20, mg17: 7.92, mgff: 20, mg151: 20, hs404: 20, hsm1: 20, hsmk2: 20, mac: 7.5, breda127: 12.7, vya23: 23, shkas: 7.62, vickers: 7.7, darne: 7.5, safat77: 7.7 };
 
 const wingPos = new Map();
 /** The leading edge of a wing drawn from its model: measured on the vertices of its right wing (the most forward at that distance from the centre line, the height of the edge there). */
@@ -84,6 +84,7 @@ export function drawFixedGuns(b, spec, key, part) {
   if (!fit) return;
   const mz = fixedMuzzles(spec, key), dark = rgb('#26282b'), steel = rgb('#3a3d40');
   fit.forEach((g, i) => {
+    if (g.drawn) return;      // (the model has the barrels of its guns: they are one of its pieces)
     const cal = CAL[g.gun] || 7.7, D = gunDims(cal);
     for (const m of mz[i].guns) {
       const wing = g.mount === 'wing';

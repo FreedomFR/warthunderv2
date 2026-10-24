@@ -1,0 +1,34 @@
+{
+ "key": "b26",
+ "name": "Douglas B-26B Invader",
+ "fuselage": "^a39af07c",
+ "nose": "^a39af07c",
+ "axis_deg": 90,
+ "scale": { "span": 21.34 },
+ "origin_nose": 6.56,
+ "axis_y": 1.02,
+ "drop": "^7139c335",
+ "wing_z": 1.2,
+ "tail_x": -5.0,
+ "rules": [
+  { "part": "glass", "material": "^6d6bb7dd", "box": [-3.5, 5.0, 0.3, 2.3, -1.2, 1.2] },
+  { "part": "drop", "material": "^6d6bb7dd" },
+  { "part": "guns", "material": "^8951104f", "box": [5.5, 7.2, -0.6, 0.6, -0.7, 0.7] },
+  { "part": "wing", "material": "^8951104f", "box": [1.5, 3.3, -0.7, 1.0, 4.6, 6.2] },
+  { "part": "wing", "material": "^8951104f", "box": [1.5, 3.3, -0.7, 1.0, -6.2, -4.6] },
+  { "part": "drop", "material": "^8951104f" },
+  { "part": "drop", "material": "^d41776d7" },
+  { "part": "prop", "box": [4.27, 5.2, -2.2, 2.2, 1.0, 4.9] },
+  { "part": "drop", "box": [4.27, 5.2, -2.2, 2.2, -4.9, -1.0] }
+ ],
+ "budget": { "body": 30000, "tail": 10000, "wingL": 30000, "wingR": 30000, "prop": 3500, "glass": 3000, "guns": 3000 },
+ "recentre": { "prop": [4.33, 0.0, 2.92] },
+ "mirror_wings": "L",
+ "copies": {
+  "hull": { "from": "body", "box": [-20, 1.0, -5, 8, -3, 3] },
+  "burn0": { "from": "wingL", "box": [-3.0, 4.35, -1.3, 1.3, -3.9, -1.9], "budget": 2500, "axis": [0.0, -2.92, -2.8, 0.15, 0.3, 0.9] },
+  "burn1": { "from": "wingR", "box": [-3.0, 4.35, -1.3, 1.3, 1.9, 3.9], "budget": 2500, "axis": [0.0, 2.92, -2.8, 0.15, 0.3, 0.9] }
+ },
+ "nocolor": ["body", "tail", "wingL", "wingR", "hull", "burn0", "burn1"],
+ "recolor": { "prop": [34, 36, 38] }
+}

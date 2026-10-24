@@ -36,12 +36,13 @@ const SINGLE = {
   sbd: [{ x: -0.75, cal: 7.62, n: 2, h: 1.5, hi: 1.3, lo: -0.35, fin: true }],                   // twin .30 Browning M2 on a flexible mount
   tbf: [{ x: -1.3, cal: 12.7, n: 1, turret: true, dome: 0.5, h: PI, hi: 1.45, lo: -0.04, fin: true },  // the Grumman 150SE turret
     { x: -3.1, cal: 7.62, n: 1, belly: true, h: 0.85, hi: -0.12, lo: -1.1 }],                     // the .30 in the tunnel under the tail
+  tdb1: [{ x: -1.0, cal: 7.62, n: 1, h: 1.5, hi: 1.3, lo: -0.35, fin: true }],                  // the .30 M1919 of the radioman-gunner, on a flexible mount behind the glasshouse (the pivot on the model)
   d3a: [{ x: -0.7, cal: 7.7, n: 1, h: 1.2, hi: 1.2, lo: -0.3, fin: true }],                      // Type 92
-  b5n: [{ x: 0.55, cal: 7.7, n: 1, h: 1.1, hi: 1.15, lo: -0.4, fin: true }],
+  b5n: [{ x: -0.4, cal: 7.7, n: 1, h: 1.1, hi: 1.15, lo: -0.4, fin: true }],                    // Type 92 of the gunner, on a ring in the rear of the glasshouse (the only gun: none fires ahead)
   swordfish: [{ x: -1.8, cal: 7.7, n: 1, open: true, h: 1.5, hi: 1.3, lo: -0.5 }],                 // Vickers K
   il2: [{ x: -0.7, cal: 12.7, n: 1, h: 0.7, hi: 1.15, lo: -0.1, fin: true }],                       // the UBT 12.7 mm of the gunner, in the rear cockpit
   skua: [{ x: -1.6, cal: 7.7, n: 1, h: 1.05, hi: 1.2, lo: -0.3, fin: true }],
-  ju87: [{ x: 0.3, cal: 7.92, n: 1, h: 1.2, hi: 1.25, lo: -0.45, fin: true }],                     // MG 15
+  ju87: [{ x: -1.1, cal: 7.92, n: 1, h: 1.2, hi: 1.25, lo: -0.45, fin: true }],                    // MG 15 on its ring in the rear cockpit (the pivot measured on the model)
   fi167: [{ x: 0.15, cal: 7.92, n: 1, h: 1.25, hi: 1.2, lo: -0.5 }],
   pl10: [{ x: -1.85, cal: 7.5, n: 2, open: true, h: 1.2, hi: 1.2, lo: -0.5 }],                     // Darne
 };
@@ -63,6 +64,7 @@ function singleGuns(spec, key) {
 /** The calibre of the guns of each position of the land-based bombers, in the order of their sheet's `guns` (bomberdata.js). */
 const HEAVY_CAL = {
   b29: [12.7, 12.7, 12.7, 12.7, 12.7, 20],                  // four remote turrets and the tail: .50 Browning, the tail also a 20 mm
+  b26: [12.7, 12.7],                                       // the remote dorsal and ventral turrets: two .50 Browning each
   b17: [12.7, 12.7, 12.7, 12.7, 12.7, 12.7, 12.7, 12.7, 12.7],          // chin, port cheek, top, ball, two waist, tail, starboard cheek, radio room: all .50 Browning
   lancaster: [7.7, 7.7, 7.7],                              // FN5, FN50, FN20: .303 Browning
   g4m: [7.7, 7.7, 7.7, 7.7, 20],                           // nose, dorsal, the two side blisters: Type 92; the tail cone: a Type 99 20 mm cannon

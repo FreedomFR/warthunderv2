@@ -22,6 +22,11 @@ const ok = (c, m) => { console.log(c ? 'PASS' : 'FAIL', m); if (!c) { fail++; pr
   ok(cannon.left / (cannon.rps / cannon.n) < 8 && mg.left / (mg.rps / mg.n) > 40, `a Zero's cannons run dry in ${(cannon.left / (cannon.rps / cannon.n)).toFixed(0)} s of fire, its machine guns last ${(mg.left / (mg.rps / mg.n)).toFixed(0)} s`);
   const f = armamentOf('f6f');
   ok(f[0].n === 6 && Math.abs(f[0].rps - 80) < 5, `a Hellcat has six .50s (${f[0].rps.toFixed(0)} rounds a second)`);
+  const p40 = armamentOf('p40'), sp = armamentOf('spitfire'), cn = sp.find((g) => g.cal === 20), rf = sp.find((g) => g.cal < 10);
+  ok(p40.length === 1 && p40[0].n === 6 && p40[0].rpg === 235 && Math.abs(p40[0].rps - 80) < 5 && beltMean('us50a').dmg > 0.8, `a P-40E has six .50s of 235 rounds (${p40[0].rps.toFixed(0)} rounds a second, an armour-piercing belt)`);
+  ok(cn.n === 2 && cn.left === 120 && rf.n === 4 && rf.left === 350 && Math.abs(cn.rps / cn.n - 10) < 1 && Math.abs(rf.rps / rf.n - 19) < 1.5 && beltMean('uk20').dmg > beltMean('us50a').dmg && beltMean('uk20').dmg < beltMean('fr20').dmg + 0.01, 'a Spitfire Mk XII has two Hispano Mk II of 120 rounds (10 rounds a second each) and four .303 of 350 (19 a second)');
+  const sh = armamentOf('n1k1');
+  ok(sh.length === 1 && sh[0].n === 4 && sh[0].rpg === 200 && Math.abs(sh[0].rps / 4 - 490 / 60) < 0.5 && beltMean('jp20m2').dmg > beltMean('jp20').dmg, 'a Shiden has four Type 99 Mk 2 of 200 rounds (8 rounds a second each), a heavier HE-I round than the Zero\'s Mk 1');
   ok(armamentOf('bf109t').some((g) => g.cal === 20) && armamentOf('d520').some((g) => g.cal === 20 && g.n === 1) && armamentOf('fulmar')[0].n === 8, 'a Bf 109T has cannons in the wings, a D.520 one through the hub, a Fulmar eight .303');
   ok(beltMean('us50').dmg > 0.9 && beltMean('us30').dmg < 0.25 && beltMean('fr20').dmg > beltMean('jp20').dmg, 'a belt of .50 is worth four rifle-calibre ones, a Hispano belt more than a Type 99 one');
   ok(beltForGun(20, 'Japan') === 'jp20' && beltForGun(12.7, 'USA') === 'us50' && beltForGun(7.62, 'USA') === 'us30' && beltForGun(7.92, 'Germany') === 'de792' && beltForGun(13, 'Germany') === 'mg131', 'the gunners of every nation fire the round of their gun');
@@ -37,7 +42,7 @@ const ok = (c, m) => { console.log(c ? 'PASS' : 'FAIL', m); if (!c) { fail++; pr
   w.terrain = Terrain.generate(3, 2, starts.map((q) => ({ x: q.x, z: q.z, r: 4800 })), [starts[0].x, starts[0].z, starts[1].x, starts[1].z], 17000, { bases: 1, starts });
   w.start();
   const kill = (team, typeKey, ammo, N = 60) => {
-    const af = w.bases.find((b) => b.layout.kind === 'airfield' && b.team === team), proto = af.parked.find((p) => p && p.typeKey === typeKey);
+    const af = w.bases.find((b) => b.layout.kind === 'airfield' && b.team === team), proto = af.parked.find((p) => p && p.typeKey === typeKey) || { typeKey, spec: PLANES[typeKey] };      // (an airfield flies one of the types of its nation: not always this one)
     let tot = 0;
     for (let k = 0; k < N; k++) {
       const p = { ...proto, parts: null, dying: false, fire: 0, fireOut: false, ctlOut: null, lost: { wingL: false, wingR: false, tail: false, engine: false }, smoke: 0, ground: false, base: null, phase: 'cruise', owner: null, x: 0, y: 800, z: 0, heading: 0, cond: 1, fd: null };

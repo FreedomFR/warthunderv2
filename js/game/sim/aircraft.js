@@ -7,6 +7,7 @@ import { clamp, wrapPi, D2R, G } from '../math.js';
 import { planeTypeFor, PLANES, groundY, GROUND_PITCH, hookBack } from '../model/planes.js';
 import { perfOf } from './airperf.js';
 import { chooseApproach, aaSources, density, refugeShip } from './routing.js';
+import { avoidTerrain, ditchHeading } from './terrainavoid.js';
 import { safeHeading, homeCourse } from './homeward.js';
 import { chooseSite, divert } from './landing.js';
 import { pickLoadout, bombsIn } from '../data/loadouts.js';
@@ -209,7 +210,7 @@ export function updateAir(world, dt) {
 }
 
 /** The battle is over: the aircraft that were fighting or on their way to fight go home. */
-const CEASE = new Set(['assemble', 'cruise', 'ip', 'run', 'rollin', 'dive', 'pullout', 'break', 'egress', 'escort', 'cap', 'engage', 'refuge']);
+const CEASE = new Set(['assemble', 'cruise', 'ip', 'run', 'rollin', 'dive', 'pullout', 'break', 'egress', 'escort', 'cap', 'intercept', 'engage', 'refuge']);
 function ceaseFire(world) {
   for (const p of world.planes) {
     p.firing = false; p.gunFiring = false; p.prey = null; p.hunted = 0;
@@ -221,7 +222,7 @@ function ceaseFire(world) {
 // ---- fighters ----------------------------------------------------------------------------------------------------
 /** The fighters of a launch: n aircraft, in the order of the deck queue after the ones already in wave.planes. */
 function spawnFighters(world, ship, wave, n, role) {
-  const typeKey = planeTypeFor(ship.stats.nation, 'fighter'), spec = PLANES[typeKey];
+  const typeKey = planeTypeFor(ship.stats.nation, 'fighter', ship.name), spec = PLANES[typeKey];
   for (let j = 0; j < n; j++) {
     const p = {
       id: nextPlane++, owner: ship, team: ship.team, kind: 'fighter', typeKey, spec, wave, sec: null,
@@ -257,6 +258,8 @@ function launches(world, dt) {
     if (ship._parkT <= 0) { ship._parkT = 1; ship.updateParked(); }
     air.capCooldown -= dt;
     if (ship.deckWrecked) continue;
+    // (a carrier that lies alongside a quay does not fly her aircraft off: the harbour hills are all round her, and she has no wind over the deck)
+    if (ship.dock) continue;
     // the deck is either launching or recovering: not both at once
     const D = deckOf(ship);
     const deckBusy = D.landing.length || D.recovering || D.striking || D.circuit > 0 || D.pending.some((q) => !q.service) || launching(world, ship);
@@ -287,7 +290,7 @@ function launches(world, dt) {
     const dp = ship.model.deckPoints;
     const wave = { ship, n, id: air.wave, launched: 0, assessed: false, aborted: false, t0: world.time, planes: [] };
     const order = wave.planes;
-    const dive = planeTypeFor(ship.stats.nation, 'dive'), torp = planeTypeFor(ship.stats.nation, 'torp');
+    const dive = planeTypeFor(ship.stats.nation, 'dive', ship.name), torp = planeTypeFor(ship.stats.nation, 'torp', ship.name);
     // the composition: a little over half torpedo bombers; sections of three (a leftover pair, or a fourth aircraft in a section); dive bombers off the deck first
     const nT = shipTarget ? Math.round(n * 0.55) : 0, nD = n - nT;
     const split = (c) => { const out = []; let r = c; while (r > 0) { const k = r === 4 ? 4 : Math.min(3, r); out.push(k); r -= k; } if (out.length > 1 && out[out.length - 1] === 1) { out.pop(); out[out.length - 1]++; } return out; };
@@ -475,7 +478,7 @@ function stepPlane(world, p, dt) {
       gam = clamp((350 - p.y) / 400, -0.1, 0.08);
       break;
     }
-    case 'escort': case 'cap': case 'engage': {
+    case 'escort': case 'cap': case 'intercept': case 'engage': {
       const r = fighterSteer(world, p, dt, FIGHT_CTX);
       hdg = r.hdg; gam = r.gam; spd = r.spd; o = r.o;
       break;
@@ -628,8 +631,8 @@ function stepPlane(world, p, dt) {
     }
     case 'break': {
       // torpedo bomber: hard turn away low over the water
-      const ang = p.ipAngle ?? p.heading;
-      hdg = p.heading + (p.jitter >= 0 ? 1 : -1) * 0.9;
+      // (away from the ship at once, not on past her: the side is the one the aircraft is on)
+      hdg = tgt ? Math.atan2(p.x - tgt.x, -(p.z - tgt.z)) + (p.jitter >= 0 ? 1 : -1) * 0.5 : p.heading + (p.jitter >= 0 ? 1 : -1) * 0.9;
       gam = clamp((70 - p.y) / 200, -0.05, 0.08);
       o = { bankMax: 62 * D2R };
       spd = Math.min(pf.vmax * 0.92, pf.vt * 1.3);
@@ -788,7 +791,7 @@ function stepPlane(world, p, dt) {
       break;
     }
     case 'ditch': {
-      hdg = p.heading; gam = clamp(-(p.y - 2) / 260, -0.12, 0); spd = pf.va * 1.2;
+      hdg = ditchHeading(world, p); gam = clamp(-(p.y - 2) / 260, -0.12, 0); spd = pf.va * 1.2;      // (down on the water, not on an island)
       p.gearDown = false;
       if (p.y <= 3) { ditch(world, p); return true; }
       break;
@@ -808,12 +811,8 @@ function stepPlane(world, p, dt) {
   if (p.phase === 'return' && p.carrierOkLast !== carrierOk) p.carrierOkLast = carrierOk;
   const prev = _prev; prev[0] = p.x; prev[1] = p.y; prev[2] = p.z;
   const T = world.terrain;
-  // an island ahead: the pilot climbs over it (not in a dive, on the approach to a deck or at the very low level of a torpedo run)
-  if (T && !LAND_BLIND.has(p.phase)) {
-    let top = -1e9;
-    for (const d of [300, 750, 1300, 2000]) top = Math.max(top, T.heightAt(p.x + Math.sin(p.heading) * d, p.z - Math.cos(p.heading) * d));
-    if (top + 35 > p.y) gam = Math.max(gam, clamp((top + 80 - p.y) / 420, 0.05, 0.3));
-  }
+  // an island ahead: the pilot climbs over it as far as the aircraft can, and turns away from what it cannot clear (not in a dive, on the approach to a deck, nor over the sea in a descent)
+  if (T && !LAND_BLIND.has(p.phase)) { const av = avoidTerrain(world, p, hdg, gam, pf); hdg = av.hdg; gam = av.gam; }
   guide(p, dt, hdg, gam, spd, o);
   p.x += p.vx * dt; p.y += p.vy * dt; p.z += p.vz * dt;
   if (T) {
@@ -828,7 +827,7 @@ function stepPlane(world, p, dt) {
   return collideShips(world, p, prev);
 }
 const _l2 = [0, 0, 0], _l3 = [0, 0, 0];
-const LAND_BLIND = new Set(['dive', 'rollin', 'pullout', 'ditch', 'floating', 'final', 'waveoff', 'pattern', 'run', 'ip', ...DECK_PHASES]);
+const LAND_BLIND = new Set(['dive', 'rollin', 'pullout', 'ditch', 'floating', 'final', 'waveoff', 'pattern', ...DECK_PHASES]);
 
 const _prev = [0, 0, 0];
 

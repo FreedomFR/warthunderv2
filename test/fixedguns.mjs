@@ -12,8 +12,8 @@ const ok = (c, m) => { console.log(c ? 'PASS' : 'FAIL', m); if (!c) { fail++; pr
 const D = Math.PI / 180;
 
 // ---- what each type carried (barrels): the published fits ----
-const FIXED = { f6f: 6, a6m: 4, fulmar: 8, bf109t: 3, d520: 5, mc202: 4, il2: 4, sbd: 2, tbf: 2, d3a: 2, swordfish: 1, skua: 4, ju87: 2, fi167: 1, ln401: 2, pl10: 1, re2001: 4, re2001t: 4, sm79: 1, b5n: 0 };
-const FLEX = { sbd: 2, tbf: 2, d3a: 1, b5n: 1, swordfish: 1, skua: 1, ju87: 1, fi167: 1, pl10: 2, il2: 1, ln401: 0, re2001: 0, b17: 13, b29: 13, lancaster: 8, g4m: 5, he111: 5, sm79: 4, leo451: 3, f6f: 0, a6m: 0 };
+const FIXED = { p38: 5, mosquito: 8, n1k1: 4, b26: 12, f6f: 6, f4f: 4, fm2: 4, f8f: 4, tdb1: 1, p40: 6, spitfire: 6, a6m: 4, fulmar: 8, bf109t: 3, d520: 5, mc202: 4, il2: 4, sbd: 2, tbf: 2, d3a: 2, swordfish: 1, skua: 4, ju87: 2, fi167: 1, ln401: 2, pl10: 1, re2001: 4, re2001t: 4, sm79: 1, b5n: 0 };
+const FLEX = { n1k1: 0, b26: 4, sbd: 2, tbf: 2, tdb1: 1, f8f: 0, d3a: 1, b5n: 1, swordfish: 1, skua: 1, ju87: 1, fi167: 1, pl10: 2, il2: 1, ln401: 0, re2001: 0, b17: 13, b29: 13, lancaster: 8, g4m: 5, he111: 5, sm79: 4, leo451: 3, f6f: 0, f4f: 0, fm2: 0, p40: 0, spitfire: 0, a6m: 0, p38: 0, mosquito: 0 };
 for (const [k, n] of Object.entries(FIXED)) {
   const fit = FIXED_GUNS[k] || [], have = fit.reduce((a, g) => a + g.n, 0);
   ok(have === n, `${k}: ${have} fixed guns (the real aircraft: ${n})`);
@@ -44,7 +44,30 @@ for (const [k, fit] of Object.entries(FIXED_GUNS)) {
 ok(!bad.length, `every fixed gun has its muzzle on the aircraft (in the wing, over the engine, in the hub)${bad.length ? ': ' + bad.slice(0, 3).join('; ') : ''}`);
 const f6f = armament('f6f');
 ok(f6f.length === 1 && f6f[0].mz.length === 6 && f6f[0].mz.filter((m) => m.z > 0).length === 3, 'the Hellcat has three .50 in each wing, as muzzles');
+const f4f = armament('f4f');
+ok(f4f.length === 1 && f4f[0].mz.length === 4 && f4f[0].mz.filter((m) => m.z > 0).length === 2 && f4f[0].mz.every((m) => Math.abs(m.z) > 1.4 && Math.abs(m.z) < 2.3) && f4f[0].rpg === 430, 'the Wildcat has two .50 in each wing with 430 rounds each, as muzzles');
+const fm2 = armament('fm2');
+ok(fm2.length === 1 && fm2[0].mz.length === 4 && fm2[0].mz.filter((m) => m.z > 0).length === 2 && fm2[0].mz.every((m) => Math.abs(m.z) > 1.9 && Math.abs(m.z) < 2.7) && fm2[0].rpg === 430, 'the FM-2 has two .50 in each wing with 430 rounds each, as muzzles');
+const p38 = armament('p38');
+ok(p38.length === 2 && p38.find((g) => g.cal === 20).mz.length === 1 && p38.find((g) => g.cal === 20).rpg === 150 && p38.find((g) => g.cal === 12.7).mz.length === 4 && p38.find((g) => g.cal === 12.7).rpg === 500, 'the P-38 has one 20 mm (150 rounds) and four .50 (500 rounds each)');
+ok(p38.every((g) => g.mz.every((m) => Math.abs(m.z) < 0.4 && m.x > 4.2 && m.x < PLANES.p38.L)), 'the five guns of the P-38 are in the nose, on the centre line, ahead of the propellers');
+const mosq = armament('mosquito');
+ok(mosq.length === 2 && mosq.find((g) => g.cal === 20).mz.length === 4 && mosq.find((g) => g.cal === 20).rpg === 300 && mosq.find((g) => g.cal < 10).mz.length === 4 && mosq.find((g) => g.cal < 10).rpg === 500, 'the Mosquito FB VI has four 20 mm (300 rounds each) and four .303 (500 rounds each)');
+ok(mosq.every((g) => g.mz.every((m) => Math.abs(m.z) < 0.4 && m.x > 4.0 && m.x < PLANES.mosquito.L)) && mosq.find((g) => g.cal === 20).mz.every((m) => m.y < mosq.find((g) => g.cal < 10).mz[0].y), 'all its guns are in the nose, the cannons under the rifle-calibre guns');
+const shiden = armament('n1k1');
+ok(shiden.length === 1 && shiden[0].cal === 20 && shiden[0].mz.length === 4 && shiden[0].rpg === 200 && shiden[0].mz.filter((m) => m.z > 0).length === 2 && shiden[0].mz.every((m) => Math.abs(m.z) > 2.5 && Math.abs(m.z) < 3.1 && m.x > 1.5), 'the Shiden has four 20 mm Type 99 Mk 2 (200 rounds each), two in each wing, at the muzzles of the model');
+const b26 = armament('b26');
+ok(b26.length === 2 && b26.find((g) => g.mz.length === 8).rpg === 400 && b26.find((g) => g.mz.length === 4).rpg === 300 && b26.every((g) => g.cal === 12.7), 'the B-26B has eight .50 in the nose and four .50 in two pods under the wings');
+ok(b26.find((g) => g.mz.length === 8).mz.every((m) => Math.abs(Math.abs(m.z) - 0.19) < 0.02 && m.x > PLANES.b26.L * 0.42 - 0.3) && b26.find((g) => g.mz.length === 4).mz.every((m) => Math.abs(m.z) > 4.8 && Math.abs(m.z) < 5.4), 'its eight nose guns are in two columns of four at the tip of the nose, the four pod guns under the wings');
 ok(armament('a6m').some((g) => g.cal === 20 && g.mz.every((m) => Math.abs(m.z) > 1.5)) && armament('a6m').some((g) => g.cal < 10 && g.mz.every((m) => Math.abs(m.z) < 0.5)), 'the Zero: the cannons in the wings, the machine guns over the engine');
+const f8f = armament('f8f');
+ok(f8f.length === 1 && f8f[0].mz.length === 4 && f8f[0].mz.filter((m) => m.z > 0).length === 2 && f8f[0].mz.every((m) => Math.abs(m.z) > 2.2 && Math.abs(m.z) < 2.9) && f8f[0].rpg === 300, 'the Bearcat has two .50 in each wing with 300 rounds each, as muzzles');
+const tdb1 = armament('tdb1');
+ok(tdb1.length === 1 && tdb1[0].cal === 7.62 && tdb1[0].mz.length === 1 && Math.abs(tdb1[0].mz[0].z) < 0.5 && tdb1[0].rpg === 500, 'the Devastator has one .30 in the cowl and one flexible .30 for the gunner (FLEX above)');
+const p40 = armament('p40');
+ok(p40.length === 1 && p40[0].mz.length === 6 && p40[0].mz.filter((m) => m.z > 0).length === 3 && p40[0].mz.every((m) => Math.abs(Math.abs(m.z) - 1.9) < 0.4), 'the P-40E has three .50 in each wing, as muzzles at the stations of the model (1.7 to 2.1 m from the centre line)');
+const spit = armament('spitfire');
+ok(spit.length === 2 && spit.some((g) => g.cal === 20 && g.mz.length === 2 && g.mz.every((m) => Math.abs(m.z) < 2.6)) && spit.some((g) => g.cal < 10 && g.mz.length === 4 && g.mz.every((m) => Math.abs(m.z) > 2.9)), 'the Spitfire Mk XII has a 20 mm cannon in each wing, inboard of two .303');
 ok(armament('bf109t').some((g) => g.mz.length === 1 && g.mz[0].z === 0), 'the Bf 109 has its cannon in the hub, on the axis');
 
 // ---- the strike aircraft fire ----
@@ -65,6 +88,8 @@ const run = (planes, secs, extra = {}) => {
   ok(beam.fire.length === 0, 'a fighter on its beam is not shot at: the guns are fixed ahead');
   const own = run([mk('sbd'), enemy({ team: 0 })], 3);
   ok(own.fire.length === 0, 'nor a friend');
+  const inv = mk('b26'), ri = run([inv, enemy()], 4);
+  ok(ri.fire.length > 0 && ri.fire.some((e) => e.guns && e.guns.length >= 48) && inv.guns.reduce((a, g) => a + g.mz.length, 0) === 12, `an Invader fires its eight nose guns and four pod guns at a fighter crossing its nose (${ri.fire.length} bursts, ${ri.hits} hits)`);
   const rear = run([mk('b5n'), enemy()], 3);
   ok(rear.fire.length === 0, 'a Kate has no gun that fires ahead');
 }
@@ -86,7 +111,7 @@ const run = (planes, secs, extra = {}) => {
 // ---- what the aircraft's own structure blocks ----
 {
   const he = planeGuns(PLANES.he111, 'he111').filter((g) => g.t === 'beam');
-  ok(he.every((g) => g.blocked && isBlocked(g, g.arc.c - Math.sign(g.arc.c) * 0.7, -0.6) && !isBlocked(g, g.arc.c, 0.1)), 'the waist guns of the He 111 cannot fire down through the wing, but can fire level and up');
+  ok(he.every((g) => g.blocked && isBlocked(g, g.arc.c - Math.sign(g.arc.c) * 0.9, -0.05) && !isBlocked(g, g.arc.c, 0.1)), 'the waist guns of the He 111 cannot fire level ahead of the beam through the wing, but can fire at the beam');
   const sbd = planeGuns(PLANES.sbd, 'sbd')[0];
   ok(inField(sbd, 160 * D, -0.25) && isBlocked(sbd, 160 * D, -0.25) && !isBlocked(sbd, 160 * D, 0.3), 'the Dauntless gunner cannot fire low astern through his own tailplane (but can above it)');
   const out = execFileSync('node', ['tools/audit/gunarcs.mjs', '--check'], { encoding: 'utf8' }).trim().split('\n').pop();

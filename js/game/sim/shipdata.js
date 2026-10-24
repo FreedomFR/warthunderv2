@@ -9,7 +9,7 @@ const TURN_FACTOR = { DD: 2.3, CL: 2.5, CA: 2.6, BB: 2.7, CV: 2.7 };     // turn
 const ACCEL_SECONDS = { DD: 38, CL: 52, CA: 62, BB: 95, CV: 80 };      // time to reach full speed
 const SKIN = { DD: 10, CL: 16, CA: 20, BB: 25, CV: 18 };           // mm of hull plating where there is no belt
 const SUP = { DD: 6, CL: 10, CA: 12, BB: 15, CV: 10 };            // mm of superstructure plating
-const FLIGHT = { essex: 19, shokaku: 19 };                         // thin unarmoured flight deck over the armoured hangar deck (estimated)
+const FLIGHT = { essex: 19, enterprise: 19, shokaku: 19 };                         // thin unarmoured flight deck over the armoured hangar deck (estimated)
 const HULL_FACTOR = { DD: 0.42, CL: 0.27, CA: 0.25, BB: 0.30, CV: 0.28 };
 
 function gunStats(g, group, navy, extra = {}) {
@@ -43,7 +43,7 @@ export function makeStats(spec) {
   const stats = {
     id: spec.id, nation: spec.nation, type: t, className: spec.className, refShip: spec.refShip, classShips: spec.classShips || [spec.refShip],
     L, B: spec.beam, D: spec.draft, dispFull,
-    maxSpeed, accel: maxSpeed / ACCEL_SECONDS[t], decel: maxSpeed / (ACCEL_SECONDS[t] * 0.6),
+    maxSpeed, accelSeconds: ACCEL_SECONDS[t], accel: maxSpeed / ACCEL_SECONDS[t], decel: maxSpeed / (ACCEL_SECONDS[t] * 0.6),
     turnRadius: TURN_FACTOR[t] * L, rudderRate: t === 'DD' ? 0.22 : t === 'BB' || t === 'CV' ? 0.1 : 0.14,
     hullStrength: Math.round(dispFull * HULL_FACTOR[t]),      // the strength of the hull, a scale for blows and holes (there are no hit points: see sim/hull.js)
     crew: Math.round(spec.crew || { DD: 250, CL: 750, CA: 1000, BB: 1900, CV: 1800 }[t]),

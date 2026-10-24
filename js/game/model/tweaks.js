@@ -23,6 +23,7 @@ import * as FANTASQUE_V4 from './ships/fantasque_v4.js';
 import * as ESSEX_V4 from './ships/essex_v4.js';
 import * as BISMARCK_V4 from './ships/bismarck_v4.js';
 import * as TIRPITZ_V4 from './ships/tirpitz_v4.js';
+import * as ENTERPRISE_V4 from './ships/enterprise_v4.js';
 import { TADE_PB39_AA, KAGERO_1944_AA, SHOKAKU_1944_AA, GIOBERTI_1940_AA, GIOBERTI_1942_AA } from './ships/variants_aa.js';
 import { VARIANTS } from '../data/variants.js';
 import { GIOBERTI } from './ships/gioberti.js';
@@ -1045,6 +1046,22 @@ export const TWEAKS = {
     v4: ESSEX_V4, aa: [],      // the light mounts come from the model (10 quadruple 40 mm, 50 single 20 mm; `aaAt`: the quads it lacks)
     // four quadruple 40 mm more on the free sponsons of the stern (the sheet has 17, the model 10; the galleries are full elsewhere): places, not measurements
     aaAt: [{ k: 'q40', x: -123.25, y: 16, z: -12.25 }],
+  },
+  // Yorktown class (USS Enterprise, 1942), drawn from a reference model (v4): flight deck 15.8 m above the waterline, 238 m long, 23 m wide at the ends and 31 m amidships,
+  // carried on the open galleries that hold the 20 mm tubs; the island and its open-topped funnel at 0.34-0.55 of the length on the starboard side (mast top 49.6 m); three centre-line
+  // lifts of 14.6 x 13.4 m (the forward one turned across, the middle one 2 m to starboard); eight single open 5 in on sponsons, two at each corner of the deck; four quadruple
+  // 1.1 in beside the island and 37 single 20 mm along both galleries and on the island (the model's: nothing made up); four screws and a single rudder where the model has them
+  enterprise: {
+    mainVariant: { 1: 'mk30' }, elevators: [0.1775, 0.6034, 0.8916], flightDeckY: 15.8, noGallery: true,
+    elevSize: [[6.6, 7.35], [7.3, 6.7], [7.3, 6.7]], elevZ: [0, 2.1, -0.3],
+    // the deck outline of the model (half-widths: it is 3 m wider to port abreast the island and to starboard further aft; the aircraft are spotted inside the narrower side)
+    fdPlan: [[0.0188, 7.4], [0.025, 8.2], [0.05, 10.1], [0.075, 11.45], [0.21, 11.9], [0.225, 12.7], [0.325, 13.5], [0.34, 15.6], [0.575, 15.6], [0.59, 14.2], [0.65, 12.9], [0.75, 12.2], [0.85, 11.7], [0.9917, 11.55]],
+    bow: { rake: 3.5, pr: 1.2 }, stern: { overhang: 9, rise: 6 },
+    props: [{ f: 0.8756, z: 3.43, depth: 4.88, d: 4.3, blades: 4, toF: 0.8752 }, { f: 0.8068, z: 6.92, depth: 5.36, d: 4.2, blades: 4, toF: 0.8064 }],
+    rudders: [{ f: 0.9135, top: 2.7, bottom: 7.8, chord: 8.8, t: 0.6 }],
+    keel: [[0, 0.7], [0.04, 0.95], [0.84, 1], [0.89, 0.78], [0.94, 0.5], [1, 0.28]],
+    island: { z: 11.2, hw: 4.5, funnelTop: 17.7, funnelLx: 9.5, funnelLz: 4.6, mastF: 0.4294, mastTop: 33.8 },
+    v4: ENTERPRISE_V4, v4Lifts: true, aa: [],      // the light mounts come from the model (4 quadruple 1.1 in, 37 single 20 mm)
   },
   // Illustrious (ONI 201 sheet, public domain: flight deck 40 ft and stack top 91.5 ft above the waterline printed on it, 4.17 px/m in the
   // profile, 2.26 px/m in the plan): flight deck 12.2 m above the waterline, from stem to stern, 28.6 m wide with a narrower stern box

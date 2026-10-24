@@ -8,6 +8,7 @@ import { segmentNearShip, segmentHit, resolveCrashHit } from './damage.js';
 import { spawnPlaneDebris, spawnScrap } from './debris.js';
 import { killGroundPlane } from './airfield.js';
 import { setVel } from './flight.js';
+import { perfOf } from './airperf.js';
 
 const _prev = [0, 0, 0];
 
@@ -234,9 +235,10 @@ export function stepDying(world, p, dt) {
   p.dyingT += dt;
   const prev = _prev; prev[0] = p.x; prev[1] = p.y; prev[2] = p.z;
   if (p.mode === 'glide' && p.y > 4) {
-    // engine dead, aircraft still flying: a long glide towards the sea
+    // engine dead, aircraft still flying: a long glide towards the sea at the speed it is trimmed for (the climb speed, a glide ratio of about ten), the speed it had bled off slowly
+    const vg = Math.max(40, (perfOf(p).vcl || 55) * 1.15);
     p.pitch += (-0.1 - p.pitch) * dt * 0.8;
-    p.speed = Math.max(42, p.speed - 6 * dt);
+    p.speed += clamp(vg - p.speed, -1.6 * dt, 1.6 * dt);
     p.bank += (p.spinRate * 0.04 - p.bank) * dt;
     p.heading += p.bank * 0.1 * dt;
     setVel(p);
@@ -245,10 +247,13 @@ export function stepDying(world, p, dt) {
     if (p.y <= 1.5) { ditch(world, p, true); return true; }
     return collideShips(world, p, prev);
   }
-  // uncontrolled: gravity, drag, tumbling or spinning
-  p.vy -= G * dt * (p.mode === 'dive' ? 1.0 : 0.9);
-  const dr = Math.exp(-(p.mode === 'tumble' || p.mode === 'wing' ? 0.35 : 0.12) * dt);
-  p.vx *= dr; p.vz *= dr; p.vy *= (p.mode === 'tumble' || p.mode === 'wing' ? Math.exp(-0.05 * dt) : 1);
+  // uncontrolled: gravity and the drag of the shape it has now (a diving fuselage slips through the air, a spinning or tumbling one falls like a leaf: terminal speeds of about 240,
+  // 145, 115, 70 and 60 m/s for a fighter in a dive, with a wing gone, breaking up, in a spin and tumbling), so the fall has a speed that it cannot pass
+  p.vy -= G * dt;
+  const spec = p.spec, S = spec.S || spec.span * spec.span / 7, m = (spec.mass || 4) * 1000;
+  const cda = S * ({ dive: 0.05, wing: 0.14, explode: 0.22, spin: 0.55, tumble: 0.8 }[p.mode] || 0.3);
+  const rho = 1.225 * Math.exp(-Math.max(0, p.y) / 8500), v = Math.hypot(p.vx, p.vy, p.vz), kd = 0.5 * rho * cda / m * v * dt;
+  p.vx -= p.vx * kd; p.vy -= p.vy * kd; p.vz -= p.vz * kd;
   p.x += p.vx * dt; p.y += p.vy * dt; p.z += p.vz * dt;
   const sp = Math.hypot(p.vx, p.vy, p.vz);
   p.speed = sp;

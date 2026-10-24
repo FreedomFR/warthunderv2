@@ -24,6 +24,18 @@ export const PERF = {
   sbd: { vmax: 112, vc: 78, vt: 100, vd: 112, vcl: 49, vp: 46, va: 37.5, vto: 36, vcomb: 0, bank: 55, pr: 0.34, asm: 300, roc: 7.5, roll: 1.0, nmax: 5.5, brakes: true },
   tbf: { vmax: 121, vc: 78, vt: 57, vd: 100, vcl: 50, vp: 47, va: 41, vto: 37, vcomb: 0, bank: 50, pr: 0.28, asm: 280, roc: 7.2, roll: 0.8, nmax: 4.5, brakes: false },
   f6f: { vmax: 170, vc: 90, vt: 0, vd: 0, vcl: 60, vp: 52, va: 38.6, vto: 36, vcomb: 125, bank: 82, pr: 0.7, asm: 350, roc: 15.5, roll: 1.4, nmax: 6.5, brakes: false },
+  // F4F-3: 531 km/h (330 mph) at 6 100 m (about 520 km/h at the 2-3 km of the game), 2 300 ft/min (11.7 m/s) at sea level, ceiling 11 500 m, stall about 120 km/h with the flaps down at 3.4 t; a light, short-running carrier fighter
+  f4f: { vmax: 147, vc: 78, vt: 0, vd: 0, vcl: 52, vp: 46, va: 35, vto: 31, vcomb: 108, bank: 82, pr: 0.75, asm: 350, roc: 11.7, roll: 1.3, nmax: 6.5, brakes: false },
+  // FM-2: 534 km/h (332 mph) with the Wright R-1820-56 and its water injection, 3 650 ft/min at sea level (about 14 m/s at the weight of a sortie), stall about 110 km/h with the flaps down at 3.75 t; the Wildcat made for the short decks of the escort carriers
+  fm2: { vmax: 148, vc: 80, vt: 0, vd: 0, vcl: 54, vp: 47, va: 36, vto: 31, vcomb: 109, bank: 82, pr: 0.75, asm: 350, roc: 14, roll: 1.4, nmax: 6.5, brakes: false },
+  // F8F-1: 421 mph (678 km/h) at 6 000 m (about 630 km/h at the 2-3 km of the game), 4 800 ft/min (24 m/s) at sea level at the weight of a sortie (4.1 t), the best climber of the carrier fighters; a short take-off and a tight turn (wing loading 181 kg/m2, the roll of a light aileron wing)
+  f8f: { vmax: 176, vc: 98, vt: 0, vd: 0, vcl: 68, vp: 52, va: 38.5, vto: 34, vcomb: 132, bank: 82, pr: 0.8, asm: 350, roc: 24, roll: 1.7, nmax: 6.5, brakes: false },
+  // P-40E: 354 mph (570 km/h) at 4 600 m, 2 100 ft/min (11 m/s) at sea level with the load of a sortie, the roll of a heavy-aileron fighter, about 6.5 g at the most
+  p40: { vmax: 155, vc: 100, vt: 0, vd: 0, vcl: 64, vp: 54, va: 40, vto: 37, vcomb: 125, bank: 82, pr: 0.65, asm: 350, roc: 11, roll: 1.2, nmax: 6.5, brakes: false },
+  // Spitfire Mk XII: 393 mph (632 km/h) at 5 500 m, about 4 000 ft/min (20 m/s) with the load of a sortie, 7 400 lb loaded; a light, tight-turning fighter
+  spitfire: { vmax: 172, vc: 112, vt: 0, vd: 0, vcl: 66, vp: 52, va: 38.5, vto: 36, vcomb: 130, bank: 82, pr: 0.75, asm: 350, roc: 20, roll: 1.5, nmax: 6.5, brakes: false },
+  // TBD-1: 206 mph (331 km/h) at 8 000 ft, cruise 128 mph (206 km/h), 720 ft/min (3.7 m/s) climb, ceiling 19 500 ft, 4.1 t with the Mark 13 torpedo, stall about 65 mph (29 m/s) with the flaps down; the slowest of the carrier aircraft after the biplanes
+  tdb1: { vmax: 92, vc: 57, vt: 52, vd: 78, vcl: 41, vp: 40, va: 34, vto: 29, vcomb: 0, bank: 45, pr: 0.25, asm: 250, roc: 3.7, roll: 0.7, nmax: 4.5, brakes: false },
   d3a: { vmax: 108, vc: 82, vt: 90, vd: 103, vcl: 47, vp: 43, va: 36, vto: 31, vcomb: 0, bank: 60, pr: 0.38, asm: 300, roc: 7, roll: 0.9, nmax: 5.5, brakes: true },
   b5n: { vmax: 105, vc: 72, vt: 90, vd: 92, vcl: 46, vp: 42, va: 35, vto: 31, vcomb: 0, bank: 52, pr: 0.32, asm: 280, roc: 5.2, roll: 0.8, nmax: 4.5, brakes: false },
   a6m: { vmax: 148, vc: 92, vt: 0, vd: 0, vcl: 56, vp: 50, va: 37, vto: 31, vcomb: 110, bank: 82, pr: 0.8, asm: 350, roc: 15, roll: 1.3, nmax: 6.5, brakes: false },
@@ -56,6 +68,21 @@ export const PERF = {
   sm79: { vmax: 121, vc: 94, vt: 0, vd: 0, vcl: 58, vp: 52, va: 41, vto: 38, vcomb: 0, bank: 40, pr: 0.14, asm: 600, bombAlt: 3500, bombSpeed: 82, vs: 32, climb: 4.3, ceil: 6500, runLen: 500, landRun: 450, roc: 4.3, roll: 0.4, nmax: 2.5, brakes: false },
   // LeO 451: 495 km/h at 4 000 m, cruise about 400 km/h, ceiling 9 000 m, climb about 7 m/s (4 000 m in 9 min), stall 130 km/h
   leo451: { vmax: 137, vc: 111, vt: 0, vd: 0, vcl: 70, vp: 62, va: 47, vto: 44, vcomb: 0, bank: 45, pr: 0.16, asm: 700, bombAlt: 4000, bombSpeed: 100, vs: 36, climb: 7.0, ceil: 9000, runLen: 700, landRun: 600, roc: 7.0, roll: 0.5, nmax: 2.5, brakes: false },
+  // B-26B Invader (A-26B-50): 359 mph (578 km/h) at 16 700 ft, about 335 mph (150 m/s) at the 3-4 km of the game, cruise 284 mph (457 km/h), 10 000 ft in 8 min 6 s (an average of 6.3 m/s; about 8 m/s at the 12.5 t of a sortie), ceiling 28 500 ft (8 690 m); the
+  // stall speed with the flaps down is about 85 mph (38 m/s), the approach 120 mph; a ground run of about 800 m at 12.5 t (Wikipedia, the Douglas A-26 article; the pilot's handbook for the figures of the stall and the run); a light
+  // wing loading (250 kg/m2) and light ailerons: it banks and turns better than a heavy bomber and does not roll like a fighter
+  b26: { vmax: 150, vc: 122, vt: 0, vd: 0, vcl: 80, vp: 66, va: 52, vto: 50, vcomb: 0, bank: 50, pr: 0.2, asm: 600, bombAlt: 3500, bombSpeed: 105, vs: 40, climb: 8, ceil: 8690, runLen: 800, landRun: 650, roc: 8, roll: 0.8, nmax: 3.5, brakes: false },
+  // ---- land-based interceptors (twin-engine fighters that scramble from the airfields: the fields of a fighter, the take-off run and landing run of the airfields) ----
+  // P-38G: 400 mph (645 km/h) at 25 000 ft (7 600 m) with the turbochargers, about 345 mph (555 km/h) at sea level and 365 mph (587 km/h, 163 m/s) at the 3 km of the game; about 2 600 ft/min (13 m/s) at sea level at the
+  // weight of a sortie (7.1 t), ceiling 11 900 m; stall about 170 km/h with the Fowler flaps down, take-off run about 750 m. The ailerons are not boosted (the boost came with the J-25 and the L): a good roll at the speeds of the fight,
+  // a heavy stick above 450 km/h; a wing loading of 233 kg/m2 gives a turning fight that is flown with the speed (the flaps in manoeuvre)
+  p38: { vmax: 163, vc: 110, vt: 0, vd: 0, vcl: 76, vp: 65, va: 56, vto: 50, vcomb: 125, bank: 82, pr: 0.55, asm: 350, runLen: 750, landRun: 650, roc: 12.5, roll: 1.1, nmax: 6, brakes: false },
+  // Mosquito FB Mk VI: 380 mph (610 km/h) at 13 000 ft, about 335 mph (540 km/h) at sea level and 360 mph (580 km/h, 161 m/s) at the 3 km of the game, 2 850 ft/min (14.5 m/s) at sea level at the 8-9 t of a sortie
+  // (about 13.5 m/s here), ceiling 9 000 m, stall about 160 km/h with the flaps down; the ailerons are light at low speed and heavy at the speeds of the fight; take-off run about 650 m
+  mosquito: { vmax: 161, vc: 118, vt: 0, vd: 0, vcl: 76, vp: 66, va: 55, vto: 48, vcomb: 130, bank: 82, pr: 0.5, asm: 350, runLen: 650, landRun: 550, roc: 13.5, roll: 1.0, nmax: 5.5, brakes: false },
+  // N1K1-J Shiden: 583 km/h (162 m/s) at 5 600 m, about 560 km/h (156 m/s) at the 3 km of the game, 6 000 m in 7 min 50 s (an average of 12.8 m/s; about 15.5 m/s at sea level at the 3.9 t of a sortie), ceiling 10 760 m,
+  // stall about 130 km/h with the automatic combat flaps, a hard aircraft to take off and land (a long run, the torque of the Homare); a wing loading of 166 kg/m2 and a good aileron wing
+  n1k1: { vmax: 156, vc: 108, vt: 0, vd: 0, vcl: 66, vp: 56, va: 41, vto: 38, vcomb: 125, bank: 82, pr: 0.7, asm: 350, runLen: 600, landRun: 600, roc: 15.5, roll: 1.4, nmax: 6.5, brakes: false },
 };
 export const perfOf = (p) => PERF[p.typeKey] || PERF.sbd;
 

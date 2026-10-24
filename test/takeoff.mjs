@@ -6,7 +6,7 @@ import { spawnFleet, teamStart } from '../js/game/sim/formation.js';
 let fail = 0;
 const ok = (c, m) => { console.log(c ? 'PASS' : 'FAIL', m); if (!c) { fail++; process.exitCode = 1; } };
 
-for (const id of ['essex', 'shokaku', 'illustrious', 'graf_zeppelin', 'aquila', 'bearn']) {
+for (const id of ['essex', 'enterprise', 'shokaku', 'illustrious', 'graf_zeppelin', 'aquila', 'bearn']) {
   const w = new World(5); w.addTeam(0); w.addTeam(1);
   const st = [teamStart(0, 2, 20000), teamStart(1, 2, 20000)];
   spawnFleet(w, 0, [{ id, count: 1 }], st[0].x, st[0].z, st[0].heading);

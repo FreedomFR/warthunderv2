@@ -15,7 +15,7 @@ export function aaSources(world, team, ahead = 20, own = false) {
     if ((s.team === team) !== own || !s.alive) continue;
     let light = 0, heavy = 0;
     const lm = [], hm = [], sx = s.vx * ahead, sz = s.vz * ahead, w0 = [0, 0, 0];
-    for (const a of s.aaMounts) if (a.alive && a.ammo > 0) { const c = AA[a.rec.variant]; if (c) { const w = c.dps / c.hit * a.rec.n * 0.5; light += w; s.toWorld(a.rec.x, 0, a.rec.z, w0); lm.push({ x: w0[0] + sx, z: w0[2] + sz, w, rec: a.rec }); } }
+    for (const a of s.aaMounts) if (a.alive && a.ammo > 0) { const c = AA[a.rec.gun || a.rec.variant]; if (c) { const w = c.dps / c.hit * a.rec.n * 0.5; light += w; s.toWorld(a.rec.x, 0, a.rec.z, w0); lm.push({ x: w0[0] + sx, z: w0[2] + sz, w, rec: a.rec }); } }
     for (const m of s.mounts) if (m.group === 'sec' && m.alive && m.gun.cal <= 140 && m.gun.maxElevDeg >= 55 && !m.noAmmo) { const w = m.n * 0.12; heavy += w; s.toWorld(m.rec.x, 0, m.rec.z, w0); hm.push({ x: w0[0] + sx, z: w0[2] + sz, w, rec: m.rec }); }
     out.push({ ship: s, x: s.x + s.vx * ahead, z: s.z + s.vz * ahead, light, heavy, lm, hm, heading: s.heading });
   }
@@ -24,7 +24,7 @@ export function aaSources(world, team, ahead = 20, own = false) {
     for (const b of world.bases) {
       if (b.inert || b.team === team) continue;
       let light = 0, x = 0, z = 0, n = 0;
-      for (const g of b.guns) if (g.kind === 'aa' && g.alive) { const c = AA[g.variant]; if (c) { light += c.dps / c.hit * g.n * 0.5; x += g.x; z += g.z; n++; } }
+      for (const g of b.guns) if (g.kind === 'aa' && g.alive) { const c = AA[g.gun || g.variant]; if (c) { light += c.dps / c.hit * g.n * 0.5; x += g.x; z += g.z; n++; } }
       if (n) out.push({ ship: b.target, x: x / n, z: z / n, light, heavy: 0 });
     }
   }
@@ -85,8 +85,12 @@ export function chooseApproach(world, team, from, target, kind, taken = []) {
   const tx = target.x + (target.vx || 0) * eta, tz = target.z + (target.vz || 0) * eta;
   const a0 = Math.atan2(from.x - tx, -(from.z - tz));
   const W = 9800, step = 400;
+  // how the ship is sailing: a torpedo has the most to hit on the beam of a ship (the aspect 90 degrees), a bomb falls best on one that is coming at the aircraft, along its length (the aspect 0:
+  // from ahead); a base has no bow, and no penalty
+  const spd = Math.hypot(target.vx || 0, target.vz || 0), th = spd > 1 ? Math.atan2(target.vx, -target.vz) : target.heading;
+  const aspW = world.airOpts && world.airOpts.aspect === 0 ? 0 : kind === 'torp' ? 7 : 4;
   let best = null;
-  for (let k = -6; k <= 6; k++) {
+  for (let k = -9; k <= 9; k++) {
     const a = a0 + k * 0.3;
     const wx = tx + Math.sin(a) * W, wz = tz - Math.cos(a) * W;
     let cost = 0;
@@ -101,6 +105,10 @@ export function chooseApproach(world, team, from, target, kind, taken = []) {
     seg(from.x, from.z, wx, wz, false);
     seg(wx, wz, tx, tz, false);
     cost += 0.35 * Math.abs(k);
+    if (aspW && th != null) {
+      const asp = Math.abs(wrapPi(a - th));      // 0: from the bow, PI: from the stern
+      cost += kind === 'torp' ? aspW * Math.pow(Math.abs(asp - Math.PI / 2) / (Math.PI / 2), 2) : aspW * Math.pow(asp / Math.PI, 1.5);
+    }
     for (const t of taken) cost += 1.4 * Math.max(0, 1 - Math.abs(wrapPi(a - t)) / 0.55);
     if (!best || cost < best.cost) best = { a, cost, k };
   }

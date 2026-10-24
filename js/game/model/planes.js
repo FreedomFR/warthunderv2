@@ -16,6 +16,8 @@ import { HEAVY } from './bomberdata.js';
 import { planeGuns, drawGunHead } from './planeGuns.js';
 import { drawFixedGuns } from './fixedGuns.js';
 import { drawV4Plane, drawV4Heavy } from './v4plane.js';
+import { SCALE as ORD_SCALE, ORDNANCE } from './ordnance_v4.js';
+import { decodeBaked } from './bakedmesh.js';
 import * as D3A_V4 from './aircraft/d3a_v4.js';
 import * as A6M_V4 from './aircraft/a6m_v4.js';
 import * as SBD_V4 from './aircraft/sbd_v4.js';
@@ -23,6 +25,23 @@ import * as TBF_V4 from './aircraft/tbf_v4.js';
 import * as IL2_V4 from './aircraft/il2_v4.js';
 import * as BF109_V4 from './aircraft/bf109_v4.js';
 import * as B29_V4 from './aircraft/b29_v4.js';
+import * as B17_V4 from './aircraft/b17_v4.js';
+import * as HE111_V4 from './aircraft/he111_v4.js';
+import * as LANCASTER_V4 from './aircraft/lancaster_v4.js';
+import * as B5N_V4 from './aircraft/b5n_v4.js';
+import * as F6F_V4 from './aircraft/f6f_v4.js';
+import * as F4F_V4 from './aircraft/f4f_v4.js';
+import * as P38_V4 from './aircraft/p38_v4.js';
+import * as MOSQUITO_V4 from './aircraft/mosquito_v4.js';
+import * as B26_V4 from './aircraft/b26_v4.js';
+import * as N1K1_V4 from './aircraft/n1k1_v4.js';
+import * as FM2_V4 from './aircraft/fm2_v4.js';
+import * as F8F_V4 from './aircraft/f8f_v4.js';
+import * as TDB1_V4 from './aircraft/tdb1_v4.js';
+import * as P40_V4 from './aircraft/p40_v4.js';
+import * as SPITFIRE_V4 from './aircraft/spitfire_v4.js';
+import * as JU87_V4 from './aircraft/ju87_v4.js';
+import * as RO43_V4 from './aircraft/ro43_v4.js';
 
 const PI = Math.PI;
 const D2R = PI / 180;
@@ -40,8 +59,8 @@ export const PAINT = {
 
 // ---- aircraft specification sheets --------------------------------------------------------------------------
 // The tailplane span is the TOTAL span (the three aircraft with a drawing -- SBD 5.4 m, B5N 4.9 m, Skua 4.9 m -- were measured on it; the others
-// are 0.33 of the wing span, estimated: they had been drawn at about half the real size). Exception: the Ju 87's tailplane, measured on a 1:72
-// sheet, is only 3.0 m (0.22 of the span).
+// are 0.33 of the wing span, estimated: they had been drawn at about half the real size). The Ju 87's tailplane is the model's 5.1 m (0.37 of the span;
+// a 1:72 sheet had given 3.0 m).
 // L length, span, fus: {r maximum radius, ar ratio height/width}, engine: {r cowl radius, len, type},
 // wing: {cr root chord, ct tip chord, x mid-chord position, y height, dih dihedral, gull inverted gull, sweep, t thickness}
 export const PLANES = {
@@ -59,6 +78,14 @@ export const PLANES = {
     tail: { x: -5.9, chord: 2.1, span: 6.43, fin: 2.2, finChord: 2.6, y: 0.9 }, canopy: [{ x0: 0.8, x1: 2.3, tx1: 1.9, h: 1.0 }, { x0: -0.6, x1: 0.8, tx1: 0.4, h: 0.9 }],
     gear: 'retract', ordnance: 'torp', turret: true, groundY: 2.2, v4: TBF_V4, paint: 'tbf', crease: 75,
   },
+  tdb1: {      // measured on the model of a TBD-1 (tools/refs/planegroups.py --measures): the wing 3.3 m of chord at 2 m from the centre line and 1.0 m at the tip, the tailplane 5.5 m, the long glasshouse over the three crew, three blades of 1.9 m; the model stands flying (level, wheels half out under the wing: left out) and the undercarriage is the one of the model's second aircraft, down
+    name: 'Douglas TBD-1 Devastator', nation: 'USA', role: 'torp', kind: 'mono', L: 10.6, span: 15.24, mass: 4.2, S: 39.2, hp: 3.6,
+    fus: { r: 0.6, ar: 1.25, x: -0.6 }, engine: { type: 'radial', r: 0.65, len: 1.2 }, prop: { r: 1.84, n: 3, x: 0 },
+    wing: { cr: 3.4, ct: 1.0, x: 0.25, y: -0.55, dih: 0.7, sweep: 0.5, t: 0.45 },
+    tail: { x: -4.6, chord: 1.96, span: 5.49, fin: 1.9, finChord: 2.2, y: 0.48 }, canopy: [{ x0: -0.6, x1: 2.41, tx1: 1.6, h: 0.78 }],
+    eye: { x: 1.55, y: 0.95, z: 0 },
+    gear: 'retract', ordnance: 'torp', groundY: 2.26, tailWheel: 'game', v4: TDB1_V4, paint: 'tdb1', crease: 75,
+  },
   d3a: {      // measured on the model (tools/refs/planegroups.py --probe): the elliptic wing 3.5 m of chord at the root, the tailplane 4.3 m, the fixed spatted undercarriage, two canopies
     name: 'Aichi D3A1 Type 99', nation: 'Japan', role: 'dive', kind: 'mono', L: 10.67, span: 14.365, mass: 3.6, S: 34.9, hp: 2.8, bombKg: 250,
     fus: { r: 0.6, ar: 1.3, x: -0.4 }, engine: { type: 'radial', r: 0.64, len: 1.3 }, prop: { r: 1.46, n: 3, x: 0 },
@@ -67,12 +94,12 @@ export const PLANES = {
     gear: 'spats', ordnance: 'bomb', groundY: 2.16, v4: D3A_V4, paint: 'd3a',
     canopyLoft: { yb: 0.55, exp: 0.8, prof: [[-0.85, 0.70, 0.12], [-0.6, 0.88, 0.16], [-0.3, 0.93, 0.24], [-0.1, 0.96, 0.32], [0.0, 0.98, 0.35], [0.4, 1.0, 0.35], [1.0, 1.01, 0.36], [1.5, 1.03, 0.36], [1.65, 0.9, 0.3], [1.8, 0.8, 0.22], [1.9, 0.76, 0.12]], frames: [-0.2, 0.2, 0.62, 1.05, 1.5, 1.75] },      // (the envelope of the canopy of the model: its panes are opaque and mixed with the interior there)
   },
-  b5n: {
-    name: 'Nakajima B5N2 Type 97', nation: 'Japan', role: 'torp', kind: 'mono', L: 10.3, span: 15.5, mass: 3.8, hp: 2.9,
-    fus: { r: 0.6, ar: 1.2, x: -0.6 }, engine: { type: 'radial', r: 0.64, len: 1.1 }, prop: { r: 1.6, n: 3, x: 0 },
-    wing: { cr: 3.3, ct: 1.2, x: 1.00, y: -0.2, dih: 0.4, sweep: 0.35, t: 0.3 },
-    tail: { x: -4.2, chord: 1.3, span: 4.9, fin: 1.4, finChord: 1.7, y: 0.25 }, canopy: [{ x0: 0.2, x1: 3.3, tx1: 2.9, h: 0.72 }],
-    gear: 'retract', ordnance: 'torp',
+  b5n: {      // measured on the model (tools/refs/planegroups.py --measures): the wing 3.7 m of chord at the root and 0.9 m at the tip, the tailplane 4.9 m, the long glasshouse of the three crew, three blades of 1.75 m; the model has the gear up: the game's wheels
+    name: 'Nakajima B5N2 Type 97', nation: 'Japan', role: 'torp', kind: 'mono', L: 10.33, span: 15.52, mass: 3.8, S: 37.7, hp: 2.9,
+    fus: { r: 0.6, ar: 1.35, x: -0.4 }, engine: { type: 'radial', r: 0.66, len: 1.3 }, prop: { r: 1.75, n: 3, x: 0 },
+    wing: { cr: 3.7, ct: 0.95, x: 0.42, y: -0.4, dih: 0.65, sweep: 0.65, t: 0.3 },
+    tail: { x: -4.83, chord: 1.75, span: 4.94, fin: 1.7, finChord: 2.0, y: 0.0 }, canopy: [{ x0: -1.4, x1: 2.2, tx1: 1.9, h: 0.55 }],
+    gear: 'retract', track: 1.45, ordnance: 'torp', groundY: 2.2, tailWheel: 'game', v4: B5N_V4, paint: 'b5n',
   },
   swordfish: {
     name: 'Fairey Swordfish', nation: 'UK', role: 'torp', kind: 'bi', L: 11.0, span: 13.9, mass: 3.4, hp: 3.4,
@@ -88,12 +115,12 @@ export const PLANES = {
     tail: { x: -4.4, chord: 1.4, span: 4.9, fin: 1.4, finChord: 1.7, y: 0.15 }, canopy: [{ x0: 0.0, x1: 1.5, tx1: 1.15, h: 0.6 }, { x0: -2.0, x1: -0.7, tx1: -1.0, h: 0.5 }],
     gear: 'retract', ordnance: 'bomb',
   },
-  ju87: {
-    name: 'Junkers Ju 87 C Stuka', nation: 'Germany', role: 'dive', kind: 'mono', L: 11.1, span: 13.8, mass: 4.6, hp: 3.6, bombKg: 500, siren: true,
+  ju87: {      // the shape is a Ju 87 B-2 (tools/refs/planegroups.py --measures; no spats, the leg fairings and the open wheels as modelled): the inverted gull wing, the braced tailplane 5.1 m across, the fixed undercarriage and the tail wheel are in the model, which stands nose up at 11 degrees on them
+    name: 'Junkers Ju 87 C Stuka', nation: 'Germany', role: 'dive', kind: 'mono', L: 11.2, span: 13.8, mass: 4.6, S: 31.9, hp: 3.6, bombKg: 500, siren: true,
     fus: { r: 0.62, ar: 1.2, x: -0.3 }, engine: { type: 'inline', r: 0.46, len: 1.9 }, prop: { r: 1.7, n: 3, x: 0 },
-    wing: { cr: 2.9, ct: 1.1, x: -0.1, y: -0.45, dih: 0.0, gull: 0.95, sweep: 0.15, t: 0.4 },
-    tail: { x: -4.8, chord: 1.0, span: 3.0, fin: 1.7, finChord: 1.9, y: 0.2 }, canopy: [{ x0: 0.0, x1: 2.9, tx1: 2.2, h: 0.78 }],
-    gear: 'spats', ordnance: 'bomb',
+    wing: { cr: 3.3, ct: 1.1, x: 0.5, y: -0.45, dih: 0.0, gull: 0.95, sweep: 0.15, t: 0.4 },
+    tail: { x: -5.4, chord: 1.0, span: 5.1, fin: 1.9, finChord: 1.9, y: 0.95 }, canopy: [{ x0: 0.2, x1: 1.77, tx1: 1.2, h: 0.78 }, { x0: -1.68, x1: -0.6, tx1: -0.9, h: 1.14 }],
+    gear: 'spats', ordnance: 'bomb', groundY: 1.93, groundPitch: 0.19, bombPos: { x: 1.1, y: -0.55, wx: 1.1, wy: -0.45, wz: 3.6, wdz: 0.5 }, v4: JU87_V4, paint: 'ju87',
   },
   fi167: {
     name: 'Fieseler Fi 167', nation: 'Germany', role: 'torp', kind: 'bi', L: 11.4, span: 13.5, mass: 4.2, hp: 3.5,
@@ -106,7 +133,7 @@ export const PLANES = {
     name: 'Loire-Nieuport LN.401', nation: 'France', role: 'dive', kind: 'mono', L: 9.7, span: 14.0, mass: 2.9, hp: 2.7, bombKg: 225,
     fus: { r: 0.5, ar: 1.3, x: -0.2 }, engine: { type: 'inline', r: 0.42, len: 1.8 }, prop: { r: 1.5, n: 3, x: 0 },
     wing: { cr: 2.4, ct: 1.2, x: -0.1, y: -0.35, dih: 0.0, gull: 0.85, kneeFrac: 0.23, tipRise: 0.95, sweep: 0.2, t: 0.3 },
-    tail: { x: -4.3, chord: 1.6, span: 3.9, plates: { h: 1.7, chord: 1.5 }, fin: 1.4, finChord: 1.6, y: 0.15 }, canopy: [{ x0: 0.0, x1: 1.9, tx1: 1.5, h: 0.6 }],
+    tail: { x: -4.1, chord: 1.6, span: 3.9, plates: { h: 1.7, chord: 1.5 }, fin: 1.4, finChord: 1.6, y: 0.15 }, canopy: [{ x0: 0.0, x1: 1.9, tx1: 1.5, h: 0.6 }],
     gear: 'spats', ordnance: 'bomb',
   },
   pl10: {
@@ -131,12 +158,33 @@ export const PLANES = {
     gear: 'retract', ordnance: 'torp',
   },
   // ---- fighters (the dimensions are the real ones, the rest estimated like the other aircraft) ----
-  f6f: {
-    name: 'Grumman F6F-3 Hellcat', nation: 'USA', role: 'fighter', kind: 'mono', L: 10.2, span: 13.1, mass: 5.6, S: 31.0, hp: 4.2,
-    fus: { r: 0.7, ar: 1.1, x: -0.6 }, engine: { type: 'radial', r: 0.88, len: 1.4 }, prop: { r: 1.75, n: 3, x: 0 },
-    wing: { cr: 3.0, ct: 1.4, x: 0.3, y: -0.38, dih: 0.3, sweep: 0.4, t: 0.38 },
-    tail: { x: -4.6, chord: 1.5, span: 4.3, fin: 1.6, finChord: 1.9, y: 0.2 }, canopy: [{ x0: 0.1, x1: 1.9, tx1: 1.4, h: 0.55 }],
-    gear: 'retract', ordnance: null,
+  f6f: {      // measured on the model (tools/refs/planegroups.py --measures): the wing 3.1 m of chord at the root and 1.5 m at the tip, the tailplane 5.6 m, the glass of the canopy, three blades of 2.0 m; the model has the gear up (the wheels lie flat in the wings): the game's wheels
+    name: 'Grumman F6F-3 Hellcat', nation: 'USA', role: 'fighter', kind: 'mono', L: 10.33, span: 13.06, mass: 5.6, S: 31.0, hp: 4.2,
+    fus: { r: 0.78, ar: 1.28, x: -0.6 }, engine: { type: 'radial', r: 0.9, len: 1.4 }, prop: { r: 2.0, n: 3, x: 0 },
+    wing: { cr: 3.1, ct: 1.55, x: 0.6, y: -0.26, dih: 0.45, sweep: 0.3, t: 0.38 },
+    tail: { x: -4.93, chord: 1.63, span: 5.62, fin: 1.9, finChord: 2.4, y: 0.37 }, canopy: [{ x0: -0.4, x1: 1.1, tx1: 0.8, h: 0.7 }],
+    gear: 'retract', track: 2.1, ordnance: null, groundY: 2.35, tailWheel: 'game', v4: F6F_V4, paint: 'f6f',
+  },
+  f4f: {      // measured on the model (tools/refs/planegroups.py --measures): the wing 2.44 m of chord at the root and 1.5 m at the tip (24 m2), the tailplane 4.15 m, the glass of the canopy, three blades of 1.6 m; the model has the gear up (the wheels lie in the fuselage): the game's wheels
+    name: 'Grumman F4F-3 Wildcat', nation: 'USA', role: 'fighter', kind: 'mono', L: 8.82, span: 11.58, mass: 3.4, S: 24.15, hp: 3.0,
+    fus: { r: 0.62, ar: 1.3, x: -0.5 }, engine: { type: 'radial', r: 0.62, len: 1.1 }, prop: { r: 1.6, n: 3, x: 0 },
+    wing: { cr: 2.44, ct: 1.5, x: 0.45, y: 0.07, dih: 0.35, sweep: 0.15, t: 0.3 },
+    tail: { x: -4.55, chord: 1.41, span: 4.15, fin: 1.5, finChord: 1.9, y: 0.61 }, canopy: [{ x0: -0.25, x1: 0.95, tx1: 0.7, h: 0.55 }],
+    gear: 'retract', ordnance: null, groundY: 1.95, tailWheel: 'game', v4: F4F_V4, paint: 'f4f',
+  },
+  fm2: {      // measured on the model (tools/refs/planegroups.py --measures): the wing 2.4 m of chord at the root and 1.5 m at the tip, the tailplane 4.2 m, the long sliding hood, three blades of 1.6 m; the model has the gear up (the wheels lie in the fuselage): the game's wheels
+    name: 'General Motors FM-2 Wildcat', nation: 'USA', role: 'fighter', kind: 'mono', L: 8.93, span: 11.58, mass: 3.75, S: 24.15, hp: 3.2,
+    fus: { r: 0.62, ar: 1.3, x: -0.5 }, engine: { type: 'radial', r: 0.66, len: 1.2 }, prop: { r: 1.6, n: 3, x: 0 },
+    wing: { cr: 2.4, ct: 1.5, x: 0.58, y: 0.04, dih: 0.3, sweep: 0.15, t: 0.3 },
+    tail: { x: -4.55, chord: 1.46, span: 4.22, fin: 1.45, finChord: 1.9, y: 0.54 }, canopy: [{ x0: -0.85, x1: 1.0, tx1: 0.75, h: 0.55 }],
+    gear: 'retract', ordnance: null, groundY: 1.95, tailWheel: 'game', v4: FM2_V4, paint: 'fm2',
+  },
+  f8f: {      // measured on the model of an F8F-1 (tools/refs/planegroups.py --measures): the wing 2.9 m of chord at 1 m from the centre line and 1.4 m at the tip, the tailplane 4.94 m, the bubble canopy 1.8 m long, four blades of 2.0 m; the model stands on its wheels with the nose up at 12 degrees (groundPitch) and has its undercarriage down (the gear is drawn while it is down, the tail wheel is part of the tail)
+    name: 'Grumman F8F-1 Bearcat', nation: 'USA', role: 'fighter', kind: 'mono', L: 8.68, span: 10.92, mass: 4.1, S: 22.67, hp: 3.4,
+    fus: { r: 0.6, ar: 1.67, x: -0.5 }, engine: { type: 'radial', r: 0.7, len: 1.2 }, prop: { r: 2.0, n: 4, x: 0 },
+    wing: { cr: 2.9, ct: 1.4, x: 0.55, y: -0.24, dih: 0.43, sweep: 0.2, t: 0.4 },
+    tail: { x: -4.1, chord: 1.24, span: 4.94, fin: 1.68, finChord: 1.7, y: 0.24 }, canopy: [{ x0: -1.19, x1: 0.65, tx1: 0.3, h: 0.67 }],
+    eye: { x: 0.05, y: 1.2, z: 0 }, gear: 'retract', ordnance: null, groundY: 2.18, groundPitch: 0.209, v4: F8F_V4, paint: 'f8f',
   },
   a6m: {      // measured on the model (tools/refs/planegroups.py --measures); the retractable undercarriage is drawn by the game (the model has it up)
     name: 'Mitsubishi A6M2 Zero', nation: 'Japan', role: 'fighter', kind: 'mono', L: 8.97, span: 12.0, mass: 2.45, S: 22.44, hp: 2.4,
@@ -161,6 +209,27 @@ export const PLANES = {
     tail: { x: -5.4, chord: 1.6, span: 4.7, fin: 1.6, finChord: 2.0, y: 0.2 }, canopy: [{ x0: 0.1, x1: 1.5, tx1: 1.1, h: 0.55 }, { x0: -1.9, x1: -0.7, tx1: -0.9, h: 0.5 }],
     gear: 'retract', ordnance: null,
   },
+  p40: {      // measured on the model of a P-40E (tools/refs/planegroups.py --measures): the wing 2.5 m of chord at the root and 0.9 m at the tip, the tailplane 3.9 m across, the glass of the canopy, three blades of 1.64 m; the model stands on its wheels with the nose up at 12.8 degrees (the tail-down attitude of the real aircraft: groundPitch) and the tail wheel is part of the tail
+    name: 'Curtiss P-40E Warhawk', nation: 'USA', role: 'fighter', kind: 'mono', L: 9.68, span: 11.38, mass: 3.8, S: 21.97, hp: 3.4,
+    fus: { r: 0.5, ar: 1.4, x: -0.4 }, engine: { type: 'inline', r: 0.42, len: 1.9 }, prop: { r: 1.64, n: 3, x: 0 },
+    wing: { cr: 2.7, ct: 0.9, x: -0.08, y: -0.6, dih: 0.42, sweep: 0.55, t: 0.35 },
+    tail: { x: -4.65, chord: 1.35, span: 3.93, fin: 1.2, finChord: 2.0, y: 0.26 }, canopy: [{ x0: -1.7, x1: 0.62, tx1: 0.1, h: 0.5 }],
+    gear: 'retract', ordnance: null, groundY: 1.86, groundPitch: 0.223, v4: P40_V4, paint: 'p40',
+  },
+  spitfire: {      // measured on the model of a Mk XII with clipped wings (tools/refs/planegroups.py --measures): the wing 2.5 m of chord at the root and 1.3 m at 4.9 m from the centre line, the tailplane 3.2 m across, the glass of the canopy; the model has its undercarriage up and its tail wheel down (the game draws the main wheels); the propeller of the model has five blades, the Mk XII's Rotol had four (one blade is copied, `reblade`)
+    name: 'Supermarine Spitfire Mk XII', nation: 'UK', role: 'fighter', kind: 'mono', L: 9.65, span: 9.93, mass: 3.4, S: 21.5, hp: 2.8,
+    fus: { r: 0.42, ar: 1.4, x: -0.4 }, engine: { type: 'inline', r: 0.45, len: 2.2 }, prop: { r: 1.48, n: 4, x: 0 },
+    wing: { cr: 2.5, ct: 0.5, x: 0.52, y: -0.7, dih: 0.4, sweep: 0.3, t: 0.3, elliptic: true },
+    tail: { x: -4.63, chord: 1.2, span: 3.22, fin: 1.18, finChord: 1.9, y: 0.22 }, canopy: [{ x0: -1.04, x1: 0.22, tx1: -0.1, h: 0.26 }],
+    gear: 'retract', ordnance: null, groundY: 1.4, v4: SPITFIRE_V4, paint: 'spitfire',
+  },
+  n1k1: {      // measured on the model of an N1K1-J (tools/refs/planegroups.py --measures): the wing 3.0 m of chord at the root and 1.0 m at 5.9 m from the centre line, mid-set; the tailplane 4.45 m, four blades of 1.69 m; the model stands on its long main legs, the game draws the tail wheel
+    name: 'Kawanishi N1K1-J Shiden', nation: 'Japan', role: 'interceptor', kind: 'mono', L: 8.74, span: 12.0, mass: 3.9, S: 23.5, hp: 3.0,
+    fus: { r: 0.8, ar: 1.05, x: -0.5 }, engine: { type: 'radial', r: 0.85, len: 1.2 }, prop: { r: 1.69, n: 4, x: 0 },
+    wing: { cr: 3.0, ct: 1.0, x: 0.41, y: -0.12, dih: 0.43, sweep: 0.55, t: 0.5 },
+    tail: { x: -4.25, chord: 1.22, span: 4.45, fin: 1.1, finChord: 1.9, y: 0.36 }, canopy: [{ x0: -1.0, x1: 1.0, tx1: 0.6, h: 0.35 }],
+    eye: { x: 0.25, y: 0.85, z: 0 }, gear: 'retract', ordnance: null, groundY: 1.98, tailWheel: 'game', v4: N1K1_V4, paint: 'n1k1',
+  },
   bf109t: {      // drawn from the model of a Bf 109 F-4 (tools/refs/planegroups.py --measures): the T-2's longer wing tips are not modelled; the hook stays procedural, the undercarriage is the game's (the model has it up)
     name: 'Messerschmitt Bf 109 F-4', nation: 'Germany', role: 'fighter', kind: 'mono', L: 8.85, span: 10.24, mass: 2.9, S: 16.05, hp: 2.6,
     fus: { r: 0.55, ar: 1.0, x: -0.3 }, engine: { type: 'inline', r: 0.42, len: 1.8 }, prop: { r: 1.46, n: 3, x: 0 },
@@ -184,6 +253,12 @@ export const PLANES = {
   },
   // ---- land-based bombers: several engines, built by heavy.js from the sheets of bomberdata.js ----
   ...HEAVY,
+  b17: { ...HEAVY.b17, paintRGB: HEAVY.b17.paint, v4: B17_V4, paint: 'b17' },          // the B-17 is drawn from the pieces of its model, like the B-29
+  lancaster: { ...HEAVY.lancaster, paintRGB: HEAVY.lancaster.paint, v4: LANCASTER_V4, paint: 'lancaster' },
+  he111: { ...HEAVY.he111, paintRGB: HEAVY.he111.paint, v4: HE111_V4, paint: 'he111' },
+  p38: { ...HEAVY.p38, paintRGB: HEAVY.p38.paint, groundY: 2.1, v4: P38_V4, paint: 'p38' },          // the P-38 (an interceptor of the airfields) is drawn from the pieces of its model, its undercarriage by the sheet
+  mosquito: { ...HEAVY.mosquito, paintRGB: HEAVY.mosquito.paint, groundY: 2.25, v4: MOSQUITO_V4, paint: 'mosquito' },          // the Mosquito (an interceptor of the airfields), on its tail wheel
+  b26: { ...HEAVY.b26, paintRGB: HEAVY.b26.paint, groundY: 2.35, v4: B26_V4, paint: 'b26' },          // the B-26B Invader (a light bomber of the American airfields), on its nose wheel
   b29: { ...HEAVY.b29, groundY: 3.0, v4: B29_V4, paint: 'b29' },          // the B-29 is drawn from the pieces of its model (model/v4plane.js drawV4Heavy)
 };
 
@@ -191,10 +266,10 @@ export const PLANES = {
 const FLOATPLANES = {
   USA: { name: 'OS2U Kingfisher', nation: 'USA', role: 'float', kind: 'mono', L: 10.3, span: 10.9, fus: { r: 0.55, ar: 1.1, x: -0.4 }, engine: { type: 'radial', r: 0.62, len: 1.1 }, prop: { r: 1.4, n: 3, x: 0 }, wing: { cr: 2.0, ct: 1.5, x: -0.1, y: -0.05, dih: 0.15, sweep: 0.1, t: 0.25 }, tail: { x: -4.2, chord: 1.3, span: 2.6, fin: 1.3, finChord: 1.5, y: 0.2 }, canopy: [{ x0: 0.0, x1: 2.2, tx1: 1.8, h: 0.55 }], gear: 'float' },
   Japan: { name: 'Mitsubishi F1M', nation: 'Japan', role: 'float', kind: 'bi', L: 9.5, span: 11.0, fus: { r: 0.5, ar: 1.1, x: -0.4 }, engine: { type: 'radial', r: 0.6, len: 1.0 }, prop: { r: 1.5, n: 3, x: 0 }, wing: { cr: 1.5, ct: 1.3, x: 0.0, y: 0.0, gap: 1.5, dih: 0, sweep: 0.2, t: 0.12, stagger: 0.3 }, tail: { x: -3.8, chord: 1.2, span: 2.4, fin: 1.2, finChord: 1.4, y: 0.2 }, canopy: [{ x0: -0.1, x1: 1.6, tx1: 1.2, h: 0.55 }], gear: 'float' },
-  UK: { name: 'Supermarine Walrus', nation: 'UK', role: 'float', kind: 'bi', L: 11.4, span: 13.9, fus: { r: 0.8, ar: 1.1, x: -0.2 }, engine: { type: 'radial', r: 0.7, len: 1.0, pusher: true }, prop: { r: 1.6, n: 4, x: -0.2 }, wing: { cr: 2.0, ct: 2.0, x: 0.0, y: 0.1, gap: 1.8, dih: 0, sweep: 0.2, t: 0.14, stagger: 0.2 }, tail: { x: -4.3, chord: 1.6, span: 3.2, fin: 1.6, finChord: 1.6, y: 0.3 }, canopy: [{ x0: 0.7, x1: 2.1, tx1: 1.7, h: 0.5 }], gear: 'float' },
+  UK: { name: 'Supermarine Walrus', nation: 'UK', role: 'float', kind: 'bi', L: 11.4, span: 13.9, fus: { r: 0.8, ar: 1.1, x: -0.2 }, engine: { type: 'radial', r: 0.7, len: 1.0, pusher: true }, prop: { r: 1.6, n: 4, x: -0.2 }, wing: { cr: 2.0, ct: 2.0, x: 0.0, y: 0.1, gap: 1.8, dih: 0, sweep: 0.2, t: 0.14, stagger: 0.2 }, tail: { x: -4.1, chord: 1.6, span: 3.2, fin: 1.6, finChord: 1.6, y: 0.3 }, canopy: [{ x0: 0.7, x1: 2.1, tx1: 1.7, h: 0.5 }], gear: 'float' },
   Germany: { name: 'Arado Ar 196', nation: 'Germany', role: 'float', kind: 'mono', L: 11.0, span: 12.4, fus: { r: 0.58, ar: 1.1, x: -0.4 }, engine: { type: 'radial', r: 0.64, len: 1.2 }, prop: { r: 1.5, n: 3, x: 0 }, wing: { cr: 2.2, ct: 1.5, x: -0.1, y: -0.05, dih: 0.2, sweep: 0.2, t: 0.26 }, tail: { x: -4.5, chord: 1.4, span: 2.8, fin: 1.4, finChord: 1.5, y: 0.2 }, canopy: [{ x0: 0.0, x1: 2.6, tx1: 2.1, h: 0.6 }], gear: 'float' },
   France: { name: 'Loire 130', nation: 'France', role: 'float', kind: 'mono', L: 11.3, span: 16.0, fus: { r: 0.7, ar: 1.1, x: -0.4 }, engine: { type: 'inline', r: 0.5, len: 1.1, pusher: true }, prop: { r: 1.6, n: 3, x: -0.4 }, wing: { cr: 2.2, ct: 1.4, x: -0.1, y: 0.6, dih: 0.2, sweep: 0.2, t: 0.26 }, tail: { x: -4.6, chord: 1.4, span: 2.8, fin: 1.4, finChord: 1.5, y: 0.9 }, canopy: [{ x0: 0.6, x1: 2.4, tx1: 2.0, h: 0.5 }], gear: 'float' },
-  Italy: { name: 'IMAM Ro.43', nation: 'Italy', role: 'float', kind: 'bi', L: 9.7, span: 11.5, fus: { r: 0.5, ar: 1.1, x: -0.4 }, engine: { type: 'radial', r: 0.6, len: 1.0 }, prop: { r: 1.5, n: 3, x: 0 }, wing: { cr: 1.5, ct: 1.3, x: 0.0, y: 0.0, gap: 1.5, dih: 0, sweep: 0.2, t: 0.12, stagger: 0.3 }, tail: { x: -3.9, chord: 1.2, span: 2.4, fin: 1.2, finChord: 1.4, y: 0.2 }, canopy: [{ x0: -0.1, x1: 1.6, tx1: 1.2, h: 0.55 }], gear: 'float' },
+  Italy: { name: 'IMAM Ro.43', nation: 'Italy', role: 'float', kind: 'bi', L: 9.67, span: 11.58, fus: { r: 0.5, ar: 1.1, x: -0.4 }, engine: { type: 'radial', r: 0.7, len: 1.0 }, prop: { r: 1.25, n: 2, x: 0 }, wing: { cr: 1.8, ct: 1.5, x: 0.35, y: 0.0, gap: 1.5, dih: 0, sweep: 0.2, t: 0.12, stagger: 0.3 }, tail: { x: -4.7, chord: 1.4, span: 3.57, fin: 2.2, finChord: 1.4, y: 1.3 }, canopy: [{ x0: -0.9, x1: 0.6, tx1: 0.2, h: 0.55 }], gear: 'float', groundY: 1.26, v4: RO43_V4, paint: 'ro43', crease: 75 },      // the model's own central float and its two small ones under the lower wing; measured on it (tools/refs/planegroups.py); drawn at rest on its catapult, so its propeller is part of the whole
 };
 /** Height of the centre of gravity above the ground when the aircraft sits on its wheels. */
 export function groundY(spec) { if (spec.groundY) return spec.groundY; return spec.fus.r * spec.fus.ar + (spec.gear === 'fixedbig' ? 1.15 : spec.gear === 'float' ? 1.06 : 0.95); }
@@ -223,13 +298,53 @@ export function damageSites(spec) {
   return d;
 }
 
-/** Which aircraft a nation flies for a role ('dive' | 'torp' | 'fighter' from its carriers, 'level': the land-based bomber of its airfields). */
-export function planeTypeFor(nation, role) {
-  const t = {
-    USA: { dive: 'sbd', torp: 'tbf', fighter: 'f6f', level: 'b17' }, Japan: { dive: 'd3a', torp: 'b5n', fighter: 'a6m', level: 'g4m' }, UK: { dive: 'skua', torp: 'swordfish', fighter: 'fulmar', level: 'lancaster' },
-    USSR: { dive: 'il2' }, Germany: { dive: 'ju87', torp: 'fi167', fighter: 'bf109t', level: 'he111' }, France: { dive: 'ln401', torp: 'pl10', fighter: 'd520', level: 'leo451' }, Italy: { dive: 're2001', torp: 're2001t', fighter: 'mc202', level: 'sm79' },
-  }[nation] || { dive: 'sbd', torp: 'tbf', fighter: 'f6f', level: 'b17' };
-  return t[role];
+/**
+ * What each nation flies, role by role (the first of a list is the usual one; a type can be listed twice to be met twice as often): from its carriers ('dive' | 'torp' | 'fighter')
+ * and from its airfields ('fighter' | 'level': land-based types come in as models are added, so list them under `base`).
+ */
+const ROSTER = {
+  USA: { dive: ['sbd'], torp: ['tbf', 'tdb1'], fighter: ['f6f', 'f4f', 'fm2', 'f8f'], level: ['b17'] }, Japan: { dive: ['d3a'], torp: ['b5n'], fighter: ['a6m'], level: ['g4m'] },
+  UK: { dive: ['skua'], torp: ['swordfish'], fighter: ['fulmar'], level: ['lancaster'] }, USSR: { dive: ['il2'] },
+  Germany: { dive: ['ju87'], torp: ['fi167'], fighter: ['bf109t'], level: ['he111'] }, France: { dive: ['ln401'], torp: ['pl10'], fighter: ['d520'], level: ['leo451'] },
+  Italy: { dive: ['re2001'], torp: ['re2001t'], fighter: ['mc202'], level: ['sm79'] },
+};
+export const ROSTER_BASE = {      // the same shape: the roles that an airfield fills differently from a carrier ('interceptor': the twin-engine fighters that scramble from the airfields)
+  USA: { fighter: ['p40', 'f6f'], interceptor: ['p38'], level: ['b17', 'b26'] },
+  UK: { fighter: ['spitfire', 'fulmar'], interceptor: ['mosquito'] },
+  Japan: { interceptor: ['n1k1'] },
+};
+
+/** A stable number in [0, 1) from a name: the same carrier or airfield always flies the same type of a role. */
+function pickOf(name) {
+  let h = 2166136261;
+  for (let i = 0; i < name.length; i++) h = Math.imul(h ^ name.charCodeAt(i), 16777619);
+  return ((h >>> 0) % 10007) / 10007;
+}
+
+// The aircraft of the carriers of 1942 (the Yorktown class: the F6F came only in 1943): by the name of the ship, whatever the hash would pick
+const SHIP_TYPES = { 'USS Enterprise': { fighter: 'f4f' }, 'USS Yorktown': { fighter: 'f4f' }, 'USS Hornet': { fighter: 'f4f' } };
+
+/**
+ * Which aircraft a nation flies for a role ('dive' | 'torp' | 'fighter' from its carriers, 'level': the land-based bomber of its airfields). `who` names the carrier or the airfield
+ * (a ship's name, a base's id): when the nation has several types for the role, the name picks one, always the same; without it the usual type. `site`: 'base' for an airfield.
+ */
+export function planeTypeFor(nation, role, who, site) {
+  if (site !== 'base' && nation === 'USA' && SHIP_TYPES[who] && SHIP_TYPES[who][role]) return SHIP_TYPES[who][role];
+  const n = ROSTER[nation] ? nation : null, list = n && ((site === 'base' && ROSTER_BASE[n] && ROSTER_BASE[n][role]) || ROSTER[n][role]);
+  if (!n) return { dive: 'sbd', torp: 'tbf', fighter: 'f6f', level: 'b17' }[role];
+  if (!list || !list.length) return undefined;
+  return list.length === 1 || who == null ? list[0] : list[Math.floor(pickOf(role + ':' + who) * list.length)];
+}
+
+/** Is this type one of the carrier aircraft of a nation (the hook and the strength of a deck landing): the ones in the carrier lists, not the types that only fly from airfields. */
+export function isCarrierType(key) {
+  return Object.values(ROSTER).some((r) => ['dive', 'torp', 'fighter'].some((role) => (r[role] || []).includes(key)));
+}
+
+/** Every type a nation can field for a role (carrier and airfield; `site` 'carrier' only the carriers' types): to prepare the pictures, to list who flies what. */
+export function planeTypesFor(nation, role, site) {
+  const out = new Set([...(ROSTER[nation] && ROSTER[nation][role] || []), ...(site === 'carrier' ? [] : ROSTER_BASE[nation] && ROSTER_BASE[nation][role] || [])]);
+  return [...out];
 }
 
 /**
@@ -371,8 +486,9 @@ export function insignia(b, nation, cx, cy, cz, r, axis, sign) {
  */
 export function drawPlane(b, s, { part = 'whole', key = null } = {}) {
   if (s.engines) { if (s.v4) drawV4Heavy(b, s, part); else drawHeavy(b, s, part); if (key) drawFixedGuns(b, s, key, part); return; }          // several engines: heavy.js
-  if (s.v4 && part === 'gear' && !s.v4.PLANE.gear && s.gear !== 'float') { drawGear(b, s, rgb((PAINT[s.nation] || PAINT.USA).top), rgb('#25272a'), false); if (s.tailWheel === 'game') drawTailWheel(b, s, rgb('#25272a')); return; }          // the model has its undercarriage up: the game's own, down (the model's tail wheel stays)
-  if (s.v4 && part !== 'hook' && part !== 'ordnance') { drawV4Plane(b, s, part); if (key) drawFixedGuns(b, s, key, part); return; }          // drawn from the pieces of its reference model (v4plane.js); the hook and the load stay procedural
+  if (s.v4 && part === 'gear' && !s.v4.PLANE.gear && s.gear !== 'float' && s.gear !== 'spats') { drawGear(b, s, rgb((PAINT[s.nation] || PAINT.USA).top), rgb('#25272a'), false); if (s.tailWheel === 'game') drawTailWheel(b, s, rgb('#25272a')); return; }          // the model has its undercarriage up: the game's own, down (the model's tail wheel stays)
+  if (s.v4 && part === 'gear' && s.v4.PLANE.gear && s.tailWheel === 'game') { drawV4Plane(b, s, part); drawTailWheel(b, s, rgb('#25272a')); return; }          // the model's undercarriage is down but its tail wheel does not stand at the attitude of the deck: the game's
+  if (s.v4 && part !== 'hook' && part !== 'ordnance') { drawV4Plane(b, s, part); if (s.tailWheel === 'game' && s.gear === 'spats' && (part === 'body' || part === 'whole')) drawTailWheel(b, s, rgb('#25272a')); if (key) drawFixedGuns(b, s, key, part); return; }          // drawn from the pieces of its reference model (v4plane.js); the hook and the load stay procedural
   const P = PAINT[s.nation] || PAINT.USA;
   const top = rgb(P.top), bot = rgb(P.bot), acc = rgb(P.acc);
   const dark = rgb('#25272a'), glass = rgb('#33485a');
@@ -576,10 +692,12 @@ export function drawPlane(b, s, { part = 'whole', key = null } = {}) {
     else if (s.ordnance === 'bomb') {
       // the usual load of the type (data/loadouts.js): the big bomb under the fuselage, the small ones under the wings, in pairs
       const key = Object.keys(PLANES).find((k) => PLANES[k] === s), ords = key ? bombsIn(loadoutsOf(key)[0]) : [];
-      if (!ords.length) drawBomb(b, 0.2, -(ry0 + 0.32), 0, s.bombKg || 250);
+      const bp = s.bombPos || {};      // (a sheet measured on its model says where the racks are: the crutch under the fuselage and the racks under the wings)
+      const cx = bp.x ?? 0.2, cy = bp.y ?? -(ry0 + 0.32);
+      if (!ords.length) drawBomb(b, cx, cy, 0, s.bombKg || 250);
       else ords.slice(0, 5).forEach((o, i) => {
-        if (i === 0) drawBomb(b, 0.2, -(ry0 + 0.32), 0, o.kg);
-        else drawBomb(b, s.wing.x + 0.2, s.wing.y - 0.42, (i % 2 ? -1 : 1) * (s.span * 0.2 + 0.55 * Math.floor((i - 1) / 2)), o.kg);
+        if (i === 0) drawBomb(b, cx, cy, 0, o.kg);
+        else drawBomb(b, bp.wx ?? s.wing.x + 0.2, bp.wy ?? s.wing.y - 0.42, (i % 2 ? -1 : 1) * ((bp.wz ?? s.span * 0.2) + (bp.wdz ?? 0.55) * Math.floor((i - 1) / 2)), o.kg);
       });
     }
   }
@@ -605,12 +723,12 @@ function drawTailWheel(b, s, dark) {
 
 function drawGear(b, s, top, dark, fixed) {
   const w = s.wing, hs = s.span / 2, ry0 = s.fus.r * s.fus.ar;
-  const track = fixed && s.gear === 'fixedbig' ? 1.6 : hs * 0.2;
+  const track = s.track ?? (fixed && s.gear === 'fixedbig' ? 1.6 : hs * 0.2);      // (half the wheel track of the real aircraft when the sheet gives it)
   const legTopY = s.kind === 'bi' ? -ry0 * 0.7 : w.y - 0.1;
   const wr = s.gear === 'fixedbig' ? 0.42 : 0.3;
   const gy = -(s.groundY || (ry0 + (s.gear === 'fixedbig' ? 1.15 : 0.95)));          // (a sheet that gives groundY, measured on its model: the wheels touch the ground it stands on)
   for (const sg of [-1, 1]) {
-    b.beam([w.x + 0.25, legTopY, sg * track * 0.9], [w.x + 0.45, gy + wr, sg * track], 0.12, 0.12, shade(top, 0.75), MAT.AIRCRAFT);
+    b.beam([w.x + 0.25, legTopY, sg * track * 0.9], [w.x + 0.45, gy + wr, sg * track], s.track ? 0.17 : 0.12, s.track ? 0.17 : 0.12, shade(top, 0.75), MAT.AIRCRAFT);
     b.rodZ(w.x + 0.45, gy + wr, sg * track - 0.12, sg * track + 0.12, wr, wr, rgb('#1b1b1b'), MAT.CANVAS, { seg: 10 });
     if (s.gear === 'spats') {
       // streamlined wheel spat
@@ -663,47 +781,21 @@ function biplaneWing(b, s, sg, top, bot, acc) {
   b.beam([xU, yU - w.t / 2, sg * hs * 0.38], [xL, yL + w.t / 2, sg * 0.4], 0.018, 0.018, shade(strut, 0.6), MAT.DARK, { caps: false });
 }
 
-/** Aerial torpedo: cylinder with rounded nose, contra-rotating props and fins (origin = centre). */
-export function drawTorpedo(b, x, y, z, scale = 1) {
-  const len = 5.3 * scale, r = 0.225 * scale;
-  const body = rgb('#5d6468'), warm = rgb('#9a7a3a'), dark = rgb('#2a2c2e');
-  const st = [];
-  const n = 9;
-  for (let i = 0; i <= n; i++) {
-    const u = i / n, xx = x + len / 2 - u * len;
-    let rr = r;
-    if (u < 0.1) rr = r * Math.sqrt(1 - Math.pow(1 - u / 0.1, 2));
-    else if (u > 0.82) rr = r * (1 - 0.6 * (u - 0.82) / 0.18);
-    st.push({ x: xx, ry: Math.max(rr, 0.02), rz: Math.max(rr, 0.02), yc: y, zc: z });
-  }
-  loft(b, st, (sn) => (sn > 0.8 ? warm : body), MAT.HULL, { seg: 10 });
-  b.cylinder(x - len / 2 - 0.05, y - 0.02, z, 0.05, 0.02, y + 0.02, dark, MAT.DARK, { seg: 4 });
-  const xt = x - len / 2 + 0.3;
-  b.box(xt, y, z, 0.5, 0.04, r * 4.2, dark, MAT.DARK);
-  b.box(xt, y, z, 0.5, r * 4.2, 0.04, dark, MAT.DARK);
-  b.box(x + len * 0.18, y + r * 0.9, z, 0.18, 0.07, 0.1, dark, MAT.DARK);       // exploder pistol
+const ordCache = new Map();
+/** A bomb or a torpedo of the reference models (model/ordnance_v4.js: along x, nose on +x, centred) at (x, y, z), its size multiplied by k. */
+function drawOrdnance(b, name, x, y, z, k) {
+  let d = ordCache.get(name);
+  if (!d) { d = decodeBaked(ORDNANCE[name], ORD_SCALE, 40); ordCache.set(name, d); }
+  const pos = new Float32Array(d.pos.length), o = [x, y, z];
+  for (let i = 0; i < pos.length; i++) pos[i] = d.pos[i] * k + o[i % 3];
+  b.raw(pos, d.nrm, d.col, d.idx, MAT.HULL);
 }
 
-/** General purpose bomb (centre = origin), mass decides the size. */
-export function drawBomb(b, x, y, z, kg = 250) {
-  const sc = Math.cbrt(kg / 250);
-  const len = 1.45 * sc, r = 0.2 * sc;
-  const body = rgb('#4c5648'), band = rgb('#d6b43a'), dark = rgb('#24272a');
-  const st = [];
-  const n = 8;
-  for (let i = 0; i <= n; i++) {
-    const u = i / n, xx = x + len * 0.5 - u * len;
-    let rr = r;
-    if (u < 0.2) rr = r * Math.sqrt(1 - Math.pow(1 - u / 0.2, 2));
-    else if (u > 0.62) rr = r * (1 - 0.72 * (u - 0.62) / 0.38);
-    st.push({ x: xx, ry: Math.max(rr, 0.02), rz: Math.max(rr, 0.02), yc: y, zc: z });
-  }
-  loft(b, st, (sn) => body, MAT.HULL, { seg: 9 });
-  b.cylinder(x + len * 0.18, y - 0.0, z, r * 1.01, r * 1.01, y + 0.0, band, MAT.HULL, { seg: 3 });
-  const xt = x - len * 0.4;
-  b.box(xt, y, z, len * 0.28, 0.03, r * 3.4, dark, MAT.DARK);
-  b.box(xt, y, z, len * 0.28, r * 3.4, 0.03, dark, MAT.DARK);
-}
+/** Aerial torpedo (an 18 in torpedo of 5.2 m, origin = centre), its size multiplied by `scale`. */
+export function drawTorpedo(b, x, y, z, scale = 1) { drawOrdnance(b, 'torpedo', x, y, z, scale); }
+
+/** General purpose bomb (centre = origin), mass decides the size (a 250 kg bomb is 1.45 m long). */
+export function drawBomb(b, x, y, z, kg = 250) { drawOrdnance(b, 'bomb', x, y, z, Math.cbrt(kg / 250)); }
 
 // ---- complete, GPU-ready aircraft models --------------------------------------------------------------------
 const cache = new Map();

@@ -128,6 +128,7 @@ export const SYSTEMS = {
   us_ca: { name: 'Mk 34 director, Mk 8 Rangekeeper, Mk 8 / Mk 13 radar', rf: [8, 'stereo'], radar: 'mk13', stab: 1, tau: 22, rate: 0.7, bal: 0.14, lock: 16, gain: 0.8, estimated: ['rf'] },
   us_cl: { name: 'Mk 34 director, Mk 8 Rangekeeper, Mk 3 radar', rf: [6, 'stereo'], radar: 'mk3', stab: 1, tau: 24, rate: 0.8, bal: 0.15, lock: 18, gain: 0.75, estimated: ['rf'] },
   us_dd: { name: 'Mk 37 director, Mk 1A computer, Mk 12 / Mk 22 radar', rf: [4.6, 'stereo'], radar: 'mk12', stab: 1, tau: 16, rate: 0.8, bal: 0.15, lock: 12, gain: 0.75 },
+  us_cv_1942: { name: 'Mk 33 directors, Mk 1 computer, optical rangefinder (no gunnery radar yet)', rf: [4, 'stereo'], radar: null, stab: 0.9, tau: 20, rate: 0.9, bal: 0.16, lock: 14, gain: 0.7, estimated: ['rf', 'tau', 'rate', 'bal'] },
   us_mod: { name: 'Mk 68 GFCS, SPG-53 radar', rf: null, radar: 'spg53', stab: 1, tau: 6, rate: 0.3, bal: 0.08, lock: 6, gain: 0.9 },
   jp_bb: { name: 'Type 98 director, Type 98 computer, 15 m rangefinder, Type 22 Mod 4 radar', rf: [15, 'stereo'], radar: 't22', stab: 0.7, tau: 28, rate: 1.0, bal: 0.22, lock: 30, gain: 0.6, estimated: ['stab', 'tau'] },
   jp_ca: { name: 'Type 94 director, Type 92 computer, 10 m rangefinder', rf: [10, 'stereo'], radar: null, stab: 0.6, tau: 30, rate: 1.1, bal: 0.25, lock: 28, gain: 0.6, estimated: ['rf', 'stab', 'tau'] },
@@ -165,6 +166,7 @@ export const FIT = {
   baltimore: { main: 'us_ca', sec: 'us_dd', radars: ['sg', 'sk'] },
   iowa: { main: 'us_bb', sec: 'us_dd', radars: ['sg', 'sk'], float: true },
   essex: { main: 'us_dd', sec: 'us_dd', radars: ['sg', 'sk'] },
+  enterprise: { main: 'us_cv_1942', sec: 'us_cv_1942', radars: ['sc'] },      // the CXAM / SC air-search set of 1942
   adams: { main: 'us_mod', sec: 'us_mod', radars: ['sps10', 'sps39'] },
   hawaii: { main: 'us_bb', sec: 'us_dd', radars: ['sg', 'sk'] },
   missouri_1991: { main: 'us_bb_1991', sec: 'us_dd', radars: ['sps67', 'sps49'] },

@@ -1,0 +1,20 @@
+// The screen is kept awake while the game is shown: node test/wakelock.mjs
+let fail = 0;
+const ok = (c, m) => { console.log(c ? 'PASS' : 'FAIL', m); if (!c) { fail++; process.exitCode = 1; } };
+const listeners = {}, calls = [];
+let released = null;
+globalThis.document = { visibilityState: 'visible', addEventListener: (e, f) => { (listeners[e] ||= []).push(f); } };
+globalThis.window = { addEventListener: (e, f) => { (listeners[e] ||= []).push(f); } };
+Object.defineProperty(globalThis, 'navigator', { value: { wakeLock: { request: async (t) => { calls.push(t); const l = { addEventListener: (e, f) => { released = f; }, release: async () => { released && released(); } }; return l; } } }, configurable: true });
+const { keepAwake, allowSleep } = await import('../js/game/ui/wakelock.js');
+keepAwake(); await new Promise((r) => setTimeout(r, 5));
+ok(calls.length === 1 && calls[0] === 'screen', 'the screen wake lock is asked for when the game is shown');
+keepAwake(); await new Promise((r) => setTimeout(r, 5));
+ok(calls.length === 1, 'asking again while the lock is held does nothing');
+released(); document.visibilityState = 'hidden'; for (const f of listeners.visibilitychange) f(); await new Promise((r) => setTimeout(r, 5));
+ok(calls.length === 1, 'a hidden page does not ask for it');
+document.visibilityState = 'visible'; for (const f of listeners.visibilitychange) f(); await new Promise((r) => setTimeout(r, 5));
+ok(calls.length === 2, 'the lock is asked for again when the page comes back (the browser dropped it)');
+allowSleep(); for (const f of listeners.pointerdown) f(); await new Promise((r) => setTimeout(r, 5));
+ok(calls.length === 2, 'after allowSleep() nothing is asked for any more');
+if (fail) process.exit(1);

@@ -20,7 +20,7 @@ export const CAMERA_MODES = [
 /** Aircraft phases worth watching. */
 const ATTACK = new Set(['rollin', 'dive', 'pullout', 'run', 'break']);
 /** Phases of an aircraft still flying with its formation. */
-const FLY = new Set(['assemble', 'cruise', 'climb', 'egress', 'return', 'escort', 'cap', 'ip']);
+const FLY = new Set(['assemble', 'cruise', 'climb', 'egress', 'return', 'escort', 'cap', 'intercept', 'ip']);
 /** Is it time for a new place of the fly-by camera (the view "passage")? When there is none, it is for another aircraft, it has been there too long, the aircraft has gone by and drawn away, or is far. */
 export function flybyDue(f, p, fx, fz, slow) {
   if (!f || f.plane !== p) return true;
