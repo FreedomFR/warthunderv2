@@ -41,7 +41,7 @@ export const AIRPAINT = {
   // Nakajima B5N2 (Pearl Harbor, 1941): overall light grey-green (J3), a black cowling, hinomaru on the flanks behind the canopy and on both faces of both wings (the tail stripes of the carriers
   // are not painted; places and sizes measured on the model)
   b5n: {
-    upper: '#adaf9b', lower: '#bcbdab', line: null,
+    upper: '#a3a58e', lower: '#b0b19e', line: null,
     cowl: { x0: 2.55, col: '#1b1d22', hw: 0.72 },
     decals: [
       { face: 'side', x: -2.45, y: 0.05, prims: [{ disc: 0.36, col: '#c0212a' }] },
