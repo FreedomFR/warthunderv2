@@ -232,7 +232,7 @@ function makeAircraft(key, spec) {
   let users = [];
   if (key.startsWith('plane:')) {
     const k = key.slice(6);
-    users = SHIPS.filter((r) => r.nation === spec.nation && r.type === 'CV').filter((r) => ['dive', 'torp', 'fighter'].some((role) => planeTypesFor(spec.nation, role).includes(k)));
+    users = SHIPS.filter((r) => r.nation === spec.nation && r.type === 'CV').filter((r) => ['dive', 'torp', 'fighter'].some((role) => planeTypesFor(spec.nation, role, 'carrier').includes(k)));
   } else {
     users = SHIPS.filter((r) => r.nation === spec.nation && r.type !== 'CV' && r.spec.aircraft && r.spec.aircraft.capacity > 0 && r.type !== 'DD');
   }

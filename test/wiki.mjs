@@ -39,7 +39,8 @@ for (const a of AIRCRAFT) {
   ok(!/NaN|undefined/.test(aircraftTop(a.spec)), `${a.key}: top view`);
   ok(isSubject(a.key), `${a.key}: viewer subject`);
 }
-ok(AIRCRAFT.filter((a) => a.key.startsWith('plane:') && a.role !== 'level' && a.role !== 'attack').every((a) => a.users.length >= 1), 'every carrier aircraft has a carrier');
+const LAND_FIGHTERS = ['plane:p40', 'plane:spitfire'];      // (flown from airfields only)
+ok(AIRCRAFT.filter((a) => a.key.startsWith('plane:') && a.role !== 'level' && a.role !== 'attack' && !LAND_FIGHTERS.includes(a.key)).every((a) => a.users.length >= 1), 'every carrier aircraft has a carrier');
 ok(AIRCRAFT.filter((a) => a.role === 'level').length === 7 && AIRCRAFT.filter((a) => a.role === 'level').every((a) => a.users.length === 0 && aircraftSections(a)[0].rows.some((r) => r.k === 'Altitude de bombardement')), 'the seven bombers have no carrier, and their sheet gives the bombing altitude');
 
 // ---- tech tree ----

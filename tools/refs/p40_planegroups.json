@@ -1,0 +1,22 @@
+{
+ "key": "p40",
+ "name": "Curtiss P-40E Warhawk",
+ "axis_deg": -90,
+ "nose_sign": -1,
+ "pitch_deg": 12.8,
+ "scale": {"span": 11.38},
+ "rules": [
+  {"part": "glass", "material": "^cristal"},
+  {"part": "body", "box": [3.26, 4.6, -0.42, 0.42, -0.42, 0.42]},
+  {"part": "prop", "box": [3.26, 4.6, -2.4, 2.4, -2.4, 2.4]},
+  {"part": "drop", "box": [1.25, 1.8, -0.4, -0.1, 5.0, 5.4]},
+  {"part": "drop", "box": [1.25, 1.8, -0.4, -0.1, -5.4, -5.0]},
+  {"part": "gear", "box": [0.45, 1.35, -2.2, -0.6, 0.75, 1.35]},
+  {"part": "gear", "box": [0.45, 1.35, -2.2, -0.6, -1.35, -0.75]}
+ ],
+ "wing_z": 1.0,
+ "tail_x": -3.2,
+ "budget": {"body": 14000, "tail": 6000, "wingL": 5000, "wingR": 5000, "prop": 1800, "glass": 600, "gear": 3000},
+ "hub_depth": 0.2,
+ "nocolor": ["body", "tail", "wingL", "wingR"]
+}

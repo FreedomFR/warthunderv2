@@ -8,7 +8,7 @@ const ok = (c, m) => { console.log(c ? 'PASS' : 'FAIL', m); if (!c) process.exit
 const D = Math.PI / 180, G = 9.81;
 const mk = (k, v, y = 2000) => ({ typeKey: k, spec: PLANES[k], x: 0, y, z: 0, vx: 0, vy: 0, vz: 0, heading: 0, pitch: 0, roll: 0, bank: 0, speed: v, lost: {} });
 const fly = (p, sec, f) => { const dt = 1 / 30; for (let t = 0; t < sec; t += dt) { f(p, dt, t); p.x += p.vx * dt; p.y += p.vy * dt; p.z += p.vz * dt; } return p; };
-const FIGHTERS = ['f6f', 'f4f', 'fm2', 'a6m', 'fulmar', 'bf109t', 'd520', 'mc202'], HEAVY = ['b17', 'g4m', 'lancaster', 'he111', 'sm79', 'leo451'];
+const FIGHTERS = ['f6f', 'f4f', 'fm2', 'p40', 'spitfire', 'a6m', 'fulmar', 'bf109t', 'd520', 'mc202'], HEAVY = ['b17', 'g4m', 'lancaster', 'he111', 'sm79', 'leo451'];
 const R = {};
 console.log('type        top m/s pub/sim   climb m/s pub/sim   turn deg/s (g, m/s, height lost)   bank 45 s   dive 70: brakes / clean m/s');
 for (const k of Object.keys(PERF)) {
