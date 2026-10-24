@@ -277,7 +277,7 @@ const ROSTER = {
   Germany: { dive: ['ju87'], torp: ['fi167'], fighter: ['bf109t'], level: ['he111'] }, France: { dive: ['ln401'], torp: ['pl10'], fighter: ['d520'], level: ['leo451'] },
   Italy: { dive: ['re2001'], torp: ['re2001t'], fighter: ['mc202'], level: ['sm79'] },
 };
-const ROSTER_BASE = {      // the same shape: the roles that an airfield fills differently from a carrier
+export const ROSTER_BASE = {      // the same shape: the roles that an airfield fills differently from a carrier
   USA: { fighter: ['p40', 'f6f'] },
   UK: { fighter: ['spitfire', 'fulmar'] },
 };

@@ -210,7 +210,7 @@ export function updateAir(world, dt) {
 }
 
 /** The battle is over: the aircraft that were fighting or on their way to fight go home. */
-const CEASE = new Set(['assemble', 'cruise', 'ip', 'run', 'rollin', 'dive', 'pullout', 'break', 'egress', 'escort', 'cap', 'engage', 'refuge']);
+const CEASE = new Set(['assemble', 'cruise', 'ip', 'run', 'rollin', 'dive', 'pullout', 'break', 'egress', 'escort', 'cap', 'intercept', 'engage', 'refuge']);
 function ceaseFire(world) {
   for (const p of world.planes) {
     p.firing = false; p.gunFiring = false; p.prey = null; p.hunted = 0;
@@ -478,7 +478,7 @@ function stepPlane(world, p, dt) {
       gam = clamp((350 - p.y) / 400, -0.1, 0.08);
       break;
     }
-    case 'escort': case 'cap': case 'engage': {
+    case 'escort': case 'cap': case 'intercept': case 'engage': {
       const r = fighterSteer(world, p, dt, FIGHT_CTX);
       hdg = r.hdg; gam = r.gam; spd = r.spd; o = r.o;
       break;

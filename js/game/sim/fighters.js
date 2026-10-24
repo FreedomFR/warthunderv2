@@ -11,7 +11,10 @@ import { armamentOf, drawRound, beltMean, beltForGun, UNIT, FIXED_GUNS } from '.
 import { PLANES } from '../model/planes.js';
 import { fixedMuzzles } from '../model/fixedGuns.js';
 
-export const FIGHT_PHASES = new Set(['escort', 'cap', 'engage']);
+export const FIGHT_PHASES = new Set(['escort', 'cap', 'intercept', 'engage']);
+/** What a fighter does when it has no prey: the phase of its role (an escort stays with its bombers, an interceptor flies at the raid, a patrol circles its fleet or its field). */
+const idleOf = (p) => (p.role === 'escort' ? 'escort' : p.role === 'intercept' ? 'intercept' : 'cap');
+const REACH_INTERCEPT = 60000;      // how far from its field an interceptor goes to meet a raid (m)
 const STRIKE = new Set(['assemble', 'cruise', 'ip', 'run', 'rollin', 'dive', 'pullout', 'break', 'egress']);
 
 /** Enemy aircraft that are flying (not on a deck, not already falling). */
@@ -37,8 +40,8 @@ function mateOf(world, p) {
 /** How much an enemy aircraft is worth attacking now (the fighter p, at distance d from it). */
 function value(world, p, q, d, anchor) {
   let sc = 0;
-  if (q.fighter) sc += p.role === 'escort' ? 2.6 : 1.2;
-  else sc += 1.4;
+  if (q.fighter) sc += p.role === 'escort' ? 2.6 : p.interceptor ? -0.4 : 1.2;      // (an interceptor is built to kill bombers: it leaves the fighters to the ones that escort them)
+  else sc += p.interceptor ? 3.4 : 1.4;
   if (q.phase === 'ip' || q.phase === 'run' || q.phase === 'rollin' || q.phase === 'dive') sc += 3.2;      // the ones that are about to drop
   if (q.ordnance) sc += 1;
   sc -= d / 3500;
@@ -87,13 +90,14 @@ export function fighterSteer(world, p, dt, ctx) {
   if (p.preyT <= 0) {
     p.preyT = 0.8 + world.rng() * 0.6;
     p._srcs = null;
-    const detect = p.phase === 'engage' ? 8500 : p.role === 'escort' ? 4800 : 15000;
+    const detect = p.phase === 'engage' ? 8500 : p.role === 'escort' ? 4800 : p.role === 'intercept' ? 22000 : 15000;
     let best = null, bs = -1e9;
     for (const q of hostiles(world, p)) {
       const d = Math.hypot(q.x - p.x, q.y - p.y, q.z - p.z);
       if (d > detect) continue;
       // a patrol only goes for aircraft that come near its fleet; an escort for those near the bombers
       if (p.role === 'cap' && Math.hypot(q.x - ship.x, q.z - ship.z) > 26000) continue;
+      if (p.role === 'intercept' && Math.hypot(q.x - ship.x, q.z - ship.z) > REACH_INTERCEPT) continue;
       if (p.role === 'escort' && anchor && Math.hypot(q.x - anchor.x, q.z - anchor.z) > 6500) continue;
       const s = value(world, p, q, d, anchor) + (q === p.prey ? 1.2 : 0);
       if (s > bs) { bs = s; best = q; }
@@ -101,7 +105,7 @@ export function fighterSteer(world, p, dt, ctx) {
     p.prey = best;
   }
   if (p.prey && p.phase !== 'engage') { p.phase = 'engage'; p.t = 0; }
-  if (!p.prey && p.phase === 'engage') p.phase = p.role === 'escort' ? 'escort' : 'cap';
+  if (!p.prey && p.phase === 'engage') p.phase = idleOf(p);
 
   // ---- station ----
   if (p.phase === 'escort' && !anchor) { p.phase = 'return'; return out; }
@@ -119,6 +123,36 @@ export function fighterSteer(world, p, dt, ctx) {
     out.spd = clamp((wing ? mate.speed : sp * 1.25) + d * 0.12, pf.vc * 0.8, vC);
     out.gam = clamp((sy - p.y) / 700, -0.12, 0.14);
     out.o = { bankMax: 42 * D2R, pitchRate: 0.5 };         // station keeping is flown gently (the fighter used to rock from bank to bank at 70 degrees)
+    return out;
+  }
+  if (p.phase === 'intercept') {
+    // an interceptor flies at the raid: the nearest enemy aircraft within reach of its field (the bombers first), led by where it will be, and climbs to be above it when it gets there
+    p._intT = (p._intT ?? 0) - dt;
+    if (p._intT <= 0 || !p._int || p._int.dying || p._int.gone) {
+      p._intT = 2 + world.rng();
+      let best = null, bs = 1e9;
+      for (const q of hostiles(world, p)) {
+        const dd = Math.hypot(q.x - ship.x, q.z - ship.z);
+        if (dd > REACH_INTERCEPT) continue;
+        const sc = Math.hypot(q.x - p.x, q.z - p.z) * (q.fighter ? 1.8 : 1);
+        if (sc < bs) { bs = sc; best = q; }
+      }
+      p._int = best;
+    }
+    const q = p._int;
+    if (q) {
+      p.lastSeen = world.time;
+      const dist = Math.hypot(q.x - p.x, q.z - p.z), tof = Math.min(90, dist / Math.max(60, vC * 1.1 + Math.max(0, -((q.vx * (q.x - p.x) + q.vz * (q.z - p.z)) / (dist || 1)))));
+      out.hdg = Math.atan2(q.x + q.vx * tof - p.x, -(q.z + q.vz * tof - p.z));
+      out.spd = vC * 1.1;
+      out.gam = clamp((q.y + 450 - p.y) / Math.max(1500, dist * 0.5), -0.08, 0.2);
+      out.o = { bankMax: 60 * D2R, pitchRate: 0.6 };
+    } else {
+      // nothing left in reach: back to the field
+      if (world.time - (p.lastSeen ?? world.time) > 60) p.phase = 'return';
+      out.hdg = Math.atan2(ship.x - p.x, -(ship.z - p.z)); out.spd = vCruiseF; out.gam = clamp((1800 - p.y) / 800, -0.1, 0.1); out.o = { bankMax: 35 * D2R, pitchRate: 0.4 };
+    }
+    if (p.age - p.t0Air > 1500) p.phase = 'return';
     return out;
   }
   if (p.phase === 'cap') {
@@ -257,7 +291,7 @@ function dogfight(world, p, dt, ctx, out, anchor, vC) {
 
   // ---- a chase that gains nothing is let go (the faster one is gone; the escort goes back to its bombers, the patrol to its fleet) ----
   p.chaseT = d > 450 && closure < 3 ? (p.chaseT ?? 0) + dt : 0;
-  if (p.chaseT > 9) { p.chaseT = 0; p.ban = q; p.banT = world.time + 20; p.prey = null; p.tac = 'attack'; p.phase = p.role === 'escort' ? 'escort' : 'cap'; return out; }
+  if (p.chaseT > 9) { p.chaseT = 0; p.ban = q; p.banT = world.time + 20; p.prey = null; p.tac = 'attack'; p.phase = idleOf(p); return out; }
 
   // ---- attack: the guns on where he will be ----
   const rel = [rx, ry, rz], vrel = [vrx, vry, vrz], aim = gunSolution(rel, vrel, qa, p.skill, [0, 0, 0]);
@@ -425,7 +459,7 @@ function strafe(world, p, dt, ux, uy, uz, d) {
 
 /** The end of a tick of the fight: a long chase or no way to close, and the prey is let go. */
 function finishFight(world, p, out, q, d, anchor) {
-  if (d > 9500 || (p.role === 'escort' && anchor && Math.hypot(p.x - anchor.x, p.z - anchor.z) > 7500)) { p.prey = null; p.tac = 'attack'; p.phase = p.role === 'escort' ? 'escort' : 'cap'; }
+  if (d > 9500 || (p.role === 'escort' && anchor && Math.hypot(p.x - anchor.x, p.z - anchor.z) > 7500)) { p.prey = null; p.tac = 'attack'; p.phase = idleOf(p); }
   return out;
 }
 

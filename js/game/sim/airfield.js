@@ -55,12 +55,14 @@ function fieldOf(base) {
 
 // ---- the aircraft -----------------------------------------------------------------------------------------------------------------------------------------
 
-/** A new aircraft parked in a slot of the base. role: 'level' (the heavy bomber) or 'fighter'. */
+/** A new aircraft parked in a slot of the base. role: 'level' (the heavy bomber), 'fighter' or 'interceptor' (a fast fighter that goes up to meet the raids). */
 function makePlane(world, base, slot, role) {
-  const typeKey = (role !== 'fighter' && base.nation === 'USA' && base.layout.level >= 2 ? 'b29' : planeTypeFor(base.nation, role === 'fighter' ? 'fighter' : 'level', base.id, 'base')) || planeTypeFor(base.nation, 'torp', base.id);      // (an American airfield of the second level flies the B-29, the others the B-17)
+  const wantInt = role === 'interceptor' && planeTypeFor(base.nation, 'interceptor', base.id, 'base');
+  if (role === 'interceptor' && !wantInt) role = 'fighter';
+  const typeKey = wantInt || (role !== 'fighter' && base.nation === 'USA' && base.layout.level >= 2 ? 'b29' : planeTypeFor(base.nation, role === 'fighter' || role === 'interceptor' ? 'fighter' : 'level', base.id, 'base')) || planeTypeFor(base.nation, 'torp', base.id);      // (an American airfield of the second level flies the B-29, the others the B-17)
   const spec = PLANES[typeKey];
   if (!spec) return null;
-  const q = base.layout.slots[slot], heavy = role !== 'fighter';
+  const q = base.layout.slots[slot], heavy = role !== 'fighter' && role !== 'interceptor';
   const p = {
     id: planeId(), owner: base.owner, team: base.team, base, slot, kind: heavy ? 'level' : 'fighter', typeKey, spec, wave: null, sec: null,
     x: q.x, y: q.y + groundY(spec), z: q.z, vx: 0, vy: 0, vz: 0, heading: q.heading, pitch: spec.groundPitch ?? GROUND_PITCH, roll: 0, bank: 0, speed: 0,
@@ -70,7 +72,7 @@ function makePlane(world, base, slot, role) {
     t0Air: 0, cruiseAlt: 0, relAlt: 0, fuel: heavy ? 5200 + world.rng() * 600 : 1700 + world.rng() * 400, aimErr: [world.rng.normal(), world.rng.normal()], diveAng: 0, group: 0,
     svc: 0, rs: 0, rt: 0, path: null, pi: 0, hold: 0,
   };
-  if (!heavy) Object.assign(p, fighterFields(spec, typeKey));
+  if (!heavy) { Object.assign(p, fighterFields(spec, typeKey)); p.interceptor = role === 'interceptor'; }
   else { p.stick = 0; p.stickT = 0; p.fighter = false; }
   base.parked[slot] = p;
   world.planes.push(p);
@@ -92,11 +94,12 @@ function reinforce(world, base) {
 export function initAirfield(world, base) {
   const L = base.layout, n = L.slots.length, rich = L.level >= 2;
   const cap = L.size === 'large' ? 14 : L.size === 'medium' ? 8 : rich ? 10 : 7, nb = Math.min(n >> 1, cap), nf = Math.min(n >> 1, cap);       // (a large field of a theatre of war has the bigger air group)      // (the apron holds 36: the rest of the places are for the aircraft that come in)
-  base.air = { cd: 50 + world.rng() * 60, capCd: 20, chk: 1, queue: [], relT: 0, rwy: null, waveN: 0, nextClimb: 0, lastRoll: -99, launches: 0, bombers: nb, fighters: nf };
+  base.air = { cd: 50 + world.rng() * 60, capCd: 20, chk: 1, queue: [], relT: 0, rwy: null, waveN: 0, nextClimb: 0, lastRoll: -99, launches: 0, bombers: nb, fighters: nf, intCd: 25 };
   if (base.inert) return;
   const half = n >> 1;
   for (let i = 0; i < nb; i++) makePlane(world, base, 1 + i, 'level');
-  for (let i = 0; i < nf; i++) makePlane(world, base, half + 1 + i, 'fighter');
+  const ni = planeTypeFor(base.nation, 'interceptor', base.id, 'base') ? Math.round(nf * 0.34) : 0;      // (the nations that have an interceptor keep a third of their fighters as such)
+  for (let i = 0; i < nf; i++) makePlane(world, base, half + 1 + i, i < ni ? 'interceptor' : 'fighter');
 }
 
 // ---- losses on the ground -----------------------------------------------------------------------------------------------------------------------------------
@@ -121,7 +124,7 @@ export function killGroundPlane(world, base, p, attacker, cause, chain = false) 
 
 // ---- the decisions of the airfield ---------------------------------------------------------------------------------------------------------------------------
 
-const ready = (p, kind) => p && !p.gone && !p.dying && p.phase === 'parked' && p.svc <= 0 && p.fuel > 600 && (kind === 'fighter' ? p.fighter : !!p.spec.engines);
+const ready = (p, kind) => p && !p.gone && !p.dying && p.phase === 'parked' && p.svc <= 0 && p.fuel > 600 && (kind === 'fighter' ? p.fighter : !p.fighter && !!p.spec.engines);      // (a twin-engined fighter is not a bomber)
 
 /** The enemy ships worth bombing, best first: valuable, near, hurt. */
 function bestTargets(world, base, n) {
@@ -155,10 +158,20 @@ function decide(world, base) {
   const tanks = base.partsTotal('tank') ? base.partsAlive('tank') > 0 : true, depot = base.partsTotal('depot') ? base.partsAlive('depot') > 0 : true;
   const slow = base.partsTotal('tower') && !base.partsAlive('tower') ? 2 : 1;
   const busy = air.queue.length > 0;
+  // the interceptors go up first and farthest: as soon as enemy aircraft are seen within reach of the field (the radar sees them at 55 km, the eye at 16) they fly at the raid
+  if (air.intCd <= 0 && !busy && tanks) {
+    const ints = base.parked.filter((p) => ready(p, 'fighter') && p.interceptor);
+    if (ints.length && enemyAirNear(world, base, base.partsTotal('radar') && base.partsAlive('radar') ? 55000 : 16000) > 0) {
+      const wave = { base, id: ++air.waveN, t0: world.time, planes: [], cap: true, n: 0, launched: 0, assessed: true, aborted: false, sections: [], asmGo: true };
+      for (let i = 0; i < Math.min(ints.length, 4); i++) { const p = ints[i]; p.wave = wave; p.role = 'intercept'; wave.planes.push(p); air.queue.push(p); }
+      air.intCd = 240 * slow;
+      return;
+    }
+  }
   // a patrol goes up when enemy aircraft come within reach of the field (the radar sees them sooner)
   if (air.capCd <= 0 && !busy && tanks) {
     const reach = base.partsTotal('radar') && base.partsAlive('radar') ? 32000 : 9000;
-    const fs = base.parked.filter((p) => ready(p, 'fighter'));
+    const fs = base.parked.filter((p) => ready(p, 'fighter') && !p.interceptor);
     if (fs.length >= 2 && enemyAirNear(world, base, reach) > 0) {
       const n = Math.min(fs.length, 4);
       const wave = { base, id: ++air.waveN, t0: world.time, planes: [], cap: true, n: 0, launched: 0, assessed: true, aborted: false, sections: [], asmGo: true };
@@ -183,7 +196,7 @@ function decide(world, base) {
     if (p.loadout && p.loadout.stores.some((st) => st.torp)) p.cruiseAlt = base.layout.y + 70;
     wave.planes.push(p); air.queue.push(p);
   }
-  const fs = base.parked.filter((p) => ready(p, 'fighter'));
+  const fs = base.parked.filter((p) => ready(p, 'fighter') && !p.interceptor);
   const nf = Math.min(fs.length, clamp(Math.round(n * 0.4), 2, 4));
   if (fs.length >= 2) for (let i = 0; i < nf; i++) { const p = fs[i]; p.wave = wave; p.role = 'escort'; p.group = n + i; wave.planes.push(p); air.queue.push(p); }
   air.cd = (420 + world.rng() * 160) * slow;
@@ -628,7 +641,7 @@ function stepAir(world, p, dt, base, F, pf, T) {
       if (p.t > 40) p.phase = 'return';
       break;
     }
-    case 'escort': case 'cap': case 'engage': {
+    case 'escort': case 'cap': case 'intercept': case 'engage': {
       const r = fighterSteer(world, p, dt, FIGHT_CTX);
       hdg = r.hdg; gam = r.gam; spd = r.spd; o = r.o;
       break;
@@ -834,6 +847,6 @@ export function stepAirfield(world, base, dt) {
   air.reinfT = (air.reinfT ?? 0) + dt;
   if (air.reinfT > 420 && base.alive) { air.reinfT = 0; reinforce(world, base); }
   releaseNext(world, base, dt);
-  air.cd -= dt; air.capCd -= dt; air.chk -= dt;
+  air.cd -= dt; air.capCd -= dt; air.intCd -= dt; air.chk -= dt;
   if (air.chk <= 0) { air.chk = 1.5; if (base.alive) decide(world, base); }
 }

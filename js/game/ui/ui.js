@@ -726,7 +726,7 @@ export function createUI(game) {
     pullout: 'Ressource', break: 'Dégagement', egress: 'Retrait', return: 'Retour au porte-avions', pattern: 'Circuit d\'appontage', final: 'Approche finale',
     rollout: 'Appontage', waveoff: 'Remise de gaz', ditch: 'Amerrissage forcé', floating: 'Sur l\'eau',
     parked: 'Au parking', taxiOut: 'Roulage vers la piste', holdshort: 'Attente avant la piste', lineup: 'Alignement sur la piste', groundRun: 'Course au décollage',
-    climb: 'Montée', assemble: 'Rassemblement', hold: 'Attente', escort: 'Escorte', cap: 'Patrouille', engage: 'Combat aérien', refuge: 'Repli',
+    climb: 'Montée', assemble: 'Rassemblement', hold: 'Attente', escort: 'Escorte', cap: 'Patrouille', intercept: 'Interception', engage: 'Combat aérien', refuge: 'Repli',
     goaround: 'Remise de gaz', lfinal: 'Approche finale', lroll: 'Atterrissage', taxiIn: 'Roulage vers le parking', taxiBack: 'Roulage vers le parking',
   };
   const ROLES = { dive: 'Bombardier en piqué', torp: 'Torpilleur', level: 'Bombardier', fighter: 'Chasseur' };
@@ -744,7 +744,7 @@ export function createUI(game) {
     if (!show) return;
     const t = world.teams[p.team];
     const alt = Math.max(0, Math.round(p.y)), kmh = Math.round(p.speed * 3.6);
-    const role = ROLES[p.kind] || '';
+    const role = p.interceptor ? 'Intercepteur' : ROLES[p.kind] || '';
     const phase = p.dying ? 'Abattu : ' + (DEATH[p.mode] || 'en chute') : PHASES[p.phase] || p.phase;
     const view = game.camera.mode === 'plane' ? PLANE_VIEWS.find((v) => v.id === game.camera.planeCam.view)?.name : 'pilote';
     planeInfo.replaceChildren(

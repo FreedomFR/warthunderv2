@@ -43,6 +43,10 @@
    "args": []
   },
   {
+   "file": "interceptor.mjs",
+   "args": []
+  },
+  {
    "file": "basemesh.mjs",
    "args": []
   },
