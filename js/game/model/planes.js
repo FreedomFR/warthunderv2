@@ -97,7 +97,7 @@ export const PLANES = {
     fus: { r: 0.6, ar: 1.35, x: -0.4 }, engine: { type: 'radial', r: 0.66, len: 1.3 }, prop: { r: 1.75, n: 3, x: 0 },
     wing: { cr: 3.7, ct: 0.95, x: 0.42, y: -0.4, dih: 0.65, sweep: 0.65, t: 0.3 },
     tail: { x: -4.83, chord: 1.75, span: 4.94, fin: 1.7, finChord: 2.0, y: 0.0 }, canopy: [{ x0: -1.4, x1: 2.2, tx1: 1.9, h: 0.55 }],
-    gear: 'retract', ordnance: 'torp', groundY: 2.2, tailWheel: 'game', v4: B5N_V4, paint: 'b5n',
+    gear: 'retract', track: 1.45, ordnance: 'torp', groundY: 2.2, tailWheel: 'game', v4: B5N_V4, paint: 'b5n',
   },
   swordfish: {
     name: 'Fairey Swordfish', nation: 'UK', role: 'torp', kind: 'bi', L: 11.0, span: 13.9, mass: 3.4, hp: 3.4,
@@ -161,7 +161,7 @@ export const PLANES = {
     fus: { r: 0.78, ar: 1.28, x: -0.6 }, engine: { type: 'radial', r: 0.9, len: 1.4 }, prop: { r: 2.0, n: 3, x: 0 },
     wing: { cr: 3.1, ct: 1.55, x: 0.6, y: -0.26, dih: 0.45, sweep: 0.3, t: 0.38 },
     tail: { x: -4.93, chord: 1.63, span: 5.62, fin: 1.9, finChord: 2.4, y: 0.37 }, canopy: [{ x0: -0.4, x1: 1.1, tx1: 0.8, h: 0.7 }],
-    gear: 'retract', ordnance: null, groundY: 2.35, tailWheel: 'game', v4: F6F_V4, paint: 'f6f',
+    gear: 'retract', track: 2.1, ordnance: null, groundY: 2.35, tailWheel: 'game', v4: F6F_V4, paint: 'f6f',
   },
   f4f: {      // measured on the model (tools/refs/planegroups.py --measures): the wing 2.44 m of chord at the root and 1.5 m at the tip (24 m2), the tailplane 4.15 m, the glass of the canopy, three blades of 1.6 m; the model has the gear up (the wheels lie in the fuselage): the game's wheels
     name: 'Grumman F4F-3 Wildcat', nation: 'USA', role: 'fighter', kind: 'mono', L: 8.82, span: 11.58, mass: 3.4, S: 24.15, hp: 3.0,
@@ -703,12 +703,12 @@ function drawTailWheel(b, s, dark) {
 
 function drawGear(b, s, top, dark, fixed) {
   const w = s.wing, hs = s.span / 2, ry0 = s.fus.r * s.fus.ar;
-  const track = fixed && s.gear === 'fixedbig' ? 1.6 : hs * 0.2;
+  const track = s.track ?? (fixed && s.gear === 'fixedbig' ? 1.6 : hs * 0.2);      // (half the wheel track of the real aircraft when the sheet gives it)
   const legTopY = s.kind === 'bi' ? -ry0 * 0.7 : w.y - 0.1;
   const wr = s.gear === 'fixedbig' ? 0.42 : 0.3;
   const gy = -(s.groundY || (ry0 + (s.gear === 'fixedbig' ? 1.15 : 0.95)));          // (a sheet that gives groundY, measured on its model: the wheels touch the ground it stands on)
   for (const sg of [-1, 1]) {
-    b.beam([w.x + 0.25, legTopY, sg * track * 0.9], [w.x + 0.45, gy + wr, sg * track], 0.12, 0.12, shade(top, 0.75), MAT.AIRCRAFT);
+    b.beam([w.x + 0.25, legTopY, sg * track * 0.9], [w.x + 0.45, gy + wr, sg * track], s.track ? 0.17 : 0.12, s.track ? 0.17 : 0.12, shade(top, 0.75), MAT.AIRCRAFT);
     b.rodZ(w.x + 0.45, gy + wr, sg * track - 0.12, sg * track + 0.12, wr, wr, rgb('#1b1b1b'), MAT.CANVAS, { seg: 10 });
     if (s.gear === 'spats') {
       // streamlined wheel spat
