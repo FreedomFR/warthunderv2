@@ -810,6 +810,7 @@ export async function createEngine(canvas, options = {}) {
     preMain: null,
     /** (renderPass) — opaque geometry, drawn before the ocean (ships). */
     drawOpaque: null,
+    drawGlass: null,
     /** (renderPass) — blended geometry, drawn after the sky (particles). */
     drawOverlay: null,
     /** (tag, count) — water heights for `tag` just landed in water.heights. */
@@ -1014,6 +1015,7 @@ export async function createEngine(canvas, options = {}) {
         rp.setBindGroup(0, bgSky);
         rp.draw(3);
       }
+      if (hooks.drawGlass) hooks.drawGlass(rp);      // clear glass, blended over the sea and the sky
       if (vc) {
         rp.end();
         // the clouds: the march through the layer at half resolution (up to the depth of the scene), then over the image

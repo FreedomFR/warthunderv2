@@ -3,16 +3,17 @@
 import { ALL_SHIPS, BY_ID, NATIONS, TYPES, nationName, typeName } from '../game/data/ships.js';
 import { PLANES, floatplaneSpec } from '../game/model/planes.js';
 
-export const ROLE_NAMES = { dive: 'Bombardier en piqué', torp: 'Torpilleur', fighter: 'Chasseur', float: 'Hydravion embarqué', level: 'Bombardier terrestre' };
+export const ROLE_NAMES = { attack: 'Avion d\'attaque au sol', dive: 'Bombardier en piqué', torp: 'Torpilleur', fighter: 'Chasseur', float: 'Hydravion embarqué', level: 'Bombardier terrestre' };
 
 // Display names of the 30 classes (the spec sheets carry the English class names).
 export const SHIP_NAMES = {
   fletcher: 'Fletcher', cleveland: 'Cleveland', baltimore: 'Baltimore', iowa: 'Iowa', essex: 'Essex',
   kagero: 'Kagerō', agano: 'Agano', takao: 'Takao', yamato: 'Yamato', shokaku: 'Shōkaku',
   tribal: 'Tribal', belfast: 'Town (Belfast)', norfolk: 'County (Norfolk)', kgv: 'King George V', illustrious: 'Illustrious',
-  type1936a_mob: 'Type 1936A (Mob)', koenigsberg: 'Königsberg', admiral_hipper: 'Admiral Hipper', bismarck: 'Bismarck', graf_zeppelin: 'Graf Zeppelin',
+  type1936a_mob: 'Type 1936A (Mob)', koenigsberg: 'Königsberg', admiral_hipper: 'Admiral Hipper', bismarck: 'Bismarck', tirpitz: 'Tirpitz', graf_zeppelin: 'Graf Zeppelin',
   fantasque: 'Le Fantasque', la_galissoniere: 'La Galissonnière', algerie: 'Algérie', richelieu: 'Richelieu', bearn: 'Béarn',
   soldati: 'Soldati', montecuccoli: 'Raimondo Montecuccoli', zara: 'Zara', littorio: 'Littorio', aquila: 'Aquila',
+  hawaii: 'Alaska (Hawaii CBC-1)',
 };
 export const shipName = (id) => SHIP_NAMES[id] || BY_ID[id]?.className.replace(/ \(.*$/, '') || id;
 

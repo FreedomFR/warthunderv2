@@ -1,5 +1,5 @@
 // The look of the bases: node test/basemesh.mjs — the models of the layouts of several seeds and nations build, every building has an intact and a ruined mesh,
-// the vertices are finite and where the base is, the triangle counts are sane, the radars have an antenna that turns, and BaseVisuals queues what it should.
+// the vertices are finite and where the base is, the triangle counts are sane, the radars have an antenna that turns, and BaseVisuals queues what it should; then the ports of a theatre of war (pier, warehouses, dockyards, quay cranes).
 import { Terrain } from '../js/game/sim/terrain.js';
 import { BaseState } from '../js/game/sim/bases.js';
 import { teamStart } from '../js/game/sim/formation.js';
@@ -9,6 +9,7 @@ import { gunMountSpec } from '../js/game/model/baseGuns.js';
 import { getMountModel } from '../js/game/model/mounts.js';
 import { BaseVisuals } from '../js/game/render/baseVisual.js';
 import { VERTEX_STRIDE } from '../js/game/model/meshbuilder.js';
+import { THEATRE } from '../js/game/data/theatre.js';
 
 const ok = (c, m) => { console.log(c ? 'PASS' : 'FAIL', m); if (!c) process.exitCode = 1; };
 const NATIONS = Object.keys(BASE_PAL);
@@ -42,7 +43,7 @@ const make = (seed, dens, level, nat) => {
 let nBases = 0, nParts = 0, nGuns = 0;
 const bad = [], missing = [], big = [], kinds = new Set();
 let worstBase = 0, worstPart = 0, worstGround = 0, groundHigh = 0, radars = 0, spinning = 0, badAngle = 0, flat = 0;
-let flakGuns = 0, flakBad = 0;
+let flakGuns = 0, flakBad = 0, heavyGuns = 0, heavyBad = 0;
 const t0 = Date.now();
 for (let seed = 1; seed <= 8; seed++) {
   const level = 1 + (seed % 2), nat = [NATIONS[seed % 6], NATIONS[(seed + 3) % 6]];
@@ -60,6 +61,7 @@ for (let seed = 1; seed <= 8; seed++) {
     }
     if (M.parts.length !== L.parts.length || M.guns.length !== L.guns.length) missing.push('entries of base ' + L.id);
     for (const g of L.guns) if (g.kind === 'aa' && g.cal === 20 && g.n >= 4) { flakGuns++; if (!gunMountSpec(g, BASE_PAL[L.nation]).look) flakBad++; }
+    for (const g of L.guns) if (g.kind === 'aa' && g.cal >= 80) { heavyGuns++; if (gunMountSpec(g, BASE_PAL[L.nation]).look !== 'flak/flak88') heavyBad++; }
     L.parts.forEach((p, i) => {
       const e = M.parts[i];
       kinds.add(p.kind);
@@ -91,6 +93,7 @@ for (let seed = 1; seed <= 8; seed++) {
   }
 }
 ok(nBases >= 20 && nParts > 100 && nGuns > 60, `built ${nBases} bases, ${nParts} buildings and ${nGuns} guns of ${NATIONS.length} nations in ${Date.now() - t0} ms`);
+ok(heavyGuns > 0 && heavyBad === 0, `the 8.8 cm guns of the German bases (${heavyGuns}) are the Flak 36 of the reference model`);
 ok(flakGuns > 0 && flakBad === 0, `the quadruple 20 mm guns of the bases (${flakGuns}: the German fields and the Italian ones) are the Flakvierling of the reference model`);
 ok(bad.length === 0, 'every vertex is finite, in range, with a unit normal, and every index is valid' + (bad.length ? ': ' + bad.slice(0, 4).join('; ') : ''));
 ok(missing.length === 0, 'every building has an intact and a ruined mesh, every gun a mount and an emplacement' + (missing.length ? ': ' + missing.slice(0, 4).join('; ') : ''));
@@ -149,4 +152,72 @@ ok(badAngle === 0, 'buildings are turned by whole quarter turns');
   ok(before.length > 0 && after.length > 0 && after.some((c, i) => !before[i] || !same(c.m, before[i].m)), 'the guns follow their train, elevation and recoil');
   bv.set(null);
   ok(bv.items.length === 0 && bv.owned.length === 0, 'the meshes are released');
+}
+
+// the ports of a theatre of war: both sizes, all six nations
+{
+  const nations = Object.entries(THEATRE.nations).map(([nation, n]) => ({ nation, team: n.side, home: n.home, ports: 2, batteries: 0 }));
+  const T = Terrain.generateTheatre(1, THEATRE, { nations });
+  const ports = T.bases.filter((q) => q.kind === 'port');
+  const sizes = new Set(ports.map((q) => q.size)), seen = new Set(ports.map((q) => q.nation));
+  ok(ports.length >= 8 && sizes.size === 2 && seen.size >= 4, `the theatre has ${ports.length} ports of ${seen.size} nations, both sizes`);
+  const badP = [], kindsP = new Set();
+  let sheds = 0, shedsToSea = 0, cranes = 0, craneSides = 0, jibs = 0, piles = 0, pierOk = 0, reachOk = 0, flatP = 0, ruinsP = 0;
+  for (const L of ports) {
+    const M = buildBaseModel(L, L.nation, { biome: T.islands.find((q) => q.id === L.island).biome, heightAt: (x, z) => T.heightAt(x, z) });
+    for (const k of ['ground', 'groundFine', 'deco', 'decoFine']) if (!M[k]) badP.push(`${L.id} has no ${k}`);
+    const bb = {};
+    for (const k of ['ground', 'groundFine', 'deco', 'decoFine']) if (M[k]) bb[k] = check(M[k], `port ${L.id} ${k}`, badP).bb;
+    const ca = Math.cos(L.ang), sa = Math.sin(L.ang);
+    const head = (L.pier.x1 - L.x) * ca + (L.pier.z1 - L.z) * sa;
+    // the pier: the deck reaches the head, the piles go down under the sea, the flat work stays a few centimetres above the deck
+    if (bb.deco && bb.deco[3] >= head - 1) pierOk++;
+    if (bb.deco && bb.deco[1] < -L.pier.y - 5) piles++;
+    if (bb.ground && bb.ground[4] < 0.5 && bb.ground[1] >= 0) flatP++;
+    if (M.radius > head + 10 && L.moorings.every((m) => Math.hypot(m.x - L.x, m.z - L.z) < M.radius)) reachOk++;
+    L.parts.forEach((p, i) => {
+      const e = M.parts[i], g = e.mesh.groups;
+      kindsP.add(p.kind);
+      if (['warehouse', 'dockyard', 'crane'].includes(p.kind)) {
+        if (!g.body || !g.body_ruin || !g.body.indexCount || !g.body_ruin.indexCount) badP.push(`${p.kind} ${L.id}/${i} lacks a mesh`); else ruinsP++;
+        for (const [name, m] of Object.entries(g)) check(m, `port ${L.id} ${p.kind} ${name}`, badP);
+      }
+      if (p.kind === 'warehouse') {                  // the doors face the sea: the canonical +z side points along +s
+        sheds++;
+        const dl = e.heading - L.heading, door = -Math.sin(dl);
+        if (door > 0.9) shedsToSea++;
+      }
+      if (p.kind === 'crane') {
+        cranes++;
+        const t = -(p.x - L.x) * sa + (p.z - L.z) * ca;
+        const sp = g.spin ? check(g.spin, `port ${L.id} crane spin`, badP).bb : null;
+        if (sp && e.spin && e.spin.swing > 0 && e.spin.rate > 0) jibs++;
+        // at rest the jib points over the side of the pier the crane stands on
+        if (sp && (t < 0 ? sp[2] < -15 && sp[5] < 8 : sp[5] > 15 && sp[2] > -8)) craneSides++;
+      }
+    });
+  }
+  ok(badP.length === 0, 'every vertex of the ports is finite, with a unit normal and a valid index' + (badP.length ? ': ' + badP.slice(0, 4).join('; ') : ''));
+  ok(['warehouse', 'dockyard', 'crane', 'tank', 'depot', 'barracks', 'radar', 'tower'].every((k) => kindsP.has(k)) && ruinsP >= ports.length * 4, `every kind of building of a port is modelled, with a ruin (${[...kindsP].join(', ')})`);
+  ok(pierOk === ports.length && piles === ports.length, `the pier reaches the head and its piles go down into the sea (${pierOk} / ${piles} of ${ports.length})`);
+  ok(flatP === ports.length, `the flat work of the ports lies within half a metre of the yard (${flatP} of ${ports.length})`);
+  ok(reachOk === ports.length, 'the model of a port takes in the pier and the anchorage (for the culling)');
+  ok(sheds > 0 && shedsToSea === sheds, `the warehouses turn their doors to the quay (${shedsToSea} of ${sheds})`);
+  ok(cranes > 0 && craneSides === cranes && jibs === cranes, `the quay cranes have a jib over their own side that swings (${craneSides} / ${jibs} of ${cranes})`);
+  // BaseVisuals draws a port: the cranes swing with time, a ruined part draws its ruin
+  const calls = [];
+  const r = { createMesh: (b, label) => ({ b, label }), releaseMesh() {}, setPaint() {}, setCasting() {}, add: (mesh, mat, tint, dmg, fire) => calls.push({ label: mesh.label, m: Array.from(mat), dmg, fire }) };
+  const bv = new BaseVisuals(r, { sphereVisible: () => true });
+  bv.set(T);
+  const k = T.bases.findIndex((q) => q.kind === 'port' && q.size === 'large'), L = T.bases[k];
+  const states = T.bases.map((q) => new BaseState(q)), cam = { x: L.x - 300, y: L.y + 120, z: L.z - 300 };
+  const run = (time) => { calls.length = 0; bv.add(cam, states, { time }); return calls.filter((c) => c.label.includes('crane spin')); };
+  const c1 = run(3), c2 = run(9);
+  const nCranes = T.bases.reduce((n, q) => n + q.parts.filter((c) => c.kind === 'crane').length, 0);
+  ok(c1.length === nCranes && c1.some((c, i) => c.m.some((v, q) => Math.abs(v - c2[i].m[q]) > 1e-3)), 'the jibs of the quay cranes swing with time');
+  const iCrane = L.parts.findIndex((q) => q.kind === 'crane');
+  states[k].partState[iCrane] = 2;
+  run(3);
+  ok(calls.some((c) => c.label === 'base crane ruin') && run(3).length === c1.length - 1, 'a destroyed crane draws its ruin and no jib');
+  bv.set(null);
 }

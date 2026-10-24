@@ -56,8 +56,9 @@ export const HEAVY = {
     glass: [{ d0: 0.3, d1: 2.9, a0: -30, a1: 82, sym: true, nu: 3, nv: 3 }],
     cabin: [{ d0: 3.4, d1: 6.0, y0: 0.82, h: 0.5, hw: 0.78 }],
     windows: [{ d: 2.9, y: 0.1, w: 0.4, h: 0.3 }, { d: 3.4, y: 0.1, w: 0.4, h: 0.3 }],
-    guns: [{ t: 'chin', d: 1.9, r: 0.42 }, { t: 'nose', d: 0.8, y: 0.0, z: 0.0 }, { t: 'dome', d: 5.3, r: 0.5, n: 2, len: 1.2 }, { t: 'ball', d: 10.9, r: 0.62 },
-      { t: 'beam', d: 13.1, y: 0.15, side: 1, w: 0.8, h: 0.55 }, { t: 'beam', d: 14.4, y: 0.15, side: -1, w: 0.8, h: 0.55 }, { t: 'tail', d: 21.38, r: 0.4, n: 2, len: 0.8 }],
+    guns: [{ t: 'chin', d: 1.9, r: 0.42 }, { t: 'cheek', d: 1.5, y: 0.05, side: -1 }, { t: 'dome', d: 5.3, r: 0.5, n: 2, len: 1.2 }, { t: 'ball', d: 10.9, r: 0.62 },
+      { t: 'beam', d: 13.1, y: 0.15, side: 1, w: 0.8, h: 0.55 }, { t: 'beam', d: 14.4, y: 0.15, side: -1, w: 0.8, h: 0.55 }, { t: 'tail', d: 21.38, r: 0.4, n: 2, len: 0.8 },
+      { t: 'cheek', d: 1.5, y: 0.05, side: 1 }, { t: 'hatch', d: 9.7 }],      // the B-17G has thirteen .50: the two cheek guns of the nose and the gun of the radio room are the last three
     engines: [{ d: 3.0, z: -6.5, y: -0.1, r: 0.76, len: 1.15, aft: 6.9, type: 'radial', gear: false }, { d: 2.7, z: -2.9, y: -0.28, r: 0.76, len: 1.15, aft: 7.3, type: 'radial' },
       { d: 2.7, z: 2.9, y: -0.28, r: 0.76, len: 1.15, aft: 7.3, type: 'radial' }, { d: 3.0, z: 6.5, y: -0.1, r: 0.76, len: 1.15, aft: 6.9, type: 'radial', gear: false }],
     prop: { r: 1.76, n: 3 },
@@ -65,6 +66,27 @@ export const HEAVY = {
     tail: { tp: { le0: 16.4, te0: 19.5, le1: 17.9, te1: 19.1 }, span: 12.6, y: 0.3, fins: [{ z: 0, th: 0.18, sec: [[0.4, 8.5, 21.0], [1.4, 11.0, 20.8], [2.9, 14.9, 20.5], [3.9, 17.4, 20.2], [4.45, 18.4, 19.9]] }] },
     cutD: 15.6, insD: 15.0, mastD: 5.2, bay: { d0: 6.6, d1: 10.6, hw: 0.45, n: 12, kg: 227, cols: 3 },
     gearD: 6.4, tailWheelD: 21.0, gearGeom: { wr: 0.56, leg: 2.09 }, eyeD: [4.1, 1.1, -0.42],
+  }),
+
+  // ---- USA: B-29 Superfortress (30.18 m, 43.05 m, 8.46 m; wing 161.3 m2; four Wright R-3350, 5.0 m propellers), measured on its model (the stations and the planform are read there; the
+  // hull, the wings, the nacelles, the doors and the load come from the model itself, model/v4plane.js: this sheet gives the frame the game works in: where a gun pivots, the bay pivot, the eye) ----
+  b29: finalize({
+    name: 'Boeing B-29 Superfortress', nation: 'USA', role: 'level', kind: 'mono', L: 30.18, span: 43.05, mass: 47, hp: 18, bombKg: 9000,
+    cg: 12.68, paint: { top: '#a9acae', bot: '#b9bbbd', acc: '#e8e6dc' },
+    body: [[0, 0.12, 0.12, 0.05], [0.3, 0.7, 0.7, 0.03], [0.6, 1.05, 1.05, 0.0], [1.1, 1.3, 1.22, 0.0], [2.0, 1.38, 1.35, 0.0], [3.0, 1.41, 1.41, 0.0], [4.5, 1.45, 1.42, 0.1], [7.0, 1.4, 1.42, 0.05],
+      [12.0, 1.34, 1.41, 0.0], [16.7, 1.33, 1.45, 0.0], [18.2, 1.2, 1.25, 0.08], [19.7, 1.1, 1.15, 0.2], [21.2, 0.95, 1.06, 0.2], [22.7, 0.87, 0.96, 0.15], [24.2, 0.8, 0.86, 0.25],
+      [25.7, 0.7, 0.7, 0.35], [27.2, 0.55, 0.55, 0.5], [28.7, 0.4, 0.4, 0.6], [30.0, 0.2, 0.2, 0.72], [30.18, 0.1, 0.1, 0.72]],
+    cabin: [{ d0: 2.4, d1: 3.6, h: 0.5 }],
+    guns: [{ t: 'dome', d: 4.4, r: 0.4, n: 4, pivot: [8.3, 1.5, 0] }, { t: 'ball', d: 4.8, r: 0.4, n: 2, pivot: [7.9, -1.55, 0], nowin: true }, { t: 'dome', d: 17.7, r: 0.4, n: 2, pivot: [-5.0, 1.45, 0] },
+      { t: 'ball', d: 16.8, r: 0.4, n: 2, pivot: [-4.1, -1.5, 0], nowin: true }, { t: 'tail', d: 29.6, r: 0.1, n: 2, pivot: [-16.9, 0.78, 0] }, { t: 'tail', d: 29.6, r: 0.1, n: 1, pivot: [-16.9, 0.6, 0] }],
+    engines: [{ d: 6.9, z: -9.47, y: 0.02, r: 0.95, len: 1.4, aft: 14.5, type: 'radial', gear: false }, { d: 6.2, z: -4.23, y: -0.27, r: 0.95, len: 1.4, aft: 14.5, type: 'radial' },
+      { d: 6.2, z: 4.23, y: -0.27, r: 0.95, len: 1.4, aft: 14.5, type: 'radial' }, { d: 6.9, z: 9.47, y: 0.02, r: 0.95, len: 1.4, aft: 14.5, type: 'radial', gear: false }],
+    prop: { r: 2.4, n: 4 },
+    wing: { plan: [[0, 8.35, 14.08], [0.3, 9.25, 13.93], [1.0, 11.38, 13.58]], y: -0.49, dih: 1.56, tc: 0.16, flaps: [0.1, 0.55], ail: [0.62, 0.97] },
+    tail: { tp: { le0: 24.76, te0: 27.7, le1: 25.71, te1: 27.17 }, span: 13.1, y: 1.0, fins: [{ z: 0, th: 0.2, sec: [[1.4, 21.68, 29.18], [2.0, 21.68, 28.73], [3.0, 23.36, 28.52], [4.0, 24.37, 28.24], [5.0, 24.92, 27.94], [6.0, 25.43, 27.66], [6.3, 25.7, 27.5]] }],
+      band: [[-12.6, 3.6, 0.215, -14.5, -14.7, 5.2, 0.125, -13.4]] },
+    cutD: 21.68, insD: 19.0, mastD: 5.0, bay: { d0: 5.38, d1: 16.44, hw: 1.0, n: 20, kg: 227, cols: 2, doors: [[5.5, 9.7], [12.2, 16.4]] },
+    gearD: 8.0, tailWheelD: 29.0, gearGeom: { wr: 0.8, leg: 3.0 }, eyeD: [3.1, 0.85, -0.45], groundPitch: 0,      // (a nose wheel: the aircraft stands level on the ground)
   }),
 
   // ---- Japan: G4M1 Betty (19.97 m, 24.89 m, 4.9 m; wing 78.1 m2; two Kasei 11 radials) ----

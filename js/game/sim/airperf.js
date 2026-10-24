@@ -22,17 +22,18 @@
 // the stall, approach and climb speeds and the ground runs are rounded from pilots' notes and are estimates where the sources give only a top speed.
 export const PERF = {
   sbd: { vmax: 112, vc: 78, vt: 100, vd: 112, vcl: 49, vp: 46, va: 37.5, vto: 36, vcomb: 0, bank: 55, pr: 0.34, asm: 300, roc: 7.5, roll: 1.0, nmax: 5.5, brakes: true },
-  tbf: { vmax: 124, vc: 78, vt: 57, vd: 100, vcl: 50, vp: 47, va: 41, vto: 37, vcomb: 0, bank: 50, pr: 0.28, asm: 280, roc: 5.8, roll: 0.8, nmax: 4.5, brakes: false },
+  tbf: { vmax: 121, vc: 78, vt: 57, vd: 100, vcl: 50, vp: 47, va: 41, vto: 37, vcomb: 0, bank: 50, pr: 0.28, asm: 280, roc: 7.2, roll: 0.8, nmax: 4.5, brakes: false },
   f6f: { vmax: 170, vc: 90, vt: 0, vd: 0, vcl: 60, vp: 52, va: 38.6, vto: 36, vcomb: 125, bank: 82, pr: 0.7, asm: 350, roc: 15.5, roll: 1.4, nmax: 6.5, brakes: false },
   d3a: { vmax: 108, vc: 82, vt: 90, vd: 103, vcl: 47, vp: 43, va: 36, vto: 31, vcomb: 0, bank: 60, pr: 0.38, asm: 300, roc: 7, roll: 0.9, nmax: 5.5, brakes: true },
   b5n: { vmax: 105, vc: 72, vt: 90, vd: 92, vcl: 46, vp: 42, va: 35, vto: 31, vcomb: 0, bank: 52, pr: 0.32, asm: 280, roc: 5.2, roll: 0.8, nmax: 4.5, brakes: false },
   a6m: { vmax: 148, vc: 92, vt: 0, vd: 0, vcl: 56, vp: 50, va: 37, vto: 31, vcomb: 110, bank: 82, pr: 0.8, asm: 350, roc: 15, roll: 1.3, nmax: 6.5, brakes: false },
+  il2: { vmax: 115, vc: 88, vt: 0, vd: 105, vcl: 46, vp: 52, va: 38, vto: 34, vcomb: 0, bank: 55, pr: 0.3, asm: 250, roc: 4.8, roll: 0.9, nmax: 4.5, brakes: false },      // Type 3 (AM-38F, 6 300 kg): 414 km/h at sea level, 1 000 m in 3.2 min
   skua: { vmax: 100, vc: 84, vt: 95, vd: 118, vcl: 46, vp: 45, va: 36, vto: 33, vcomb: 0, bank: 50, pr: 0.3, asm: 300, roc: 6.5, roll: 0.8, nmax: 5.5, brakes: true },
   swordfish: { vmax: 64, vc: 46, vt: 48, vd: 70, vcl: 33, vp: 36, va: 29, vto: 26, vcomb: 0, bank: 45, pr: 0.25, asm: 250, roc: 4.5, roll: 0.7, nmax: 4.5, brakes: false },
   fulmar: { vmax: 122, vc: 105, vt: 0, vd: 0, vcl: 50, vp: 52, va: 37.5, vto: 32, vcomb: 105, bank: 82, pr: 0.55, asm: 330, roc: 6, roll: 1.0, nmax: 6, brakes: false },
   ju87: { vmax: 104, vc: 80, vt: 95, vd: 140, vcl: 50, vp: 48, va: 36, vto: 37, vcomb: 0, bank: 55, pr: 0.34, asm: 300, roc: 5.5, roll: 0.8, nmax: 6, brakes: true },
   fi167: { vmax: 90, vc: 69, vt: 45, vd: 80, vcl: 40, vp: 38, va: 28, vto: 26, vcomb: 0, bank: 55, pr: 0.32, asm: 260, roc: 6, roll: 0.8, nmax: 4.5, brakes: false },
-  bf109t: { vmax: 156, vc: 110, vt: 0, vd: 0, vcl: 62, vp: 56, va: 41.5, vto: 38, vcomb: 125, bank: 82, pr: 0.7, asm: 350, roc: 15, roll: 1.5, nmax: 6.5, brakes: false },
+  bf109t: { vmax: 165, vc: 110, vt: 0, vd: 0, vcl: 62, vp: 56, va: 41.5, vto: 38, vcomb: 125, bank: 82, pr: 0.7, asm: 350, roc: 18, roll: 1.5, nmax: 6.5, brakes: false },      // F-4: 635 km/h at 6 000 m (about 595 km/h at the 2-3 km of the game), 19 m/s at sea level and 18.8 m/s at 3 000 m
   ln401: { vmax: 105, vc: 83, vt: 95, vd: 125, vcl: 48, vp: 44, va: 35, vto: 33, vcomb: 0, bank: 55, pr: 0.34, asm: 300, roc: 7, roll: 0.9, nmax: 5.5, brakes: false },
   pl10: { vmax: 61, vc: 42, vt: 38, vd: 64, vcl: 33, vp: 34, va: 28, vto: 27, vcomb: 0, bank: 45, pr: 0.25, asm: 250, roc: 3.5, roll: 0.6, nmax: 4, brakes: false },
   d520: { vmax: 152, vc: 105, vt: 0, vd: 0, vcl: 62, vp: 55, va: 41.5, vto: 39, vcomb: 125, bank: 82, pr: 0.7, asm: 350, roc: 12, roll: 1.4, nmax: 6.5, brakes: false },
@@ -42,6 +43,9 @@ export const PERF = {
   // ---- land-based bombers ----
   // B-17G: 472 km/h at 7 600 m, cruise 293 km/h, ceiling 10 850 m, 4.6 m/s climb (Wikipedia / the pilot's manual); stall 36 m/s with the flaps down; run about 900 m at 24.5 t
   b17: { vmax: 131, vc: 81, vt: 0, vd: 0, vcl: 65, vp: 56, va: 47, vto: 46, vcomb: 0, bank: 35, pr: 0.1, asm: 700, bombAlt: 3500, bombSpeed: 75, vs: 36, climb: 4.6, ceil: 10850, runLen: 900, landRun: 700, roc: 4.6, roll: 0.35, nmax: 2.5, brakes: false },
+  // B-29: 575 km/h (357 mph) at 9 100 m with the turbochargers (about 540 km/h, 150 m/s, at the 3 000-5 000 m of the game), cruise 354 km/h (220 mph), ceiling 9 700 m, about 5.5 m/s (1 000 ft/min) climb at the weight of a sortie; stall 52 m/s with the flaps down at 45 t; a ground run of
+  // about 1 100 m at the weight the airfields' runways allow (the real one, at 61 t, is twice that), landing at 60 m/s
+  b29: { vmax: 150, vc: 98, vt: 0, vd: 0, vcl: 78, vp: 66, va: 60, vto: 58, vcomb: 0, bank: 30, pr: 0.08, asm: 900, bombAlt: 3500, bombSpeed: 95, vs: 52, climb: 5.5, ceil: 9700, runLen: 1100, landRun: 800, roc: 5.5, roll: 0.3, nmax: 2.5, brakes: false },
   // G4M1: 428 km/h at 4 200 m, cruise 315 km/h, stall 120 km/h, 9.17 m/s climb with a light load (about 5.5 m/s loaded), ceiling 8 950 m; a light and short-running aircraft
   g4m: { vmax: 119, vc: 87, vt: 0, vd: 0, vcl: 58, vp: 54, va: 42, vto: 40, vcomb: 0, bank: 40, pr: 0.14, asm: 600, bombAlt: 4000, bombSpeed: 80, vs: 33, climb: 5.5, ceil: 8950, runLen: 650, landRun: 500, roc: 5.5, roll: 0.45, nmax: 2.5, brakes: false },
   // Lancaster B.I: 454 km/h at 4 000 m (282 mph), cruise 322 km/h (200 mph), ceiling 6 520 m (21 400 ft at 28.6 t), 3.7 m/s climb (720 ft/min); needs a long run at 31 t
@@ -68,7 +72,7 @@ export function aeroOf(typeKey, spec) {
   let a = aeroCache.get(typeKey);
   if (a) return a;
   const pf = PERF[typeKey] || PERF.sbd, bi = spec.kind === 'bi';
-  const S = spec.span * (spec.wing.cr + spec.wing.ct) / 2 * (bi ? 1.85 : 1), AR = spec.span * spec.span / S * (bi ? 1.85 : 1);
+  const S = spec.S ?? spec.span * (spec.wing.cr + spec.wing.ct) / 2 * (bi ? 1.85 : 1), AR = spec.span * spec.span / S * (spec.S ? 1 : bi ? 1.85 : 1);      // (`S`: the published wing area, when the sheet has it: the planform measured on a model leaves out the root fairings)
   const m = spec.mass * 1000, ci = 2 * G0 * G0 * (m / S) / (RHO * Math.PI * OSWALD * AR);
   const CL = bi ? 1.35 : spec.engines ? 1.4 : 1.45;
   const vs = Math.sqrt(2 * m * G0 / (RHO * S * CL));

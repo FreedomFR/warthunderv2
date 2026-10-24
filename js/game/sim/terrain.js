@@ -3,7 +3,7 @@
 // the simulation: ships run aground where the water is shallower than their draught, shells burst on the slopes and are stopped by them, torpedoes explode on the
 // shore, aircraft fly into the mountains, and the line of sight is blocked. The render builds its mesh from the same function (model/islandMesh.js).
 import { makeRng, clamp, TAU } from '../math.js';
-import { placeBases } from './bases.js';
+import { placeBases, placeTheatreBases } from './bases.js';
 
 const SHELF_SLOPE = 0.12;          // the sea floor falls 12 m for every 100 m off the coast
 const DEEP = -90;                  // the depth where the shelf ends (and the grid stops)
@@ -34,6 +34,17 @@ const KINDS = {
   large: { r: [1100, 2300], h: [140, 560], e: [1.1, 1.9], pw: 1.15, ridge: 0.9 },
 };
 const BIOMES = ['green', 'green', 'green', 'arid', 'rock', 'volcanic'];
+
+/** One island of a kind (a random spec): { id, kind, seed, r0, H, e, phi, pw, ridge, biome }. */
+function randomSpec(kind, id, rng) {
+  const K = KINDS[kind];
+  const sp = {
+    id, kind, seed: (rng() * 1e9) | 0, r0: rng.range(K.r[0], K.r[1]), H: rng.range(K.h[0], K.h[1]),
+    e: rng.range(K.e[0], K.e[1]), phi: rng.range(0, Math.PI), pw: K.pw, ridge: K.ridge, biome: rng.pick(BIOMES),
+  };
+  if (kind === 'large') sp.H *= rng.range(0.7, 1);
+  return sp;
+}
 
 /** The height function of an island (u, v in metres from its centre): metres above (positive) or below (negative) the sea. */
 function makeHeight(sp) {
@@ -358,6 +369,37 @@ export class Terrain {
     const terrain = new Terrain(islands);
     // military bases: `o.bases` 0 none, 1 an airfield and a battery for every team that can have them, 2 more batteries; `o.starts` [{ x, z, nation }] the fleets
     if (o.bases && o.starts) placeBases(terrain, { seed, level: o.bases, starts: o.starts });
+    return terrain;
+  }
+
+  /**
+   * The islands of a theatre of war (data/theatre.js): the homes of the nations, each with its own islands in a disc round its centre, and the open sea between with more, spread over
+   * the map. `o.nations` [{ nation, team, home: { x, z }, ports, batteries }] get their bases (sim/bases.js placeTheatreBases). Returns a Terrain with `bounds`.
+   */
+  static generateTheatre(seed, theatre, o = {}) {
+    const rng = makeRng((seed | 0) * 2654435761 + 4243);
+    const { w, h } = theatre.map, islands = [];
+    const place = (kind, cx, cz, rad, spacing = 900) => {
+      for (let attempt = 0; attempt < 80; attempt++) {
+        const sp = randomSpec(kind, islands.length, rng);
+        const Rb = sp.r0 * sp.e * 1.3 + 300;
+        const a = rng() * TAU, d = Math.sqrt(rng()) * Math.max(0, rad - Rb * 0.4);
+        const x = cx + Math.cos(a) * d, z = cz + Math.sin(a) * d;
+        if (Math.abs(x) + Rb > w / 2 - 2000 || Math.abs(z) + Rb > h / 2 - 2000) continue;
+        if (islands.some((q) => Math.hypot(x - q.x, z - q.z) < q.Rb + Rb + spacing)) continue;
+        sp.x = x; sp.z = z;
+        const is = new Island(sp);
+        is.Rb = Rb;
+        islands.push(is);
+        return is;
+      }
+      return null;
+    };
+    for (const n of o.nations) for (const kind of theatre.cluster) place(kind, n.home.x, n.home.z, theatre.homeRadius);
+    for (const kind of theatre.open) place(kind, 0, 0, Math.max(w, h) * 0.5, 2500);
+    const terrain = new Terrain(islands);
+    terrain.bounds = { x0: -w / 2, z0: -h / 2, x1: w / 2, z1: h / 2 };
+    placeTheatreBases(terrain, { seed, nations: o.nations, reach: o.reach || theatre.homeRadius * 1.6 });
     return terrain;
   }
 }

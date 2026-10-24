@@ -21,14 +21,14 @@ const boxOf = (d, k, o, yaw) => {            // the box (x0, y0, z0, x1, y1, z1)
 for (const id of Object.keys(ELEMENTS)) {
   const el = ELEMENTS[id], spec = ALL_SHIPS.find((s) => s.id === id);
   if (!spec) {
-    // a gun that is not a ship's (the Flakvierling of the bases): its guns elevate about a trunnion inside their own box, and the house stands on the ground
+    // a gun that is not a ship's (the guns of the bases: Flakvierling, Flak 36, the 38 cm turret): its guns elevate about a trunnion inside their own box, and the house stands on the ground
     for (const [name, k] of Object.entries(el.KINDS)) {
       const g = decodeBaked(k.guns, el.MOUNT_SCALE), h = decodeBaked(k.house, el.MOUNT_SCALE);
       let lo = [1e9, 1e9, 1e9], hi = [-1e9, -1e9, -1e9];
       for (let i = 0; i < g.pos.length; i += 3) for (let a = 0; a < 3; a++) { lo[a] = Math.min(lo[a], g.pos[i + a]); hi[a] = Math.max(hi[a], g.pos[i + a]); }
       let hy = 1e9; for (let i = 1; i < h.pos.length; i += 3) hy = Math.min(hy, h.pos[i]);
       ok(lo[0] < 0.1 && hi[0] > k.muzzle - 0.1 && lo[1] < 0.2 && hi[1] > 0.3, `${id}/${name}: the guns level about their trunnion (x ${lo[0].toFixed(2)}..${hi[0].toFixed(2)}, muzzle ${k.muzzle} m)`);
-      ok(Math.abs(hy) < 0.05 && k.trunnion[1] > 0.5 && k.trunnion[1] < 2.5, `${id}/${name}: the house stands on the ground and the trunnion is ${k.trunnion[1].toFixed(2)} m above it`);
+      ok(Math.abs(hy) < 0.05 && k.trunnion[1] > 0.5 && k.trunnion[1] < 8, `${id}/${name}: the house stands on the ground and the trunnion is ${k.trunnion[1].toFixed(2)} m above it`);
     }
     continue;
   }
@@ -52,7 +52,8 @@ for (const id of Object.keys(ELEMENTS)) {
   const m = buildShipModel(spec, TWEAKS[id] || {});
   const rec = [...m.mounts, ...m.aaMounts].filter((r) => r.look);
   const moved = rec.filter((r) => el.PLACEMENTS.some((p) => `${id}/${p.kind}` === r.look && Math.hypot(p.x - r.x, p.z - r.z) < 0.05 && Math.abs(p.y - r.y) < 0.8));
-  ok(moved.length === rec.length && rec.length === el.PLACEMENTS.length, `${id}: ${rec.length} mount records take a copy and ${moved.length} of them stand at the measured place`);
+  const twk = TWEAKS[id] || {}, extra = (twk.mountAt || []).length, kept = el.PLACEMENTS.filter((p) => !(twk.dropPlacements || []).includes(p.group)).length;      // (the mounts a fit leaves out, and the ones put on free deck that the model lacks, are not at a measured place)
+  ok(moved.length === rec.length - extra && rec.length === kept + extra, `${id}: ${rec.length} mount records take a copy and ${moved.length} of them stand at the measured place${extra ? ` (+ ${extra} on free deck)` : ''}`);
   const aa = m.aaMounts.filter((r) => r.look);
   let over = 0;
   for (let i = 0; i < aa.length; i++) for (let j = i + 1; j < aa.length; j++) if (Math.hypot(aa[i].x - aa[j].x, aa[i].z - aa[j].z) < 1.5 && Math.abs(aa[i].y - aa[j].y) < 1.5) over++;

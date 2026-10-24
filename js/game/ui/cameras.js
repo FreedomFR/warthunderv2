@@ -14,7 +14,7 @@ export const CAMERA_MODES = [
   { id: 'tactical', key: '6', name: 'Tactique', hint: 'Vue de dessus (glisser = déplacer, molette = altitude)' },
   { id: 'free', key: '7', name: 'Libre', hint: 'ZQSD / WASD, Espace/Ctrl, Maj = rapide, glisser = regarder' },
   { id: 'plane', key: '8', name: 'Avions', hint: 'Suit un avion (N / B : avion suivant, V : changer de vue)' },
-  { id: 'cockpit', key: '9', name: 'Cockpit', hint: 'Vue du pilote (glisser = regarder autour)' },
+  { id: 'cockpit', key: '9', name: 'Cockpit', hint: 'Vue du pilote (glisser = regarder autour)', off: true },      // (switched off until the interiors are redone: the glass is clear now)
 ];
 
 /** Aircraft phases worth watching. */
@@ -86,7 +86,7 @@ export class CameraRig {
     if (id === 'tactical') {
       const c = this.focusPoint();
       this.tactical.x = c.x; this.tactical.z = c.z;
-      this.tactical.alt = clamp(this.game.battleRadius() * 2.0 + 800, 1500, 22000);
+      this.tactical.alt = clamp(this.game.battleRadius() * 2.0 + 800, 1500, this.game.config.theatre ? 60000 : 22000);
     }
     if (id === 'follow' || id === 'orbit' || id === 'bridge' || id === 'shell') {
       if (!this.target || !this.target.alive) this.pickTarget(1);
@@ -120,7 +120,7 @@ export class CameraRig {
       if (e.target && /INPUT|SELECT|TEXTAREA/.test(e.target.tagName)) return;
       this.keys[e.code] = true;
       if (e.repeat) return;
-      const m = CAMERA_MODES.find((x) => 'Digit' + x.key === e.code || 'Numpad' + x.key === e.code);
+      const m = CAMERA_MODES.find((x) => !x.off && ('Digit' + x.key === e.code || 'Numpad' + x.key === e.code));
       if (m) this.setMode(m.id, true);
       const planeMode = this.mode === 'plane' || this.mode === 'cockpit';
       if (e.code === 'KeyN' || e.code === 'BracketRight') { if (planeMode) this.pickPlane(e.shiftKey ? -1 : 1); else this.pickTarget(e.shiftKey ? -1 : 1); e.preventDefault(); }
@@ -175,7 +175,7 @@ export class CameraRig {
       case 'free': this.free.speed = clamp(this.free.speed / f, 3, 3000); break;
       case 'follow': this.follow.zoom = clamp(this.follow.zoom * f, 0.25, 6); break;
       case 'orbit': this.orbit.zoom = clamp(this.orbit.zoom * f, 0.25, 8); break;
-      case 'tactical': this.tactical.alt = clamp(this.tactical.alt * f, 400, 30000); break;
+      case 'tactical': this.tactical.alt = clamp(this.tactical.alt * f, 400, this.game.config.theatre ? 70000 : 30000); break;
       case 'plane': this.planeCam.zoom = clamp(this.planeCam.zoom * f, 0.3, 8); break;
       case 'cockpit': this.fovWant = clamp(this.fovWant * f, 30 * D2R, 100 * D2R); break;
       case 'bridge': this.fovWant = this.bridgeFov = clamp(this.fovWant * f, 18 * D2R, 80 * D2R); break;

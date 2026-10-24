@@ -12,7 +12,8 @@ export function spawnFleet(world, teamId, entries, cx, cz, heading, opts = {}) {
   const specs = [];
   for (const e of entries) for (let i = 0; i < (e.count || 1); i++) specs.push(BY_ID[e.id]);
   // the order of battle of sim/fleet.js: the flagship leads the line, the destroyers screen ahead, the carriers sail behind (the front of the fleet is at (cx, cz))
-  const fleet = world.fleetOf(teamId);
+  const key = opts.fleetKey ?? teamId;
+  const fleet = world.fleetOf(key, teamId);
   fleet.circle = opts.circle ?? (world.rng() < 0.5 ? 1 : -1);
   const plan = stationPlan(specs.map((s) => ({ type: s.type, L: s.loa })), fleet.circle, opts.spread ?? 1);
   const fx = Math.sin(heading), fz = -Math.cos(heading);      // forward
@@ -25,6 +26,7 @@ export function spawnFleet(world, teamId, entries, cx, cz, heading, opts = {}) {
     const x = cx + fx * f + rx * r, z = cz + fz * f + rz * r;
     const ship = world.addShip(spec.id, teamId, x, z, heading, { throttle: 0, speed: 0 });
     ship.controller = opts.controller ? opts.controller(ship) : new AIController();
+    ship.fleetKey = key;
     out.push(ship);
   });
   return out;

@@ -28,7 +28,7 @@ function makePalette(spec, tw) {
     sup, dark: '#202327', cap: p.cap || '#18191b', funnel: p.funnel || sup, mast: rgb(shade(sup, 0.82)).map(Math.round),
     boat: '#8c9296', glass: '#0e151b', ...(tw.pal || {}),
   };
-  const lv = LIVERY[spec.baseId || spec.id];
+  const lv = spec.id in LIVERY ? LIVERY[spec.id] : LIVERY[spec.baseId || spec.id];      // (a variant has its own paint when it is listed, even as null: the plain colours of its sheet)
   if (MARKS[spec.baseId || spec.id]?.top) pal.top = MARKS[spec.baseId || spec.id].top;
   if (lv) { const m = PALETTES[lv.pal]; pal.hull = m[1]; pal.sup = m[2]; pal.funnel = m[1]; pal.mast = m[1]; pal.boat = m[2]; }
   // linoleum / teak decks: keep them from looking orange-bright under the strong sun
@@ -125,6 +125,7 @@ const AA_TYPES = {
   i37: { v: 'breda37', n: 2, cal: 37, bore: 54, label: 'Breda 37/54 double' },
   b20: { v: 'oerlikon', n: 1, cal: 20, bore: 65, label: 'Breda 20/65 single' },
   b20d: { v: 'iijn25', n: 2, cal: 20, bore: 70, label: 'Scotti 20/70 double' },
+  p20: { v: 'phalanx', n: 1, cal: 20, bore: 76, label: 'Phalanx Mk 15 20 mm' },
 };
 
 /** What turns on a ship (the screws and the rudders are in `model.spinners`): a search radar sweeps round (rad/s, by kind) and a fire-control director follows the guns. */
@@ -585,6 +586,13 @@ export function buildShipModel(spec, tw = {}) {
     });
   }
 
+  // -------- cruise-missile launchers (tw.launchers: [{ sys (id of the system of the sheet's `missiles`), kind ('abl' | 'mk141'), x, y (deck), z, yaw (deg) }]) --------
+  (tw.launchers || []).forEach((l, i) => {
+    const yaw = (l.yaw || 0) * Math.PI / 180, o = { x: l.x, y: l.y, z: l.z, yaw, kind: l.kind };
+    part('launcher' + i, 'launcher', l.kind === 'abl' ? 'Lanceur blindé de missiles' : 'Lanceur de missiles', () => PT.missileBox(b, o, pal), () => b.box(l.x, l.y + 0.3, l.z, 4.2, 0.6, 2.2, rgb(charred(pal)), MAT.DARK), { keep: true, sys: l.sys });
+    model.missileMounts.push({ kind: 'ssm', sys: l.sys, x: l.x, y: l.y + 1.2, z: l.z, arcC: yaw, arcH: Math.PI });
+  });
+
   // -------- aircraft facilities (cruisers / battleships) --------
   if (!carrier && spec.aircraft && spec.aircraft.catapults > 0) {
     const mid = kindOf(spec.aircraft.hangar + ' ' + spec.aircraft.notes, 'amidships|between the funnels|athwart');
@@ -656,7 +664,7 @@ export function buildShipModel(spec, tw = {}) {
   const aaTaken = (x, y, z, rad) => model.aaMounts.some((m) => Math.abs(m.y - y) < 2.2 && Math.hypot(m.x - x, m.z - z) < (m.rad || 0.9) + rad) || model.tubes.some((q) => Math.abs(q.y - y) < 2.4 && Math.abs(q.x - x) < 2.8 && Math.abs(q.z - z) < 2.8);
   // the mounts copied from the reference model (model/elements.js): each stands where the model has it, facing the way the model has it, drawn as the model's own house and guns
   const baseId = spec.baseId || spec.id;      // (a variant of a ship, data/variants.js, shares its model: its elements, its livery)
-  const elPl = ELEMENTS[baseId] && tw.elements !== false ? ELEMENTS[baseId].PLACEMENTS.filter((q) => !(tw.dropPlacements || []).includes(q.group)) : [];      // tw.dropPlacements: the mounts of the model this fit does not have
+  const elPl = ELEMENTS[baseId] && tw.elements !== false ? ELEMENTS[baseId].PLACEMENTS.filter((q) => !(tw.dropPlacements || []).includes(q.group) && !(tw.dropAA && AA_TYPES[q.type])) : [];      // tw.dropPlacements: the mounts of the model this fit does not have
   for (const pl of elPl.filter((q) => AA_TYPES[q.type])) {
     const ty = AA_TYPES[pl.type];
     model.aaMounts.push({ variant: ty.v, cal: ty.cal, n: ty.n, bore: ty.bore, x: pl.x, y: pl.y, z: pl.z, rad: 1.8, yaw0: pl.yaw * Math.PI / 180, label: ty.label, look: `${baseId}/${pl.kind}` });
@@ -712,6 +720,21 @@ export function buildShipModel(spec, tw = {}) {
     best.x = pl.x; best.y = pl.y; best.z = pl.z; best.look = `${baseId}/${pl.kind}`;
     const ya = pl.yaw * Math.PI / 180;
     best.arcC = Math.atan2(Math.sin(ya), Math.cos(ya));                         // at rest it points the way the model has it (the arc is centred there)
+  }
+  // tw.mountAt: [{ group, cal, x, y, z, yaw (deg), kind }]: a gun the sheet has and the model has no copy of goes to a place on the free deck (a record no copy claimed), drawn as the model's mount of that kind
+  for (const ma of tw.mountAt || []) {
+    const r = model.mounts.find((q) => !claimed.has(q) && Math.abs(q.cal - ma.cal) <= 6 && (!ma.group || q.group === ma.group));
+    if (!r) continue;
+    claimed.add(r);
+    const ox = r.x, oy = r.y, oz = r.z;
+    for (const q of b.solids) {
+      if (q.part || q.strut || Math.abs((q[0] + q[1]) / 2 - ox) > 0.5 || Math.abs((q[4] + q[5]) / 2 - oz) > 0.5 || q[1] - q[0] > 8 || q[5] - q[4] > 8 || q[2] < oy - 2.5 || q[3] > oy + 3.5 || q[3] < oy - 1.5) continue;
+      q[0] += ma.x - ox; q[1] += ma.x - ox; q[2] += ma.y - oy; q[3] += ma.y - oy; q[4] += ma.z - oz; q[5] += ma.z - oz;
+      if (q.poly) for (const v of q.poly) { v[0] += ma.x - ox; v[1] += ma.z - oz; }
+    }
+    r.x = ma.x; r.y = ma.y; r.z = ma.z; r.look = `${baseId}/${ma.kind}`;
+    const ya = (ma.yaw || 0) * Math.PI / 180;
+    r.arcC = Math.atan2(Math.sin(ya), Math.cos(ya));
   }
   // measured boats (tw.boats: [{ f0, f1, z (a boat off the centreline has its twin on the other side), y (above the deck), cabin, davits }])
   for (const bt of tw.boats || []) {

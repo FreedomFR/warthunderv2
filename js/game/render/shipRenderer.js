@@ -23,9 +23,7 @@ export class ShipRenderer {
   async _init() {
     const g = this.engine.gpu;
     const module = await g.shader(SHIP, 'ship');
-    this.pipeline = await this.device.createRenderPipelineAsync({
-      label: 'ship', layout: 'auto',
-      vertex: {
+    const vertex = {
         module, entryPoint: 'vs',
         buffers: [
           { arrayStride: VERTEX_STRIDE, stepMode: 'vertex', attributes: [
@@ -43,16 +41,26 @@ export class ShipRenderer {
             { shaderLocation: 9, offset: 96, format: 'float32x4' },
           ] },
         ],
-      },
+      };
+    this.pipeline = await this.device.createRenderPipelineAsync({
+      label: 'ship', layout: 'auto',
+      vertex,
       fragment: { module, entryPoint: 'fs', targets: [{ format: g.HDR }] },
       primitive: { topology: 'triangle-list', cullMode: 'none' },
       depthStencil: { format: g.DEPTH, depthWriteEnabled: true, depthCompare: 'greater' },
       multisample: { count: g.MSAA },
     });
     const sh = this.engine.shadow;
-    this.bindGroup = this.device.createBindGroup({
-      layout: this.pipeline.getBindGroupLayout(0),
-      entries: [
+    // the clear panes of the aircraft canopies: the same shader, blended over the scene, nothing written to the depth
+    this.panePipeline = await this.device.createRenderPipelineAsync({
+      label: 'ship panes', layout: 'auto',
+      vertex,
+      fragment: { module, entryPoint: 'fs', targets: [{ format: g.HDR, blend: { color: { srcFactor: 'one', dstFactor: 'one-minus-src-alpha', operation: 'add' }, alpha: { srcFactor: 'one', dstFactor: 'one-minus-src-alpha', operation: 'add' } } }] },
+      primitive: { topology: 'triangle-list', cullMode: 'none' },
+      depthStencil: { format: g.DEPTH, depthWriteEnabled: false, depthCompare: 'greater' },
+      multisample: { count: g.MSAA },
+    });
+    const bindEntries = [
         { binding: 0, resource: { buffer: g.frameUBO } },
         { binding: 1, resource: g.transView },
         { binding: 2, resource: g.skyView },
@@ -63,8 +71,9 @@ export class ShipRenderer {
         { binding: 7, resource: sh.sampler },
         { binding: 8, resource: { buffer: sh.ubo } },
         { binding: 9, resource: g.cshadowView },
-      ],
-    });
+    ];
+    this.bindGroup = this.device.createBindGroup({ layout: this.pipeline.getBindGroupLayout(0), entries: bindEntries });
+    this.paneBindGroup = this.device.createBindGroup({ layout: this.panePipeline.getBindGroupLayout(0), entries: bindEntries });
     // depth-only shadow pass (same vertex / instance layouts)
     const smod = await g.shader(SHIP_SHADOW, 'ship shadow');
     this.shadowPipeline = await this.device.createRenderPipelineAsync({
@@ -91,7 +100,7 @@ export class ShipRenderer {
     this.device.queue.writeBuffer(vbuf, 0, built.vertices);
     const ibuf = this.device.createBuffer({ size: built.indices.byteLength, usage: GU.INDEX | GU.COPY_DST, label: label + ' ib' });
     this.device.queue.writeBuffer(ibuf, 0, built.indices);
-    const mesh = { id: this.meshes.length, vbuf, ibuf, indexCount: built.indexCount, aabb: built.aabb, label, first: 0, n: 0, n2: 0, cpu: null, cpu2: null };
+    const mesh = { id: this.meshes.length, vbuf, ibuf, indexCount: built.indexCount, solidCount: built.paneStart ?? built.indexCount, aabb: built.aabb, label, first: 0, n: 0, n2: 0, cpu: null, cpu2: null };
     this.meshes.push(mesh);
     return mesh;
   }
@@ -171,7 +180,7 @@ export class ShipRenderer {
       if (!m.n) continue;          // only the shadow casters
       pass.setVertexBuffer(0, m.vbuf);
       pass.setIndexBuffer(m.ibuf, 'uint32');
-      pass.drawIndexed(m.indexCount, m.n, 0, 0, m.first);
+      pass.drawIndexed(m.solidCount, m.n, 0, 0, m.first);
     }
     pass.end();
   }
@@ -186,7 +195,21 @@ export class ShipRenderer {
       if (!n) continue;
       rp.setVertexBuffer(0, m.vbuf);
       rp.setIndexBuffer(m.ibuf, 'uint32');
-      rp.drawIndexed(m.indexCount, n, 0, 0, m.first);
+      rp.drawIndexed(m.solidCount, n, 0, 0, m.first);
+    }
+  }
+
+  /** The clear panes (glass of the canopies), blended over the scene: after the sea and the sky, which the glass shows. */
+  drawPanes(rp) {
+    if (!this.panePipeline || !this.count) return;
+    let set = false;
+    for (const m of this.meshes) {
+      const n = m.n + m.n2;
+      if (!n || m.solidCount >= m.indexCount) continue;
+      if (!set) { rp.setPipeline(this.panePipeline); rp.setBindGroup(0, this.paneBindGroup); rp.setVertexBuffer(1, this.instBuf); set = true; }
+      rp.setVertexBuffer(0, m.vbuf);
+      rp.setIndexBuffer(m.ibuf, 'uint32');
+      rp.drawIndexed(m.indexCount - m.solidCount, n, m.solidCount, 0, m.first);
     }
   }
 }

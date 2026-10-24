@@ -14,6 +14,7 @@ const ok = (c, m) => { console.log(c ? 'PASS' : 'FAIL', m); if (!c) { fail++; pr
 // published figures: length, span, height (m), number of engines, bomb load (kg), stated cruise and bombing altitude limits
 const REAL = {
   b17: { nation: 'USA', L: 22.66, span: 31.62, H: 5.82, engines: 4, bombKg: 2700 },
+  b29: { nation: 'USA', L: 30.18, span: 43.05, H: 9.01, engines: 4, bombKg: 9000 },
   g4m: { nation: 'Japan', L: 19.97, span: 24.89, H: 4.9, engines: 2, bombKg: 800 },
   lancaster: { nation: 'UK', L: 21.13, span: 31.09, H: 6.25, engines: 4, bombKg: 6400 },
   he111: { nation: 'Germany', L: 16.4, span: 22.6, H: 4.0, engines: 2, bombKg: 2000 },
@@ -43,7 +44,7 @@ for (const k of keys) {
   ok(Math.abs(span - r.span) / r.span < 0.005, `${k}: ${span.toFixed(2)} m span (published ${r.span})`);
   ok(Math.abs(w[2] + w[5]) < 0.05, `${k}: symmetric about the centre line`);
   // height standing on its three wheels (nose up by GROUND_PITCH): from the tyres to the highest point
-  const cp = Math.cos(GROUND_PITCH), sp = Math.sin(GROUND_PITCH);
+  const gp = PLANES[k].groundPitch ?? GROUND_PITCH, cp = Math.cos(gp), sp = Math.sin(gp);
   let top = -1e9, bot = 1e9;
   for (const [x, y] of [...verts(pm.meshes.whole), ...verts(pm.meshes.gear)]) { const yy = y * cp + x * sp; top = Math.max(top, yy); bot = Math.min(bot, yy); }
   ok((top - bot) / r.H > 0.85 && (top - bot) / r.H < 1.1, `${k}: ${(top - bot).toFixed(2)} m high on its wheels (published ${r.H})`);
@@ -70,7 +71,7 @@ for (const k of keys) {
   ok((ez.length === 0 || wl[2] <= Math.min(...ez) + 0.01) && (er.length === 0 || wr[5] >= Math.max(...er) - 0.01) && wl[5] <= 0.3 && wr[2] >= -0.3, `${k}: each wing has the nacelles on its side`);
   // the single propeller has its hub at the origin and the right size, and there is a mount for each engine
   const pa = M.prop.aabb;
-  ok(Math.abs(pa[4] - s.prop.r) < 0.25 && pa[3] - pa[0] < 0.6 && Math.abs(pa[2] + pa[5]) < s.prop.r * 0.6, `${k}: the propeller (${(pa[4] * 2).toFixed(2)} m across) is built round its hub`);
+  ok(Math.abs(pa[4] - s.prop.r) < 0.25 && pa[3] - pa[0] < (s.v4 ? 0.9 : 0.6) && Math.abs(pa[2] + pa[5]) < s.prop.r * 0.6, `${k}: the propeller (${(pa[4] * 2).toFixed(2)} m across) is built round its hub`);
   const mt = propsOf(s);
   ok(mt.length === n && mt.every((m, i) => Math.abs(m.z - s.engines[i].z) < 1e-9 && Math.abs(m.dir) === 1) && Math.abs(mt.reduce((a, m) => a + m.z, 0)) < 1e-6, `${k}: one propeller mount per engine, symmetric about the centre line, ${mt.map((m) => m.dir).join('/')} the senses of rotation`);
   // the engines are on the wings (clear of the fuselage) except a nose engine

@@ -20,11 +20,12 @@ meshes = [dec(k['house'])]
 if k.get('guns'):
     V, C, I = dec(k['guns']); c, s = np.cos(el), np.sin(el)
     V = np.stack([V[:, 0] * c - V[:, 1] * s, V[:, 0] * s + V[:, 1] * c, V[:, 2]], axis=1) + np.array([k['trunnion'][0], k['trunnion'][1], 0])
+    if fl.get('tint'): C = (C.astype(float) * 0.45 + np.array([150, 20, 20]) * 0.55).astype(np.uint8)      # --tint=1: the guns in red (what elevates)
     meshes.append((V, C, I))
 else:
     pass
 if k.get('guns') is None: pass
-W = 560; S = 120
+W = 560; S = float(fl.get('scale', 120)) if False else int(fl.get('scale', 120))
 out = Image.new('RGB', (W * 3, 460), (40, 44, 48))
 def draw(view, ox):
     dr = ImageDraw.Draw(out)

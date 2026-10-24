@@ -1,0 +1,178 @@
+{
+ "key": "bf109",
+ "name": "Messerschmitt Bf 109 F-4",
+ "axis_deg": 90,
+ "scale": {
+  "length": 8.85
+ },
+ "rules": [
+  {
+   "part": "prop",
+   "box": [
+    2.99,
+    5,
+    -3,
+    3,
+    -3,
+    3
+   ]
+  },
+  {
+   "part": "glass",
+   "clear": true,
+   "box": [
+    -1.6,
+    1.6,
+    0.2,
+    1.3,
+    -0.6,
+    0.6
+   ]
+  },
+  {
+   "part": "drop",
+   "box": [
+    -4.0,
+    -2.0,
+    0.8,
+    1.7,
+    -0.2,
+    0.2
+   ]
+  },
+  {
+   "part": "drop",
+   "absnz": 0.5,
+   "box": [
+    -2.6,
+    0.7,
+    0.65,
+    1.6,
+    -0.12,
+    0.12
+   ]
+  },
+  {
+   "part": "drop",
+   "box": [
+    -1.45,
+    -0.5,
+    0.9,
+    1.3,
+    -0.5,
+    0.02
+   ]
+  },
+  {
+   "part": "drop",
+   "box": [
+    -1.3,
+    -0.3,
+    1.1,
+    1.7,
+    -0.6,
+    0.6
+   ]
+  },
+  {
+   "part": "drop",
+   "box": [
+    -2.4,
+    -0.95,
+    0.95,
+    1.6,
+    -0.6,
+    0.6
+   ]
+  },
+  {
+   "part": "drop",
+   "absnz": 0.4,
+   "box": [
+    -1.05,
+    -0.55,
+    1.0,
+    1.45,
+    -0.45,
+    0.1
+   ]
+  },
+  {
+   "part": "drop",
+   "line": [
+    -3.7,
+    1.45,
+    0,
+    -1.0,
+    0.8,
+    0,
+    0.06
+   ]
+  },
+  {
+   "part": "drop",
+   "box": [
+    -4.45,
+    -4.0,
+    -0.1,
+    0.16,
+    -0.12,
+    0.12
+   ]
+  }
+ ],
+ "alpha_drop": true,
+ "wing_z": 0.55,
+ "tail_x": -3.5,
+ "drop_wires": true,
+ "budget": {
+  "body": 9000,
+  "tail": 12000,
+  "wingL": 2600,
+  "wingR": 2600,
+  "prop": 1800,
+  "glass": 700
+ },
+ "hub_depth": 0.12,
+ "mirror_wings": "R",
+ "wing_envelope": {
+  "side": "R",
+  "margin": [
+   0.05,
+   0.09
+  ],
+  "pct": 1.5,
+  "ytop": 90
+ },
+ "nocolor": [
+  "body",
+  "tail",
+  "wingL",
+  "wingR"
+ ],
+ "needles": {
+  "body": {
+   "box": [
+    -2.2,
+    0.9,
+    0.86,
+    1.8,
+    -0.8,
+    0.8
+   ],
+   "edge": 0.12,
+   "ar": 0.3
+  }
+ },
+ "cluster": [
+  "tail"
+ ],
+ "cluster_scale": {
+  "tail": [
+   1,
+   3,
+   8
+  ]
+ },
+ "cluster_contraction": "Quadric"
+}

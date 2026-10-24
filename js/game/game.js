@@ -8,6 +8,7 @@ import { IslandVisuals } from './render/islandVisual.js';
 import { BaseVisuals } from './render/baseVisual.js';
 import { VegetationVisuals } from './render/vegetationVisual.js';
 import { Terrain } from './sim/terrain.js';
+import { buildTheatre } from './sim/theatre.js';
 import { BY_ID } from './data/ships.js';
 import { PlaneVisuals } from './render/aircraftVisual.js';
 import { planeTypeFor } from './model/planes.js';
@@ -124,6 +125,7 @@ export class Game {
     e.hooks.prepare = () => this.prepare();
     e.hooks.preMain = (enc) => { if (this.shadowActive) this.shipRenderer.drawShadow(enc); };
     e.hooks.drawOpaque = (rp) => { if (!this.benchHide?.opaque) this.shipRenderer.draw(rp); };
+    e.hooks.drawGlass = (rp) => { if (!this.benchHide?.opaque) this.shipRenderer.drawPanes(rp); };
     e.hooks.drawOverlay = (rp) => { if (!this.benchHide?.particles) this.particles.draw(rp); };
     e.hooks.onWater = (tag, n) => this.onWater(tag, n);
   }
@@ -143,7 +145,30 @@ export class Game {
     this.vegetation.warm();
   }
 
+  /** The great war (config.theatre): two sides on a very large sea, every nation with its ports, its airfields and its task forces (sim/theatre.js). */
+  spawnTheatre(keepCamera = false) {
+    const w = this.world;
+    w.clear();
+    this.particles.n = 0;
+    w.rng = makeRng(this.config.seed);
+    buildTheatre(w, this.config.seed, { id: this.config.theatre });
+    w.timeLimit = 6 * 3600;
+    this.islandVisuals.set(w.terrain);
+    this.baseVisuals.set(w.terrain);
+    this.vegetation.set(w.terrain);
+    this.state = 'ready';
+    this.paused = false;
+    this.warmVisuals();
+    if (!keepCamera) {
+      this.camera.userChoice = false; this.camera.setMode('tactical');
+      const flag = w.ships.filter((s) => s.team === 1).sort((a, b) => b.stats.L - a.stats.L)[0] || w.ships[0];
+      if (flag) this.camera.setTarget(flag);
+    }
+    this.ui?.onSpawn?.();
+  }
+
   spawn(keepCamera = false) {
+    if (this.config.theatre) return this.spawnTheatre(keepCamera);
     const w = this.world;
     w.clear();
     this.particles.n = 0;
@@ -180,7 +205,8 @@ export class Game {
 
   start() {
     if (this.state !== 'ready') return;
-    for (const s of this.world.ships) s.cmd.throttle = 0.7;
+    for (const s of this.world.ships) s.cmd.throttle = this.config.theatre ? 0.5 : 0.7;
+    if (this.config.theatre && this.timeScale < 2) this.setTimeScale(4);      // (a war on a very large sea: the first hours are crossing it)
     this.world.start();
     this.state = 'running';
     // unless the player picked a camera, let the automatic director follow the action
@@ -230,6 +256,12 @@ export class Game {
   battleRadius() {
     let r = 1000;
     const ships = this.world.ships;
+    if (ships.length > 24) {
+      // (a theatre of war: the box round the ships, not every pair of them)
+      let x0 = 1e12, x1 = -1e12, z0 = 1e12, z1 = -1e12;
+      for (const s of ships) { x0 = Math.min(x0, s.x); x1 = Math.max(x1, s.x); z0 = Math.min(z0, s.z); z1 = Math.max(z1, s.z); }
+      return Math.max(r, Math.hypot(x1 - x0, z1 - z0) / 2);
+    }
     for (const a of ships) for (const b of ships) r = Math.max(r, Math.hypot(a.x - b.x, a.z - b.z) / 2);
     return r;
   }
@@ -348,7 +380,7 @@ export class Game {
     for (const q of w.missiles) {
       if (q.age < 0) continue;
       const hs = Math.hypot(q.vx, q.vz) || 1;
-      pv.addOrdnance(q.kind === 'sam' ? 'missileSam' : 'missileAsroc', q.x, q.y, q.z, Math.atan2(q.vx, -q.vz), Math.atan2(q.vy, hs), cam);
+      pv.addOrdnance(q.kind === 'sam' ? 'missileSam' : q.kind === 'ssm' ? (q.def.model === 'tomahawk' ? 'missileTomahawk' : 'missileHarpoon') : 'missileAsroc', q.x, q.y, q.z, Math.atan2(q.vx, -q.vz), Math.atan2(q.vy, hs), cam);
     }
     // the body of every shell within a few hundred metres of the camera (3.8 calibres long)
     for (const s of w.shells) {

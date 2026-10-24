@@ -1,0 +1,104 @@
+{
+ "key": "d3a",
+ "name": "Aichi D3A1 Type 99",
+ "fuselage": "^fuzel",
+ "nose": "val_vinta",
+ "scale": {
+  "span": 14.365
+ },
+ "wing": "krilo",
+ "drop": "^bomba|^Line09|^Line55|^pulemet|^color_verx",
+ "rules": [
+  {
+   "part": "body",
+   "material": "^shassi|^Torus|^Tube02|^Cylinder22"
+  },
+  {
+   "part": "prop",
+   "material": "^Line03",
+   "box": [
+    2.9,
+    6,
+    -3,
+    3,
+    -3,
+    3
+   ]
+  },
+  {
+   "part": "prop",
+   "material": "val_vinta"
+  },
+  {
+   "part": "drop",
+   "material": "^Line03"
+  },
+  {
+   "part": "drop",
+   "material": "^Box07",
+   "box": [
+    -9,
+    9,
+    -9,
+    9,
+    2.4,
+    9
+   ]
+  },
+  {
+   "part": "drop",
+   "material": "^Box07",
+   "box": [
+    -9,
+    9,
+    -9,
+    9,
+    -9,
+    -2.4
+   ]
+  },
+  {
+   "part": "drop",
+   "material": "^kabina"
+  },
+  {
+   "part": "wing",
+   "material": "krilo"
+  },
+  {
+   "part": "wing",
+   "material": "^Line05",
+   "box": [
+    -3.5,
+    4,
+    -9,
+    9,
+    -9,
+    9
+   ]
+  }
+ ],
+ "wing_z": 0.55,
+ "tail_x": -3.0,
+ "budget": {
+  "body": 10000,
+  "tail": 5000,
+  "wingL": 5500,
+  "wingR": 5500,
+  "prop": 1800
+ },
+ "recolor": {
+  "prop": [
+   48,
+   40,
+   34
+  ]
+ },
+ "hub_depth": 0.12,
+ "nocolor": [
+  "body",
+  "tail",
+  "wingL",
+  "wingR"
+ ]
+}

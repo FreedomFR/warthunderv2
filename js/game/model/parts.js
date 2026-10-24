@@ -336,6 +336,30 @@ export function torpedoTubes(b, o, pal) {
   b.pop();
 }
 
+/**
+ * A cruise-missile launcher on a low foundation: the armoured box launcher (Mk 143: four cells in two rows under one armoured lid) or the four canisters of a Mk 141 (Harpoon), both
+ * fixed and tilted 35 degrees up towards the front. o: { x, y (the deck), z, yaw (rad: the way the missiles point), kind: 'abl' | 'mk141' }.
+ */
+export function missileBox(b, o, pal) {
+  const col = rgb(pal.sup), dark = rgb('#25282a'), tilt = 35 * Math.PI / 180;
+  b.push().translate(o.x, o.y, o.z || 0).rotateY(o.yaw || 0);
+  b.block({ x0: -2.2, x1: 2.2, hw: 1.15, y0: 0, y1: 0.45 }, shade(col, 0.82), MAT.HULL);
+  b.push().translate(-0.6, 1.0, 0).rotateZ(tilt);
+  if (o.kind === 'mk141') {
+    b.box(0, -0.45, 0, 2.6, 0.2, 1.7, shade(col, 0.78), MAT.HULL);
+    for (const [yy, zz] of [[0.0, -0.32], [0.0, 0.32], [0.62, -0.32], [0.62, 0.32]]) {
+      b.rod(-2.6, 2.6, yy, zz, 0.27, 0.27, shade(col, 1.08), MAT.HULL, { seg: 10 });
+      b.rod(2.55, 2.62, yy, zz, 0.22, 0.22, dark, MAT.DARK, { seg: 10 });
+    }
+  } else {
+    b.box(0, 0, 0, 6.3, 1.25, 2.3, shade(col, 0.95), MAT.HULL);
+    b.box(0, 0.64, 0, 6.0, 0.06, 2.0, shade(col, 1.12), MAT.HULL);
+    for (const x of [-1.5, 1.5]) for (const z of [-0.55, 0.55]) b.box(x, 0.68, z, 1.15, 0.05, 0.85, dark, MAT.DARK);
+  }
+  b.pop();
+  b.pop();
+}
+
 /** Scatter small deck fittings (hatches, vents, bollards) between x0 and x1 using `rnd`. */
 export function deckClutter(b, hull, x0, x1, count, rnd, pal, zMax = 0.8) {
   const col = shade(rgb(pal.sup), 0.9);

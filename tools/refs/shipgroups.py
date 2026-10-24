@@ -143,7 +143,7 @@ for pid, d in part_tris.items():
         continue
     V = P[I[tr]].reshape(-1, 3)
     r = d['rule']
-    res['parts'][pid] = {'kind': r.get('kind', 'structure'), 'label': r.get('label', pid), 'spin': r.get('spin'), 'track': r.get('track'), 'bb': [round(float(v), 3) for v in np.concatenate([V.min(0), V.max(0)])], 'mesh': pack(tr)}
+    res['parts'][pid] = {'kind': r.get('kind', 'structure'), 'label': r.get('label', pid), 'spin': r.get('spin'), 'track': r.get('track'), 'plain': r.get('plain'), 'bb': [round(float(v), 3) for v in np.concatenate([V.min(0), V.max(0)])], 'mesh': pack(tr)}
 total = sum(len(np.concatenate(l)) for l in static_tris.values()) + (len(np.concatenate(fine_tris['fine'])) if fine_tris else 0) + sum(len(np.concatenate(d['tris'])) for d in part_tris.values())
 print(f"{total} triangles: static {sum(len(np.concatenate(l)) for l in static_tris.values())} in {len(static_tris)} classes, fine {len(np.concatenate(fine_tris['fine'])) if fine_tris else 0}, {len(res['parts'])} parts", file=sys.stderr)
 for k, v in sorted(stats.items(), key=lambda kv: -kv[1])[:14]:

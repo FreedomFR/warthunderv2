@@ -74,6 +74,7 @@ Les dégâts reçus se règlent sans toucher au code, par des multiplicateurs (1
 - **Balistique et conduite de tir réalistes** : secteurs de tir calculés sur la géométrie du navire, anticipation, dispersion qui diminue salve après salve.
 - **Îles et végétation** : rochers, îles vallonnées et montagneuses tirées de la graine, forêts procédurales selon le climat ; les navires s'échouent, les obus éclatent sur les pentes, la ligne de vue est testée.
 - **Bases militaires sur les îles** : aérodromes (piste, hangars, tour, réservoirs, DCA, avions en stationnement) d'où décollent de gros bombardiers qui bombardent la flotte à haute altitude puis reviennent se poser, batteries côtières de gros canons, DCA ; tout se détruit (hangars, réservoirs qui explosent, dépôt de munitions, canons, avions au sol).
+- **La grande guerre** : l'Axe (Japon, Allemagne, Italie) contre les Alliés (États-Unis, Royaume-Uni, France) sur une mer de 190 × 120 km, avec trois autres théâtres plus petits (Pacifique, Atlantique, Méditerranée). Chaque nation a ses îles, **un grand et un moyen aérodrome**, ses **ports**, ses batteries et ses escadres ; personne ne voit ce que son camp ne voit pas (horizon, radar, avions de patrouille) ; les navires **qui n'ont plus d'obus ou qui sont trop touchés font route vers un port, s'y amarrent, se ravitaillent et se font réparer**, puis reprennent la mer. La portée des canons, l'horizon, les radars et la dispersion des salves sont ceux de chaque marine, sans équilibrage. Voir `docs/ARCHITECTURE.md`.
 - **Flottes et tactique** : vaisseau amiral, ligne en colonne, écran de destroyers, porte-avions à l'abri derrière la ligne, cible commune.
 - **Explosions et naufrages** : explosion de munitions, coque brisée en deux, nappes de mazout qui brûlent.
 - **Effets** : océan FFT, ciel physique, sillages, gerbes, flammes de bouche à trois temps, fumée, DCA et traçantes.
@@ -140,7 +141,7 @@ voir `tools/trailer/README.md` pour refaire les vidéos.
 
 Les fiches sont dans `js/game/data/specs/` (avec leurs sources). Les champs que les sources ne donnaient pas (positions précises des tourelles, hauteurs de mâts…)
 sont marqués `estimated` : ce sont des estimations d'après le profil connu du navire. Le *Graf Zeppelin* et l'*Aquila* n'ont jamais été achevés ; ils sont
-modélisés d'après leur conception réelle.
+modélisés d'après leur conception réelle. Hors tableau, le *USS Hawaii* (classe Alaska, projet de navire de commandement CBC-1 de 1952, croiseur lourd américain à 24 canons de 127 mm, 16 de 76 mm/70 et 24 tubes) est dessiné d'après son modèle 3D (voir `docs/CREDITS.md`).
 
 ## Installation et développement
 

@@ -1,0 +1,142 @@
+{
+ "key": "il2",
+ "name": "Ilyushin Il-2 Type 3",
+ "axis_deg": 90,
+ "scale": {
+  "span": 14.6
+ },
+ "rules": [
+  {
+   "part": "drop",
+   "box": [
+    -5.4,
+    0.4,
+    1.35,
+    3,
+    -0.3,
+    0.3
+   ]
+  },
+  {
+   "part": "drop",
+   "box": [
+    -2.72,
+    -2.5,
+    0.55,
+    1.9,
+    -0.12,
+    0.12
+   ]
+  },
+  {
+   "part": "drop",
+   "box": [
+    -2.4,
+    -0.45,
+    0.7,
+    1.6,
+    -0.45,
+    0.45
+   ]
+  },
+  {
+   "part": "prop",
+   "box": [
+    4.55,
+    6,
+    -3,
+    3,
+    -3,
+    3
+   ]
+  },
+  {
+   "part": "drop",
+   "box": [
+    -2.2,
+    1.9,
+    -0.3,
+    0.56,
+    -0.42,
+    0.42
+   ]
+  },
+  {
+   "part": "glass",
+   "clear": true,
+   "box": [
+    -2.4,
+    2.2,
+    0.5,
+    2.0,
+    -0.7,
+    0.7
+   ]
+  },
+  {
+   "part": "canopy",
+   "box": [
+    -2.4,
+    2.2,
+    0.75,
+    2.0,
+    -0.65,
+    0.65
+   ]
+  }
+ ],
+ "wing_z": 1.0,
+ "tail_x": -3.5,
+ "budget": {
+  "body": 20000,
+  "tail": 6000,
+  "wingL": 8000,
+  "wingR": 8000,
+  "prop": 1800,
+  "glass": 900,
+  "canopy": 3500
+ },
+ "hub_depth": 0.12,
+ "drop_wires": true,
+ "mirror_wings": "L",
+ "recolor": {
+  "prop": [
+   48,
+   40,
+   34
+  ]
+ },
+ "cluster": [
+  "body",
+  "wingL",
+  "wingR",
+  "canopy",
+  "tail"
+ ],
+ "cluster_scale": {
+  "wingL": [
+   1,
+   5,
+   1
+  ],
+  "wingR": [
+   1,
+   5,
+   1
+  ],
+  "tail": [
+   1,
+   3,
+   3
+  ]
+ },
+ "cluster_contraction": "Quadric",
+ "body_overlap": 0.2,
+ "nocolor": [
+  "body",
+  "tail",
+  "wingL",
+  "wingR",
+  "canopy"
+ ]
+}

@@ -2,9 +2,9 @@
 //   body       the intact building (always drawn)
 //   body_ruin  what is left of it when it is destroyed (the walls that stand, the roof that fell in, a scorch mark)
 //   fine       small detail (ladders, vents, doors, railings), drawn only up close
-//   spin       the part that turns (the antenna of a radar), built round the vertical axis x = z = 0
+//   spin       the part that turns (the antenna of a radar, the jib of a quay crane), built round the vertical axis x = z = 0
 // Built in a canonical frame: the long side along x, the door (if any) on the +x end or the +z side, the origin on the ground in the middle. buildBaseModel
-// (baseMesh.js) turns that frame to the way the building faces. P: { D (along x), Wd (along z), h, pal, rng, variant, nation }.
+// (baseMesh.js) turns that frame to the way the building faces. The buildings that only a port has (warehouse, dockyard, crane) are in basePort.js. P: { D (along x), Wd (along z), h, pal, rng, variant, nation }.
 import { MeshBuilder, MAT } from './meshbuilder.js';
 import { makeRng } from '../math.js';
 import { roofRail } from './details.js';
@@ -16,7 +16,7 @@ const GLASS = '#0d141a';
 // ---- shared pieces of the ruins ---------------------------------------------------------------------------------------------------------------------------------------
 
 /** The black of a burnt-out ground: a few overlapping jagged discs inside the rectangle (hx, hz). */
-function scorch(b, rng, hx, hz, n = 3, y = 0.05) {
+export function scorch(b, rng, hx, hz, n = 3, y = 0.05) {
   for (let i = 0; i < n; i++) {
     const r = Math.min(hx, hz) * rng.range(0.55, 1.0) / (1 + i * 0.3);
     disc(b, rng.range(-1, 1) * hx * 0.25, y + i * 0.012, rng.range(-1, 1) * hz * 0.25, r, shade(C(CHAR), 0.8 + 0.3 * i), MAT.CONCRETE, { salt: i * 17 + (rng() * 50 | 0) }, 13, r * rng.range(0.75, 1.15));
@@ -24,7 +24,7 @@ function scorch(b, rng, hx, hz, n = 3, y = 0.05) {
 }
 
 /** A wall broken down to a jagged top: pieces of random height along (x0, z0) -> (x1, z1). */
-function brokenWall(b, rng, x0, z0, x1, z1, thick, hMax, col, y0 = -0.4) {
+export function brokenWall(b, rng, x0, z0, x1, z1, thick, hMax, col, y0 = -0.4) {
   const len = Math.hypot(x1 - x0, z1 - z0), n = Math.max(1, Math.round(len / 2.2));
   const yaw = Math.atan2(z1 - z0, x1 - x0), seg = len / n;
   for (let i = 0; i < n; i++) {
@@ -37,14 +37,14 @@ function brokenWall(b, rng, x0, z0, x1, z1, thick, hMax, col, y0 = -0.4) {
 }
 
 /** A sheet or a slab lying slanted on the rubble. */
-function fallen(b, x, y, z, sx, sy, sz, tiltX, tiltZ, yaw, col, mat = MAT.HULL) {
+export function fallen(b, x, y, z, sx, sy, sz, tiltX, tiltZ, yaw, col, mat = MAT.HULL) {
   b.push().translate(x, y, z).rotateY(yaw).rotateX(tiltX).rotateZ(tiltZ);
   slab(b, 0, 0, 0, sx, sy, sz, col, mat);
   b.pop();
 }
 
 /** A bent beam sticking out of the rubble. */
-function twisted(b, rng, x, z, h, col) {
+export function twisted(b, rng, x, z, h, col) {
   const a = rng.range(0, PI * 2), lean = rng.range(0.2, 0.8);
   const p0 = [x, -0.2, z], p1 = [x + Math.cos(a) * h * lean * 0.5, h * 0.55, z + Math.sin(a) * h * lean * 0.5];
   const p2 = [p1[0] + Math.cos(a + rng.range(-1, 1)) * h * 0.4, h * rng.range(0.85, 1.2), p1[2] + Math.sin(a + rng.range(-1, 1)) * h * 0.4];
@@ -53,7 +53,7 @@ function twisted(b, rng, x, z, h, col) {
 }
 
 /** Lumps and planks lying about, spread over (hx, hz). */
-function rubble(b, rng, hx, hz, n, col) {
+export function rubble(b, rng, hx, hz, n, col) {
   for (let i = 0; i < n; i++) {
     const s = rng.range(0.4, 1.8);
     fallen(b, rng.range(-1, 1) * hx, s * 0.2, rng.range(-1, 1) * hz, s * rng.range(0.8, 2), s * 0.4, s * rng.range(0.6, 1.4), rng.range(-0.4, 0.4), rng.range(-0.4, 0.4), rng.range(0, PI * 2), rng() < 0.4 ? shade(col, 0.6) : col, MAT.CONCRETE);
@@ -73,10 +73,10 @@ function raggedRing(b, rng, r, hMax, col, thick = 0.3) {
   }
 }
 
-const roofPick = (P, rng) => { const r = rng(); return r < 0.5 ? P.pal.roof : r < 0.8 ? P.pal.roof2 : P.pal.roof3; };
+export const roofPick = (P, rng) => { const r = rng(); return r < 0.5 ? P.pal.roof : r < 0.8 ? P.pal.roof2 : P.pal.roof3; };
 
 /** Dark window panes on the faces z = +-(hz + off), spaced along x. */
-function windowsX(b, x0, x1, step, y, hgt, wid, zs, col = GLASS) {
+export function windowsX(b, x0, x1, step, y, hgt, wid, zs, col = GLASS) {
   for (let x = x0; x <= x1 + 1e-6; x += step) for (const z of zs) slab(b, x, y, z, wid, hgt, 0.08, C(col), MAT.GLASS);
 }
 
@@ -441,15 +441,18 @@ function post(b, P, ruin) {
 
 const BUILDERS = { hangar, tower, tank, barracks, radar, depot, bunker: depot, post };
 
-/** The meshes of one building. Returns the packed mesh ({ vertices, indices, ..., groups: { body, body_ruin, fine?, spin? } }) and { spin } for what turns. */
-export function buildPartMesh(kind, P) {
-  const fn = BUILDERS[kind] || barracks;
+/** How a part turns: radar antennas go round, a quay crane swings its jib to and fro (rate in rad/s, swing = the half angle in radians, 0 = turns all the way round). */
+const SPIN = { radar: { rate: 0.9, swing: 0 }, crane: { rate: 0.16, swing: 0.95 } };
+
+/** The meshes of one building. Returns the packed mesh ({ vertices, indices, ..., groups: { body, body_ruin, fine?, spin? } }) and { spin } for what turns. `builders`: another table of drawing functions (the port ones). */
+export function buildPartMesh(kind, P, builders = BUILDERS) {
+  const fn = builders[kind] || BUILDERS[kind] || barracks;
   const b = new MeshBuilder();
   P.rrng = makeRng(P.seed * 7 + 3);
   P.rng = makeRng(P.seed * 13 + 1);
   b.group('body', () => fn(b, P, false));
   b.group('body_ruin', () => fn(b, P, true));
   const out = b.build();
-  const spin = out.groups.spin ? { x: 0, y: 0, z: 0, rate: kind === 'radar' ? 0.9 : 0 } : null;
+  const spin = out.groups.spin ? { x: 0, y: 0, z: 0, rate: 0, swing: 0, ...SPIN[kind] } : null;
   return { mesh: out, spin };
 }

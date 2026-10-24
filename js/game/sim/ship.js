@@ -50,6 +50,8 @@ export class Ship {
     this.propAngle = 0;             // the screws, for the eye: turned by the speed (see render/shipVisual.js)
     this.cmd = makeCommand();
     this.controller = null;
+    this.dock = null;               // alongside a port, or going in or out (sim/ports.js): moved by the port, not by her engines
+    this.mission = null;            // what the captain is doing besides fighting: { type: 'resupply', port } (sim/logistics.js)
 
     this.state = 'afloat';          // afloat | sinking | sunk
     this.waterFill = 0; this.floodTrim = 0; this.floodList = 0;      // the water in the hull (see hull.js): there are no hit points
@@ -109,7 +111,7 @@ export class Ship {
     // carrier air group
     // the share of fighters in the air group (escort and patrol) depends on the navy (USN 1944: 36 of 91), the rest are bombers
     const nFight = stats.air ? Math.round(stats.air.capacity * ({ USA: 0.38, UK: 0.34, Germany: 0.4, Italy: 0.35 }[stats.nation] ?? 0.26)) : 0;
-    this.air = stats.air ? { ready: stats.air.capacity - nFight, fReady: nFight, cooldown: world.rng.range(5, 25), capCooldown: 30, wave: 0, servicing: [] } : null;
+    this.air = stats.air ? { ready: stats.air.capacity - nFight, fReady: nFight, cap0: stats.air.capacity, fCap0: nFight, cooldown: world.rng.range(5, 25), capCooldown: 30, wave: 0, servicing: [] } : null;      // (cap0 / fCap0: what she sailed with, for the port to restore)
     this.parkType = this.air ? planeTypeFor(stats.nation, 'dive') : null;
     this.parked = 0;
     // fire control
@@ -290,6 +292,22 @@ export class Ship {
     this.torpLeft = Math.floor(this.torpLeft * (1 - 1 / nTubes));
   }
 
+  /** A missile launcher destroyed: its share of the stock of its system is lost, and what was in the cells may go off (a fire, a blast the size of a few warheads). */
+  launcherLost(m, world, owner) {
+    const p = this.model.parts[m.part];
+    const sys = p && this.msl.find((s) => s.def.id === p.sys);
+    if (!sys || sys.left <= 0) return;
+    const n = Math.max(1, this.model.parts.filter((q) => q.kind === 'launcher' && q.sys === p.sys).length);
+    const lost = Math.ceil(sys.left / n);
+    sys.left = Math.max(0, sys.left - lost);
+    this.addFire(m.x, m.y, m.z, 0.8);
+    if (world.rng() < 0.35) {
+      const tnt = Math.min(lost, 4) * sys.def.filler * 0.35;
+      blast(world, this, m.x, m.y, m.z, tnt, 'outside', owner, 'bomb');
+      world.events.push({ type: 'explosion', x: this.toWorld(m.x, m.y, m.z, [0, 0, 0])[0], y: this.y + m.y, z: this.toWorld(m.x, m.y, m.z, [0, 0, 0])[2], size: 0.8 });
+    }
+  }
+
   /** Hangar or aviation-fuel store destroyed: the aircraft below burn, fuel fires. */
   hangarLost(m, world, owner) {
     if (this.air) { this.air.ready = Math.floor(this.air.ready * 0.4); this.air.fReady = Math.floor(this.air.fReady * 0.4); }
@@ -420,7 +438,9 @@ export class Ship {
     const afloat = this.state === 'afloat';
 
     // ---- motion -------------------------------------------------------------------------------
-    if (afloat) {
+    if (this.dock) {
+      // in a port, being warped in or out or lying alongside: sim/ports.js sets the position, the heading and the speed
+    } else if (afloat) {
       const c = this.cmd;
       // autopilot
       let rudderCmd = c.rudder;
@@ -448,8 +468,10 @@ export class Ship {
     // a screw turns about five times a second at full speed (a turn per frame stays under a quarter of the angle between two blades)
     this.propAngle = (this.propAngle + this.speed / Math.max(1, st.maxSpeed) * 30 * dt) % (Math.PI * 2);
     const fx = Math.sin(this.heading), fz = -Math.cos(this.heading);
-    this.vx = fx * this.speed; this.vz = fz * this.speed;
-    this.x += this.vx * dt; this.z += this.vz * dt;
+    if (!this.dock) {
+      this.vx = fx * this.speed; this.vz = fz * this.speed;
+      this.x += this.vx * dt; this.z += this.vz * dt;
+    }
 
     // ---- wave response -----------------------------------------------------------------------------------
     const pts = this.model.floatPts;

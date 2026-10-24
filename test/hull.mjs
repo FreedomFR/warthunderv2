@@ -48,7 +48,7 @@ const run = (w, secs, f) => { for (let i = 0; i < secs * 10; i++) { w.update(0.1
   const { w, s, e } = mk('iowa');
   s.x = 0; s.z = 0; e.x = 0; e.z = -12000;      // (this one is brought to gun range)
   s.cmd.main.target = e; s.cmd.main.fire = true; s.cmd.sec.fire = true;
-  run(w, 5);
+  run(w, 25);                                   // (the fire control takes about 15 s to range in on a target first sighted: sim/accuracy.js)
   const shots0 = s.shotsFired;
   s.destroy(null, 'flood');
   run(w, 20);

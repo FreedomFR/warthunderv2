@@ -1,9 +1,9 @@
 // Reading the baked reference meshes (ships/<id>_baked.js, ships/<id>_mounts_baked.js, made by tools/refs/bake*.py): base64 pieces -> positions in metres, smooth normals, colours, indices.
 
 /** One baked piece { pos (int16 x y z), col (u8 r g b), idx (u16 or u32), wide } at the given quantisation scale: typed arrays ready for MeshBuilder.raw. */
-export function decodeBaked(piece, scale) {
+export function decodeBaked(piece, scale, creaseDeg = 40) {
   const bytes = (s) => { const bin = atob(s), u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return u; };
-  const q = new Int16Array(bytes(piece.pos).buffer), col = bytes(piece.col), ib = bytes(piece.idx).buffer;
+  const q = new Int16Array(bytes(piece.pos).buffer), col = piece.col ? bytes(piece.col) : new Uint8Array(q.length), ib = bytes(piece.idx).buffer;      // (no colour: a piece that the shader paints)
   const idx = piece.wide ? new Uint32Array(ib) : new Uint16Array(ib);
   const pos = new Float32Array(q.length);
   for (let i = 0; i < q.length; i++) pos[i] = q[i] / scale;
@@ -19,7 +19,7 @@ export function decodeBaked(piece, scale) {
   const fill = start.slice(0, -1), adj = new Uint32Array(nT * 3);
   for (let t = 0; t < nT; t++) for (let k = 0; k < 3; k++) adj[fill[idx[t * 3 + k]]++] = t;
   const P2 = new Float32Array(nT * 9), N2 = new Float32Array(nT * 9), C2 = new Uint8Array(nT * 9), I2 = new Uint32Array(nT * 3);
-  const COS = Math.cos(40 * Math.PI / 180);
+  const COS = Math.cos(creaseDeg * Math.PI / 180);
   for (let t = 0; t < nT; t++) {
     const fx = fn[t * 3], fy = fn[t * 3 + 1], fz = fn[t * 3 + 2], fl = Math.hypot(fx, fy, fz) || 1;
     for (let k = 0; k < 3; k++) {

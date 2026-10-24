@@ -2,6 +2,7 @@
 import { shipStatus, setMeters, LEVEL_COLOR, planeText, planeLevel } from './shipstate.js';
 import { NATIONS, BY_ID, shipsOf, typeName, nationName } from '../data/ships.js';
 import { PRESETS } from '../scenarios.js';
+import { THEATRES } from '../data/theatre.js';
 import { TEAM_COLORS } from '../sim/world.js';
 import { shipNames } from '../sim/shipdata.js';
 import { CAMERA_MODES, PLANE_VIEWS } from './cameras.js';
@@ -69,12 +70,15 @@ export function createUI(game) {
   const islandSel = h('select', { onchange: (e) => { game.config.islands = Number(e.target.value); changed(); } }, [['0', 'Aucune'], ['1', 'Quelques-unes'], ['2', 'Archipel']].map(([v, t]) => h('option', { value: v, selected: Number(v) === game.config.islands }, t)));
   const baseSel = h('select', { title: 'Terrains d\'aviation et batteries côtières sur les îles (il faut des îles)', onchange: (e) => { game.config.bases = Number(e.target.value); changed(); } }, [['0', 'Aucune'], ['1', 'Quelques-unes'], ['2', 'Fortifiées']].map(([v, t]) => h('option', { value: v, selected: Number(v) === game.config.bases }, t)));
   const presetSel = h('select', { onchange: () => {} }, h('option', { value: '' }, '— Choisir un scénario —'), PRESETS.map((p) => h('option', { value: p.id }, p.name)));
+  const theatreSel = h('select', {}, Object.values(THEATRES).map((t) => h('option', { value: t.id }, t.name)));
   const setup = h('div', { id: 'setup', class: 'panel' },
     h('div', { class: 'title' }, h('span', { class: 'big' }, 'Combat naval'), h('span', { class: 'sub' }, 'Simulation de la Seconde Guerre mondiale')),
     h('div', { class: 'row' }, h('a', { class: 'btn small', href: 'wiki.html', target: '_blank', title: 'Fiches techniques et arbres par nation' }, 'Wiki des navires'), h('a', { class: 'btn small', href: 'viewer.html', target: '_blank', title: 'Voir chaque navire et avion en 3D' }, 'Visualiseur 3D')),
     h('div', { class: 'row' }, h('button', { class: 'btn small', title: 'Une bataille filmée sous plusieurs angles, puis un rapport de performance à copier ou partager', onclick: () => startBench() }, 'Test de performance')),
     h('div', { class: 'step' }, h('b', {}, '1'), 'Un scénario tout prêt… '),
     h('div', { class: 'row' }, presetSel, h('button', { class: 'btn', onclick: () => loadPreset(presetSel.value) }, 'Charger')),
+    h('div', { class: 'step' }, h('b', {}, '★'), 'Une guerre sur une très grande mer'),
+    h('div', { class: 'row' }, theatreSel, h('button', { class: 'btn primary', title: 'Chaque nation a ses îles, un grand et un moyen aérodrome, ses ports et ses escadres ; personne ne voit ce que son camp ne voit pas ; les navires vont au port se ravitailler et se faire réparer', onclick: () => startTheatre() }, 'Lancer la guerre')),
     h('div', { class: 'step' }, h('b', {}, '2'), '… ou vos propres flottes'),
     teamsBox,
     h('div', { class: 'row' }, h('button', { class: 'btn small', onclick: () => addTeam() }, '+ Équipe'), h('button', { class: 'btn small', onclick: () => randomize() }, 'Flottes aléatoires'), h('button', { class: 'btn small', onclick: () => { game.config.seed = (Math.random() * 1e6) | 0; seedInput.value = game.config.seed; changed(); } }, 'Nouvelle graine')),
@@ -153,9 +157,15 @@ export function createUI(game) {
     game.config.teams.push({ name: TEAM_COLORS[i].name, rgb: TEAM_COLORS[i].rgb, entries: [{ id: 'fletcher', count: 2 }] });
     changed(); renderTeams();
   }
+  function startTheatre() {
+    game.config.theatre = theatreSel.value || 'war';
+    game.spawn();
+    camSetup();
+  }
   function loadPreset(id) {
     const p = PRESETS.find((x) => x.id === id);
     if (!p) return;
+    game.config.theatre = false;
     game.config.teams = p.teams.map((t, i) => ({ name: t.name, rgb: TEAM_COLORS[i].rgb, entries: t.entries.map((x) => ({ ...x })) }));
     changed(); renderTeams();
     doSpawn();
@@ -183,6 +193,7 @@ export function createUI(game) {
   }
   function doSpawn() {
     ensureTeams();
+    game.config.theatre = false;
     game.spawn();
     camSetup();
   }
@@ -229,7 +240,7 @@ export function createUI(game) {
   const camBar = h('div', { id: 'cambar', class: 'hud' },
     h('span', { class: 'cgrp', 'data-g': 'Bataille' }, camBtn('auto'), camBtn('tactical'), camBtn('free')),
     h('span', { class: 'cgrp', 'data-g': 'Navire' }, camBtn('follow'), camBtn('orbit'), camBtn('bridge'), camBtn('shell')),
-    h('span', { class: 'cgrp', 'data-g': 'Avions' }, camBtn('plane'), camBtn('cockpit')),
+    h('span', { class: 'cgrp', 'data-g': 'Avions' }, camBtn('plane')),
     subj);
   // what the camera shows, in words, above the camera bar
   const caption = h('div', { id: 'caption' });
@@ -267,7 +278,7 @@ export function createUI(game) {
       h('i', {}, 'Caméras'),
       h('b', {}, '1 · 6 · 7'), h('span', {}, 'La bataille : caméra automatique, vue tactique de dessus, caméra libre'),
       h('b', {}, '2 · 3 · 4 · 5'), h('span', {}, 'Un navire : poursuite, orbite, passerelle, obus'),
-      h('b', {}, '8 · 9  ·  V'), h('span', {}, 'Un avion : poursuite (V change la vue : passage, depuis le navire visé), cockpit'),
+      h('b', {}, '8  ·  V'), h('span', {}, 'Un avion : poursuite (V change la vue : passage, depuis le navire visé)'),
       h('b', {}, 'N / B'), h('span', {}, 'Navire (ou avion) suivant / précédent ; un clic sur un navire, sur son nom à droite ou sur la carte le sélectionne'),
       h('b', {}, 'Glisser / molette'), h('span', {}, 'Tourner autour du navire, zoom (altitude en vue tactique, vitesse en caméra libre)'),
       h('b', {}, 'ZQSD / WASD, Espace, Ctrl, Maj'), h('span', {}, 'Déplacement en caméra libre (Maj = rapide) et en vue tactique'),
@@ -488,6 +499,13 @@ export function createUI(game) {
       if (e.type === 'baseDown') {
         const tc = world.teams[e.base.team];
         state.killFeed.push({ t: performance.now(), text: `${e.base.layout.kind === 'airfield' ? "L'aérodrome" : 'La batterie côtière'} de ${tc ? tc.name : e.base.nation} est hors de combat`, c1: '#ccc', c2: tc ? css(tc.rgb) : '#ccc', v: { name: '' }, killer: null, plane: true });
+        if (state.killFeed.length > 6) state.killFeed.shift();
+        continue;
+      }
+      if (e.type === 'resupply' || e.type === 'moored' || e.type === 'dockEnd') {
+        const tc = world.teams[e.ship.team];
+        const text = e.type === 'resupply' ? `${e.ship.name} fait route vers le port (${e.why === 'ammo' ? 'plus de munitions' : 'avaries'})` : e.type === 'moored' ? `${e.ship.name} est à quai` : `${e.ship.name} reprend la mer, réparé et ravitaillé`;
+        state.killFeed.push({ t: performance.now(), text, c1: '#ccc', c2: tc ? css(tc.rgb) : '#ccc', v: { name: '' }, killer: null, plane: true });
         if (state.killFeed.length > 6) state.killFeed.shift();
         continue;
       }

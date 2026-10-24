@@ -5,6 +5,7 @@
 //   right astern and low), rest [yaw, pitch] (where the guns point with nothing to shoot at), cal (mm), n (barrels), gap (m between them), start (m from the pivot to the
 //   breech: the receiver sits there, the barrels go on from it), dy (m: the guns above the pivot), win (a window that turns with the guns: ball and chin turrets), part ('body' | 'tail') }
 import { frameOf } from './heavy.js';
+import { GUN_MASKS } from '../data/gunmasks.js';
 import { MAT, rgb, shade } from './meshbuilder.js';
 
 const PI = Math.PI;
@@ -32,16 +33,17 @@ export const GUN_RATE = (cal) => (cal >= 20 ? 9 : cal >= 12 ? 13 : 16);
 // x: the pivot along the fuselage (in the rear of the glazing); open: an open cockpit, the gun on a ring above the coaming. The fields of fire: a flexible gun swings wide but the
 // fuselage and the tail stop it below and astern (lo), the fin right astern and low; a biplane's gunner is hemmed in by the lower wing.
 const SINGLE = {
-  sbd: [{ x: -1.55, cal: 7.62, n: 2, h: 1.25, hi: 1.3, lo: -0.35, fin: true }],                   // twin .30 Browning M2 on a flexible mount
-  tbf: [{ x: -1.8, cal: 12.7, n: 1, turret: true, dome: 0.5, h: PI, hi: 1.45, lo: -0.04, fin: true },  // the Grumman 150SE turret
+  sbd: [{ x: -0.75, cal: 7.62, n: 2, h: 1.5, hi: 1.3, lo: -0.35, fin: true }],                   // twin .30 Browning M2 on a flexible mount
+  tbf: [{ x: -1.3, cal: 12.7, n: 1, turret: true, dome: 0.5, h: PI, hi: 1.45, lo: -0.04, fin: true },  // the Grumman 150SE turret
     { x: -3.1, cal: 7.62, n: 1, belly: true, h: 0.85, hi: -0.12, lo: -1.1 }],                     // the .30 in the tunnel under the tail
-  d3a: [{ x: -1.65, cal: 7.7, n: 1, h: 1.05, hi: 1.2, lo: -0.3, fin: true }],                      // Type 92
+  d3a: [{ x: -0.7, cal: 7.7, n: 1, h: 1.2, hi: 1.2, lo: -0.3, fin: true }],                      // Type 92
   b5n: [{ x: 0.55, cal: 7.7, n: 1, h: 1.1, hi: 1.15, lo: -0.4, fin: true }],
   swordfish: [{ x: -1.8, cal: 7.7, n: 1, open: true, h: 1.5, hi: 1.3, lo: -0.5 }],                 // Vickers K
+  il2: [{ x: -0.7, cal: 12.7, n: 1, h: 0.7, hi: 1.15, lo: -0.1, fin: true }],                       // the UBT 12.7 mm of the gunner, in the rear cockpit
   skua: [{ x: -1.6, cal: 7.7, n: 1, h: 1.05, hi: 1.2, lo: -0.3, fin: true }],
   ju87: [{ x: 0.3, cal: 7.92, n: 1, h: 1.2, hi: 1.25, lo: -0.45, fin: true }],                     // MG 15
   fi167: [{ x: 0.15, cal: 7.92, n: 1, h: 1.25, hi: 1.2, lo: -0.5 }],
-  pl10: [{ x: -1.85, cal: 7.5, n: 1, open: true, h: 1.2, hi: 1.2, lo: -0.5 }],                     // Darne
+  pl10: [{ x: -1.85, cal: 7.5, n: 2, open: true, h: 1.2, hi: 1.2, lo: -0.5 }],                     // Darne
 };
 
 function singleGuns(spec, key) {
@@ -60,7 +62,8 @@ function singleGuns(spec, key) {
 
 /** The calibre of the guns of each position of the land-based bombers, in the order of their sheet's `guns` (bomberdata.js). */
 const HEAVY_CAL = {
-  b17: [12.7, 12.7, 12.7, 12.7, 12.7, 12.7, 12.7],          // chin, cheek, top, ball, two waist, tail: all .50 Browning
+  b29: [12.7, 12.7, 12.7, 12.7, 12.7, 20],                  // four remote turrets and the tail: .50 Browning, the tail also a 20 mm
+  b17: [12.7, 12.7, 12.7, 12.7, 12.7, 12.7, 12.7, 12.7, 12.7],          // chin, port cheek, top, ball, two waist, tail, starboard cheek, radio room: all .50 Browning
   lancaster: [7.7, 7.7, 7.7],                              // FN5, FN50, FN20: .303 Browning
   g4m: [7.7, 7.7, 7.7, 7.7, 20],                           // nose, dorsal, the two side blisters: Type 92; the tail cone: a Type 99 20 mm cannon
   he111: [7.92, 7.92, 7.92, 7.92, 7.92],                   // MG 15 in the nose, the B-Stand, the gondola, the two side windows
@@ -74,11 +77,19 @@ function heavyGuns(s, key) {
   const out = [];
   (s.guns || []).forEach((g, i) => {
     const d = g.d ?? (g.d0 + g.d1) / 2, x = F.X(d), q = F.at(x), cal = cals[i] || 7.7, side = g.side || 1;
-    const base = { id: i, t: g.t, cal, n: g.n || 1, gap: 0.18, start: 0, dy: 0, turret: false, fin: false, part: d > cut ? 'tail' : 'body' };
+    const base = { id: i, t: g.t, cal, n: g.n || 1, gap: 0.18, start: 0, dy: g.dy || 0, turret: false, fin: false, part: d > cut ? 'tail' : 'body' };
     switch (g.t) {
       case 'dome': {            // dorsal turret: all round, from the horizontal up; the fin is in the way right astern
         const yb = q.yc + q.ry * 0.97;
         out.push({ ...base, pivot: [x, yb + 0.1, 0], turret: true, arc: { c: PI, h: PI }, lo: -0.04, hi: 1.45, fin: oneFin, rest: [PI, 0.1], n: g.n || 2, gap: 0.2, start: g.r * 0.45, dy: g.r * 0.38 });
+        break;
+      }
+      case 'cheek': {           // a gun at the side of the nose glazing: ahead and out to its own side
+        out.push({ ...base, t: 'nose', pivot: [x, g.y ?? 0, side * q.rz * 0.8], arc: { c: side * 0.5, h: 0.95 }, lo: -0.65, hi: 0.5, rest: [side * 0.3, -0.05], start: 0.02 });
+        break;
+      }
+      case 'hatch': {           // the gun of the radio room: through the roof, up and astern
+        out.push({ ...base, t: 'hump', pivot: [x, q.yc + q.ry + 0.08, 0], arc: { c: PI, h: 1.35 }, lo: 0.0, hi: 1.35, fin: oneFin, rest: [PI, 0.5], start: 0.02 });
         break;
       }
       case 'ball': {            // the ball turret: all round, from the horizontal straight down
@@ -118,6 +129,8 @@ function heavyGuns(s, key) {
       }
       default: break;
     }
+    const o = out[out.length - 1];
+    if (o && o.id === i) { if (g.pivot) o.pivot = g.pivot.slice(); if (g.nowin) delete o.win; }      // (a position measured on the model: where the guns come out of its turret, whose housing is the model's)
   });
   return out;
 }
@@ -126,18 +139,44 @@ const cache = new Map();
 /** The gun positions of an aircraft type (an empty list for the fighters and the aircraft without a gunner). */
 export function planeGuns(spec, key) {
   let g = cache.get(key);
-  if (!g) { g = spec.engines ? heavyGuns(spec, key) : singleGuns(spec, key); cache.set(key, g); }
+  if (!g) {
+    g = spec.engines ? heavyGuns(spec, key) : singleGuns(spec, key);
+    // (the directions that the aircraft's own structure blocks, measured on its drawn model: [pitch, yaw from, yaw to] in degrees, 5 degree cells)
+    const masks = GUN_MASKS[key];
+    if (masks) for (const q of g) {
+      const list = masks[q.id];
+      if (!list) continue;
+      q.blocked = new Uint8Array(72 * 36);
+      for (const [pd, y0, y1] of list) for (let y = y0; y < y1; y += CELL) q.blocked[cellOf(y * PI / 180 + 0.001, pd * PI / 180 + 0.001)] = 1;
+    }
+    cache.set(key, g);
+  }
   return g;
 }
 
-/** Can position g bear on the direction (yaw, pitch) in the frame of the aircraft? */
-export function inArc(g, yaw, pitch) {
+/** The cells of the table of blocked directions: 5 degrees in yaw (72 round) by 5 in pitch (36 from straight down to straight up). */
+const CELL = 5;
+const cellOf = (yaw, pitch) => {
+  const yi = ((Math.floor((yaw * 180 / PI + 180) / CELL) % 72) + 72) % 72, pi = Math.max(0, Math.min(35, Math.floor((pitch * 180 / PI + 90) / CELL)));
+  return pi * 72 + yi;
+};
+
+/** The field of fire of position g as designed: the arc, the pitch limits and the fin, without what the aircraft's own structure blocks (see isBlocked). */
+export function inField(g, yaw, pitch) {
   if (pitch < g.lo || pitch > g.hi) return false;
   let d = yaw - g.arc.c;
   d = Math.atan2(Math.sin(d), Math.cos(d));
   if (Math.abs(d) > g.arc.h) return false;
   if (g.fin) { const a = Math.atan2(Math.sin(yaw - PI), Math.cos(yaw - PI)); if (Math.abs(a) < 0.13 && pitch < 0.55) return false; }   // the fin and the tailplane are in the way
   return true;
+}
+
+/** Is the way from the muzzle along (yaw, pitch) stopped by the aircraft itself (its wing, its tail, its cockpit)? From data/gunmasks.js, made by tools/audit/gunarcs.mjs. */
+export const isBlocked = (g, yaw, pitch) => !!g.blocked && g.blocked[cellOf(yaw, pitch)] === 1;
+
+/** Can position g bear on the direction (yaw, pitch) in the frame of the aircraft? */
+export function inArc(g, yaw, pitch) {
+  return inField(g, yaw, pitch) && !isBlocked(g, yaw, pitch);
 }
 
 /** The muzzle of position g, in the frame of the aircraft, with its guns at (yaw, pitch). */

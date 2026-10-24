@@ -24,6 +24,8 @@ export const AMMO = {
   mine20: { name: '20 mm Minengeschoss', cal: 20, dmg: 2.0, fire: 0.7, blast: 25 },
   hei20hs: { name: '20 mm HS.404 HEI', cal: 20, dmg: 3.3, fire: 0.9, blast: 8 },
   ap20: { name: '20 mm AP-T', cal: 20, dmg: 2.5, fire: 0.25, blast: 0 },
+  hei23: { name: '23 mm VYa HE-I', cal: 23, dmg: 3.2, fire: 0.75, blast: 10 },
+  api23: { name: '23 mm VYa API', cal: 23, dmg: 2.9, fire: 0.45, blast: 2 },
 };
 
 /** The belts: the share of each round in the belt. */
@@ -33,11 +35,15 @@ export const BELTS = {
   jp20: { hei20t99a: 0.65, ap20: 0.35 },                                        // the Type 99 cannon: HE-I (the tracer is one too) and AP-T
   uk303: { ap303: 0.4, inc303: 0.4, ball303: 0.2 },                             // late 1941: half AP, half incendiary
   de792: { ball792: 1 },
-  de20ff: { mine20: 0.6, hei20ff: 0.3, ap20: 0.1 },                             // the MG FF/M: mostly Minengeschoss
+  de20ff: { mine20: 0.6, hei20ff: 0.3, ap20: 0.1 },
+  de20mg: { mine20: 0.55, hei20ff: 0.2, ap20: 0.25 },                             // the MG 151/20: Minengeschoss, high explosive and armour-piercing tracer                             // the MG FF/M: mostly Minengeschoss
   fr20: { hei20hs: 0.75, ap20: 0.25 },
   fr75: { ball75: 1 },
   it127: { breda127: 1 },
+  it77: { ball303: 0.6, ap303: 0.4 },                                           // the 7,7 mm Breda-SAFAT: ball and AP
   mg131: { mg131: 1 },
+  ru23: { hei23: 0.55, api23: 0.45 },                                             // the VYa-23 of the Il-2: HE-I and armour-piercing incendiary
+  ru762: { ball303: 0.45, ap303: 0.4, inc303: 0.15 },                            // the ShKAS: ball, AP and incendiary (rifle calibre)
 };
 
 /** The guns: calibre (mm), cyclic rate (rounds a minute, as fired through the propeller or from the wing), a long burst's worth of the rounds a gun carries. */
@@ -48,25 +54,52 @@ export const GUNS = {
   t99: { name: 'Type 99 Mk 1 (20 mm)', cal: 20, rpm: 520, v0: 600 },
   mg17: { name: 'MG 17 (7,92 mm)', cal: 7.92, rpm: 1000, v0: 785 },
   mgff: { name: 'MG FF/M (20 mm)', cal: 20, rpm: 540, v0: 585 },
+  mg151: { name: 'MG 151/20 (20 mm)', cal: 20, rpm: 700, v0: 705 },
   hs404: { name: 'Hispano HS.404 (20 mm)', cal: 20, rpm: 650, v0: 860 },
   mac: { name: 'MAC 1934 (7,5 mm)', cal: 7.5, rpm: 1200, v0: 830 },
   breda127: { name: 'Breda-SAFAT (12,7 mm)', cal: 12.7, rpm: 600, v0: 760 },
+  vya23: { name: 'VYa-23 (23 mm)', cal: 23, rpm: 550, v0: 905 },
+  shkas: { name: 'ShKAS (7,62 mm)', cal: 7.62, rpm: 1800, v0: 825 },
+  vickers: { name: 'Vickers .303', cal: 7.7, rpm: 950, v0: 745 },
+  darne: { name: 'Darne (7,5 mm)', cal: 7.5, rpm: 1300, v0: 700 },
+  safat77: { name: 'Breda-SAFAT (7,7 mm)', cal: 7.7, rpm: 1100, v0: 740 },
 };
 
-/** The fit of each fighter: the guns, how many, the rounds each carries (a drum of 60 for a 20 mm cannon is 7 s of fire), the belt. */
-export const FIGHTER_GUNS = {
-  f6f: [{ gun: 'm2', n: 6, rpg: 400, belt: 'us50' }],
-  a6m: [{ gun: 't97', n: 2, rpg: 600, belt: 'jp77' }, { gun: 't99', n: 2, rpg: 60, belt: 'jp20' }],
-  fulmar: [{ gun: 'b303', n: 8, rpg: 750, belt: 'uk303' }],
-  bf109t: [{ gun: 'mg17', n: 2, rpg: 500, belt: 'de792' }, { gun: 'mgff', n: 2, rpg: 60, belt: 'de20ff' }],
-  d520: [{ gun: 'hs404', n: 1, rpg: 60, belt: 'fr20' }, { gun: 'mac', n: 4, rpg: 675, belt: 'fr75' }],
-  mc202: [{ gun: 'breda127', n: 2, rpg: 370, belt: 'it127' }],
+/**
+ * The fixed guns of each type (the ones the pilot lays by pointing the aircraft): the guns, how many, the rounds each carries (a drum of 60 for a 20 mm cannon is 7 s of fire), the
+ * belt, and where they sit. mount: 'wing' (z: the stations of the guns from the centre line, one list for each wing: n is twice its length), 'cowl' (z: the signed places of the guns
+ * over the engine, firing through the propeller), 'hub' (through the propeller hub), 'fus' (z: signed, in the side of the nose), 'at' (a bomber: [d from the nose, height, z] of
+ * each gun); conv: the distance (m) at which the guns are harmonised, where the lines of the guns cross. Fits: the published ones of each aircraft; `est` marks a guess.
+ */
+export const FIXED_GUNS = {
+  f6f: [{ gun: 'm2', n: 6, rpg: 400, belt: 'us50', mount: 'wing', z: [2.4, 3.1, 3.8], conv: 275 }],                           // three .50 in each wing, outboard of the undercarriage
+  a6m: [{ gun: 't97', n: 2, rpg: 600, belt: 'jp77', mount: 'cowl', z: [-0.22, 0.22], conv: 200 }, { gun: 't99', n: 2, rpg: 60, belt: 'jp20', mount: 'wing', z: [2.3], conv: 200 }],
+  fulmar: [{ gun: 'b303', n: 8, rpg: 750, belt: 'uk303', mount: 'wing', z: [2.7, 3.1, 3.5, 3.9], conv: 230 }],            // four in each wing
+  bf109t: [{ gun: 'mg17', n: 2, rpg: 500, belt: 'de792', mount: 'cowl', z: [-0.2, 0.2], conv: 250 }, { gun: 'mg151', n: 1, rpg: 200, belt: 'de20mg', mount: 'hub', conv: 250 }],      // the F-4: two MG 17 over the engine and the MG 151/20 through the hub
+  d520: [{ gun: 'hs404', n: 1, rpg: 60, belt: 'fr20', mount: 'hub', conv: 200 }, { gun: 'mac', n: 4, rpg: 675, belt: 'fr75', mount: 'wing', z: [2.1, 2.7], conv: 200 }],
+  mc202: [{ gun: 'breda127', n: 2, rpg: 370, belt: 'it127', mount: 'cowl', z: [-0.3, 0.3], conv: 250 }, { gun: 'safat77', n: 2, rpg: 500, belt: 'it77', mount: 'wing', z: [2.4], conv: 250 }],      // (the two 7,7 mm of the wings: rounds est)
+  il2: [{ gun: 'vya23', n: 2, rpg: 150, belt: 'ru23', mount: 'wing', z: [1.5], conv: 350 }, { gun: 'shkas', n: 2, rpg: 750, belt: 'ru762', mount: 'wing', z: [2.7], conv: 350 }],      // the guns of the wings (the ground attack: not simulated yet)
+  // the strike aircraft: the guns that fire ahead, used on a fighter that crosses their nose and on the ship at the start of the dive
+  sbd: [{ gun: 'm2', n: 2, rpg: 360, belt: 'us50', mount: 'cowl', z: [-0.28, 0.28], conv: 250 }],
+  tbf: [{ gun: 'm2', n: 2, rpg: 400, belt: 'us50', mount: 'wing', z: [3.4], conv: 250 }],                                // the two .50 of the wings of the TBF-1C (rounds est)
+  d3a: [{ gun: 't97', n: 2, rpg: 600, belt: 'jp77', mount: 'cowl', z: [-0.22, 0.22], conv: 200 }],
+  swordfish: [{ gun: 'vickers', n: 1, rpg: 600, belt: 'uk303', mount: 'fus', z: [0.45], conv: 200 }],                 // one synchronised Vickers in the side of the nose
+  skua: [{ gun: 'b303', n: 4, rpg: 600, belt: 'uk303', mount: 'wing', z: [1.8, 2.3], conv: 230 }],
+  ju87: [{ gun: 'mg17', n: 2, rpg: 500, belt: 'de792', mount: 'wing', z: [3.3], conv: 250 }],
+  fi167: [{ gun: 'mg17', n: 1, rpg: 500, belt: 'de792', mount: 'fus', z: [0.5], conv: 250 }],                           // one MG 17 in the starboard side of the nose
+  ln401: [{ gun: 'mac', n: 2, rpg: 500, belt: 'fr75', mount: 'wing', z: [2.0], conv: 200 }],                           // (rounds est)
+  pl10: [{ gun: 'darne', n: 1, rpg: 500, belt: 'fr75', mount: 'fus', z: [0.4], conv: 200 }],                           // (rounds est)
+  re2001: [{ gun: 'breda127', n: 2, rpg: 350, belt: 'it127', mount: 'cowl', z: [-0.25, 0.25], conv: 250 }, { gun: 'safat77', n: 2, rpg: 500, belt: 'it77', mount: 'wing', z: [2.2], conv: 250 }],
+  re2001t: [{ gun: 'breda127', n: 2, rpg: 350, belt: 'it127', mount: 'cowl', z: [-0.25, 0.25], conv: 250 }, { gun: 'safat77', n: 2, rpg: 500, belt: 'it77', mount: 'wing', z: [2.2], conv: 250 }],
+  sm79: [{ gun: 'breda127', n: 1, rpg: 350, belt: 'it127', mount: 'at', at: [[6.6, 1.85, 0]], conv: 300 }],           // the fixed 12,7 mm of the hump, firing ahead
 };
+export const FIGHTER_GUNS = FIXED_GUNS;
 
-/** The guns of a fighter type as a list of groups with their state: { gun, n, cal, rps (rounds a second of the whole group), left (rounds left in each gun), belt }. */
+/** The fixed guns of a type as a list of groups with their state: { gun, n, cal, rps (rounds a second of the whole group), left (rounds left in each gun), belt }. Empty for an aircraft with none. */
 export function armamentOf(typeKey) {
-  const fit = FIGHTER_GUNS[typeKey] || FIGHTER_GUNS.f6f;
-  return fit.map((g) => ({ gun: g.gun, n: g.n, cal: GUNS[g.gun].cal, rps: GUNS[g.gun].rpm / 60 * g.n, rpg: g.rpg, left: g.rpg, belt: g.belt }));
+  const fit = FIXED_GUNS[typeKey];
+  if (!fit) return [];
+  return fit.map((g) => ({ gun: g.gun, n: g.n, cal: GUNS[g.gun].cal, rps: GUNS[g.gun].rpm / 60 * g.n, rpg: g.rpg, left: g.rpg, belt: g.belt, conv: g.conv }));
 }
 
 /** One round drawn from a belt. */
@@ -88,7 +121,8 @@ export function beltMean(belt) {
  * the 7,92 mm of the Germans, the 13 mm MG 131, the 7,5 mm and the 20 mm of the French, the 12,7 and 7,7 of the Italians, the .303 of the British).
  */
 export function beltForGun(cal, nation) {
-  if (cal >= 19) return nation === 'Japan' ? 'jp20' : nation === 'France' ? 'fr20' : 'de20ff';
+  if (nation === 'USSR') return cal >= 19 ? 'ru23' : cal >= 12.5 ? 'us50' : 'ru762';
+  if (cal >= 19) return nation === 'Japan' ? 'jp20' : nation === 'France' ? 'fr20' : nation === 'USA' ? 'us20' : 'de20ff';
   if (cal >= 12.5 && cal < 14) return cal > 12.9 ? 'mg131' : nation === 'Italy' ? 'it127' : 'us50';
   if (nation === 'USA') return 'us30';
   if (nation === 'UK') return 'uk303';
@@ -96,4 +130,5 @@ export function beltForGun(cal, nation) {
   if (nation === 'France') return 'fr75';
   return 'jp77';
 }
+BELTS.us20 = { hei20hs: 0.7, ap20: 0.3 };         // the 20 mm M2 of the B-29's tail (the Hispano: HE-I and AP)
 BELTS.us30 = { ball303: 0.6, ap303: 0.4 };         // the .30 of the American gunners: ball and AP, like any rifle calibre

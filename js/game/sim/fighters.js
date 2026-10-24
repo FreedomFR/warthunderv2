@@ -7,7 +7,9 @@ import { planeGuns, inArc, muzzleOf, GUN_RATE } from '../model/planeGuns.js';
 import { aaSources, exposure } from './routing.js';
 import { perfOf, turnPerf } from './airperf.js';
 import { presentedArea, roundHitChance } from './airhit.js';
-import { armamentOf, drawRound, beltMean, beltForGun, UNIT } from '../data/airguns.js';
+import { armamentOf, drawRound, beltMean, beltForGun, UNIT, FIXED_GUNS } from '../data/airguns.js';
+import { PLANES } from '../model/planes.js';
+import { fixedMuzzles } from '../model/fixedGuns.js';
 
 export const FIGHT_PHASES = new Set(['escort', 'cap', 'engage']);
 const STRIKE = new Set(['assemble', 'cruise', 'ip', 'run', 'rollin', 'dive', 'pullout', 'break', 'egress']);
@@ -278,7 +280,7 @@ function dogfight(world, p, dt, ctx, out, anchor, vC) {
   // the guns
   const cone = Math.acos(clamp((n[0] * aim[0] + n[1] * aim[1] + n[2] * aim[2]) / al, -1, 1));
   // (he opens fire when the rounds would hit: the chance that the pattern, laid where the guns point, covers him)
-  const guns = p.guns || (p.guns = armamentOf(p.typeKey));
+  const guns = p.guns || (p.guns = armament(p.typeKey));
   let rps = 0;
   for (const g of guns) if (g.left > 0) rps += g.rps;
   if (d < 560 && d > 50 && cone < 0.12 && rps > 0) {
@@ -290,22 +292,135 @@ function dogfight(world, p, dt, ctx, out, anchor, vC) {
     // where the target really is when the rounds arrive (with the turn it is in), against where the guns point: a target that holds its turn is hit by a pilot who read it, one that
     // changes it is not; the pattern is wider the harder the shooter is pulling, and for a target that is jinking
     const tof = d / MUZZLE_V, hx = rx + vrx * tof + 0.5 * qa[0] * tof * tof, hy = ry + vry * tof + 0.5 * qa[1] * tof * tof - 0.5 * 9.8 * tof * tof * 0.3, hz = rz + vrz * tof + 0.5 * qa[2] * tof * tof;
-    const rl = Math.hypot(hx, hy, hz) || 1, along = hx * n[0] + hy * n[1] + hz * n[2];
-    const miss = Math.hypot(hx - n[0] * along, hy - n[1] * along, hz - n[2] * along);
-    const sigma = 3.6 * 0.001 * rl + 1.0 + (q.evade > 0 ? 9 * tof * tof : 0) + 0.003 * rl * Math.max(0, (p.load ?? 1) - 3);
-    const area = presentedArea(q, hx / rl, hy / rl, hz / rl), chance = roundHitChance(area, miss, sigma);
-    // every group of guns fires its own rounds (the cannons of a Zero last seven seconds, its machine guns half a minute), each hit is a round of the belt and does what that round does
-    for (const g of guns) {
-      if (g.left <= 0) continue;
-      g.left = Math.max(0, g.left - g.rps / g.n * dt);
-      world.events.push({ type: 'mgFire', plane: p, target: q, cal: g.cal, n: g.n, x: p.x + n[0] * 3, y: p.y + n[1] * 3 - 0.3, z: p.z + n[2] * 3, dx: aim[0] / al, dy: aim[1] / al, dz: aim[2] / al, range: d });
-      const nh = Math.floor(g.rps * dt * chance + rng());
-      for (let k = 0; k < nh; k++) { const a = drawRound(g.belt, rng); ctx.hit(world, ship, q, UNIT * a.dmg * (0.8 + 0.4 * rng()), a.cal, 'gun', a); }
-    }
+    shootFixed(world, p, q, dt, ctx, hx, hy, hz, tof, aim, al, d);
     p.ammo = ammoLeft(guns);
   }
   p.wasFiring = p.firing;
   return finishFight(world, p, out, q, d, anchor);
+}
+
+/** The fixed guns of a type with the place of every muzzle (model/fixedGuns.js): the groups of data/airguns.js, full. */
+export function armament(typeKey) {
+  const groups = armamentOf(typeKey), spec = PLANES[typeKey];
+  if (!groups.length || !spec) return groups;
+  const mz = fixedMuzzles(spec, typeKey);
+  groups.forEach((g, i) => { g.mz = mz[i].guns; g.conv = mz[i].conv; });
+  return groups;
+}
+
+const _FM = new Float64Array(16);
+/**
+ * Every fixed gun of p fires at q for dt seconds. Each gun has its own line: from its muzzle, in the wing or over the engine, to the point where the guns are harmonised on the axis of
+ * the aircraft, so a wing gun's rounds cross the axis at that distance and pass to one side of it nearer and farther. The chance that a round hits is that of the pattern round this
+ * gun's line (the same law as before: the area presented by the target against the spread of the rounds). (hx, hy, hz): where the target will be when the rounds get there, relative
+ * to the shooter; aim: the pilot's solution (the event carries it as the general direction); d: the range.
+ */
+function shootFixed(world, p, q, dt, ctx, hx, hy, hz, tof, aim, al, d) {
+  const rng = world.rng, guns = p.guns, ship = p.owner;
+  mat4Ship(_FM, 0, 0, 0, p.heading, p.pitch || 0, p.roll || 0);
+  const M = _FM;
+  for (const g of guns) {
+    if (g.left <= 0) continue;
+    g.left = Math.max(0, g.left - g.rps / g.n * dt);
+    const lines = [], perGun = g.rps / g.n * dt;
+    let expect = 0;
+    for (const m of g.mz || [[0, 0, 0]]) {
+      const mx = m.x ?? m[0], my = m.y ?? m[1], mzz = m.z ?? m[2];
+      // the muzzle in the world (relative to the aircraft's centre) and the line of this gun
+      const wx = M[0] * mx + M[4] * my + M[8] * mzz, wy = M[1] * mx + M[5] * my + M[9] * mzz, wz = M[2] * mx + M[6] * my + M[10] * mzz;
+      const lx = (g.conv || 250) - mx, ly = -my, lz = -mzz, ll = Math.hypot(lx, ly, lz) || 1;
+      const dx = (M[0] * lx + M[4] * ly + M[8] * lz) / ll, dy = (M[1] * lx + M[5] * ly + M[9] * lz) / ll, dz = (M[2] * lx + M[6] * ly + M[10] * lz) / ll;
+      const vx = hx - wx, vy = hy - wy, vz = hz - wz, along = vx * dx + vy * dy + vz * dz;
+      lines.push(p.x + wx, p.y + wy, p.z + wz, dx, dy, dz);
+      if (along <= 5) continue;
+      const miss = Math.hypot(vx - dx * along, vy - dy * along, vz - dz * along);
+      const sigma = 3.6 * 0.001 * along + 1.0 + (q.evade > 0 ? 9 * tof * tof : 0) + 0.003 * along * Math.max(0, (p.load ?? 1) - 3);
+      const hl = Math.hypot(hx, hy, hz) || 1;
+      expect += perGun * roundHitChance(presentedArea(q, hx / hl, hy / hl, hz / hl), miss, sigma);
+    }
+    world.events.push({ type: 'mgFire', plane: p, target: q, cal: g.cal, n: g.n, x: p.x, y: p.y, z: p.z, dx: aim[0] / al, dy: aim[1] / al, dz: aim[2] / al, range: d, guns: lines });
+    const nh = Math.floor(expect + rng());
+    for (let k = 0; k < nh; k++) { const a = drawRound(g.belt, rng); ctx.hit(world, ship, q, UNIT * a.dmg * (0.8 + 0.4 * rng()), a.cal, 'gun', a); }
+  }
+}
+
+// ---- the fixed guns of the other aircraft -----------------------------------------------------------------------------------------------------
+// A dive bomber, a torpedo bomber or a bomber with a fixed gun does not hunt: it flies its attack. But its guns fire ahead, so an enemy aircraft that crosses its nose within reach is
+// shot at (the pilot pulls the trigger when the sight is on it, but never turns for it), and a dive bomber strafes the ship it dives on from the moment it is committed.
+const STRAFE_FROM = 1500, STRAFE_TO = 380;          // m: the slant range at which a diving pilot opens and stops firing
+const _SA = [0, 0, 0];
+
+/** Fire the fixed guns of the strike aircraft: at an enemy aircraft ahead of the nose, else at the ship of the dive. */
+export function strikeGuns(world, dt, ctx) {
+  for (const p of world.planes) {
+    if (p.fighter || p.dying || p.gone || p.hidden || p.y < 30 || !FIXED_GUNS[p.typeKey]) continue;
+    const guns = p.guns || (p.guns = armament(p.typeKey));
+    let rps = 0;
+    for (const g of guns) if (g.left > 0) rps += g.rps;
+    const was = p.firing;
+    p.firing = false;
+    if (!rps) continue;
+    // an enemy aircraft in the sights: looked for a few times a second
+    p.fxT = (p.fxT ?? 0) - dt;
+    if (p.fxT <= 0) {
+      p.fxT = 0.2 + world.rng() * 0.1; p.fxQ = null;
+      const n = noseOf(p, _A);
+      let best = 0.1;
+      for (const q of world.planes) {
+        if (q.team === p.team || q.dying || q.hidden || q.gone || q.ground || q.y < 12 || q.phase === 'floating' || q.phase === 'queue') continue;
+        const rx = q.x - p.x, ry = q.y - p.y, rz = q.z - p.z, d = Math.hypot(rx, ry, rz);
+        if (d > 520 || d < 40) continue;
+        const aim = gunSolution([rx, ry, rz], [q.vx - p.vx, q.vy - p.vy, q.vz - p.vz], motion(world, q), 0.5, _SA), al = Math.hypot(aim[0], aim[1], aim[2]) || 1;
+        const cone = Math.acos(clamp((n[0] * aim[0] + n[1] * aim[1] + n[2] * aim[2]) / al, -1, 1));
+        if (cone < best) { best = cone; p.fxQ = q; }
+      }
+    }
+    const q = p.fxQ;
+    if (q && !q.dying && !q.gone && !q.hidden) {
+      const rx = q.x - p.x, ry = q.y - p.y, rz = q.z - p.z, d = Math.hypot(rx, ry, rz) || 1;
+      if (d < 560 && d > 40) {
+        const vrx = q.vx - p.vx, vry = q.vy - p.vy, vrz = q.vz - p.vz, qa = motion(world, q);
+        const aim = gunSolution([rx, ry, rz], [vrx, vry, vrz], qa, 0.5, [0, 0, 0]), al = Math.hypot(aim[0], aim[1], aim[2]) || 1, n = noseOf(p, _A);
+        const cone = Math.acos(clamp((n[0] * aim[0] + n[1] * aim[1] + n[2] * aim[2]) / al, -1, 1));
+        if (cone < 0.12) {
+          p.firing = true;
+          if (!was) world.events.push({ type: 'mgBurst', plane: p, x: p.x, y: p.y, z: p.z });
+          const tof = d / MUZZLE_V, hx = rx + vrx * tof + 0.5 * qa[0] * tof * tof, hy = ry + vry * tof + 0.5 * qa[1] * tof * tof - 0.5 * 9.8 * tof * tof * 0.3, hz = rz + vrz * tof + 0.5 * qa[2] * tof * tof;
+          shootFixed(world, p, q, dt, ctx, hx, hy, hz, tof, aim, al, d);
+          continue;
+        }
+      }
+      p.fxQ = null;
+    }
+    // the dive: the ship it is diving on, from far above, with the nose on it
+    const t = p.target;
+    if (p.phase === 'dive' && p.kind === 'dive' && t && t.alive && (p.pitch || 0) < -0.35) {
+      const rx = t.x - p.x, ry = 12 - p.y, rz = t.z - p.z, d = Math.hypot(rx, ry, rz) || 1;
+      const n = noseOf(p, _A), cone = Math.acos(clamp((n[0] * rx + n[1] * ry + n[2] * rz) / d, -1, 1));
+      if (d < STRAFE_FROM && d > STRAFE_TO && cone < 0.1) {
+        p.firing = true;
+        if (!was) world.events.push({ type: 'mgBurst', plane: p, x: p.x, y: p.y, z: p.z });
+        strafe(world, p, dt, rx / d, ry / d, rz / d, d);
+      }
+    }
+  }
+}
+
+/** The guns of p fire along their lines (no target that takes damage: the rounds go on to the water, where they raise plumes). */
+function strafe(world, p, dt, ux, uy, uz, d) {
+  mat4Ship(_FM, 0, 0, 0, p.heading, p.pitch || 0, p.roll || 0);
+  const M = _FM;
+  for (const g of p.guns) {
+    if (g.left <= 0) continue;
+    g.left = Math.max(0, g.left - g.rps / g.n * dt);
+    const lines = [];
+    for (const m of g.mz || [{ x: 0, y: 0, z: 0 }]) {
+      const wx = M[0] * m.x + M[4] * m.y + M[8] * m.z, wy = M[1] * m.x + M[5] * m.y + M[9] * m.z, wz = M[2] * m.x + M[6] * m.y + M[10] * m.z;
+      const lx = (g.conv || 250) - m.x, ly = -m.y, lz = -m.z, ll = Math.hypot(lx, ly, lz) || 1;
+      lines.push(p.x + wx, p.y + wy, p.z + wz, (M[0] * lx + M[4] * ly + M[8] * lz) / ll, (M[1] * lx + M[5] * ly + M[9] * lz) / ll, (M[2] * lx + M[6] * ly + M[10] * lz) / ll);
+    }
+    world.events.push({ type: 'mgFire', plane: p, target: null, cal: g.cal, n: g.n, x: p.x, y: p.y, z: p.z, dx: ux, dy: uy, dz: uz, range: d, guns: lines });
+  }
 }
 
 /** The end of a tick of the fight: a long chase or no way to close, and the prey is let go. */
@@ -319,12 +434,12 @@ export function ammoLeft(guns) { let t = 0; for (const g of guns) t += g.left * 
 
 /** The fields of a fighter (see launches() in sim/aircraft.js): its guns are those of its type, full. */
 export function fighterFields(spec, typeKey) {
-  const guns = armamentOf(typeKey);
+  const guns = armament(typeKey);
   return { fighter: true, role: 'escort', prey: null, preyT: 0, guns, ammo: ammoLeft(guns), firing: false, evade: 0, ordnance: false };
 }
 
 /** The guns are filled again (the aircraft is serviced). */
-export function rearm(p) { p.guns = armamentOf(p.typeKey); p.ammo = ammoLeft(p.guns); }
+export function rearm(p) { p.guns = armament(p.typeKey); p.ammo = ammoLeft(p.guns); }
 
 // ---- the bombers defend themselves -----------------------------------------------------------------------------------------------------
 // Every gun position of a bomber (model/planeGuns.js: the turrets, the flexible guns at the windows and in the rear cockpits) is a gunner of its own: he takes the nearest

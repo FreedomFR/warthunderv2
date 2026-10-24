@@ -55,16 +55,16 @@ function fieldOf(base) {
 
 /** A new aircraft parked in a slot of the base. role: 'level' (the heavy bomber) or 'fighter'. */
 function makePlane(world, base, slot, role) {
-  const typeKey = planeTypeFor(base.nation, role === 'fighter' ? 'fighter' : 'level') || planeTypeFor(base.nation, 'torp');
+  const typeKey = (role !== 'fighter' && base.nation === 'USA' && base.layout.guns.length > 8 ? 'b29' : planeTypeFor(base.nation, role === 'fighter' ? 'fighter' : 'level')) || planeTypeFor(base.nation, 'torp');      // (an American airfield of the second level flies the B-29, the others the B-17)
   const spec = PLANES[typeKey];
   if (!spec) return null;
   const q = base.layout.slots[slot], heavy = role !== 'fighter';
   const p = {
     id: planeId(), owner: base.owner, team: base.team, base, slot, kind: heavy ? 'level' : 'fighter', typeKey, spec, wave: null, sec: null,
-    x: q.x, y: q.y + groundY(spec), z: q.z, vx: 0, vy: 0, vz: 0, heading: q.heading, pitch: GROUND_PITCH, roll: 0, bank: 0, speed: 0,
+    x: q.x, y: q.y + groundY(spec), z: q.z, vx: 0, vy: 0, vz: 0, heading: q.heading, pitch: spec.groundPitch ?? GROUND_PITCH, roll: 0, bank: 0, speed: 0,
     phase: 'parked', ground: true, ds: null, t: 0, ts: 0, age: 0, target: null, cond: 1, ordnance: heavy,
     spin: world.rng() * 6, gearDown: true, lost: { wingL: false, wingR: false, tail: false, engine: false }, dying: false, smoke: 0, fire: 0, harass: 0,
-    lx: 0, lz: 0, u: 0, apOff: 0, jitter: (world.rng() - 0.5) * 2, fold: 0, hook: 0, eng: 0, aoa: 0, gp: GROUND_PITCH, yaw: 0, hidden: false, lift: null,
+    lx: 0, lz: 0, u: 0, apOff: 0, jitter: (world.rng() - 0.5) * 2, fold: 0, hook: 0, eng: 0, aoa: 0, gp: spec.groundPitch ?? GROUND_PITCH, yaw: 0, hidden: false, lift: null,
     t0Air: 0, cruiseAlt: 0, relAlt: 0, fuel: heavy ? 5200 + world.rng() * 600 : 1700 + world.rng() * 400, aimErr: [world.rng.normal(), world.rng.normal()], diveAng: 0, group: 0,
     svc: 0, rs: 0, rt: 0, path: null, pi: 0, hold: 0,
   };
@@ -75,10 +75,21 @@ function makePlane(world, base, slot, role) {
   return p;
 }
 
+/** One replacement aircraft for the role of which the field has lost the most (bombers in the first half of the places, fighters in the second). */
+function reinforce(world, base) {
+  const air = base.air, half = base.layout.slots.length >> 1;
+  const mine = world.planes.filter((p) => p.base === base && !p.gone && !p.dying);
+  const nBomb = mine.filter((p) => p.kind === 'level').length, nFight = mine.filter((p) => p.kind === 'fighter').length;
+  const wantB = air.bombers - nBomb, wantF = air.fighters - nFight;
+  if (wantB <= 0 && wantF <= 0) return;
+  const role = wantB >= wantF ? 'level' : 'fighter', from = role === 'level' ? 0 : half, to = role === 'level' ? half : base.layout.slots.length;
+  for (let i = from; i < to; i++) if (!base.parked[i]) { makePlane(world, base, i, role); return; }
+}
+
 /** The air group of an airfield at the start of the battle: bombers in the row nearest the taxiway, fighters in the second row. */
 export function initAirfield(world, base) {
   const L = base.layout, n = L.slots.length, rich = L.guns.length > 8;
-  const nb = Math.min(n >> 1, rich ? 10 : 7), nf = Math.min(n >> 1, rich ? 10 : 7);      // (the apron holds 36: the rest of the places are for the aircraft that come in)
+  const cap = L.size === 'large' ? 14 : L.size === 'medium' ? 8 : rich ? 10 : 7, nb = Math.min(n >> 1, cap), nf = Math.min(n >> 1, cap);       // (a large field of a theatre of war has the bigger air group)      // (the apron holds 36: the rest of the places are for the aircraft that come in)
   base.air = { cd: 50 + world.rng() * 60, capCd: 20, chk: 1, queue: [], relT: 0, rwy: null, waveN: 0, nextClimb: 0, lastRoll: -99, launches: 0, bombers: nb, fighters: nf };
   if (base.inert) return;
   const half = n >> 1;
@@ -114,7 +125,7 @@ const ready = (p, kind) => p && !p.gone && !p.dying && p.phase === 'parked' && p
 function bestTargets(world, base, n) {
   const out = [];
   for (const sh of world.ships) {
-    if (sh.team === base.team || !sh.alive) continue;
+    if (sh.team === base.team || !sh.alive || !world.hasContact(base.team, sh)) continue;
     const d = Math.hypot(sh.x - base.layout.x, sh.z - base.layout.z);
     if (d > 80000) continue;
     out.push({ sh, sc: sh.stats.score * 6000 - d + (sh.condition < 0.6 ? 3000 : 0) + world.rng() * 2500 });
@@ -397,7 +408,8 @@ export function stepBasePlane(world, p, dt) {
       const w = F.toW(p.rs, p.rt); p.x = w[0]; p.z = w[1];
       p.heading = F.rwHdg;
       const fv = p.speed / vto;
-      p.gp = fv < 0.45 ? GROUND_PITCH : fv < 0.8 ? GROUND_PITCH * (1 - (fv - 0.45) / 0.35) : (fv - 0.8) * 0.5;
+      const gp0 = p.spec.groundPitch ?? GROUND_PITCH;      // (a tricycle undercarriage sits level)
+      p.gp = fv < 0.45 ? gp0 : fv < 0.8 ? gp0 * (1 - (fv - 0.45) / 0.35) : (fv - 0.8) * 0.5;
       p.vx = F.u[0] * p.speed; p.vz = F.u[1] * p.speed; p.vy = 0;
       p.y = F.y + groundY(p.spec) + 0.04 + Math.max(0, fv - 1) * 4;
       p.pitch = p.gp; p.bank = 0; p.roll = 0;
@@ -428,7 +440,7 @@ export function stepBasePlane(world, p, dt) {
       return airborneChecks(world, p, T, F);
     }
     case 'taxiBack': {
-      p.eng = 0.25; onGround(base, p, GROUND_PITCH);
+      p.eng = 0.25; onGround(base, p, p.spec.groundPitch ?? GROUND_PITCH);
       if (p.path && drive(world, base, p, dt, TAXI)) {
         // the last turn on the spot, nose to the runway
         const q = base.layout.slots[p.slot];
@@ -444,7 +456,7 @@ export function stepBasePlane(world, p, dt) {
 
 function servicePlane(p) {
   const heavy = !!p.spec.engines;
-  p.fuel = heavy ? 5400 : 1700 + 300; p.ordnance = heavy; if (p.fighter) rearm(p);
+  p.fuel = heavy ? 5400 : 1700 + 300; p.ordnance = heavy; if (p.fighter) rearm(p); else p.guns = null;
   p.landedAt = true;      // (a visitor is one of the field's aircraft now)
   repairPlane(p); p.smoke = 0; p.fire = 0; p.wave = null; p.target = null; p.prey = null; p.hunted = 0; p.stick = 0;
   p.ground = true; p.gearDown = true;
@@ -748,7 +760,7 @@ function stepAir(world, p, dt, base, F, pf, T) {
       p.rs += F.D * p.speed * dt; p.rt += (0 - p.rt) * Math.min(1, dt * 1.2);
       const w = F.toW(p.rs, p.rt); p.x = w[0]; p.z = w[1];
       p.heading = F.rwHdg;
-      p.gp = approach(p.gp, GROUND_PITCH, 0.05 * dt);
+      p.gp = approach(p.gp, p.spec.groundPitch ?? GROUND_PITCH, 0.05 * dt);
       p.vx = F.u[0] * p.speed; p.vz = F.u[1] * p.speed; p.vy = 0;
       onGround(base, p);
       const toExit = F.D * (F.sExit - p.rs);
@@ -770,7 +782,7 @@ function stepAir(world, p, dt, base, F, pf, T) {
   guide(p, dt, hdg, gam, spd, o);
   advance(p, dt);
   const flr = p.phase === 'lfinal' ? clamp((groundY(p.spec) + 6 - (p.y - F.y)) / 5, 0, 1) : 0;
-  p.aoa += ((p.phase === 'lfinal' ? 0.1 + (GROUND_PITCH * 0.9 - 0.1) * flr : 0) - p.aoa) * Math.min(1, dt * (flr > 0 ? 3 : 1.8));
+  p.aoa += ((p.phase === 'lfinal' ? 0.1 + ((p.spec.groundPitch ?? GROUND_PITCH) * 0.9 - 0.1) * flr : 0) - p.aoa) * Math.min(1, dt * (flr > 0 ? 3 : 1.8));
   return airborneChecks(world, p, T, F);
 }
 
@@ -809,6 +821,9 @@ export function stepAirfield(world, base, dt) {
   const air = base.air;
   if (!air || base.inert) return;
   if (world.state !== 'running') { air.queue.length = 0; return; }       // the battle is over: nobody else takes off
+  // replacements: a field that stands gets an aircraft in place of a lost one every seven minutes (the war is long: a theatre of war), in a free place of its apron
+  air.reinfT = (air.reinfT ?? 0) + dt;
+  if (air.reinfT > 420 && base.alive) { air.reinfT = 0; reinforce(world, base); }
   releaseNext(world, base, dt);
   air.cd -= dt; air.capCd -= dt; air.chk -= dt;
   if (air.chk <= 0) { air.chk = 1.5; if (base.alive) decide(world, base); }

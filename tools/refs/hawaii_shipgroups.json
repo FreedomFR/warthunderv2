@@ -1,0 +1,228 @@
+{
+ "ship": "Hawaii",
+ "use_claimed": true,
+ "skip_material": [
+  "cm002_128"
+ ],
+ "cuts": [
+  {
+   "group": ".*",
+   "gre": true,
+   "id": "spin_rudder",
+   "drop": true,
+   "box": [
+    -112.6,
+    -104.6,
+    -8.9,
+    -3.4,
+    -1.3,
+    1.3
+   ],
+   "max_ext": 9
+  },
+  {
+   "group": ".*",
+   "gre": true,
+   "id": "tubes0",
+   "kind": "tubes",
+   "label": "Tubes lance-torpilles",
+   "box": [
+    -10.46,
+    -7.86,
+    7.2,
+    12.6,
+    0.3,
+    6.6
+   ],
+   "max_ext": 8,
+   "plain": true
+  },
+  {
+   "group": ".*",
+   "gre": true,
+   "id": "tubes1",
+   "kind": "tubes",
+   "label": "Tubes lance-torpilles",
+   "box": [
+    -10.46,
+    -7.86,
+    7.2,
+    12.6,
+    -6.6,
+    -0.3
+   ],
+   "max_ext": 8,
+   "plain": true
+  },
+  {
+   "group": ".*",
+   "gre": true,
+   "id": "tubes2",
+   "kind": "tubes",
+   "label": "Tubes lance-torpilles",
+   "box": [
+    -7.02,
+    -4.42,
+    7.2,
+    12.6,
+    0.3,
+    6.6
+   ],
+   "max_ext": 8,
+   "plain": true
+  },
+  {
+   "group": ".*",
+   "gre": true,
+   "id": "tubes3",
+   "kind": "tubes",
+   "label": "Tubes lance-torpilles",
+   "box": [
+    -7.02,
+    -4.42,
+    7.2,
+    12.6,
+    -6.6,
+    -0.3
+   ],
+   "max_ext": 8,
+   "plain": true
+  },
+  {
+   "group": ".*",
+   "gre": true,
+   "id": "tubes4",
+   "kind": "tubes",
+   "label": "Tubes lance-torpilles",
+   "box": [
+    -3.57,
+    -0.97,
+    7.2,
+    12.6,
+    0.3,
+    6.6
+   ],
+   "max_ext": 8,
+   "plain": true
+  },
+  {
+   "group": ".*",
+   "gre": true,
+   "id": "tubes5",
+   "kind": "tubes",
+   "label": "Tubes lance-torpilles",
+   "box": [
+    -3.57,
+    -0.97,
+    7.2,
+    12.6,
+    -6.6,
+    -0.3
+   ],
+   "max_ext": 8,
+   "plain": true
+  },
+  {
+   "group": ".*",
+   "gre": true,
+   "id": "funnel",
+   "kind": "funnel",
+   "label": "Chemin\u00e9e",
+   "box": [
+    -25.6,
+    -11.4,
+    9.9,
+    30.4,
+    -6.0,
+    6.0
+   ],
+   "max_ext": 14
+  },
+  {
+   "group": ".*",
+   "gre": true,
+   "id": "mast0",
+   "kind": "mast",
+   "label": "M\u00e2t avant",
+   "box": [
+    -8.0,
+    3.0,
+    24.9,
+    54.9,
+    -5.0,
+    5.0
+   ],
+   "max_ext": 30
+  },
+  {
+   "group": ".*",
+   "gre": true,
+   "id": "tower",
+   "kind": "bridge",
+   "label": "Passerelle",
+   "box": [
+    -3.5,
+    13.0,
+    12.4,
+    38.9,
+    -6.8,
+    6.8
+   ],
+   "max_ext": 14
+  }
+ ],
+ "rules": [
+  {
+   "match": "^(am691|am573)",
+   "to": "part",
+   "id": "canots",
+   "cluster": 1.0,
+   "kind": "structure",
+   "label": "Canot"
+  },
+  {
+   "match": "^am687",
+   "to": "part",
+   "id": "crane",
+   "kind": "crane",
+   "label": "Grue"
+  },
+  {
+   "match": "^(ad018|ad027|ad108|ad112|ad116)",
+   "to": "part",
+   "id": "dir",
+   "cluster": 0.6,
+   "kind": "director",
+   "label": "Directeur de tir",
+   "track": true
+  },
+  {
+   "match": "^(ars004|ars006|am649)",
+   "to": "part",
+   "id": "radar",
+   "cluster": 0.8,
+   "kind": "radar",
+   "label": "Radar",
+   "spin": true
+  },
+  {
+   "match": "(_wire_|_alpha_|c004_grid|transparent_glass|Vallejo)",
+   "to": "skip"
+  },
+  {
+   "match": "^(cm0|cm1|am007|am024|am029|am044|am060|am064|am072|am085|am098|am132|am158|am161|am164|am176|am178|am217|am250|am282|am293|am303|am433|am442|am533|am537|am606|am622|am686|am071|am079|am682|asc026_alaska_1944_midfront)|b6b7aede",
+   "to": "fine"
+  },
+  {
+   "match": ".*",
+   "min_len": 60,
+   "to": "static",
+   "cls": "hull"
+  },
+  {
+   "match": ".*",
+   "to": "static",
+   "cls": "equip"
+  }
+ ]
+}

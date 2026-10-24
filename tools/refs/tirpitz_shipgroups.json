@@ -1,0 +1,237 @@
+{
+ "ship": "Tirpitz",
+ "use_claimed": true,
+ "skip_material": [
+  "^Tirpitz_Propellor$",
+  "^Tirpitz_Rudder$"
+ ],
+ "cuts": [
+  {
+   "group": "^(BaseMetal|BlackMetal|Optics|German_Props|Tirpitz_Props)",
+   "gre": true,
+   "id": "mast0",
+   "kind": "mast",
+   "label": "Mât avant",
+   "box": [
+    7.6,
+    9.4,
+    20.2,
+    39.7,
+    -3.3,
+    3.3
+   ]
+  },
+  {
+   "group": "^(BaseMetal|BlackMetal|Optics|German_Props|Tirpitz_Props)",
+   "gre": true,
+   "id": "mast1",
+   "kind": "mast",
+   "label": "Grand mât",
+   "box": [
+    -20.8,
+    -18.2,
+    11.1,
+    43.2,
+    -9.2,
+    9.2
+   ]
+  },
+  {
+   "group": "^(BaseMetal|BlackMetal|Optics|German_Props|Tirpitz_Props)",
+   "gre": true,
+   "id": "mast1",
+   "kind": "mast",
+   "label": "Grand mât",
+   "box": [
+    -27.0,
+    -20.8,
+    30.7,
+    40.7,
+    -1.5,
+    1.5
+   ]
+  },
+  {
+   "group": "^(BaseMetal|BlackMetal|Optics|German_Props|Tirpitz_Props)",
+   "gre": true,
+   "id": "director0",
+   "kind": "director",
+   "label": "Télémètre avant",
+   "box": [
+    13.0,
+    18.6,
+    30.9,
+    36.5,
+    -3.4,
+    3.4
+   ],
+   "track": true
+  },
+  {
+   "group": "^(BaseMetal|BlackMetal|Optics|German_Props|Tirpitz_Props)",
+   "gre": true,
+   "id": "director1",
+   "kind": "director",
+   "label": "Télémètre arrière",
+   "box": [
+    -40.6,
+    -33.4,
+    15.1,
+    20.1,
+    -2.8,
+    2.8
+   ],
+   "track": true
+  },
+  {
+   "group": "^(BaseMetal|BlackMetal|Optics|German_Props|Tirpitz_Props)",
+   "gre": true,
+   "id": "crane0",
+   "kind": "crane",
+   "label": "Grue à hydravion",
+   "box": [
+    0.0,
+    22.0,
+    7.5,
+    16.7,
+    7.4,
+    13.6
+   ]
+  },
+  {
+   "group": "^(BaseMetal|BlackMetal|Optics|German_Props|Tirpitz_Props)",
+   "gre": true,
+   "id": "crane1",
+   "kind": "crane",
+   "label": "Grue à hydravion",
+   "box": [
+    0.0,
+    22.0,
+    7.5,
+    16.7,
+    -13.6,
+    -7.4
+   ]
+  },
+  {
+   "group": "^(BaseMetal|BlackMetal|Optics|German_Props|Tirpitz_Props)",
+   "gre": true,
+   "id": "cat",
+   "kind": "catapult",
+   "label": "Catapulte",
+   "box": [
+    -10.8,
+    -6.8,
+    6.7,
+    12.2,
+    -18.8,
+    18.8
+   ]
+  },
+  {
+   "group": "^(BaseMetal|BlackMetal|Optics|German_Props|Tirpitz_Props)",
+   "gre": true,
+   "id": "funnel0",
+   "kind": "funnel",
+   "label": "Cheminée",
+   "box": [
+    -6.2,
+    6.8,
+    8.4,
+    26.2,
+    -6.6,
+    6.6
+   ]
+  },
+  {
+   "group": "^(BaseMetal|BlackMetal|Optics|German_Props|Tirpitz_Props)",
+   "gre": true,
+   "id": "tower",
+   "kind": "bridge",
+   "label": "Tour de commandement",
+   "box": [
+    9.5,
+    26.5,
+    8.4,
+    37.2,
+    -9.7,
+    9.7
+   ]
+  }
+ ],
+ "rules": [
+  {
+   "match": "^German_(MotorVessel|Vessel)",
+   "to": "part",
+   "id": "canots",
+   "cluster": 1.0,
+   "kind": "structure",
+   "label": "Canot"
+  },
+  {
+   "match": "^533mm_vierling",
+   "to": "part",
+   "id": "tubes",
+   "cluster": 1.0,
+   "kind": "tubes",
+   "label": "Tubes lance-torpilles"
+  },
+  {
+   "match": "^Tirpitz_Radar_5",
+   "to": "part",
+   "id": "dome",
+   "cluster": 1.0,
+   "kind": "director",
+   "label": "Directeur antiaérien SL-8",
+   "track": true
+  },
+  {
+   "match": "^Tirpitz_Radar_[123]",
+   "to": "part",
+   "id": "radar",
+   "cluster": 0.6,
+   "kind": "radar",
+   "label": "Radar FuMO"
+  },
+  {
+   "match": "^(MetalCable|German_Raft|WoodPlatform)",
+   "to": "fine"
+  },
+  {
+   "match": "^(German_Props|Tirpitz_Props)",
+   "min_len": 1.0,
+   "to": "static",
+   "cls": "equip"
+  },
+  {
+   "match": "^(German_Props|Tirpitz_Props)",
+   "to": "fine"
+  },
+  {
+   "match": "^BlackMetal",
+   "to": "static",
+   "cls": "equip"
+  },
+  {
+   "match": "^BaseMetal",
+   "min_len": 0.5,
+   "to": "static",
+   "cls": "equip"
+  },
+  {
+   "match": "^BaseMetal",
+   "to": "fine"
+  },
+  {
+   "match": "^Tirpitz_Hull",
+   "min_len": 20,
+   "to": "static",
+   "cls": "hull"
+  },
+  {
+   "match": ".*",
+   "to": "static",
+   "cls": "equip"
+  }
+ ]
+}

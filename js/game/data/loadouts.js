@@ -37,6 +37,12 @@ export const LOADOUTS = {
     L('250+2x50', '1 bombe de 250 kg + 2 de 50 kg', [{ ord: 'it250', n: 1 }, { ord: 'it50', n: 2 }], ['ship', 'base']),
     L('160ap', '1 bombe perforante de 160 kg', [{ ord: 'it160ap', n: 1 }], ['armor']),
   ],
+  // ---- the Soviet ground-attack aircraft (the 8 RS-82 rockets of the wings are not simulated) ----
+  il2: [
+    L('4xfab100', '4 bombes FAB-100 en soute + 2 FAB-100 sous les ailes', [{ ord: 'fab100', n: 6 }], ['ship', 'base']),
+    L('2xfab250', '2 bombes FAB-250 sous les ailes', [{ ord: 'fab250', n: 2 }], ['base']),
+    L('8xfab50', '8 bombes FAB-50', [{ ord: 'fab50', n: 8 }], ['base']),
+  ],
   // ---- carrier torpedo bombers (the torpedo is for ships; the bombs for what they can do on land) ----
   tbf: [
     L('torp', '1 torpille Mk 13', [{ torp: 1 }], ['ship', 'armor']),
@@ -73,6 +79,11 @@ export const LOADOUTS = {
     L('12x500', '12 bombes de 500 lb', [{ ord: 'anm64', n: 12 }], ['ship', 'base']),
     L('6x1000', '6 bombes de 1 000 lb', [{ ord: 'anm65', n: 6 }], ['armor', 'ship']),
     L('20x100', '20 bombes de 100 lb', [{ ord: 'anm30', n: 20 }], ['base']),
+  ],
+  b29: [
+    L('20x500', '20 bombes de 500 lb', [{ ord: 'anm64', n: 20 }], ['ship', 'base']),
+    L('12x1000', '12 bombes de 1 000 lb', [{ ord: 'anm65', n: 12 }], ['armor', 'ship']),
+    L('40x250', '40 bombes de 250 lb', [{ ord: 'anm57', n: 40 }], ['base']),
   ],
   g4m: [
     L('torp', '1 torpille Type 91', [{ torp: 1 }], ['armor', 'ship'], { low: true }),

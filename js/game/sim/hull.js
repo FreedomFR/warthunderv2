@@ -194,7 +194,7 @@ export function updateCrew(ship, dt) {
   // a ship that has lost her people is given up: a fire or flooding that goes on for long enough, a hulk with nobody to work her
   if (ship.crewFrac < ABANDON_AT && ship.abandonT == null) ship.abandonT = ship.world.time + 25 + ship.world.rng() * 40;
   // and one that can no longer hurt anyone (no gun that works, no torpedo, no aircraft or missile) is scuttled after a while
-  const helpless = !ship.canStrike();
+  const helpless = !ship.canStrike() && !ship.mission && !ship.dock;      // (a ship that is on her way to a port to be rearmed, or lies in one, is not given up)
   ship.disabledT = helpless ? ship.disabledT + dt : 0;
   if (ship.disabledT > 120 && ship.abandonT == null) ship.abandonT = ship.world.time + 10 + ship.world.rng() * 20;
   if (ship.abandonT != null && ship.world.time >= ship.abandonT) {

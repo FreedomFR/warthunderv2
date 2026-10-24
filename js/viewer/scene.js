@@ -163,6 +163,7 @@ export async function createScene(engine, initial) {
   };
   engine.hooks.preMain = (enc) => { if (shadowActive) renderer.drawShadow(enc); };
   engine.hooks.drawOpaque = (rp) => renderer.draw(rp);
+  engine.hooks.drawGlass = (rp) => renderer.drawPanes(rp);
 
   // ---- API ----
   const api = {

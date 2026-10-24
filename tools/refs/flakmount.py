@@ -3,6 +3,7 @@
 
   node tools/refs/gltf.mjs bakeraw refs/flakvierling/src refs/flakvierling/bake --loa=4.1 --draft=0
   python3 tools/refs/flakmount.py refs/flakvierling/bake js/game/model/ships/flak_elements.js [--picture=out/flak/classes.png]
+  python3 tools/refs/flakmount.py refs/flak88_v8/bake js/game/model/ships/flak_elements.js --kind=flak88 --merge=1 --noturn=1 --pitch=.. --trx=.. --try=.. --z0=0 --band=..   (the other guns of the bases)
 
 The model faces -x with the barrels raised: it is turned to face +x, cut into its connected pieces (vertices welded to 4 mm), and the pieces that elevate with the barrels (the cradle, the four
 barrels, the magazines, the sights, the gunner's seat) are told from the ones that train only (the trail and outriggers, the pedestal, the shield plates) by their place about the axis of the
@@ -23,7 +24,8 @@ nv, nf = info['vertices'], info['triangles']
 P = np.fromfile(os.path.join(src, 'pos.f32'), dtype=np.float32).reshape(nv, 3).astype(np.float64)
 C = np.fromfile(os.path.join(src, 'colfull.u8'), dtype=np.uint8).reshape(nv, 3)
 I = np.fromfile(os.path.join(src, 'idx.u32'), dtype=np.uint32).reshape(nf, 3)
-P = P * np.array([-1.0, 1.0, -1.0])          # half a turn about the vertical: the barrels face +x
+if not fl.get('noturn'):
+    P = P * np.array([-1.0, 1.0, -1.0])      # half a turn about the vertical: the barrels face +x (--noturn=1: the model already faces +x)
 b64 = lambda a: base64.b64encode(a.tobytes()).decode()
 
 # the connected pieces
@@ -48,6 +50,12 @@ for c in ids:
     m = (box[c][0] + box[c][1]) / 2
     along = float(np.dot(m - t0, D)); off = abs(float(np.dot(m - t0, Nn)))
     if off < bandw and along > amin and m[1] > 0.5: elev.add(int(c))
+if fl.get('elevmat') or fl.get('elevids'):                # a model whose elevating parts are told by their material or by hand (--elevmat=2 --elevids=65,82: piece numbers of the weld)
+    vmat = np.fromfile(os.path.join(src, 'vmat.i16'), dtype=np.int16)
+    em = {int(x) for x in str(fl.get('elevmat', '')).split(',') if x}
+    elev = {int(c) for c in ids if int(np.bincount(vmat[np.unique(I[comp == c])]).argmax()) in em}
+    elev |= {int(x) for x in str(fl.get('elevids', '')).split(',') if x}
+    elev -= {int(x) for x in str(fl.get('notelev', '')).split(',') if x}
 print(len(elev), 'pieces elevate:', sorted(elev))
 
 def rot(V, a):                                          # a turn about the z axis through the trunnion (negative: the guns come down to level)
@@ -72,10 +80,16 @@ Vh = P - org
 muz = float(np.max((Vg[np.unique(I[gun_t])])[:, 0]))      # the muzzle, from the trunnion
 # the trunnion in the house frame: where the pivot stands over the training axis
 trun_h = (t0 - org)
-kd = {'house': pack(house_t, Vh), 'guns': pack(gun_t, Vg), 'type': 'aa', 'from': 'flak4', 'trunnion': [round(float(trun_h[0]), 3), round(float(trun_h[1]), 3)], 'muzzle': round(muz, 3)}
+KIND = fl.get('kind', 'flak4')
+kd = {'house': pack(house_t, Vh), 'guns': pack(gun_t, Vg), 'type': 'aa', 'from': KIND, 'trunnion': [round(float(trun_h[0]), 3), round(float(trun_h[1]), 3)], 'muzzle': round(muz, 3)}
 head2 = ("// The quadruple 20 mm anti-aircraft gun of the bases, copied from its reference model (see docs/CREDITS.md; tools/refs/flakmount.py): the mesh of the carriage and shield (house: origin at the\n"
          "// training axis on the ground, the way the barrels point = +x) and of the cradle with its four barrels (guns: origin at the trunnion, level), as in the other *_elements.js.\n"
          f"export const MOUNT_SCALE = {SC};\nexport const KINDS = ")
-open(outf, 'w').write(head2.replace('\\n', '\n') + json.dumps({'flak4': kd}) + ';\nexport const PLACEMENTS = [];\n')
+kinds = {}
+if fl.get('merge') and os.path.exists(outf):                 # --merge=1: keep the other kinds of the file (the guns of the bases share one file)
+    txt = open(outf).read()
+    kinds = json.loads(txt[txt.index('export const KINDS = ') + len('export const KINDS = '):txt.index(';\nexport const PLACEMENTS')])
+kinds[KIND] = kd
+open(outf, 'w').write(head2.replace('\\n', '\n') + json.dumps(kinds) + ';\nexport const PLACEMENTS = [];\n')
 print('written', outf, 'house tris', len(house_t), 'guns tris', len(gun_t), 'muzzle', round(muz, 2))
 json.dump({'elev': sorted(elev)}, open('/tmp/flak_elev.json', 'w'))

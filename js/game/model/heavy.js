@@ -67,7 +67,7 @@ function loftH(b, st, col, mat, o = {}) {
 }
 
 /** A grid of panes laid on the skin of the fuselage between d0..d1 and the angles a0..a1; the gaps between the panes are the frames. */
-function panes(b, F, o, col, mat = MAT.GLASS) {
+function panes(b, F, o, col, mat = MAT.PANE) {
   const gap = o.gap ?? 0.16, lift = o.lift ?? 0.025, nu = o.nu || 2, nv = o.nv || 2;
   const one = (a0, a1) => {
     for (let i = 0; i < nu; i++) for (let j = 0; j < nv; j++) {
@@ -173,13 +173,13 @@ function drawGuns(b, s, F, wantTail, col) {
       }
       case 'tail': {            // the gunner's position at the tip of the tail, the guns pointing aft
         const y = q.yc;
-        b.sphere(x + g.r * 0.5, y, 0, g.r * 1.7, g.r, g.r * 0.95, glass, MAT.GLASS, { seg: 12, rings: 7 });
+        b.sphere(x + g.r * 0.5, y, 0, g.r * 1.7, g.r, g.r * 0.95, glass, MAT.PANE, { seg: 12, rings: 7 });
         b.sphere(x + g.r * 0.5, y, 0, g.r * 1.72, g.r * 0.08, g.r * 0.97, shade(skin, 0.7), MAT.AIRCRAFT, { seg: 12, rings: 4 });
         break;
       }
       case 'beam': {            // a gun at a window of the side
         const side = g.side || 1, zz = side * (q.rz + 0.02);
-        b.box(x, g.y ?? 0.1, zz, g.w || 0.7, g.h || 0.55, 0.05, glass, MAT.GLASS);
+        b.box(x, g.y ?? 0.1, zz, g.w || 0.7, g.h || 0.55, 0.05, glass, MAT.PANE);
         break;
       }
       case 'blister': {         // a glazed blister on the side of the fuselage
@@ -192,7 +192,7 @@ function drawGuns(b, s, F, wantTail, col) {
         const st = [{ x: x0, ry: 0.06, rz: 0.06 }, { x: lerp(x0, x1, 0.12), ry: g.ry * 0.7, rz: g.rz * 0.7 }, { x: lerp(x0, x1, 0.5), ry: g.ry, rz: g.rz }, { x: lerp(x0, x1, 0.88), ry: g.ry * 0.6, rz: g.rz * 0.8 }, { x: x1, ry: 0.06, rz: 0.06 }];
         for (const t of st) t.yc = yb + g.ry * (g.lift ?? 0.15);
         loftH(b, st, (sn) => (sn < 0 ? shade(skin, 0.8) : skin), MAT.AIRCRAFT, { seg: 12 });
-        b.box(lerp(x0, x1, 0.3), yb - g.ry * 0.5, 0, (x0 - x1) * 0.28, g.ry * 0.5, g.rz * 1.2, glass, MAT.GLASS);
+        b.box(lerp(x0, x1, 0.3), yb - g.ry * 0.5, 0, (x0 - x1) * 0.28, g.ry * 0.5, g.rz * 1.2, glass, MAT.PANE);
         break;
       }
       default: break;
@@ -415,14 +415,14 @@ export function drawHeavy(b, s, part) {
     for (const o of s.glass || []) if (want(o.d0)) panes(b, F, o, glass);
     for (const c of s.cabin || []) {              // raised glazing: the flight deck
       const q = F.at(F.X((c.d0 + c.d1) / 2));
-      b.block({ x0: F.X(c.d1), x1: F.X(c.d0), hw: c.hw, y0: q.yc + q.ry * c.y0, y1: q.yc + q.ry * c.y0 + c.h, tx0: F.X(c.d1 - (c.d1 - c.d0) * 0.18), tx1: F.X(c.d0 + (c.d1 - c.d0) * (c.tip ?? 0.1)), thw: c.hw * 0.62 }, glass, MAT.GLASS);
+      b.block({ x0: F.X(c.d1), x1: F.X(c.d0), hw: c.hw, y0: q.yc + q.ry * c.y0, y1: q.yc + q.ry * c.y0 + c.h, tx0: F.X(c.d1 - (c.d1 - c.d0) * 0.18), tx1: F.X(c.d0 + (c.d1 - c.d0) * (c.tip ?? 0.1)), thw: c.hw * 0.62 }, glass, MAT.PANE);
       for (const sd of [-1, 1]) b.beam([F.X(c.d1), q.yc + q.ry * c.y0, sd * c.hw * 0.98], [F.X((c.d0 + c.d1) / 2), q.yc + q.ry * c.y0 + c.h, sd * c.hw * 0.4], 0.05, 0.05, shade(top, 0.8), MAT.CANOPY, { caps: false });
     }
     for (const w of s.windows || []) {            // small rectangular windows in the sides
       if (!want(w.d)) continue;
       for (const sd of [-1, 1]) {
         const x = F.X(w.d), q = F.at(x), z = sd * (q.rz * sgnpow(Math.cos(Math.asin(Math.min(0.95, Math.abs(w.y - q.yc) / q.ry))), 2 / q.e) + 0.012);
-        b.quad([x + w.w / 2, w.y - w.h / 2, z], [x - w.w / 2, w.y - w.h / 2, z], [x - w.w / 2, w.y + w.h / 2, z], [x + w.w / 2, w.y + w.h / 2, z], glass, MAT.GLASS, [x, w.y, 0], 1);
+        b.quad([x + w.w / 2, w.y - w.h / 2, z], [x - w.w / 2, w.y - w.h / 2, z], [x - w.w / 2, w.y + w.h / 2, z], [x + w.w / 2, w.y + w.h / 2, z], glass, MAT.PANE, [x, w.y, 0], 1);
       }
     }
     drawGuns(b, s, F, false, col);

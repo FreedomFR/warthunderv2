@@ -86,7 +86,7 @@ def analyse(gtris, el):
         for k, (lo, hi) in info_c.items():
             ext = hi - lo
             length, width = max(ext[0], ext[2]), min(ext[0], ext[2])
-            if k != house_k and length >= blen and length >= float(el.get('barrel_ratio', 3.0)) * max(width, 0.05) and ext[1] <= length / 3 and ext[1] >= 0.1 and comps[k].size >= 20:
+            if k != house_k and length >= blen and length >= float(el.get('barrel_ratio', 3.0)) * max(width, 0.05) and ext[1] <= length * float(el.get('barrel_rise', 1 / 3)) and ext[1] >= 0.1 and comps[k].size >= 20:
                 barrels.append(k)
         if barrels:                                          # the guns are the longest of them (the others are rails, sights, ladders)
             Lmax = max(max(info_c[k][1][0] - info_c[k][0][0], info_c[k][1][2] - info_c[k][0][2]) for k in barrels)
@@ -141,11 +141,16 @@ def to_mount(pts, origin, yaw_deg):
     return np.stack([d[:, 0] * c + d[:, 2] * s, d[:, 1], -d[:, 0] * s + d[:, 2] * c], axis=1)
 
 
-def pack(tri_ids, origin, yaw_deg, shift):
+def pack(tri_ids, origin, yaw_deg, shift, level=None):
     tris = I[tri_ids]
     used = np.unique(tris)
     remap = -np.ones(nv, dtype=np.int64); remap[used] = np.arange(len(used))
-    pos = (to_mount(P[used], origin, yaw_deg) - shift).astype(np.float32)
+    pm = to_mount(P[used], origin, yaw_deg)
+    if level:      # guns posed raised in the model (`level_guns`): turned about the trunnion (Tu, Ty) by -theta so that their axis is level at rest
+        Tu, Ty, th = level
+        u, y = pm[:, 0] - Tu, pm[:, 1] - Ty
+        pm = np.stack([Tu + u * np.cos(th) + y * np.sin(th), Ty - u * np.sin(th) + y * np.cos(th), pm[:, 2]], axis=1)
+    pos = (pm - shift).astype(np.float32)
     idx = remap[tris].astype(np.uint32)
     q = np.round(pos * SC).astype(np.int16)
     return {'nv': int(len(pos)), 'ni': int(idx.size), 'pos': b64(q), 'col': b64(C[used]), 'idx': b64(idx.astype(np.uint16) if len(pos) < 65536 else idx), 'wide': bool(len(pos) >= 65536)}
@@ -335,7 +340,7 @@ for el in cfg['elements']:
         blo = np.min([info_c[k][0] for k in body], axis=0); bhi = np.max([info_c[k][1] for k in body], axis=0)
         origin = np.array([(blo[0] + bhi[0]) / 2, hlo[1], (blo[2] + bhi[2]) / 2])
         rec = {'group': name, 'x': round(float(origin[0]), 3), 'y': round(float(origin[1]), 3), 'z': round(float(origin[2]), 3), 'yaw': yaw, 'tris': int(len(t)), 'barrels': len(barrels), 'gun_objects': len(gun_k)}
-        trun = None
+        trun = None; lev = None
         if gun_k:
             glo = np.min([info_c[k][0] for k in gun_k], axis=0); ghi = np.max([info_c[k][1] for k in gun_k], axis=0)
             cr = [k for k in gun_k if k not in barrels]
@@ -344,13 +349,26 @@ for el in cfg['elements']:
             tx = float(Lc.min() + 0.4 * (Lc.max() - Lc.min())) if cr else float(Lb[:, 0].min() + 0.2 * (Lb[:, 0].max() - Lb[:, 0].min()))
             ty = float(Lb[:, 1].mean())
             trun = (tx, ty, float(Lb[:, 0].max()))
+            lev = None
+            if el.get('level_guns') and barrels:      # guns posed raised in the model (a mount drawn with its barrels up): measure their elevation from the barrels' principal axis in the (forward, up) plane and put the guns level about the trunnion, 20 % of the barrel from its rear
+                Vb = to_mount(np.concatenate([P[I[comps[k]]].reshape(-1, 3) for k in barrels]), origin, yaw)[:, :2]
+                c0 = Vb.mean(0); w_, U_ = np.linalg.eigh((Vb - c0).T @ (Vb - c0)); d_ = U_[:, 1]
+                if d_[0] < 0: d_ = -d_
+                th = float(np.arctan2(d_[1], d_[0]))
+                if abs(th) > np.radians(3):
+                    pr = (Vb - c0) @ d_; rear = c0 + d_ * pr.min(); Lbar = float(pr.max() - pr.min())
+                    T = rear + d_ * 0.2 * Lbar
+                    lev = (float(T[0]), float(T[1]), th)
+                    trun = (lev[0], lev[1], lev[0] + 0.8 * Lbar)
+                    tx, ty = lev[0], lev[1]
+                    rec['pose'] = round(float(np.degrees(th)), 1)      # the elevation of the guns in the model (they are put level in the copy)
             rec['trunnion'] = [round(tx, 3), round(ty, 3)]
-            rec['muzzle_from_trunnion'] = round(float(Lb[:, 0].max() - tx), 3)
+            rec['muzzle_from_trunnion'] = round(float(trun[2] - tx), 3)
         if first is None:
             first = {'name': name, 'ntri': int(len(t)), 'house': pack(house_t, origin, yaw, np.zeros(3)), 'trun': trun}
             if gun_k:
                 gt = np.concatenate([comps[k] for k in gun_k])
-                first['guns'] = pack(gt, origin, yaw, np.array([trun[0], trun[1], 0.0]))
+                first['guns'] = pack(gt, origin, yaw, np.array([trun[0], trun[1], 0.0]), lev)
                 first['n_guns_tris'] = int(len(gt))
             first['n_house_tris'] = int(len(house_t))
         elif len(t) != first['ntri']:

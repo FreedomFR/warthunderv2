@@ -117,6 +117,11 @@
    "args": []
   },
   {
+   "file": "dispersion.mjs",
+   "args": [],
+   "slow": true
+  },
+  {
    "file": "audio.mjs",
    "args": [],
    "slow": true
@@ -243,6 +248,20 @@
   },
   {
    "file": "airguns.mjs",
+   "args": []
+  },
+  {
+   "file": "ports.mjs",
+   "args": [],
+   "slow": true
+  },
+  {
+   "file": "theatre.mjs",
+   "args": [],
+   "slow": true
+  },
+  {
+   "file": "fixedguns.mjs",
    "args": []
   }
  ],
