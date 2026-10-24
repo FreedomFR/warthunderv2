@@ -1,0 +1,33 @@
+{
+ "key": "fm2",
+ "name": "General Motors FM-2 Wildcat",
+ "axis_deg": 90,
+ "scale": {"span": 11.58},
+ "hub_depth": 0.2,
+ "drop": "^(Antennas_|Tape_|Raised)",
+ "rules": [
+  {"part": "drop", "box": [-1.0, 2.3, -1.0, -0.18, 1.15, 2.3]},
+  {"part": "drop", "box": [-1.0, 2.3, -1.0, -0.18, -2.3, -1.15]},
+  {"part": "drop", "box": [1.79, 2.3, -1.0, 0.3, 1.15, 2.3]},
+  {"part": "drop", "box": [1.79, 2.3, -1.0, 0.3, -2.3, -1.15]},
+  {"part": "drop", "box": [1.2, 2.3, -0.5, 0.09, 5.55, 5.9]},
+  {"part": "drop", "box": [1.2, 2.3, -0.5, 0.09, -5.9, -5.55]},
+  {"part": "drop", "box": [-0.6, 1.9, -1.0, -0.45, 0.8, 1.15]},
+  {"part": "drop", "box": [-0.6, 1.9, -1.0, -0.45, -1.15, -0.8]},
+  {"part": "prop", "box": [3.05, 4.0, -2.2, 2.2, -2.2, 2.2]},
+  {"part": "glass", "material": "^Canopy", "box": [-1.0, 1.2, 0.4, 1.5, -0.75, 0.75]},
+  {"part": "drop", "material": "^Canopy"},
+  {"part": "tyres", "material": "^Engine"},
+  {"part": "drop", "material": "^Fuselage_Alum"}
+ ],
+ "wing_z": 1.0,
+ "tail_x": -3.2,
+ "body_overlap": 0.2,
+ "budget": {"body": 40000, "tail": 8000, "wingL": 10000, "wingR": 10000, "prop": 3000, "glass": 2500, "tyres": 6000},
+ "cluster": ["body", "wingL", "wingR", "tail", "tyres"],
+ "cluster_scale": {"wingL": [1, 5, 1], "wingR": [1, 5, 1], "tail": [1, 3, 3]},
+ "cluster_contraction": "Quadric",
+
+ "recolor": {"prop": [32, 32, 34], "tyres": [38, 38, 40]},
+ "nocolor": ["body", "tail", "wingL", "wingR"]
+}

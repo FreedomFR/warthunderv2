@@ -94,6 +94,16 @@ export const AIRPAINT = {
       { face: 'bottom', wing: 'starboard', x: 0.55, z: 3.9, prims: usInsignia41(0.5) },
     ],
   },
+  // General Motors FM-2 Wildcat (1944-45, the escort carriers): overall glossy sea blue, the 1943 star and bars on the rear fuselage and on the upper port and lower starboard wings (places
+  // and sizes: the published drawings of the type, `est`: the model is painted by its texture, the game's colours replace it)
+  fm2: {
+    hw: 0.8, upper: '#1d2a40', lower: '#26354d', line: -0.15, finish: [0.45, 0.0],
+    decals: [
+      { face: 'side', x: -2.4, y: 0.12, prims: usInsignia(0.34, false) },
+      { face: 'top', wing: 'port', x: 0.55, z: 3.9, prims: usInsignia(0.5, true) },
+      { face: 'bottom', wing: 'starboard', x: 0.55, z: 3.9, prims: usInsignia(0.5, true) },
+    ],
+  },
   // Aichi D3A1: dark green over grey-green, a black-blue cowling, hinomaru as on the Zero
   d3a: {
     upper: '#46563a', lower: '#a9ad9a', line: -0.02,

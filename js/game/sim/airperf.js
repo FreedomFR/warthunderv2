@@ -26,6 +26,8 @@ export const PERF = {
   f6f: { vmax: 170, vc: 90, vt: 0, vd: 0, vcl: 60, vp: 52, va: 38.6, vto: 36, vcomb: 125, bank: 82, pr: 0.7, asm: 350, roc: 15.5, roll: 1.4, nmax: 6.5, brakes: false },
   // F4F-3: 531 km/h (330 mph) at 6 100 m (about 520 km/h at the 2-3 km of the game), 2 300 ft/min (11.7 m/s) at sea level, ceiling 11 500 m, stall about 120 km/h with the flaps down at 3.4 t; a light, short-running carrier fighter
   f4f: { vmax: 147, vc: 78, vt: 0, vd: 0, vcl: 52, vp: 46, va: 35, vto: 31, vcomb: 108, bank: 82, pr: 0.75, asm: 350, roc: 11.7, roll: 1.3, nmax: 6.5, brakes: false },
+  // FM-2: 534 km/h (332 mph) with the Wright R-1820-56 and its water injection, 3 650 ft/min at sea level (about 14 m/s at the weight of a sortie), stall about 110 km/h with the flaps down at 3.75 t; the Wildcat made for the short decks of the escort carriers
+  fm2: { vmax: 148, vc: 80, vt: 0, vd: 0, vcl: 54, vp: 47, va: 36, vto: 31, vcomb: 109, bank: 82, pr: 0.75, asm: 350, roc: 14, roll: 1.4, nmax: 6.5, brakes: false },
   d3a: { vmax: 108, vc: 82, vt: 90, vd: 103, vcl: 47, vp: 43, va: 36, vto: 31, vcomb: 0, bank: 60, pr: 0.38, asm: 300, roc: 7, roll: 0.9, nmax: 5.5, brakes: true },
   b5n: { vmax: 105, vc: 72, vt: 90, vd: 92, vcl: 46, vp: 42, va: 35, vto: 31, vcomb: 0, bank: 52, pr: 0.32, asm: 280, roc: 5.2, roll: 0.8, nmax: 4.5, brakes: false },
   a6m: { vmax: 148, vc: 92, vt: 0, vd: 0, vcl: 56, vp: 50, va: 37, vto: 31, vcomb: 110, bank: 82, pr: 0.8, asm: 350, roc: 15, roll: 1.3, nmax: 6.5, brakes: false },
