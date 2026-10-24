@@ -32,7 +32,8 @@ ok(carrierCapable({ spec: PLANES.sbd }) && carrierCapable({ spec: PLANES.f6f }) 
 {
   // an aircraft of the field that has a nearer carrier lands on it, and becomes part of its air group
   const { w, af, cv } = arena();
-  const f = af.parked.find((p) => p && p.fighter);
+  const f = af.parked.find((p) => p && p.fighter && carrierCapable(p)) || af.parked.find((p) => p && p.fighter);
+  if (!carrierCapable(f)) { f.typeKey = 'f6f'; f.spec = PLANES.f6f; }      // (a field may fly only land-based types: lend it a Hellcat)
   sendHome(w, f, cv, 6000);
   const n0 = cv.air.fReady + cv.air.servicing.length;
   for (let i = 0; i < 7000 && !f.landedAt; i++) { w.update(0.1); w.drainEvents(); }

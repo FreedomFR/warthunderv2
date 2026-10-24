@@ -43,6 +43,14 @@
    "args": []
   },
   {
+   "file": "wakelock.mjs",
+   "args": []
+  },
+  {
+   "file": "dynamics.mjs",
+   "args": []
+  },
+  {
    "file": "interceptor.mjs",
    "args": []
   },

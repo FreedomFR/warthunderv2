@@ -321,6 +321,11 @@ export function planeTypeFor(nation, role, who, site) {
   return list.length === 1 || who == null ? list[0] : list[Math.floor(pickOf(role + ':' + who) * list.length)];
 }
 
+/** Is this type one of the carrier aircraft of a nation (the hook and the strength of a deck landing): the ones in the carrier lists, not the types that only fly from airfields. */
+export function isCarrierType(key) {
+  return Object.values(ROSTER).some((r) => ['dive', 'torp', 'fighter'].some((role) => (r[role] || []).includes(key)));
+}
+
 /** Every type a nation can field for a role (carrier and airfield; `site` 'carrier' only the carriers' types): to prepare the pictures, to list who flies what. */
 export function planeTypesFor(nation, role, site) {
   const out = new Set([...(ROSTER[nation] && ROSTER[nation][role] || []), ...(site === 'carrier' ? [] : ROSTER_BASE[nation] && ROSTER_BASE[nation][role] || [])]);

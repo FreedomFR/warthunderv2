@@ -3,8 +3,10 @@
 // with a hook and folding wings) can use a deck or a runway; a land-based bomber, a runway only. A carrier takes no more than its air group, an airfield as many as it has places on
 // its apron. The aircraft that is sent elsewhere becomes part of the air group of the field or the ship that takes it in.
 
+import { isCarrierType } from '../model/planes.js';
+
 /** Can this aircraft land on a carrier (the hook, the folding wings, the strength of a deck landing): the carrier aircraft, not the land-based bombers and the floatplanes. */
-export const carrierCapable = (p) => !!p.spec && !p.spec.engines && p.spec.role !== 'float' && p.spec.role !== 'level';
+export const carrierCapable = (p) => !!p.spec && !p.spec.engines && p.spec.role !== 'float' && p.spec.role !== 'level' && p.spec.role !== 'interceptor' && (!p.typeKey || isCarrierType(p.typeKey));
 
 const HOME_BIAS = 0.8;       // the home site counts for 0.8 of its distance (the aircraft goes home unless another site is much nearer)
 const MARGIN = 6000;         // m: the aircraft does not change its mind for a site that is only a little nearer

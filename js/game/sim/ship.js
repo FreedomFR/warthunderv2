@@ -38,6 +38,25 @@ function spring(s, target, dt, omega, zeta) {
   s.x += s.v * dt;
 }
 
+/**
+ * The speed of the ship after dt seconds: m dv/dt = thrust - drag, in units of the top speed (x = v / vmax; the time constant is the time she takes to reach full speed).
+ * With the throttle at u the steady speed solves x^2 = u (2 - x), so the ordered speed (the throttle) is held with the power it costs; the drag is multiplied by what the hull
+ * has taken on: the rudder, the water inside her, the damage, and a great deal once she is sinking.
+ */
+function shipSpeed(sh, dt, powered) {
+  const st = sh.stats, vmax = st.maxSpeed, x = sh.speed / vmax;
+  const a0 = 1.13 / (st.accelSeconds || 60);
+  const dm = 1 + 1.2 * Math.abs(sh.rudder) + 2.2 * Math.min(0.6, sh.waterFill || 0) + 0.5 * (sh._dmgF || 0) + (powered ? 0 : 2.5);
+  let u = 0;
+  if (powered) {
+    const xt = clamp(sh.cmd.throttle, -0.33, 1), ut = Math.sign(xt) * xt * xt / (2 - Math.abs(xt));       // the power that holds the ordered speed (a drag of dm times larger takes dm times as much)
+    const want = clamp(ut * dm + 3 * (xt - x), -0.4, 1), eff = clamp(sh.engine * sh.propulsion, 0, 1);
+    u = want > 0 ? Math.min(want, eff) : want * eff;
+  }
+  const dx = a0 * (u * (2 - Math.abs(x)) - dm * x * Math.abs(x)) * dt;
+  return (x + dx) * vmax;
+}
+
 export class Ship {
   constructor(world, spec, stats, model, team, x, z, heading, name) {
     this.id = nextId++;
@@ -452,16 +471,15 @@ export class Ship {
       if (this.rudderJam !== 0) rudderCmd = this.rudderJam;
       const rr = st.rudderRate * 2 * dt * 2.5 * (this.commandLoss ? 0.6 : 1);
       this.rudder = approach(this.rudder, clamp(rudderCmd, -1, 1), rr);
-      const turnLoss = 1 - 0.28 * Math.abs(this.rudder);
-      const eff = clamp(this.engine * this.propulsion, 0, 1);
-      const target = clamp(c.throttle, -0.33, 1) * st.maxSpeed * (0.16 + 0.84 * eff) * turnLoss;
-      const a = target > this.speed ? st.accel * (0.35 + 0.65 * eff) : st.decel;
-      this.speed = approach(this.speed, target, a * dt);
+      // longitudinal dynamics: thrust against drag, not a speed that is simply set. The throttle is the speed ordered (a fraction of the top speed); the engines give the power that holds it
+      // (what the hull's drag costs there) and more while she is slower than ordered, but never more than the machinery that is left can give: with the machinery gone she coasts, and
+      // slows down the way a hull does (the drag grows with the square of the speed), a long way, not at the rate of a brake. A hard turn, a hull full of water and the damage cost speed.
+      this.speed = shipSpeed(this, dt, true);
       const omegaTarget = this.speed / st.turnRadius * this.rudder + this.thrustBias * 0.012 * (this.speed / Math.max(1, st.maxSpeed)) * 8;
       this.yawRate += (omegaTarget - this.yawRate) * Math.min(1, dt * 1.6);
       this.heading += this.yawRate * dt;
     } else {
-      this.speed = approach(this.speed, 0, st.decel * 0.35 * dt);
+      this.speed = shipSpeed(this, dt, false);      // (no thrust: she goes on by her way and the drag of a hull that is going down takes it)
       this.yawRate *= Math.max(0, 1 - dt * 0.4);
       this.heading += this.yawRate * dt;
     }
@@ -535,6 +553,7 @@ export class Ship {
     let sSum = 0;
     for (const c of this.comps) sSum += Math.min(1, c.struct);
     const dmgF = Math.min(1, sSum / nC * 1.5);        // how battered the hull is: the structure of the compartments
+    this._dmgF = dmgF;
     const listT = (afloat ? 1 : 0) * clamp(this.listSide * dmgF * 0.05 + this.floodList * 0.9, -0.38, 0.38);
     this.listCur += (listT - this.listCur) * Math.min(1, dt * 0.3);
     // a ship that heels past the limit of her stability for long enough turns over
