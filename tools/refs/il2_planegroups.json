@@ -96,18 +96,6 @@
   "glass": 900,
   "canopy": 3500
  },
- "refine": 1.2,
- "norefine": [
-  "prop",
-  "glass",
-  "canopy"
- ],
- "minedge": 0.12,
- "colthr": 45,
- "fine": [
-  75,
-  0.03
- ],
  "hub_depth": 0.12,
  "drop_wires": true,
  "mirror_wings": "L",
@@ -144,38 +132,11 @@
  },
  "cluster_contraction": "Quadric",
  "body_overlap": 0.2,
- "refine_by_piece": {
-  "tail": {
-   "colthr": 70,
-   "minedge": 0.16,
-   "fine": [
-    110,
-    0.06
-   ]
-  },
-  "wingL": {
-   "colthr": 70,
-   "minedge": 0.16,
-   "fine": [
-    110,
-    0.06
-   ]
-  },
-  "wingR": {
-   "colthr": 70,
-   "minedge": 0.16,
-   "fine": [
-    110,
-    0.06
-   ]
-  },
-  "body": {
-   "colthr": 70,
-   "minedge": 0.16,
-   "fine": [
-    110,
-    0.06
-   ]
-  }
- }
+ "nocolor": [
+  "body",
+  "tail",
+  "wingL",
+  "wingR",
+  "canopy"
+ ]
 }

@@ -2,7 +2,7 @@
 """What an aircraft model is painted with, read from the colours of its textures (to be turned into a paint scheme of the game, model/airpaint.js): the colour of the upper and of the lower
 surfaces, the colour of the cowling, the red (or other) disc markings with their place and size in the game frame of tools/refs/planegroups.py.
 
-  python3 tools/refs/planepaint.py refs/<id>/split tools/refs/<key>_planegroups.json [--red=140,80,80]
+  python3 tools/refs/planepaint.py refs/<id>/split tools/refs/<key>_planegroups.json [--r=140 --g=90 --b=90 | --sel=r0,r1,g0,g1,b0,b1]
 
 It reads the same files and does the same turn as planegroups.py (it executes its first half), then prints: median sRGB of the faces that look up / down, of the first 0.8 m behind the nose tip
 (cowling), and the clusters of vertices that are red (r above the first number, g and b below the others): the centre (x, y, z), the radius and the way the face looks.
@@ -24,6 +24,9 @@ def med(m, label):
     if len(q): print(f'{label:34} {len(q):7} faces  median sRGB ({int(np.median(q[:,0]))}, {int(np.median(q[:,1]))}, {int(np.median(q[:,2]))})  = #{int(np.median(q[:,0])):02x}{int(np.median(q[:,1])):02x}{int(np.median(q[:,2])):02x}')
 body = (np.abs(cen[:, 2]) < 0.7) & (cen[:, 0] < 2.5) & (cen[:, 0] > -2.5)
 red = (col[:, 0] > float(fl.get('r', 140))) & (col[:, 1] < float(fl.get('g', 90))) & (col[:, 2] < float(fl.get('b', 90)))
+if fl.get('sel'):      # --sel=r0,r1,g0,g1,b0,b1: the markings are another colour (the blue disc of the American insignia, the black of a cross)
+    q = [float(v) for v in fl['sel'].split(',')]
+    red = (col[:, 0] >= q[0]) & (col[:, 0] <= q[1]) & (col[:, 1] >= q[2]) & (col[:, 1] <= q[3]) & (col[:, 2] >= q[4]) & (col[:, 2] <= q[5])
 med((n[:, 1] > 0.6) & ~red, 'upper surfaces (not red)')
 med((n[:, 1] < -0.6) & ~red, 'lower surfaces (not red)')
 med((np.abs(n[:, 2]) > 0.6) & ~red & body, 'fuselage sides (not red)')

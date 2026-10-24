@@ -523,7 +523,7 @@ fn gauge(kind: u32, uv: vec2f, ias: f32, alt: f32, hdg: f32, vsi: f32, bank: f32
     case 9u, 26u, 27u: {   // aircraft skin: riveted sheet-metal panels (ribs across the wings, frames and stringers on the fuselage), streaked by the airflow (26: the team band on the fin, painted the same way)
       rough = 0.42; f0 = vec3f(0.05);
       if (mat == 26u) { albedo = srgb2lin(in.tint.rgb) * 0.75; }
-      if (mat == 27u) { albedo = srgb2lin(airPaint(u32(in.col.r * 255.0 + 0.5), lp, select(-in.lnrm, in.lnrm, ff), gnl, fw)); rough = 0.8; }
+      if (mat == 27u) { let schemeId = u32(in.col.r * 255.0 + 0.5); albedo = srgb2lin(airPaint(schemeId, lp, select(-in.lnrm, in.lnrm, ff), gnl, fw)); let fin = airFinish(schemeId); rough = fin.x; metal = fin.y; }
       let onTop = up > 0.6;
       let pa = select(lp.x / 0.8, lp.z / 1.05, onTop);
       let pb = select(lp.y / 0.55, lp.x / 1.7, onTop);

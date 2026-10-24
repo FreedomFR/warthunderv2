@@ -49,14 +49,14 @@ export const PLANES = {
     fus: { r: 0.7, ar: 1.15, x: -0.2 }, engine: { type: 'radial', r: 0.76, len: 1.4 }, prop: { r: 1.6, n: 3, x: 0 },
     wing: { cr: 3.09, ct: 1.1, x: 0.52, y: -0.52, dih: 0.75, sweep: 0.24, t: 0.34 },
     tail: { x: -4.55, chord: 1.37, span: 5.33, fin: 2.0, finChord: 2.0, y: 0.41 }, canopy: [{ x0: 0.65, x1: 2.0, tx1: 1.7, h: 0.62 }, { x0: -0.55, x1: 0.6, tx1: 0.35, h: 0.5 }],
-    gear: 'retract', ordnance: 'bomb', stripes: false, groundY: 1.9, v4: SBD_V4,
+    gear: 'retract', ordnance: 'bomb', stripes: false, groundY: 1.9, v4: SBD_V4, paint: 'sbd',
   },
   tbf: {      // measured on the model (tools/refs/planegroups.py --measures); the retractable undercarriage is drawn by the game (the model has it up)
     name: 'TBF-1 Avenger', nation: 'USA', role: 'torp', kind: 'mono', L: 12.21, span: 16.5, mass: 5.6, hp: 4.5,
     fus: { r: 0.9, ar: 1.1, x: -0.6 }, engine: { type: 'radial', r: 0.95, len: 1.5 }, prop: { r: 2.0, n: 3, x: 0 },
     wing: { cr: 3.58, ct: 1.3, x: 0.52, y: -0.03, dih: 0.85, sweep: 0.25, t: 0.42 },
     tail: { x: -5.9, chord: 2.1, span: 6.43, fin: 2.2, finChord: 2.6, y: 0.9 }, canopy: [{ x0: 0.8, x1: 2.3, tx1: 1.9, h: 1.0 }, { x0: -0.6, x1: 0.8, tx1: 0.4, h: 0.9 }],
-    gear: 'retract', ordnance: 'torp', turret: true, groundY: 2.2, v4: TBF_V4,
+    gear: 'retract', ordnance: 'torp', turret: true, groundY: 2.2, v4: TBF_V4, paint: 'tbf',
   },
   d3a: {      // measured on the model (tools/refs/planegroups.py --probe): the elliptic wing 3.5 m of chord at the root, the tailplane 4.3 m, the fixed spatted undercarriage, two canopies
     name: 'Aichi D3A1 Type 99', nation: 'Japan', role: 'dive', kind: 'mono', L: 10.67, span: 14.365, mass: 3.6, hp: 2.8, bombKg: 250,
@@ -151,7 +151,7 @@ export const PLANES = {
     fus: { r: 0.6, ar: 1.2, x: -0.9 }, engine: { type: 'inline', r: 0.62, len: 2.4 }, prop: { r: 2.0, n: 3, x: 0 },
     wing: { cr: 3.5, ct: 0.9, x: 0.85, y: -0.4, dih: 0.3, sweep: 0.3, t: 0.3 },
     tail: { x: -5.4, chord: 2.0, span: 5.0, fin: 2.0, finChord: 2.4, y: 0.23 }, canopy: [{ x0: 0.5, x1: 1.7, tx1: 1.4, h: 0.72 }, { x0: -1.6, x1: -0.1, tx1: -0.6, h: 0.6 }],
-    gear: 'retract', ordnance: 'bomb', stripes: false, groundY: 2.2, v4: IL2_V4,
+    gear: 'retract', ordnance: 'bomb', stripes: false, groundY: 2.2, v4: IL2_V4, paint: 'il2',
   },
   fulmar: {
     name: 'Fairey Fulmar', nation: 'UK', role: 'fighter', kind: 'mono', L: 12.2, span: 14.1, mass: 4.6, hp: 3.6,
@@ -165,7 +165,7 @@ export const PLANES = {
     fus: { r: 0.55, ar: 1.0, x: -0.3 }, engine: { type: 'inline', r: 0.42, len: 1.8 }, prop: { r: 1.46, n: 3, x: 0 },
     wing: { cr: 1.9, ct: 0.45, x: 0.45, y: -0.12, dih: 0.3, sweep: 0.1, t: 0.2 },
     tail: { x: -4.4, chord: 0.9, span: 2.95, fin: 1.2, finChord: 1.5, y: 0.15 }, canopy: [{ x0: -0.75, x1: 1.4, tx1: 1.0, h: 0.63 }],
-    gear: 'retract', ordnance: null, groundY: 1.5, tailWheel: 'game', v4: BF109_V4,
+    gear: 'retract', ordnance: null, groundY: 1.5, tailWheel: 'game', v4: BF109_V4, paint: 'bf109',
   },
   d520: {
     name: 'Dewoitine D.520 (navalised)', nation: 'France', role: 'fighter', kind: 'mono', L: 8.76, span: 10.2, mass: 2.8, hp: 2.5,
@@ -183,7 +183,7 @@ export const PLANES = {
   },
   // ---- land-based bombers: several engines, built by heavy.js from the sheets of bomberdata.js ----
   ...HEAVY,
-  b29: { ...HEAVY.b29, groundY: 3.0, v4: B29_V4 },          // the B-29 is drawn from the pieces of its model (model/v4plane.js drawV4Heavy)
+  b29: { ...HEAVY.b29, groundY: 3.0, v4: B29_V4, paint: 'b29' },          // the B-29 is drawn from the pieces of its model (model/v4plane.js drawV4Heavy)
 };
 
 /** Floatplane carried on a catapult (Kingfisher, Jake, Walrus, Arado 196, Loire 130, Ro.43 style). */

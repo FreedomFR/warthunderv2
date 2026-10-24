@@ -77,19 +77,8 @@
   "prop": 1800,
   "glass": 700
  },
- "refine": 1.2,
- "norefine": [
-  "prop",
-  "glass"
- ],
- "minedge": 0.12,
- "colthr": 55,
  "hub_depth": 0.12,
  "mirror_wings": "R",
- "fine": [
-  85,
-  0.04
- ],
  "wing_envelope": {
   "side": "R",
   "margin": [
@@ -98,5 +87,11 @@
   ],
   "pct": 1.5,
   "ytop": 90
- }
+ },
+ "nocolor": [
+  "body",
+  "tail",
+  "wingL",
+  "wingR"
+ ]
 }

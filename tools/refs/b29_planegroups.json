@@ -131,18 +131,6 @@
   "bay": 2500,
   "ordnance": 8000
  },
- "refine": 3.0,
- "norefine": [
-  "prop",
-  "glass",
-  "ordnance"
- ],
- "minedge": 0.5,
- "colthr": 90,
- "fine": [
-  130,
-  0.2
- ],
  "recentre": {
   "prop": [
    5.8,
@@ -243,5 +231,12 @@
     1.2
    ]
   }
- }
+ },
+ "nocolor": [
+  "body",
+  "tail",
+  "wingL",
+  "wingR",
+  "hull"
+ ]
 }

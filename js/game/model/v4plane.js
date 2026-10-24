@@ -79,6 +79,7 @@ export function drawV4Plane(b, s, part) {
  */
 export function drawV4Heavy(b, s, part) {
   const v4 = s.v4, all = part === 'whole', X = (d) => s.cg - d;
+  const pid = s.paint ? airPaintId(s.paint) : -1, skin = (key) => (pid >= 0 ? add(b, v4, key, MAT.AIRPAINT, [pid, 0, 0]) : add(b, v4, key));
   const closedBay = () => {
     const o = s.bay, ry = Math.max(...s.body.map((q) => q[1])), r = ry * 0.97, hw = o.hw, th = Math.asin(Math.min(0.95, hw / r)), col = shade(rgb('#aeb0b2'), 0.8);
     for (const [d0, d1] of o.doors) {
@@ -89,15 +90,15 @@ export function drawV4Heavy(b, s, part) {
       }
     }
   };
-  if (all || part === 'body') { add(b, v4, 'body'); add(b, v4, 'glass', MAT.PANE, GLASS); closedBay(); }
-  if (part === 'hull') add(b, v4, 'hull');
+  if (all || part === 'body') { skin('body'); add(b, v4, 'glass', MAT.PANE, GLASS); closedBay(); }
+  if (part === 'hull') skin('hull');
   if (all || part === 'tail') {
-    add(b, v4, 'tail');
+    skin('tail');
     // the team band on both faces of the fin, laid on its skin (it narrows towards the top: the corners follow it)
     for (const q of s.tail.band || []) for (const sd of [1, -1]) b.quad([q[0], q[1], sd * q[2]], [q[3], q[1], sd * q[2]], [q[4], q[5], sd * q[6]], [q[7], q[5], sd * q[6]], rgb('#e8e6dc'), MAT.TEAMBAND, [q[0], q[1], sd * (q[2] + 1)], 1);
   }
-  if (all || part === 'wingR') add(b, v4, 'wingR');
-  if (all || part === 'wingL') add(b, v4, 'wingL');
+  if (all || part === 'wingR') skin('wingR');
+  if (all || part === 'wingL') skin('wingL');
   if (part === 'prop') add(b, v4, 'prop', MAT.AIRCRAFT);
   if (part === 'gear') add(b, v4, 'gear');
   if (part === 'bay') add(b, v4, 'bay');
