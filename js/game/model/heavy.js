@@ -367,6 +367,16 @@ function gearH(b, s, F, skin, dark) {
     // the doors that stay under the nacelle
     b.box(xg - 0.2, e.y - e.r * 0.78, z + side * (g.wr * 0.28 + 0.15), 1.4, 0.05, 0.06 + 0.02, shade(skin, 0.75), MAT.AIRCRAFT);
   }
+  // a tricycle aircraft (`noseGear: { d, wr }`) stands level on its nose wheel, a twin leg under the nose
+  if (s.noseGear) {
+    const n = s.noseGear, xn = F.X(n.d), qn = F.at(xn), yn = -s.groundY + n.wr;
+    b.beam([xn + 0.02, qn.yc - qn.ry * 0.7, 0], [xn - 0.04, yn + 0.05, 0], 0.13, 0.11, shade(skin, 0.7), MAT.AIRCRAFT);
+    b.beam([xn + 0.35, qn.yc - qn.ry * 0.7, 0], [xn + 0.0, yn + 0.25, 0], 0.07, 0.07, dark, MAT.DARK);
+    b.rodZ(xn - 0.04, yn, -0.13, 0.13, n.wr, n.wr, tyre, MAT.CANVAS, { seg: 12 });
+    b.rodZ(xn - 0.04, yn, 0.13, 0.16, n.wr * 0.55, n.wr * 0.55, hub, MAT.DARK, { seg: 8 });
+    b.rodZ(xn - 0.04, yn, -0.16, -0.13, n.wr * 0.55, n.wr * 0.55, hub, MAT.DARK, { seg: 8 });
+    return;
+  }
   // the tail wheel, long enough to hold the aircraft at the attitude of GROUND_PITCH
   const xt = F.X(s.tailWheelD), wr = 0.24, q = F.at(xt);
   const yc = -s.groundY + (xg - xt) * Math.tan(GROUND_PITCH) + wr;

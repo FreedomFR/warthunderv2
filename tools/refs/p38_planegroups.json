@@ -1,0 +1,29 @@
+{
+ "key": "p38",
+ "name": "Lockheed P-38G Lightning",
+ "fuselage": "Fuselage_Barber",
+ "axis_deg": 90,
+ "nose": "Left Prop|Right Prop",
+ "wing": "Fuselage_Barber|Aileron|Flaps",
+ "scale": { "span": 16.1 },
+ "wing_z": 0.8,
+ "tail_x": -4.6,
+ "origin_nose": 3.78,
+ "rules": [
+  { "part": "glass", "material": "Glass" },
+  { "part": "guns", "material": "Guns", "box": [3.9, 6.0, -1.0, 1.0, -1.0, 1.0] },
+  { "part": "drop", "material": "Antenna|Mesh \\(8\\)|Nacelle Mirror|Fuselage_Alum|Guns|Drop Tanks|Right Prop" },
+  { "part": "drop", "material": "Fuselage_Barber", "box": [3.7, 4.0, -1.6, -0.84, -0.2, 0.2] },
+  { "part": "prop", "material": "Left Prop" }
+ ],
+ "budget": { "body": 30000, "tail": 12000, "wingL": 40000, "wingR": 40000, "prop": 3500, "glass": 3000, "guns": 2500 },
+ "recentre": { "prop": [3.3, 0.0, 2.4446] },
+ "mirror_wings": "L",
+ "copies": {
+  "hull": { "from": "body", "box": [-20, 1.0, -5, 8, -3, 3] },
+  "burn0": { "from": "wingL", "box": [-1.2, 3.4, -1.0, 0.8, -3.2, -1.7], "budget": 2500, "axis": [0.0, -2.4446, -1.2, 0.55, 3.3, 0.6] },
+  "burn1": { "from": "wingR", "box": [-1.2, 3.4, -1.0, 0.8, 1.7, 3.2], "budget": 2500, "axis": [0.0, 2.4446, -1.2, 0.55, 3.3, 0.6] }
+ },
+ "nocolor": ["body", "tail", "wingL", "wingR", "hull", "burn0", "burn1"],
+ "recolor": { "prop": [34, 36, 38] }
+}

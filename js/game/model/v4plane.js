@@ -97,7 +97,7 @@ export function drawV4Heavy(b, s, part) {
       }
     }
   };
-  if (all || part === 'body') { skin('body'); add(b, v4, 'glass', MAT.PANE, GLASS); if (!s.bay?.modelDoors) closedBay(); }
+  if (all || part === 'body') { skin('body'); add(b, v4, 'guns'); add(b, v4, 'glass', MAT.PANE, GLASS); if (s.bay && !s.bay.modelDoors) closedBay(); }
   if (part === 'hull') skin('hull');
   if (all || part === 'tail') {
     skin('tail');

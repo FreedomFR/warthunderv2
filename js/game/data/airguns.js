@@ -71,6 +71,7 @@ export const AA_GUNS = {
 export const BELTS = {
   us50: { api50: 0.45, ap50: 0.2, ball50: 0.1, apit50: 0.25 },                  // the Navy's .50: API liked "because Japanese planes caught fire easily", a tracer in four
   us50e: { ap50: 0.35, ball50: 0.3, apit50: 0.25, api50: 0.1 },               // the Navy's .50 of 1941-42 (the F4F-3): ball, AP and tracer, the API only coming in (est)
+  us50a: { ap50: 0.4, api50: 0.2, apit50: 0.2, ball50: 0.2 },                  // the Army Air Forces' .50 of 1942: armour-piercing first, the incendiary arriving, a tracer in five (`est`)
   jp77: { ball303: 0.6, ap303: 0.4 },                                           // the 7,7 mm Type 97: ball and AP, a tracer now and then
   jp20: { hei20t99a: 0.65, ap20: 0.35 },                                        // the Type 99 cannon: HE-I (the tracer is one too) and AP-T
   uk303: { ap303: 0.4, inc303: 0.4, ball303: 0.2 },                             // late 1941: half AP, half incendiary
@@ -103,6 +104,7 @@ export const GUNS = {
   vickers: { name: 'Vickers .303', cal: 7.7, rpm: 950, v0: 745 },
   darne: { name: 'Darne (7,5 mm)', cal: 7.5, rpm: 1300, v0: 700 },
   safat77: { name: 'Breda-SAFAT (7,7 mm)', cal: 7.7, rpm: 1100, v0: 740 },
+  hsm1: { name: 'Hispano M1 (20 mm)', cal: 20, rpm: 600, v0: 850 },                // the American-built Hispano of the P-38: 600 rounds a minute, 2 800 ft/s with the M97 high-explosive round (Wikipedia, the Hispano-Suiza HS.404 article)
 };
 
 /**
@@ -133,6 +135,9 @@ export const FIXED_GUNS = {
   pl10: [{ gun: 'darne', n: 1, rpg: 500, belt: 'fr75', mount: 'fus', z: [0.4], conv: 200 }],                           // (rounds est)
   re2001: [{ gun: 'breda127', n: 2, rpg: 350, belt: 'it127', mount: 'cowl', z: [-0.25, 0.25], conv: 250 }, { gun: 'safat77', n: 2, rpg: 500, belt: 'it77', mount: 'wing', z: [2.2], conv: 250 }],
   re2001t: [{ gun: 'breda127', n: 2, rpg: 350, belt: 'it127', mount: 'cowl', z: [-0.25, 0.25], conv: 250 }, { gun: 'safat77', n: 2, rpg: 500, belt: 'it77', mount: 'wing', z: [2.2], conv: 250 }],
+  // the P-38G: a 20 mm Hispano M1 (150 rounds, a drum) and four .50 M2 (500 rounds each) in the nose on the centre line, one above the other and side by side, all firing parallel (the stations and the muzzles are those of the barrels on the model's nose: the four .50 are staggered, the cannon stands out the most)
+  p38: [{ gun: 'hsm1', n: 1, rpg: 150, belt: 'us20', mount: 'at', at: [[0.1, 0.084, 0]], where: 'dans le nez, sur l\'axe', drawn: true, conv: 400 },
+    { gun: 'm2', n: 4, rpg: 500, belt: 'us50a', mount: 'at', at: [[0.13, 0.233, -0.118], [0.32, 0.233, 0.118], [0.57, 0.112, -0.273], [0.57, 0.112, 0.273]], where: 'dans le nez, sur l\'axe', drawn: true, conv: 400 }],
   sm79: [{ gun: 'breda127', n: 1, rpg: 350, belt: 'it127', mount: 'at', at: [[6.6, 1.85, 0]], conv: 300 }],           // the fixed 12,7 mm of the hump, firing ahead
 };
 export const FIGHTER_GUNS = FIXED_GUNS;

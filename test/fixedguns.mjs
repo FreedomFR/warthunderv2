@@ -12,8 +12,8 @@ const ok = (c, m) => { console.log(c ? 'PASS' : 'FAIL', m); if (!c) { fail++; pr
 const D = Math.PI / 180;
 
 // ---- what each type carried (barrels): the published fits ----
-const FIXED = { f6f: 6, f4f: 4, fm2: 4, a6m: 4, fulmar: 8, bf109t: 3, d520: 5, mc202: 4, il2: 4, sbd: 2, tbf: 2, d3a: 2, swordfish: 1, skua: 4, ju87: 2, fi167: 1, ln401: 2, pl10: 1, re2001: 4, re2001t: 4, sm79: 1, b5n: 0 };
-const FLEX = { sbd: 2, tbf: 2, d3a: 1, b5n: 1, swordfish: 1, skua: 1, ju87: 1, fi167: 1, pl10: 2, il2: 1, ln401: 0, re2001: 0, b17: 13, b29: 13, lancaster: 8, g4m: 5, he111: 5, sm79: 4, leo451: 3, f6f: 0, f4f: 0, fm2: 0, a6m: 0 };
+const FIXED = { p38: 5, f6f: 6, f4f: 4, fm2: 4, a6m: 4, fulmar: 8, bf109t: 3, d520: 5, mc202: 4, il2: 4, sbd: 2, tbf: 2, d3a: 2, swordfish: 1, skua: 4, ju87: 2, fi167: 1, ln401: 2, pl10: 1, re2001: 4, re2001t: 4, sm79: 1, b5n: 0 };
+const FLEX = { sbd: 2, tbf: 2, d3a: 1, b5n: 1, swordfish: 1, skua: 1, ju87: 1, fi167: 1, pl10: 2, il2: 1, ln401: 0, re2001: 0, b17: 13, b29: 13, lancaster: 8, g4m: 5, he111: 5, sm79: 4, leo451: 3, f6f: 0, f4f: 0, fm2: 0, a6m: 0, p38: 0 };
 for (const [k, n] of Object.entries(FIXED)) {
   const fit = FIXED_GUNS[k] || [], have = fit.reduce((a, g) => a + g.n, 0);
   ok(have === n, `${k}: ${have} fixed guns (the real aircraft: ${n})`);
@@ -48,6 +48,9 @@ const f4f = armament('f4f');
 ok(f4f.length === 1 && f4f[0].mz.length === 4 && f4f[0].mz.filter((m) => m.z > 0).length === 2 && f4f[0].mz.every((m) => Math.abs(m.z) > 1.4 && Math.abs(m.z) < 2.3) && f4f[0].rpg === 430, 'the Wildcat has two .50 in each wing with 430 rounds each, as muzzles');
 const fm2 = armament('fm2');
 ok(fm2.length === 1 && fm2[0].mz.length === 4 && fm2[0].mz.filter((m) => m.z > 0).length === 2 && fm2[0].mz.every((m) => Math.abs(m.z) > 1.9 && Math.abs(m.z) < 2.7) && fm2[0].rpg === 430, 'the FM-2 has two .50 in each wing with 430 rounds each, as muzzles');
+const p38 = armament('p38');
+ok(p38.length === 2 && p38.find((g) => g.cal === 20).mz.length === 1 && p38.find((g) => g.cal === 20).rpg === 150 && p38.find((g) => g.cal === 12.7).mz.length === 4 && p38.find((g) => g.cal === 12.7).rpg === 500, 'the P-38 has one 20 mm (150 rounds) and four .50 (500 rounds each)');
+ok(p38.every((g) => g.mz.every((m) => Math.abs(m.z) < 0.4 && m.x > 4.2 && m.x < PLANES.p38.L)), 'the five guns of the P-38 are in the nose, on the centre line, ahead of the propellers');
 ok(armament('a6m').some((g) => g.cal === 20 && g.mz.every((m) => Math.abs(m.z) > 1.5)) && armament('a6m').some((g) => g.cal < 10 && g.mz.every((m) => Math.abs(m.z) < 0.5)), 'the Zero: the cannons in the wings, the machine guns over the engine');
 ok(armament('bf109t').some((g) => g.mz.length === 1 && g.mz[0].z === 0), 'the Bf 109 has its cannon in the hub, on the axis');
 

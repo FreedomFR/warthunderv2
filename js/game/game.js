@@ -140,7 +140,7 @@ export class Game {
     const w = this.world, nations = new Set();
     for (const s of w.ships) { this.shipVisuals.forModel(s.model); if (s.air) nations.add(s.stats.nation); }
     for (const b of w.bases) nations.add(b.nation);
-    for (const n of nations) for (const role of ['dive', 'torp', 'fighter', 'level']) for (const k of planeTypesFor(n, role)) this.planeVisuals.get(k);
+    for (const n of nations) for (const role of ['dive', 'torp', 'fighter', 'level', 'interceptor']) for (const k of planeTypesFor(n, role)) this.planeVisuals.get(k);
     if (nations.size) this.planeVisuals.ordnance();
     this.vegetation.warm();
   }
