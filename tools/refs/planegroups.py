@@ -285,6 +285,17 @@ for name in sorted(set(part) - {'drop'}):
         print(f'{name}: {int(inner.sum())} inner triangles dropped (shell)'); t = t[~inner]
     used = np.unique(I[t]); remap = -np.ones(nv, dtype=np.int64); remap[used] = np.arange(len(used))
     V, Cc, T = Q[used], C[used].astype(np.float64), remap[I[t]]
+    if name == 'prop' and cfg.get('reblade'):
+        # the model's propeller has another number of blades than the real aircraft: one blade is kept (the triangles whose centre lies within `width` degrees of the angle `centre`, measured round the
+        # x axis from straight up, to starboard) and copied at equal spacing: "reblade": {"n": 4, "centre": 0, "width": 30}
+        rb = cfg['reblade']; ct = V[T].mean(1); an = np.degrees(np.arctan2(ct[:, 2], ct[:, 1])); da = (an - rb.get('centre', 0) + 180) % 360 - 180
+        Tb = T[np.abs(da) < rb.get('width', 30)]; ub = np.unique(Tb); rm = -np.ones(len(V), dtype=np.int64); rm[ub] = np.arange(len(ub)); Vb, Cb, Tb = V[ub], Cc[ub], rm[Tb]
+        Vs, Cs, Ts = [], [], []; off = 0
+        for k in range(rb['n']):
+            ph = np.radians(360.0 * k / rb['n']); c_, s_ = np.cos(ph), np.sin(ph)
+            Vk = Vb.copy(); Vk[:, 1] = Vb[:, 1] * c_ - Vb[:, 2] * s_; Vk[:, 2] = Vb[:, 1] * s_ + Vb[:, 2] * c_
+            Vs.append(Vk); Cs.append(Cb); Ts.append(Tb + off); off += len(Vb)
+        V, Cc, T = np.concatenate(Vs), np.concatenate(Cs), np.concatenate(Ts); print(f"prop: {rb['n']} blades from one")
     V0, C0 = V, Cc
     V, Cc, T = decimate(V, Cc, T, budget.get(name, 0), cfg.get('boundary_by_piece', {}).get(name), cfg.get('weld_by_piece', {}).get(name, 0.002), name)
     if cfg.get('refine') and name not in cfg.get('norefine', []):      # (the colour is then read again, at every vertex, from the full-resolution mesh)

@@ -1,0 +1,27 @@
+{
+ "key": "spitfire",
+ "name": "Supermarine Spitfire Mk XII",
+ "axis_deg": -90,
+ "nose_sign": -1,
+ "scale": {"span": 9.93},
+ "rules": [
+  {"part": "glass", "material": "glass_0"},
+  {"part": "drop", "material": "mirror_0"},
+  {"part": "drop", "box": [-1.4, -1.15, 0.5, 1.4, -0.06, 0.06]},
+  {"part": "drop", "box": [0.55, 1.2, -0.65, -0.25, 4.4, 4.6]},
+  {"part": "drop", "box": [1.95, 2.8, -0.6, 0.1, 2.15, 2.5]},
+  {"part": "drop", "box": [1.95, 2.8, -0.6, 0.1, -2.5, -2.15]},
+  {"part": "body", "box": [2.8, 4.2, -0.37, 0.37, -0.37, 0.37]},
+  {"part": "prop", "box": [3.28, 3.5, -2.0, 2.0, -2.0, 2.0]}
+ ],
+ "reblade": {"n": 4, "centre": 0, "width": 30},
+ "wing_z": 0.85,
+ "tail_x": -3.0,
+ "budget": {"body": 50000, "tail": 12000, "wingL": 14000, "wingR": 14000, "prop": 3000, "glass": 1500},
+ "needles": {"body": {"box": [-3.3, 3.9, -1.5, 2.0, -1.5, 1.5], "edge": 0.1, "ar": 0.12}, "wingL": {"box": [-1, 3, -1.5, 1, -5.5, 0], "edge": 0.1, "ar": 0.12}, "wingR": {"box": [-1, 3, -1.5, 1, 0, 5.5], "edge": 0.1, "ar": 0.12}},
+ "cluster": ["body", "wingL", "wingR", "glass"],
+ "cluster_scale": {"wingL": [1, 5, 1], "wingR": [1, 5, 1]},
+ "cluster_contraction": "Quadric",
+ "hub_depth": 0.2,
+ "nocolor": ["body", "tail", "wingL", "wingR"]
+}

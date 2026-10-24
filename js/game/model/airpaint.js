@@ -92,6 +92,19 @@ export const AIRPAINT = {
       { face: 'bottom', wing: 'starboard', x: 0.4, z: 4.3, prims: usInsignia(0.55, true) },
     ],
   },
+  // Supermarine Spitfire Mk XII (1943, No. 41 Squadron): the day fighter scheme, dark green and ocean grey above, medium sea grey below, a sky spinner, the roundel with its yellow ring on the
+  // fuselage, the roundels on both faces of both wings and the flash on the fin (places and sizes measured on the model; `est`: the squadron code letters are not painted)
+  spitfire: {
+    hw: 0.9, upper: '#3d4a33', lower: '#8a979b', line: -0.2, finish: [0.78, 0.0],
+    camo: [{ col: '#6a7377', scale: 0.55, thr: 0.5, seed: 4, sides: true }],
+    cowl: { x0: 2.85, col: '#a9c3a8', hw: 0.4 },
+    decals: [
+      { face: 'side', x: -2.0, y: 0.08, prims: raf(0.36, true) },
+      { face: 'side', x: -4.55, y: 0.7, prims: [{ rect: [0.075, 0.225, -0.45, 0.45], col: '#1f3a78' }, { rect: [-0.075, 0.075, -0.45, 0.45], col: '#eeece4' }, { rect: [-0.225, -0.075, -0.45, 0.45], col: '#b3222a' }] },
+      { face: 'top', wing: 'both', x: 0.8, z: 3.95, prims: raf(0.5, false) },
+      { face: 'bottom', wing: 'both', x: 0.8, z: 3.95, prims: raf(0.5, false) },
+    ],
+  },
   // Aichi D3A1: dark green over grey-green, a black-blue cowling, hinomaru as on the Zero
   d3a: {
     upper: '#46563a', lower: '#a9ad9a', line: -0.02,

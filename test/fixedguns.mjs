@@ -12,8 +12,8 @@ const ok = (c, m) => { console.log(c ? 'PASS' : 'FAIL', m); if (!c) { fail++; pr
 const D = Math.PI / 180;
 
 // ---- what each type carried (barrels): the published fits ----
-const FIXED = { f6f: 6, p40: 6, a6m: 4, fulmar: 8, bf109t: 3, d520: 5, mc202: 4, il2: 4, sbd: 2, tbf: 2, d3a: 2, swordfish: 1, skua: 4, ju87: 2, fi167: 1, ln401: 2, pl10: 1, re2001: 4, re2001t: 4, sm79: 1, b5n: 0 };
-const FLEX = { p40: 0, sbd: 2, tbf: 2, d3a: 1, b5n: 1, swordfish: 1, skua: 1, ju87: 1, fi167: 1, pl10: 2, il2: 1, ln401: 0, re2001: 0, b17: 13, b29: 13, lancaster: 8, g4m: 5, he111: 5, sm79: 4, leo451: 3, f6f: 0, a6m: 0 };
+const FIXED = { f6f: 6, p40: 6, spitfire: 6, a6m: 4, fulmar: 8, bf109t: 3, d520: 5, mc202: 4, il2: 4, sbd: 2, tbf: 2, d3a: 2, swordfish: 1, skua: 4, ju87: 2, fi167: 1, ln401: 2, pl10: 1, re2001: 4, re2001t: 4, sm79: 1, b5n: 0 };
+const FLEX = { p40: 0, spitfire: 0, sbd: 2, tbf: 2, d3a: 1, b5n: 1, swordfish: 1, skua: 1, ju87: 1, fi167: 1, pl10: 2, il2: 1, ln401: 0, re2001: 0, b17: 13, b29: 13, lancaster: 8, g4m: 5, he111: 5, sm79: 4, leo451: 3, f6f: 0, a6m: 0 };
 for (const [k, n] of Object.entries(FIXED)) {
   const fit = FIXED_GUNS[k] || [], have = fit.reduce((a, g) => a + g.n, 0);
   ok(have === n, `${k}: ${have} fixed guns (the real aircraft: ${n})`);
@@ -47,6 +47,8 @@ ok(f6f.length === 1 && f6f[0].mz.length === 6 && f6f[0].mz.filter((m) => m.z > 0
 ok(armament('a6m').some((g) => g.cal === 20 && g.mz.every((m) => Math.abs(m.z) > 1.5)) && armament('a6m').some((g) => g.cal < 10 && g.mz.every((m) => Math.abs(m.z) < 0.5)), 'the Zero: the cannons in the wings, the machine guns over the engine');
 const p40 = armament('p40');
 ok(p40.length === 1 && p40[0].mz.length === 6 && p40[0].mz.filter((m) => m.z > 0).length === 3 && p40[0].mz.every((m) => Math.abs(Math.abs(m.z) - 1.9) < 0.4), 'the P-40E has three .50 in each wing, as muzzles at the stations of the model (1.7 to 2.1 m from the centre line)');
+const spit = armament('spitfire');
+ok(spit.length === 2 && spit.some((g) => g.cal === 20 && g.mz.length === 2 && g.mz.every((m) => Math.abs(m.z) < 2.6)) && spit.some((g) => g.cal < 10 && g.mz.length === 4 && g.mz.every((m) => Math.abs(m.z) > 2.9)), 'the Spitfire Mk XII has a 20 mm cannon in each wing, inboard of two .303');
 ok(armament('bf109t').some((g) => g.mz.length === 1 && g.mz[0].z === 0), 'the Bf 109 has its cannon in the hub, on the axis');
 
 // ---- the strike aircraft fire ----

@@ -29,6 +29,7 @@ import * as LANCASTER_V4 from './aircraft/lancaster_v4.js';
 import * as B5N_V4 from './aircraft/b5n_v4.js';
 import * as F6F_V4 from './aircraft/f6f_v4.js';
 import * as P40_V4 from './aircraft/p40_v4.js';
+import * as SPITFIRE_V4 from './aircraft/spitfire_v4.js';
 import * as JU87_V4 from './aircraft/ju87_v4.js';
 import * as RO43_V4 from './aircraft/ro43_v4.js';
 
@@ -176,6 +177,13 @@ export const PLANES = {
     tail: { x: -4.65, chord: 1.35, span: 3.93, fin: 1.2, finChord: 2.0, y: 0.26 }, canopy: [{ x0: -1.7, x1: 0.62, tx1: 0.1, h: 0.5 }],
     gear: 'retract', ordnance: null, groundY: 1.86, groundPitch: 0.223, v4: P40_V4, paint: 'p40',
   },
+  spitfire: {      // measured on the model of a Mk XII with clipped wings (tools/refs/planegroups.py --measures): the wing 2.5 m of chord at the root and 1.3 m at 4.9 m from the centre line, the tailplane 3.2 m across, the glass of the canopy; the model has its undercarriage up and its tail wheel down (the game draws the main wheels); the propeller of the model has five blades, the Mk XII's Rotol had four (one blade is copied, `reblade`)
+    name: 'Supermarine Spitfire Mk XII', nation: 'UK', role: 'fighter', kind: 'mono', L: 9.65, span: 9.93, mass: 3.4, S: 21.5, hp: 2.8,
+    fus: { r: 0.42, ar: 1.4, x: -0.4 }, engine: { type: 'inline', r: 0.45, len: 2.2 }, prop: { r: 1.48, n: 4, x: 0 },
+    wing: { cr: 2.5, ct: 0.5, x: 0.52, y: -0.7, dih: 0.4, sweep: 0.3, t: 0.3, elliptic: true },
+    tail: { x: -4.63, chord: 1.2, span: 3.22, fin: 1.18, finChord: 1.9, y: 0.22 }, canopy: [{ x0: -1.04, x1: 0.22, tx1: -0.1, h: 0.26 }],
+    gear: 'retract', ordnance: null, groundY: 1.4, v4: SPITFIRE_V4, paint: 'spitfire',
+  },
   bf109t: {      // drawn from the model of a Bf 109 F-4 (tools/refs/planegroups.py --measures): the T-2's longer wing tips are not modelled; the hook stays procedural, the undercarriage is the game's (the model has it up)
     name: 'Messerschmitt Bf 109 F-4', nation: 'Germany', role: 'fighter', kind: 'mono', L: 8.85, span: 10.24, mass: 2.9, S: 16.05, hp: 2.6,
     fus: { r: 0.55, ar: 1.0, x: -0.3 }, engine: { type: 'inline', r: 0.42, len: 1.8 }, prop: { r: 1.46, n: 3, x: 0 },
@@ -253,6 +261,7 @@ const ROSTER = {
 };
 const ROSTER_BASE = {      // the same shape: the roles that an airfield fills differently from a carrier
   USA: { fighter: ['p40', 'f6f'] },
+  UK: { fighter: ['spitfire', 'fulmar'] },
 };
 
 /** A stable number in [0, 1) from a name: the same carrier or airfield always flies the same type of a role. */
